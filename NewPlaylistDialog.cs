@@ -43,15 +43,39 @@ namespace Pickles_Playlist_Editor
         {
             if (!GoButton.Enabled)
                 return;
+            string playlistName = PlaylistNameTextBox.Text;
+            string directory = DirectoryPathTextBox.Text;
+            Task.Run(() => DoGo(playlistName, directory));
+
+            this.Close();
+        }
+
+        private void SetProgressBarPercent(int value)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action<int>(SetProgressBarPercent), value);
+                return;
+            }
+            MainWindow main = (MainWindow)Application.OpenForms["MainWindow"];
+            main.SetProgressBarPercent(value);
+        }
+
+        private async Task<bool> DoGo(string playlistName, string directory)
+        {
             try
             {
-                Playlist.Create(PlaylistNameTextBox.Text, DirectoryPathTextBox.Text);
-                this.Close();
+                MainWindow main = (MainWindow)Application.OpenForms["MainWindow"];
+                main.SetProgressBarText("Importing songs...");
+                Playlist.Create(playlistName, directory, SetProgressBarPercent);
+                SetProgressBarPercent(0);
+                main.LoadPlaylists();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error creating playlist: " + ex.Message);
             }
+            return true;
         }
     }
 }

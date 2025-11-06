@@ -88,7 +88,7 @@
             label2.Name = "label2";
             label2.Size = new Size(884, 20);
             label2.TabIndex = 2;
-            label2.Text = "Music Files Directory (ogg)";
+            label2.Text = "Music Files Directory (optional)";
             // 
             // tableLayoutPanel2
             // 

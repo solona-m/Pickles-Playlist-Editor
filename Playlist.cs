@@ -22,18 +22,18 @@ namespace Pickles_Playlist_Editor
         public List<Option> Options { get; set; } = new List<Option>();
 
 
-        public static void Create(string playlistName, string dir)
+        public static void Create(string playlistName, string dir, Action<int>? callback)
         {
             Playlist group = new Playlist();
             group.Name = playlistName;
             group.Options = new List<Option>();
 
             Playlist mergedGroup = null;
-            var fileNames = Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*_" + playlistName + ".json");
+            var groupFileNames = Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*_" + playlistName + ".json");
             string fileName;
-            if (fileNames.Length == 1)
+            if (groupFileNames.Length == 1)
             {
-                fileName = fileNames[0];
+                fileName = groupFileNames[0];
                 mergedGroup = JsonConvert.DeserializeObject<Playlist>(File.ReadAllText(fileName));
             }
             else
@@ -42,8 +42,8 @@ namespace Pickles_Playlist_Editor
                 opt.Name = "Off";
                 opt.Files = new Dictionary<string, string>();
                 group.Options.Add(opt);
-                fileNames = Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*");
-                List<string> groupfiles = new List<string>(fileNames);
+                groupFileNames = Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*");
+                List<string> groupfiles = new List<string>(groupFileNames);
                 groupfiles.Sort();
                 string lastName = groupfiles[groupfiles.Count - 1];
                 fileName = lastName;
@@ -56,25 +56,25 @@ namespace Pickles_Playlist_Editor
 
             if (!string.IsNullOrEmpty(dir))
             {
-                foreach (string file in Directory.GetFiles(dir, "*.ogg", SearchOption.TopDirectoryOnly))
-                {
-                    AddFiles(playlistName, mergedGroup, file);
+                int count = 0, totalCount = 0;
+                foreach (string ext in Settings.SupportedFileTypes)
+                { 
+                    string[] fileNames = Directory.GetFiles(dir, "*" + ext, SearchOption.AllDirectories);
+                    totalCount += fileNames.Length;
                 }
-                foreach (string file in Directory.GetFiles(dir, "*.wav", SearchOption.TopDirectoryOnly))
+
+                foreach (string ext in Settings.SupportedFileTypes)
                 {
-                    AddFiles(playlistName, mergedGroup, file);
-                }
-                foreach (string file in Directory.GetFiles(dir, "*.scd", SearchOption.AllDirectories))
-                {
-                    AddFiles(playlistName, mergedGroup, file);
+                    string[] fileNames = Directory.GetFiles(dir, "*"+ext, SearchOption.AllDirectories);
+                    
+                    foreach (string file in fileNames)
+                    {
+                        AddFiles(playlistName, mergedGroup, file);
+                        if (callback != null)
+                            callback((int)((float)(++count) / totalCount * 100));
+                    }
                 }
             }
-            /*
-            foreach (string file in Directory.GetFiles(dir, "*.mp3", SearchOption.TopDirectoryOnly))
-            {
-                opt = AddFiles(Settings.PenumbraLocation, Settings.ModName, playlistName, group, file);
-            }
-            */
 
             string json = JsonConvert.SerializeObject(mergedGroup, Formatting.Indented);
 
@@ -125,23 +125,30 @@ namespace Pickles_Playlist_Editor
             return playlists;
         }
 
-        public void Add(string[] fileNames)
+        public void Add(string[] fileNames, Action<int>? callback = null)
         {
+            int count = 0;
             foreach (string file in fileNames)
             {
-                AddFiles(Name, this, file);
+                if (Settings.SupportedFileTypes.Contains(Path.GetExtension(file).ToLower()))
+                    AddFiles(Name, this, file);
+                if (callback != null)
+                    callback((int)((float)(++count)/fileNames.Length*100));
             }
             Save();
         }
 
-        public void Insert(string[] fileNames, int index)
+        public void Insert(string[] fileNames, int index, Action<int>? callback = null)
         {
+            int count = 0;
             foreach (string file in fileNames)
             {
                 Option opt = AddFiles(Name, this, file);
                 Options.RemoveAt(Options.Count - 1);
                 Options.Insert(index, opt);
                 index++;
+                if (callback != null)
+                    callback((int)((float)(++count) / fileNames.Length * 100));
             }
             Save();
         }
@@ -157,6 +164,8 @@ namespace Pickles_Playlist_Editor
 
         public void Delete()
         {
+            if (string.IsNullOrEmpty(Name))
+                return;
             if (Directory.Exists(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name)))
                 Directory.Delete(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name), true);
             File.Delete(Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*_" + Name + ".json")[0]);

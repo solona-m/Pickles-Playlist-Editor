@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Linq;
 using Pickles_Playlist_Editor;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
@@ -29,6 +30,12 @@ namespace Pickles_Playlist_Editor
 
         public void LoadPlaylists()
         {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(LoadPlaylists));
+                return;
+            }
+
             try
             {
                 Playlists = Playlist.GetAll();
@@ -79,6 +86,31 @@ namespace Pickles_Playlist_Editor
             DoDragDrop(e);
         }
 
+        public void SetProgressBarPercent(int percent)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action<int>(SetProgressBarPercent), percent);
+                return;
+            }
+
+            if (percent < 0) percent = 0;
+            if (percent > 100) percent = 100;
+            progressBar1.Value = percent;
+            if (percent == 100)
+                progressBar1.ResetText();
+        }
+
+        public void SetProgressBarText(string text)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action<string>(SetProgressBarText), text);
+                return;
+            }
+            progressBar1.Text = text;
+        }
+
         private async Task<bool> DoDragDrop(DragEventArgs e)
         {
             try
@@ -113,20 +145,23 @@ namespace Pickles_Playlist_Editor
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
                 if (files != null && files.Length > 0)
                 {
+                    SetProgressBarText("Importing songs...");
+                    progressBar1.Value = 0;
                     if (targetNode.Level == 2)
                     {
                         int index = targetNode.Parent.Nodes.IndexOf(targetNode) + 1;
-                        targetPlaylist.Insert(files, index);
+                        targetPlaylist.Insert(files, index, SetProgressBarPercent);
                     }
                     else
                     {
-                        targetPlaylist.Add(files);
+                        targetPlaylist.Add(files, SetProgressBarPercent);
                     }
 
-                    
+
                     LoadPlaylists();
                     PlaylistTreeView.Nodes[0].Expand();
                     PlaylistTreeView.Nodes[0].Nodes[parentName].Expand();
+                    SetProgressBarPercent(0);
                     return false;
                 }
 
@@ -262,7 +297,9 @@ namespace Pickles_Playlist_Editor
                                 Option song = playlist.Options.Find(x => x.Name == subChild.Text);
                                 playlist.Options.Remove(song);
                                 playlist.Save();
-                                Directory.Delete(Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlist.Name, song.Name), true);
+                                string songDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlist.Name, song.Name);
+                                if (Directory.Exists(songDirectory))
+                                    Directory.Delete(songDirectory, true);
                             }
                         }
                     }

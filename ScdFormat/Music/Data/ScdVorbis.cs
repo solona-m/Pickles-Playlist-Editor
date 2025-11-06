@@ -203,8 +203,7 @@ namespace VfxEditor.ScdFormat.Music.Data {
 
         public static ScdAudioEntry Importmp3(string mp3Path, ScdAudioEntry oldEntry)
         {
-            ScdUtils.Convertmp3toOgg(mp3Path);
-            return ImportOgg(Path.Combine(Path.GetDirectoryName(mp3Path), "ogg", Path.GetFileNameWithoutExtension(mp3Path) + ".ogg"), oldEntry);
+            return ImportOgg(ScdUtils.Convertmp3toOgg(mp3Path), oldEntry);
         }
 
         // ================================

@@ -14,12 +14,12 @@ namespace VfxEditor.Formats.ScdFormat.Utils {
             InteropUtils.Run( "oggenc2.exe", "-s 0 -q 6 --scale 1.0 --resample 44100 -o \"" + Path.GetDirectoryName(wavPath) + "\" \""+wavPath+"\"", true, out var _ );
         }
 
-        public static void Convertmp3toOgg(string mp3Path)
+        public static string Convertmp3toOgg(string mp3Path)
         {
             Process process = new Process();
             process.StartInfo.FileName = "ffmpeg.exe";
             process.StartInfo.UseShellExecute = false;
-            //process.StartInfo.CreateNoWindow = true;
+            process.StartInfo.CreateNoWindow = true;
             //process.StartInfo.RedirectStandardOutput = true; 
             //process.StartInfo.RedirectStandardError = true;
             Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(mp3Path), "ogg"));
@@ -28,13 +28,22 @@ namespace VfxEditor.Formats.ScdFormat.Utils {
             process.StartInfo.Arguments = "-i " + '"' + mp3Path + '"' + " -vn -acodec libvorbis -f ogg  -af \"apad=pad_dur=5\" " + '"' + oggNameV + '"';
             process.Start();
             process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidDataException("Error converting mp3 to ogg.");
+            }
 
-            string oggName = Path.Combine(Path.GetDirectoryName(mp3Path), "ogg", Path.GetFileNameWithoutExtension(mp3Path) + "_v.ogg");
+            string oggName = Path.Combine(Path.GetDirectoryName(mp3Path), "ogg", Path.GetFileNameWithoutExtension(mp3Path) + ".ogg");
             if (File.Exists(oggName)) File.Delete(oggName);
             process.StartInfo.Arguments = "-i " + '"' + oggNameV + '"' + " -vn -codec:a copy " + '"' + oggName + '"';
             process.Start();
             process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidDataException("Error stripping cover art.");
+            }
             File.Delete(oggNameV);
+            return oggName;
         }
 
 

@@ -7,6 +7,7 @@ namespace Pickles_Playlist_Editor
         private static string s_valueName = "PenumbraPath";
         private static string s_subKey = @"SOFTWARE\ScdConverter";
         private static string s_defaultModName = "Gimme Pickle's DJ Muzik, Movez, and VFX";
+        public static string[] SupportedFileTypes = new string[] { ".ogg", ".wav", ".mp3", ".m4a", ".scd" };
 
         public static string PenumbraLocation
         {

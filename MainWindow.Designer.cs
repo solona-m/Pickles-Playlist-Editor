@@ -32,6 +32,7 @@
             panel1 = new Panel();
             tableLayoutPanel1 = new TableLayoutPanel();
             PlaylistTreeView = new TreeView();
+            progressBar1 = new CustomProgressBar();
             toolStrip1 = new ToolStrip();
             NewButton = new ToolStripButton();
             DeleteButton = new ToolStripButton();
@@ -58,12 +59,14 @@
             tableLayoutPanel1.ColumnCount = 1;
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tableLayoutPanel1.Controls.Add(PlaylistTreeView, 0, 1);
+            tableLayoutPanel1.Controls.Add(progressBar1, 0, 2);
             tableLayoutPanel1.Dock = DockStyle.Fill;
             tableLayoutPanel1.Location = new Point(0, 25);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
-            tableLayoutPanel1.RowCount = 2;
+            tableLayoutPanel1.RowCount = 3;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 5F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
             tableLayoutPanel1.Size = new Size(1075, 619);
             tableLayoutPanel1.TabIndex = 2;
             // 
@@ -73,13 +76,21 @@
             PlaylistTreeView.Dock = DockStyle.Fill;
             PlaylistTreeView.Location = new Point(3, 8);
             PlaylistTreeView.Name = "PlaylistTreeView";
-            PlaylistTreeView.Size = new Size(1069, 608);
-            PlaylistTreeView.TabIndex = 0;
+            PlaylistTreeView.Size = new Size(1069, 580);
+            PlaylistTreeView.TabIndex = 2;
             PlaylistTreeView.AfterCheck += PlaylistTreeView_AfterCheck;
             PlaylistTreeView.ItemDrag += PlaylistTreeView_ItemDrag;
             PlaylistTreeView.VisibleChanged += playlistTreeView_onload;
             PlaylistTreeView.DragDrop += PlaylistTreeView_DragDrop;
             PlaylistTreeView.DragEnter += PlaylistTreeView_DragEnter;
+            // 
+            // progressBar1
+            // 
+            progressBar1.Dock = DockStyle.Fill;
+            progressBar1.Location = new Point(3, 594);
+            progressBar1.Name = "progressBar1";
+            progressBar1.Size = new Size(1069, 22);
+            progressBar1.TabIndex = 3;
             // 
             // toolStrip1
             // 
@@ -157,5 +168,41 @@
         private ToolStripButton SettingsButton;
         private ToolStripButton ShuffleButton;
         private TableLayoutPanel tableLayoutPanel1;
+        private CustomProgressBar progressBar1;
+
+        class CustomProgressBar : ProgressBar
+        {
+            public CustomProgressBar()
+            {
+                this.SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                //base.OnPaint(e);
+
+                Rectangle rect = this.ClientRectangle;
+                Graphics g = e.Graphics;
+
+                ProgressBarRenderer.DrawHorizontalBar(g, rect);
+                rect.Inflate(-3, -3);
+                if (this.Value > 0)
+                {
+                    Rectangle clip = new Rectangle(rect.X, rect.Y, (int)Math.Round(((float)this.Value / this.Maximum) * rect.Width), rect.Height);
+                    ProgressBarRenderer.DrawHorizontalChunks(g, clip);
+                }
+
+                string text = $"{Text} - {Value}%";
+
+                if (Value == 0)
+                    text = $"{Text}";
+                using (Font font = new Font("Arial", 10))
+                {
+                    SizeF textSize = e.Graphics.MeasureString(text, font);
+                    PointF location = new PointF((Width - textSize.Width) / 2, (Height - textSize.Height) / 2);
+                    e.Graphics.DrawString(text, font, Brushes.Black, location);
+                }
+            }
+        }
     }
 }
