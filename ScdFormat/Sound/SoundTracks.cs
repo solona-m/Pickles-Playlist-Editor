@@ -1,0 +1,42 @@
+using Dalamud.Bindings.ImGui;
+using System.Collections.Generic;
+using System.IO;
+using VfxEditor.Parsing;
+using VfxEditor.Ui.Interfaces;
+
+namespace VfxEditor.ScdFormat {
+    public class SoundTracks {
+        public readonly List<SoundTrackInfo> Entries = [];
+
+        public SoundTracks() {
+        }
+
+        public void Read( BinaryReader reader, byte entryCount ) {
+            for( var i = 0; i < entryCount; i++ ) {
+                var newEntry = new SoundTrackInfo();
+                newEntry.Read( reader );
+                Entries.Add( newEntry );
+            }
+        }
+
+        public void Write( BinaryWriter writer ) {
+            Entries.ForEach( x => x.Write( writer ) );
+        }
+
+    }
+
+    public class SoundTrackInfo  {
+        public readonly ParsedShort TrackIdx = new( "##Track" );
+        public readonly ParsedShort AudioIdx = new( "##Audio" );
+
+        public void Read( BinaryReader reader ) {
+            TrackIdx.Read( reader );
+            AudioIdx.Read( reader );
+        }
+
+        public void Write( BinaryWriter writer ) {
+            TrackIdx.Write( writer );
+            AudioIdx.Write( writer );
+        }
+    }
+}

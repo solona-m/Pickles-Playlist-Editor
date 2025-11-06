@@ -1,0 +1,311 @@
+using Pickles_Playlist_Editor;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
+
+namespace Pickles_Playlist_Editor
+{
+    public partial class MainWindow : Form
+    {
+        private Dictionary<string, Playlist> Playlists { get; set; }
+
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void panel1_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void playlistTreeView_onload(object sender, EventArgs e)
+        {
+            LoadPlaylists();
+        }
+
+        public void LoadPlaylists()
+        {
+            try
+            {
+                Playlists = Playlist.GetAll();
+                PlaylistTreeView.Nodes.Clear();
+                PlaylistTreeView.ImageList = new ImageList();
+                PlaylistTreeView.ImageList.Images.Add("playlist", Properties.Resources.playlistIcon);
+                PlaylistTreeView.ImageList.Images.Add("song", Properties.Resources.noteIcon);
+                TreeNode rootNode = new TreeNode("Playlists");
+
+                foreach (Playlist playlist in Playlists.Values)
+                {
+                    TreeNode playlistNode = new TreeNode(playlist.Name);
+                    playlistNode.ImageKey = "playlist";
+                    playlistNode.Name = playlist.Name;
+                    rootNode.Nodes.Add(playlistNode);
+                    if (playlist.Options == null) continue;
+                    foreach (Option song in playlist.Options)
+                    {
+                        TreeNode songNode = new TreeNode(song.Name);
+                        songNode.ImageKey = "song";
+                        playlistNode.Nodes.Add(songNode);
+                    }
+                }
+                PlaylistTreeView.Nodes.Add(rootNode);
+                PlaylistTreeView.CheckBoxes = true;
+                rootNode.Expand();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error loading playlists: " + ex.Message);
+                return;
+            }
+        }
+
+
+        private void PlaylistTreeView_ItemDrag(object sender, ItemDragEventArgs e)
+        {
+            DoDragDrop(e.Item, DragDropEffects.Move);
+        }
+
+        private void PlaylistTreeView_DragEnter(object sender, DragEventArgs e)
+        {
+            e.Effect = DragDropEffects.Move;
+        }
+
+        private void PlaylistTreeView_DragDrop(object sender, DragEventArgs e)
+        {
+            DoDragDrop(e);
+        }
+
+        private async Task<bool> DoDragDrop(DragEventArgs e)
+        {
+            try
+            {
+                // Retrieve the client coordinates of the drop location.
+                Point targetPoint = PlaylistTreeView.PointToClient(new Point(e.X, e.Y));
+
+                // Retrieve the node at the drop location.
+                TreeNode targetNode = PlaylistTreeView.GetNodeAt(targetPoint);
+                if (targetNode == null)
+                    return false;
+
+                string parentName = targetNode.Level == 0 ? null : targetNode.Level == 1 ? targetNode.Text : targetNode.Parent.Text;
+
+                Playlist targetPlaylist;
+
+                switch (targetNode.Level)
+                {
+                    case 0:
+                        return false;
+                    case 1:
+                        targetPlaylist = Playlists[targetNode.Text];
+                        break;
+                    case 2:
+                        targetPlaylist = Playlists[targetNode.Parent.Text];
+                        break;
+                    default:
+                        return false;
+
+                }
+
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (files != null && files.Length > 0)
+                {
+                    if (targetNode.Level == 2)
+                    {
+                        int index = targetNode.Parent.Nodes.IndexOf(targetNode) + 1;
+                        targetPlaylist.Insert(files, index);
+                    }
+                    else
+                    {
+                        targetPlaylist.Add(files);
+                    }
+
+                    
+                    LoadPlaylists();
+                    PlaylistTreeView.Nodes[0].Expand();
+                    PlaylistTreeView.Nodes[0].Nodes[parentName].Expand();
+                    return false;
+                }
+
+                // Retrieve the node that was dragged.
+                TreeNode draggedNode = (TreeNode)e.Data.GetData(typeof(TreeNode));
+
+                switch (targetNode.Level)
+                {
+                    case 0:
+                        return false;
+                    case 1:
+                        // Confirm that the node at the drop location is not 
+                        // the dragged node and that target node isn't null
+                        // (for example if you drag outside the control)
+                        if (!draggedNode.Equals(targetNode) && targetNode != null)
+                        {
+                            // Remove the node from its current 
+                            // location and add it to the node at the drop location.
+                            Playlist playlist = Playlists[draggedNode.Parent.Text];
+                            Option song = playlist.Options.Find(x => x.Name == draggedNode.Text);
+                            draggedNode.Remove();
+                            targetNode.Nodes.Insert(targetNode.Nodes.Count, draggedNode);
+                            playlist.Options.Remove(song);
+                            playlist.Save();
+                            song.Files["sound/bpmloop.scd"] = Path.Combine(targetPlaylist.Name, song.Name, "bpmloop.scd");
+                            targetPlaylist.Options.Add(song);
+                            targetPlaylist.Save();
+                            Directory.Move(Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlist.Name, song.Name),
+                                Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetPlaylist.Name, song.Name));
+
+                            // Expand the node at the location 
+                            // to show the dropped node.
+                            targetNode.Expand();
+                        }
+                        break;
+                    case 2:
+
+                        // Confirm that the node at the drop location is not 
+                        // the dragged node and that target node isn't null
+                        // (for example if you drag outside the control)
+                        if (!draggedNode.Equals(targetNode) && targetNode != null)
+                        {
+                            // Remove the node from its current 
+                            // location and add it to the node at the drop location.
+
+                            Playlist playlist = Playlists[draggedNode.Parent.Text];
+                            Option song = playlist.Options.Find(x => x.Name == draggedNode.Text);
+                            draggedNode.Remove();
+                            int index = targetNode.Parent.Nodes.IndexOf(targetNode) + 1;
+                            targetNode.Parent.Nodes.Insert(index, draggedNode);
+                            playlist.Options.Remove(song);
+                            playlist.Save();
+                            song.Files["sound/bpmloop.scd"] = Path.Combine(targetPlaylist.Name, song.Name, "bpmloop.scd");
+                            targetPlaylist.Options.Insert(index, song);
+                            targetPlaylist.Save();
+
+                            string sourceDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlist.Name, song.Name);
+                            string destDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetPlaylist.Name, song.Name);
+                            if (sourceDir != destDir)
+                                Directory.Move(sourceDir, destDir);
+
+                            // Expand the node at the location 
+                            // to show the dropped node.
+                            targetNode.Expand();
+                        }
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error during drag and drop: " + ex.Message);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void PlaylistTreeView_AfterCheck(object sender, TreeViewEventArgs e)
+        {
+            int checkedCount = 0;
+            foreach (TreeNode childNode in PlaylistTreeView.Nodes[0].Nodes)
+            {
+                if (childNode.Checked)
+                {
+                    DeleteButton.Enabled = true;
+                    ShuffleButton.Enabled = true;
+                    return;
+                }
+
+                foreach (TreeNode subChild in childNode.Nodes)
+                {
+                    if (subChild.Checked)
+                    {
+                        DeleteButton.Enabled = true;
+                        checkedCount++;
+                    }
+                }
+            }
+            ShuffleButton.Enabled = false;
+            if (checkedCount == 0)
+            {
+                DeleteButton.Enabled = false;
+            }
+        }
+
+        private void DeleteButton_Click(object sender, EventArgs e)
+        {
+            DoDelete();
+        }
+
+        private async Task<bool> DoDelete()
+        {
+            try
+            {
+                var result = MessageBox.Show("Are you sure you want to delete the selected playlists/songs? This action cannot be undone.", "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (result == DialogResult.No)
+                {
+                    return false;
+                }
+                foreach (TreeNode childNode in PlaylistTreeView.Nodes[0].Nodes)
+                {
+                    if (childNode.Checked)
+                    {
+                        Playlists[childNode.Text].Delete();
+                    }
+                    else
+                    {
+                        Playlist playlist = Playlists[childNode.Text];
+                        foreach (TreeNode subChild in childNode.Nodes)
+                        {
+                            if (subChild.Checked)
+                            {
+                                Option song = playlist.Options.Find(x => x.Name == subChild.Text);
+                                playlist.Options.Remove(song);
+                                playlist.Save();
+                                Directory.Delete(Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlist.Name, song.Name), true);
+                            }
+                        }
+                    }
+                }
+                ShuffleButton.Enabled = false;
+                DeleteButton.Enabled = false;
+                LoadPlaylists();
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error confirming deletion: " + ex.Message);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void NewButton_Click(object sender, EventArgs e)
+        {
+            NewPlaylistForm newPlaylistForm = new NewPlaylistForm();
+            newPlaylistForm.ShowDialog();
+            LoadPlaylists();
+        }
+
+        private void SettingsButton_Click(object sender, EventArgs e)
+        {
+            SettingsForm settingsForm = new SettingsForm();
+            settingsForm.ShowDialog();
+            LoadPlaylists();
+        }
+
+        private void ShuffleButton_Click(object sender, EventArgs e)
+        {
+            foreach (TreeNode childNode in PlaylistTreeView.Nodes[0].Nodes)
+            {
+                if (childNode.Checked)
+                {
+                    Playlist playlist = Playlists[childNode.Text];
+                    playlist.Shuffle();
+                }
+            }
+            LoadPlaylists();
+        }
+    }
+}
