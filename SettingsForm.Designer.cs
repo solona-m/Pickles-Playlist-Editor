@@ -98,7 +98,6 @@
             DirecotryPathTextBox.Name = "DirecotryPathTextBox";
             DirecotryPathTextBox.Size = new Size(432, 23);
             DirecotryPathTextBox.TabIndex = 1;
-            DirecotryPathTextBox.Text = "e:\\penumbradt\\Gimme Pickle's DJ Muzik, Movez, and VFX";
             DirecotryPathTextBox.TextChanged += DirecotryPathTextBox_TextChanged;
             // 
             // OkButton

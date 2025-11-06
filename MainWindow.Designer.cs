@@ -1,4 +1,6 @@
-﻿namespace Pickles_Playlist_Editor
+﻿using AutoUpdaterDotNET;
+
+namespace Pickles_Playlist_Editor
 {
     partial class MainWindow
     {

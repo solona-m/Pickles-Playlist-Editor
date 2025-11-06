@@ -1,3 +1,4 @@
+using AutoUpdaterDotNET;
 using Newtonsoft.Json.Linq;
 using Pickles_Playlist_Editor;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
@@ -10,6 +11,7 @@ namespace Pickles_Playlist_Editor
 
         public MainWindow()
         {
+            AutoUpdater.Start("https://github.com/solona-m/Pickles-Playlist-Editor/releases/download/Pickles/update.xml");
             InitializeComponent();
         }
 
