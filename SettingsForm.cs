@@ -40,7 +40,7 @@ namespace Pickles_Playlist_Editor
             if (OkButton.Enabled)
             {
                 string modName = Path.GetFileName(DirecotryPathTextBox.Text);
-                string penLocation = DirecotryPathTextBox.Text.Substring(0, DirecotryPathTextBox.Text.Length - Settings.ModName.Length);
+                string penLocation = DirecotryPathTextBox.Text.Substring(0, DirecotryPathTextBox.Text.Length - modName.Length);
                 Settings.ModName = modName;
                 Settings.PenumbraLocation = penLocation;
                 this.Close();   
