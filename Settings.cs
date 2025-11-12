@@ -35,7 +35,7 @@ namespace Pickles_Playlist_Editor
         {
             get
             {
-                return (string)Registry.CurrentUser.OpenSubKey(s_subKey).GetValue("ModName", s_defaultModName);
+                return (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("ModName", s_defaultModName);
             }
             set
             {

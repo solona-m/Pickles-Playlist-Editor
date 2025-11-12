@@ -113,6 +113,8 @@ namespace Pickles_Playlist_Editor
         public static Dictionary<string, Playlist> GetAll()
         {
             Dictionary<string, Playlist> playlists = new Dictionary<string, Playlist>();
+            if (Settings.PenumbraLocation == null || Settings.ModName == null)
+                return playlists;
             var fileNames = Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*.json");
             foreach (string file in fileNames)
             {
