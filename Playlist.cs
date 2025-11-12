@@ -118,11 +118,26 @@ namespace Pickles_Playlist_Editor
             var fileNames = Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*.json");
             foreach (string file in fileNames)
             {
-                Playlist playlist = JsonConvert.DeserializeObject<Playlist>(File.ReadAllText(file));
-                playlist.Name = playlist.Name;
+                try
+                {
+                    Playlist playlist = JsonConvert.DeserializeObject<Playlist>(File.ReadAllText(file));
+
+                    if (playlist == null)
+                    {
+                        MessageBox.Show("Error loading playlist from file " + file);
+                    }
+                    else
+                    {
+                        playlist.Name = playlist.Name;
 
 
-                playlists.Add(playlist.Name, playlist);
+                        playlists.Add(playlist.Name, playlist);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error loading playlist from file " + file + ": " + ex.Message);
+                }
             }
             return playlists;
         }
