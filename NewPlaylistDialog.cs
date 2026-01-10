@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Pickles_Playlist_Editor.Utils;
 
 namespace Pickles_Playlist_Editor
 {
@@ -74,6 +75,7 @@ namespace Pickles_Playlist_Editor
             catch (Exception ex)
             {
                 MessageBox.Show("Error creating playlist: " + ex.Message);
+                Logger.LogError("Error creating playlist: " + ex.ToString());
             }
             return true;
         }

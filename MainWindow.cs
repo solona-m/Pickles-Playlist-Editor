@@ -1,6 +1,7 @@
 using AutoUpdaterDotNET;
 using Newtonsoft.Json.Linq;
 using Pickles_Playlist_Editor;
+using Pickles_Playlist_Editor.Utils;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace Pickles_Playlist_Editor
@@ -43,12 +44,16 @@ namespace Pickles_Playlist_Editor
                 Playlists = Playlist.GetAll();
                 PlaylistTreeView.Nodes.Clear();
                 PlaylistTreeView.ImageList = new ImageList();
+                PlaylistTreeView.ImageList.ImageSize = new Size(16, 16);
                 PlaylistTreeView.ImageList.Images.Add("playlist", Properties.Resources.playlistIcon);
                 PlaylistTreeView.ImageList.Images.Add("song", Properties.Resources.noteIcon);
+                PlaylistTreeView.ShowNodeToolTips = true;
                 TreeNode rootNode = new TreeNode("Playlists");
 
                 foreach (Playlist playlist in Playlists.Values)
                 {
+                    if (playlist.Name == "Default")
+                        continue;
                     TreeNode playlistNode = new TreeNode(playlist.Name);
                     playlistNode.ImageKey = "playlist";
                     playlistNode.Name = playlist.Name;
@@ -56,7 +61,8 @@ namespace Pickles_Playlist_Editor
                     if (playlist.Options == null) continue;
                     foreach (Option song in playlist.Options)
                     {
-                        TreeNode songNode = new TreeNode(song.Name);
+
+                        TreeNode songNode = new TreeNode(song.Name + GetBPMString(song));
                         songNode.ImageKey = "song";
                         playlistNode.Nodes.Add(songNode);
                     }
@@ -72,6 +78,12 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        private string GetBPMString(Option song)
+        {
+            if (!song.Files.ContainsKey("sound/bpmloop.scd"))
+                return string.Empty;
+            return " (" + BPMDetector.GetBPMFromSCD(song.Files["sound/bpmloop.scd"]) + " BPM)";
+        }
 
         private void PlaylistTreeView_ItemDrag(object sender, ItemDragEventArgs e)
         {

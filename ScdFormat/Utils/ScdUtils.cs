@@ -25,7 +25,7 @@ namespace VfxEditor.Formats.ScdFormat.Utils {
             Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(mp3Path), "ogg"));
             string oggNameV = Path.Combine(Path.GetDirectoryName(mp3Path), "ogg", Path.GetFileNameWithoutExtension(mp3Path) + "_v.ogg");
             if (File.Exists(oggNameV)) File.Delete(oggNameV);
-            process.StartInfo.Arguments = "-i " + '"' + mp3Path + '"' + " -vn -acodec libvorbis -f ogg  -af \"apad=pad_dur=5\" " + '"' + oggNameV + '"';
+            process.StartInfo.Arguments = "-i " + '"' + mp3Path + '"' + " -vn -acodec libvorbis -f ogg -q 7 -af \"apad=pad_dur=5\" " + '"' + oggNameV + '"';
             process.Start();
             process.WaitForExit();
             if (process.ExitCode != 0)

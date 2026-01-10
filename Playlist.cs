@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Pickles_Playlist_Editor.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -84,29 +85,36 @@ namespace Pickles_Playlist_Editor
 
         static Option AddFiles(string playlistName, Playlist group, string file)
         {
-            Option opt;
-            Console.WriteLine("Converting {0}", file);
-            ScdFile scdFile = ScdFile.Import(file);
-            string filenameroot = Path.GetFileNameWithoutExtension(file);
-            if (filenameroot.Equals("bpmloop", StringComparison.OrdinalIgnoreCase))
+            Option opt = null;
+            try
             {
-                filenameroot = Path.GetDirectoryName(file);
-                filenameroot = filenameroot.Split(Path.DirectorySeparatorChar).Last();
+                Logger.LogInfo("Converting {0}", file);
+                ScdFile scdFile = ScdFile.Import(file);
+                string filenameroot = Path.GetFileNameWithoutExtension(file);
+                if (filenameroot.Equals("bpmloop", StringComparison.OrdinalIgnoreCase))
+                {
+                    filenameroot = Path.GetDirectoryName(file);
+                    filenameroot = filenameroot.Split(Path.DirectorySeparatorChar).Last();
+                }
+                string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistName, filenameroot);
+                Directory.CreateDirectory(outDir);
+                using (BinaryWriter writer = new BinaryWriter(new FileStream(Path.Combine(outDir, "bpmloop.scd"), FileMode.Create)))
+                {
+                    scdFile.Write(writer);
+                }
+                Logger.LogInfo("done");
+                opt = new Option();
+                opt.Name = filenameroot;
+                opt.Files = new Dictionary<string, string>();
+                opt.Files.Add(
+                    "sound/bpmloop.scd",
+                    Path.Combine(playlistName, filenameroot, "bpmloop.scd"));
+                group.Options.Add(opt);
             }
-            string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistName, filenameroot);
-            Directory.CreateDirectory(outDir);
-            using (BinaryWriter writer = new BinaryWriter(new FileStream(Path.Combine(outDir, "bpmloop.scd"), FileMode.Create)))
+            catch (Exception ex)
             {
-                scdFile.Write(writer);
+                Logger.LogError("Error adding file " + file + ": " + ex.ToString());
             }
-            Console.WriteLine("done");
-            opt = new Option();
-            opt.Name = filenameroot;
-            opt.Files = new Dictionary<string, string>();
-            opt.Files.Add(
-                "sound/bpmloop.scd",
-                Path.Combine(playlistName, filenameroot, "bpmloop.scd"));
-            group.Options.Add(opt);
             return opt;
         }
 
@@ -137,6 +145,7 @@ namespace Pickles_Playlist_Editor
                 catch (Exception ex)
                 {
                     MessageBox.Show("Error loading playlist from file " + file + ": " + ex.Message);
+                    Logger.LogError("Error loading playlist from file " + file + ": " + ex.ToString());
                 }
             }
             return playlists;

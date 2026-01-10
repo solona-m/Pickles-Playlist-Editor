@@ -179,7 +179,6 @@ namespace VfxEditor.ScdFormat.Music.Data {
                     oggReader.SampleRate,
                     SscfWaveFormat.Vorbis
                 );
-
                 // Create new data
                 var vorbis = new ScdVorbis(oggData, entry);
                 if (!string.IsNullOrEmpty(loopStartTag) && int.TryParse(loopStartTag, out var loopStartSamples))
