@@ -1,4 +1,5 @@
 ﻿using libZPlay;
+using PersistentCollection;
 using Pickles_Playlist_Editor.Tools;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,9 @@ namespace Pickles_Playlist_Editor.Utils
 {
     internal class BPMDetector
     {
-        static public int GetBPM(string oggFile)
+        private static PersistentDictionary<string, int> bpmCache = new PersistentDictionary<string, int>("bpm_cache.dat");
+
+        static private int GetBPMFromFile(string oggFile)
         {
             ZPlay player = null;
             try
@@ -49,9 +52,17 @@ namespace Pickles_Playlist_Editor.Utils
         public static int GetBPMFromSCD(string scdFile)
         {
             string path = Path.Combine(Settings.PenumbraLocation, Settings.ModName, scdFile);
+
+            if (bpmCache.ContainsKey(path))
+            {
+                return bpmCache[path];
+            }
+
             string tmpOgg = Path.Combine(System.IO.Path.GetTempPath(), "temp_extracted.ogg");
             ScdOggExtractor.ExtractOgg(path, tmpOgg);
-            return GetBPM(tmpOgg);
+            int retval = GetBPMFromFile(tmpOgg);
+            bpmCache[path] = retval;
+            return retval;
         }
     }
 

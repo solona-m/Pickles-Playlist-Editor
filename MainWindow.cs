@@ -52,8 +52,6 @@ namespace Pickles_Playlist_Editor
 
                 foreach (Playlist playlist in Playlists.Values)
                 {
-                    if (playlist.Name == "Default")
-                        continue;
                     TreeNode playlistNode = new TreeNode(playlist.Name);
                     playlistNode.ImageKey = "playlist";
                     playlistNode.Name = playlist.Name;
