@@ -40,6 +40,7 @@ namespace Pickles_Playlist_Editor
             DeleteButton = new ToolStripButton();
             SettingsButton = new ToolStripButton();
             ShuffleButton = new ToolStripButton();
+            SortByBPM = new ToolStripButton();
             panel1.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
             toolStrip1.SuspendLayout();
@@ -96,7 +97,7 @@ namespace Pickles_Playlist_Editor
             // 
             // toolStrip1
             // 
-            toolStrip1.Items.AddRange(new ToolStripItem[] { NewButton, DeleteButton, SettingsButton, ShuffleButton });
+            toolStrip1.Items.AddRange(new ToolStripItem[] { NewButton, DeleteButton, SettingsButton, ShuffleButton, SortByBPM });
             toolStrip1.Location = new Point(0, 0);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.Size = new Size(1075, 25);
@@ -141,6 +142,17 @@ namespace Pickles_Playlist_Editor
             ShuffleButton.Size = new Size(64, 22);
             ShuffleButton.Text = "Shuffle";
             ShuffleButton.Click += ShuffleButton_Click;
+            // 
+            // SortByBPM
+            // 
+            SortByBPM.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            SortByBPM.Image = (Image)resources.GetObject("SortByBPM.Image");
+            SortByBPM.ImageTransparentColor = Color.Magenta;
+            SortByBPM.Name = "SortByBPM";
+            SortByBPM.Size = new Size(76, 22);
+            SortByBPM.Text = "Sort by BPM";
+            SortByBPM.TextImageRelation = TextImageRelation.TextBeforeImage;
+            SortByBPM.Click += SortByBPM_Click;
             // 
             // MainWindow
             // 
@@ -206,5 +218,6 @@ namespace Pickles_Playlist_Editor
                 }
             }
         }
+        private ToolStripButton SortByBPM;
     }
 }

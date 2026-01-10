@@ -260,6 +260,7 @@ namespace Pickles_Playlist_Editor
                 {
                     DeleteButton.Enabled = true;
                     ShuffleButton.Enabled = true;
+                    SortByBPM.Enabled = true;
                     return;
                 }
 
@@ -272,6 +273,7 @@ namespace Pickles_Playlist_Editor
                     }
                 }
             }
+            SortByBPM.Enabled = false;
             ShuffleButton.Enabled = false;
             if (checkedCount == 0)
             {
@@ -352,6 +354,33 @@ namespace Pickles_Playlist_Editor
                 {
                     Playlist playlist = Playlists[childNode.Text];
                     playlist.Shuffle();
+                }
+            }
+            LoadPlaylists();
+        }
+
+        private SortDirection CurrentDirection = SortDirection.Ascending;
+
+        private void SortByBPM_Click(object sender, EventArgs e)
+        {
+            if (!SortByBPM.Enabled)
+                return;
+
+            foreach (TreeNode childNode in PlaylistTreeView.Nodes[0].Nodes)
+            {
+                if (childNode.Checked)
+                {
+                    Playlist playlist = Playlists[childNode.Text];
+                    if (CurrentDirection == SortDirection.Ascending)
+                    {
+                        playlist.Sort(SortDirection.Descending);
+                        CurrentDirection = SortDirection.Descending;
+                    }
+                    else
+                    {
+                        playlist.Sort(SortDirection.Ascending);
+                        CurrentDirection = SortDirection.Ascending;
+                    }
                 }
             }
             LoadPlaylists();

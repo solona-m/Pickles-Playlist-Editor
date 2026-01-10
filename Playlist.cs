@@ -9,6 +9,11 @@ using VfxEditor.ScdFormat;
 
 namespace Pickles_Playlist_Editor
 {
+    enum SortDirection
+    {
+        Ascending,
+        Descending
+    }
 
     public class Playlist
     {
@@ -211,6 +216,27 @@ namespace Pickles_Playlist_Editor
                 Options.RemoveAt(k);
             }
             Options = shuffledOptions;
+            Save();
+        }
+
+        internal void Sort(SortDirection direction)
+        {
+            Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
+            List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (direction == SortDirection.Ascending)
+            {
+                otherOptions = otherOptions.OrderBy(o => BPMDetector.GetBPMFromSCD(o.Files["sound/bpmloop.scd"])).ToList();
+            }
+            else
+            {
+                otherOptions = otherOptions.OrderByDescending(o => BPMDetector.GetBPMFromSCD(o.Files["sound/bpmloop.scd"])).ToList();
+            }
+            Options = new List<Option>();
+            if (offOption != null)
+            {
+                Options.Add(offOption);
+            }
+            Options.AddRange(otherOptions);
             Save();
         }
     }
