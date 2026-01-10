@@ -101,12 +101,32 @@ namespace Pickles_Playlist_Editor.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] pauseIcon {
+            get {
+                object obj = ResourceManager.GetObject("pauseIcon", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
         internal static System.Drawing.Icon pickleIcon {
             get {
                 object obj = ResourceManager.GetObject("pickleIcon", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] playIcon {
+            get {
+                object obj = ResourceManager.GetObject("playIcon", resourceCulture);
+                return ((byte[])(obj));
             }
         }
         
@@ -127,6 +147,26 @@ namespace Pickles_Playlist_Editor.Properties {
             get {
                 object obj = ResourceManager.GetObject("shuffleIcon", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] sortIcon {
+            get {
+                object obj = ResourceManager.GetObject("sortIcon", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] stopIcon {
+            get {
+                object obj = ResourceManager.GetObject("stopIcon", resourceCulture);
+                return ((byte[])(obj));
             }
         }
     }

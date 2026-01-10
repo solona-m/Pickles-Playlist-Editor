@@ -2,6 +2,7 @@ using AutoUpdaterDotNET;
 using Newtonsoft.Json.Linq;
 using Pickles_Playlist_Editor;
 using Pickles_Playlist_Editor.Utils;
+using System.IO.Packaging;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace Pickles_Playlist_Editor
@@ -38,6 +39,8 @@ namespace Pickles_Playlist_Editor
                 Invoke(new Action(LoadPlaylists));
                 return;
             }
+
+            BPMDetector.ShowFirstTimeMessage();
 
             try
             {
@@ -384,6 +387,42 @@ namespace Pickles_Playlist_Editor
                 }
             }
             LoadPlaylists();
+        }
+
+        private void PlayButton_Click(object sender, EventArgs e)
+        {
+            foreach (TreeNode childNode in PlaylistTreeView.Nodes[0].Nodes)
+            {
+                foreach (TreeNode song in childNode.Nodes)
+                {
+                    if (song.IsSelected)
+                    {
+
+                        Playlist targetPlaylist = Playlists[childNode.Text];
+                        Option opt = targetPlaylist.Options[song.Index];
+                        string optPath = opt.Files["sound/bpmloop.scd"];
+                        string songPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, optPath);
+                        if (File.Exists(songPath))
+                        {
+                            Player.Play(songPath);
+                        }
+                        else
+                        {
+                            MessageBox.Show($"Song file not found: {songPath}");
+                        }
+                    }
+                }
+            }
+        }
+
+        private void PauseButton_Click(object sender, EventArgs e)
+        {
+            Player.Pause();
+        }
+
+        private void StopIcon_Click(object sender, EventArgs e)
+        {
+            Player.Stop();
         }
     }
 }

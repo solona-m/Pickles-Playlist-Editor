@@ -17,7 +17,9 @@ namespace Pickles_Playlist_Editor.Tools {
             if (!File.Exists(scdPath)) throw new FileNotFoundException("SCD file not found", scdPath);
 
             // Load SCD (uses existing import logic)
-            var scd = ScdFile.Import(scdPath);
+            string temppath = Path.GetTempFileName()+".scd";
+            File.Copy(scdPath, temppath, true);
+            var scd = ScdFile.Import(temppath);
             if (scd.Audio == null || scd.Audio.Count == 0) throw new InvalidOperationException("No audio entries in SCD.");
 
             if (audioIndex < 0 || audioIndex >= scd.Audio.Count) throw new ArgumentOutOfRangeException(nameof(audioIndex));
@@ -38,6 +40,7 @@ namespace Pickles_Playlist_Editor.Tools {
             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
             File.WriteAllBytes(outOggPath, vorbis.Data);
+            
         }
 
         /// <summary>

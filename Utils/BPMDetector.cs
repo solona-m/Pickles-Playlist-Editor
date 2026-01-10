@@ -13,6 +13,20 @@ namespace Pickles_Playlist_Editor.Utils
     {
         private static PersistentDictionary<string, int> bpmCache = new PersistentDictionary<string, int>("bpm_cache.dat");
 
+        internal static void ShowFirstTimeMessage()
+        {
+            try
+            {
+                if (bpmCache["FIRST_TIME_MESSAGE_SHOWN"] == 1)
+                    return;
+            }
+            catch (Exception ex)
+            {
+                System.Windows.Forms.MessageBox.Show("BPM detection may take some time depending on the length and number of tracks being analyzed. Detected BPM values are cached for faster access in the future.");
+                bpmCache["FIRST_TIME_MESSAGE_SHOWN"] = 1;
+            }
+        }
+
         static private int GetBPMFromFile(string oggFile)
         {
             ZPlay player = null;
@@ -26,7 +40,7 @@ namespace Pickles_Playlist_Editor.Utils
                     Console.WriteLine("Failed to open audio file.");
                     return 0;
                 }
-
+                
                 // Detect BPM
                 int bpm = 0;
                 int beats = 0;
