@@ -106,7 +106,8 @@ namespace Pickles_Playlist_Editor
                 }
                 catch (TaskCanceledException) { /* canceled */ }
 
-                PlaybackEnded?.Invoke();
+                if (currentState == PauseState.PLAYING)
+                    PlaybackEnded?.Invoke();
             }, ct);
         }
 
