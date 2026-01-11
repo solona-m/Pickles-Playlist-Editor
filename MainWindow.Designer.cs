@@ -44,6 +44,8 @@ namespace Pickles_Playlist_Editor
             PlayButton = new ToolStripButton();
             PauseButton = new ToolStripButton();
             StopIcon = new ToolStripButton();
+            previousButton = new ToolStripButton();
+            nextButton = new ToolStripButton();
             panel1.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
             toolStrip1.SuspendLayout();
@@ -100,7 +102,7 @@ namespace Pickles_Playlist_Editor
             // 
             // toolStrip1
             // 
-            toolStrip1.Items.AddRange(new ToolStripItem[] { NewButton, DeleteButton, SettingsButton, ShuffleButton, SortByBPM, PlayButton, PauseButton, StopIcon });
+            toolStrip1.Items.AddRange(new ToolStripItem[] { NewButton, DeleteButton, SettingsButton, ShuffleButton, SortByBPM, PlayButton, PauseButton, StopIcon, previousButton, nextButton });
             toolStrip1.Location = new Point(0, 0);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.Size = new Size(1075, 25);
@@ -148,6 +150,7 @@ namespace Pickles_Playlist_Editor
             // 
             // SortByBPM
             // 
+            SortByBPM.Enabled = false;
             SortByBPM.Image = (Image)resources.GetObject("SortByBPM.Image");
             SortByBPM.ImageAlign = ContentAlignment.MiddleLeft;
             SortByBPM.ImageTransparentColor = Color.Magenta;
@@ -156,7 +159,6 @@ namespace Pickles_Playlist_Editor
             SortByBPM.Text = "Sort by BPM";
             SortByBPM.TextImageRelation = TextImageRelation.TextBeforeImage;
             SortByBPM.Click += SortByBPM_Click;
-            SortByBPM.Enabled = false;
             // 
             // PlayButton
             // 
@@ -184,6 +186,24 @@ namespace Pickles_Playlist_Editor
             StopIcon.Size = new Size(51, 22);
             StopIcon.Text = "Stop";
             StopIcon.Click += StopIcon_Click;
+            // 
+            // previousButton
+            // 
+            previousButton.Image = (Image)resources.GetObject("previousButton.Image");
+            previousButton.ImageTransparentColor = Color.Magenta;
+            previousButton.Name = "previousButton";
+            previousButton.Size = new Size(72, 22);
+            previousButton.Text = "Previous";
+            previousButton.Click += toolStripButton1_Click;
+            // 
+            // nextButton
+            // 
+            nextButton.Image = (Image)resources.GetObject("nextButton.Image");
+            nextButton.ImageTransparentColor = Color.Magenta;
+            nextButton.Name = "nextButton";
+            nextButton.Size = new Size(51, 22);
+            nextButton.Text = "Next";
+            nextButton.Click += nextButton_Click;
             // 
             // MainWindow
             // 
@@ -253,5 +273,7 @@ namespace Pickles_Playlist_Editor
         private ToolStripButton PlayButton;
         private ToolStripButton PauseButton;
         private ToolStripButton StopIcon;
+        private ToolStripButton previousButton;
+        private ToolStripButton nextButton;
     }
 }

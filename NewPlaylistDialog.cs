@@ -74,8 +74,7 @@ namespace Pickles_Playlist_Editor
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error creating playlist: " + ex.Message);
-                Logger.LogError("Error creating playlist: " + ex.ToString());
+                MessageBox.Show("Error creating playlist: " + ex.ToString());
             }
             return true;
         }

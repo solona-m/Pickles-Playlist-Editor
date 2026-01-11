@@ -1,9 +1,5 @@
 using AutoUpdaterDotNET;
-using Newtonsoft.Json.Linq;
-using Pickles_Playlist_Editor;
 using Pickles_Playlist_Editor.Utils;
-using System.IO.Packaging;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace Pickles_Playlist_Editor
 {
@@ -74,7 +70,7 @@ namespace Pickles_Playlist_Editor
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error loading playlists: " + ex.Message);
+                MessageBox.Show("Error loading playlists: " + ex.ToString());
                 return;
             }
         }
@@ -400,18 +396,24 @@ namespace Pickles_Playlist_Editor
 
                         Playlist targetPlaylist = Playlists[childNode.Text];
                         Option opt = targetPlaylist.Options[song.Index];
-                        string optPath = opt.Files["sound/bpmloop.scd"];
-                        string songPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, optPath);
-                        if (File.Exists(songPath))
-                        {
-                            Player.Play(songPath);
-                        }
-                        else
-                        {
-                            MessageBox.Show($"Song file not found: {songPath}");
-                        }
+                        PlayOption(opt);
+                        break;
                     }
                 }
+            }
+        }
+
+        private static void PlayOption(Option opt)
+        {
+            string optPath = opt.Files["sound/bpmloop.scd"];
+            string songPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, optPath);
+            if (File.Exists(songPath))
+            {
+                Player.Play(songPath);
+            }
+            else
+            {
+                MessageBox.Show($"Song file not found: {songPath}");
             }
         }
 
@@ -423,6 +425,48 @@ namespace Pickles_Playlist_Editor
         private void StopIcon_Click(object sender, EventArgs e)
         {
             Player.Stop();
+        }
+
+        private void toolStripButton1_Click(object sender, EventArgs e)
+        {
+
+            foreach (TreeNode childNode in PlaylistTreeView.Nodes[0].Nodes)
+            {
+                foreach (TreeNode song in childNode.Nodes)
+                {
+                    if (song.IsSelected)
+                    {
+                        if (song.Index - 1 < 1)
+                            return;
+                        Playlist targetPlaylist = Playlists[childNode.Text];
+                        Option opt = targetPlaylist.Options[song.Index - 1];
+                        PlaylistTreeView.SelectedNode = childNode.Nodes[song.Index - 1];
+                        PlayOption(opt);
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void nextButton_Click(object sender, EventArgs e)
+        {
+
+            foreach (TreeNode childNode in PlaylistTreeView.Nodes[0].Nodes)
+            {
+                foreach (TreeNode song in childNode.Nodes)
+                {
+                    if (song.IsSelected)
+                    {
+                        if (song.Index + 1 >= childNode.Nodes.Count)
+                            return;
+                        Playlist targetPlaylist = Playlists[childNode.Text];
+                        Option opt = targetPlaylist.Options[song.Index+1];
+                        PlaylistTreeView.SelectedNode = childNode.Nodes[song.Index + 1];
+                        PlayOption(opt);
+                        break;
+                    }
+                }
+            }
         }
     }
 }

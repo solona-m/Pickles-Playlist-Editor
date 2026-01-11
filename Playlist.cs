@@ -93,7 +93,6 @@ namespace Pickles_Playlist_Editor
             Option opt = null;
             try
             {
-                Logger.LogInfo("Converting {0}", file);
                 ScdFile scdFile = ScdFile.Import(file);
                 string filenameroot = Path.GetFileNameWithoutExtension(file);
                 if (filenameroot.Equals("bpmloop", StringComparison.OrdinalIgnoreCase))
@@ -107,7 +106,6 @@ namespace Pickles_Playlist_Editor
                 {
                     scdFile.Write(writer);
                 }
-                Logger.LogInfo("done");
                 opt = new Option();
                 opt.Name = filenameroot;
                 opt.Files = new Dictionary<string, string>();
@@ -118,7 +116,7 @@ namespace Pickles_Playlist_Editor
             }
             catch (Exception ex)
             {
-                Logger.LogError("Error adding file " + file + ": " + ex.ToString());
+                MessageBox.Show("Error adding file " + file + ": " + ex.ToString());
             }
             return opt;
         }
@@ -149,8 +147,7 @@ namespace Pickles_Playlist_Editor
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error loading playlist from file " + file + ": " + ex.Message);
-                    Logger.LogError("Error loading playlist from file " + file + ": " + ex.ToString());
+                    MessageBox.Show("Error loading playlist from file " + file + ": " + ex.ToString());
                 }
             }
             return playlists;
