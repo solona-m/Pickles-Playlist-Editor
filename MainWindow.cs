@@ -9,7 +9,7 @@ namespace Pickles_Playlist_Editor
 
         public MainWindow()
         {
-            AutoUpdater.Start("https://github.com/solona-m/Pickles-Playlist-Editor/releases/download/Pickles/update.xml");
+            AutoUpdater.Start("https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest/download/update.xml");
             InitializeComponent();
         }
 
