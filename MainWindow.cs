@@ -52,17 +52,32 @@ namespace Pickles_Playlist_Editor
                 foreach (Playlist playlist in Playlists.Values)
                 {
                     TreeNode playlistNode = new TreeNode(playlist.Name);
+                    TimeSpan playlistTime = TimeSpan.Zero;
                     playlistNode.ImageKey = "playlist";
-                    playlistNode.Name = playlist.Name;
                     rootNode.Nodes.Add(playlistNode);
                     if (playlist.Options == null) continue;
                     foreach (Option song in playlist.Options)
                     {
-
-                        TreeNode songNode = new TreeNode(song.Name + GetBPMString(song));
-                        songNode.ImageKey = "song";
-                        playlistNode.Nodes.Add(songNode);
+                        try
+                        {
+                            TimeSpan time = TimeSpan.Zero;
+                            if (song.Files.ContainsKey("sound/bpmloop.scd"))
+                            {
+                                time = BPMDetector.GetDuration(song.Files["sound/bpmloop.scd"]);
+                                playlistTime = playlistTime.Add(time);
+                            }
+                            TreeNode songNode = new TreeNode(song.Name + GetBPMString(song) + GetTimeString(time));
+                            songNode.ImageKey = "song";
+                            playlistNode.Nodes.Add(songNode);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show("Error loading song " + song.Name + " in playlist " + playlist.Name + ": " + ex.ToString());
+                        }
                     }
+
+                    playlistNode.Name = playlist.Name;
+                    playlistNode.Text = playlist.Name + GetTimeString(playlistTime);
                 }
                 PlaylistTreeView.Nodes.Add(rootNode);
                 PlaylistTreeView.CheckBoxes = true;
@@ -80,6 +95,15 @@ namespace Pickles_Playlist_Editor
             if (!song.Files.ContainsKey("sound/bpmloop.scd"))
                 return string.Empty;
             return " (" + BPMDetector.GetBPMFromSCD(song.Files["sound/bpmloop.scd"]) + " BPM)";
+        }
+
+        private string GetTimeString(TimeSpan time)
+        {
+            // Use total minutes so durations > 60 minutes are shown correctly
+            var hours = (int)time.TotalHours;
+            var minutes = (int)time.Minutes;
+            var seconds = time.Seconds;
+            return $" ({hours:D2}:{minutes:D2}:{seconds:D2})";
         }
 
         private void PlaylistTreeView_ItemDrag(object sender, ItemDragEventArgs e)
@@ -351,7 +375,7 @@ namespace Pickles_Playlist_Editor
             {
                 if (childNode.Checked)
                 {
-                    Playlist playlist = Playlists[childNode.Text];
+                    Playlist playlist = Playlists[childNode.Name];
                     playlist.Shuffle();
                 }
             }
@@ -369,7 +393,7 @@ namespace Pickles_Playlist_Editor
             {
                 if (childNode.Checked)
                 {
-                    Playlist playlist = Playlists[childNode.Text];
+                    Playlist playlist = Playlists[childNode.Name];
                     if (CurrentDirection == SortDirection.Ascending)
                     {
                         playlist.Sort(SortDirection.Descending);
@@ -394,7 +418,7 @@ namespace Pickles_Playlist_Editor
                     if (song.IsSelected)
                     {
 
-                        Playlist targetPlaylist = Playlists[childNode.Text];
+                        Playlist targetPlaylist = Playlists[childNode.Name];
                         Option opt = targetPlaylist.Options[song.Index];
                         PlayOption(opt);
                         break;
@@ -452,7 +476,7 @@ namespace Pickles_Playlist_Editor
                     {
                         if (song.Index - 1 < 1)
                             return;
-                        Playlist targetPlaylist = Playlists[childNode.Text];
+                        Playlist targetPlaylist = Playlists[childNode.Name];
                         Option opt = targetPlaylist.Options[song.Index - 1];
                         PlaylistTreeView.SelectedNode = childNode.Nodes[song.Index - 1];
                         PlayOption(opt);
@@ -481,7 +505,7 @@ namespace Pickles_Playlist_Editor
                     {
                         if (song.Index + 1 >= childNode.Nodes.Count)
                             return false;
-                        Playlist targetPlaylist = Playlists[childNode.Text];
+                        Playlist targetPlaylist = Playlists[childNode.Name];
                         Option opt = targetPlaylist.Options[song.Index + 1];
                         PlaylistTreeView.SelectedNode = childNode.Nodes[song.Index + 1];
                         PlayOption(opt);
