@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace Pickles_Playlist_Editor.Utils
 {
@@ -100,7 +101,7 @@ namespace Pickles_Playlist_Editor.Utils
                 string path = Path.Combine(Settings.PenumbraLocation, Settings.ModName, scdFile);
                 if (durationCache.ContainsKey(path))
                 {
-                    return new TimeSpan(0, 0, durationCache[scdFile]);
+                    return new TimeSpan(0, 0, durationCache[path]);
                 }
                 else
                 {
@@ -114,6 +115,8 @@ namespace Pickles_Playlist_Editor.Utils
             }
             catch (Exception ex)
             {
+
+                MessageBox.Show(ex.ToString());
                 return new TimeSpan(0);
             }
         }
