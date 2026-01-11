@@ -32,6 +32,8 @@ namespace Pickles_Playlist_Editor
             string tmpOgg = Path.Combine(System.IO.Path.GetTempPath(), "now_playing.ogg");
             ScdOggExtractor.ExtractOgg(filePath, tmpOgg);
             player.OpenFile(filePath, TStreamFormat.sfOgg);
+
+            player.SetPlayerVolume(35, 35); // Set volume to 80%
             player.StartPlayback();
         }
 
