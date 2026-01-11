@@ -403,13 +403,27 @@ namespace Pickles_Playlist_Editor
             }
         }
 
-        private static void PlayOption(Option opt)
+        private void PlayOption(Option opt)
         {
             string optPath = opt.Files["sound/bpmloop.scd"];
             string songPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, optPath);
             if (File.Exists(songPath))
             {
-                Player.Play(songPath);
+                // pass a callback to run when playback ends
+                Player.Play(songPath, onEnded: () =>
+                {
+                    // marshal back to UI thread if needed
+                    if (InvokeRequired)
+                    {
+                        Invoke(new Action(() =>
+                        {
+                            PlayNext();
+                        }));
+                    }
+                    else
+                    {
+                    }
+                });
             }
             else
             {
@@ -450,7 +464,15 @@ namespace Pickles_Playlist_Editor
 
         private void nextButton_Click(object sender, EventArgs e)
         {
+            bool flowControl = PlayNext();
+            if (!flowControl)
+            {
+                return;
+            }
+        }
 
+        private bool PlayNext()
+        {
             foreach (TreeNode childNode in PlaylistTreeView.Nodes[0].Nodes)
             {
                 foreach (TreeNode song in childNode.Nodes)
@@ -458,15 +480,17 @@ namespace Pickles_Playlist_Editor
                     if (song.IsSelected)
                     {
                         if (song.Index + 1 >= childNode.Nodes.Count)
-                            return;
+                            return false;
                         Playlist targetPlaylist = Playlists[childNode.Text];
-                        Option opt = targetPlaylist.Options[song.Index+1];
+                        Option opt = targetPlaylist.Options[song.Index + 1];
                         PlaylistTreeView.SelectedNode = childNode.Nodes[song.Index + 1];
                         PlayOption(opt);
                         break;
                     }
                 }
             }
+
+            return true;
         }
     }
 }
