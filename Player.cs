@@ -30,7 +30,7 @@ namespace Pickles_Playlist_Editor
         // Added optional onEnded callback parameter
         public static void Play(string filePath, Action? onEnded = null)
         {
-            if (currentState == PauseState.PLAYING)
+            if (currentState == PauseState.PLAYING || currentState == PauseState.PAUSED)
             {
                 Stop();
             }
@@ -104,7 +104,7 @@ namespace Pickles_Playlist_Editor
                         await Task.Delay(500, ct);
                     }
                 }
-                catch (TaskCanceledException) { /* canceled */ }
+                catch (TaskCanceledException) { currentState = PauseState.STOPPED; }
 
                 if (currentState == PauseState.PLAYING)
                     PlaybackEnded?.Invoke();
