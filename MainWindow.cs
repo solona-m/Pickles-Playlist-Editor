@@ -68,6 +68,7 @@ namespace Pickles_Playlist_Editor
                             }
                             TreeNode songNode = new TreeNode(song.Name + GetBPMString(song) + GetTimeString(time));
                             songNode.ImageKey = "song";
+                            songNode.Name = song.Name;
                             playlistNode.Nodes.Add(songNode);
                         }
                         catch (Exception ex)
@@ -158,7 +159,7 @@ namespace Pickles_Playlist_Editor
                 if (targetNode == null)
                     return false;
 
-                string parentName = targetNode.Level == 0 ? null : targetNode.Level == 1 ? targetNode.Text : targetNode.Parent.Text;
+                string parentName = targetNode.Level == 0 ? null : targetNode.Level == 1 ? targetNode.Name : targetNode.Parent.Name;
 
                 Playlist targetPlaylist;
 
@@ -167,10 +168,10 @@ namespace Pickles_Playlist_Editor
                     case 0:
                         return false;
                     case 1:
-                        targetPlaylist = Playlists[targetNode.Text];
+                        targetPlaylist = Playlists[targetNode.Name];
                         break;
                     case 2:
-                        targetPlaylist = Playlists[targetNode.Parent.Text];
+                        targetPlaylist = Playlists[targetNode.Parent.Name];
                         break;
                     default:
                         return false;
@@ -215,8 +216,8 @@ namespace Pickles_Playlist_Editor
                         {
                             // Remove the node from its current 
                             // location and add it to the node at the drop location.
-                            Playlist playlist = Playlists[draggedNode.Parent.Text];
-                            Option song = playlist.Options.Find(x => x.Name == draggedNode.Text);
+                            Playlist playlist = Playlists[draggedNode.Parent.Name];
+                            Option song = playlist.Options.Find(x => x.Name == draggedNode.Name);
                             draggedNode.Remove();
                             targetNode.Nodes.Insert(targetNode.Nodes.Count, draggedNode);
                             playlist.Options.Remove(song);
@@ -242,8 +243,8 @@ namespace Pickles_Playlist_Editor
                             // Remove the node from its current 
                             // location and add it to the node at the drop location.
 
-                            Playlist playlist = Playlists[draggedNode.Parent.Text];
-                            Option song = playlist.Options.Find(x => x.Name == draggedNode.Text);
+                            Playlist playlist = Playlists[draggedNode.Parent.Name];
+                            Option song = playlist.Options.Find(x => x.Name == draggedNode.Name);
                             draggedNode.Remove();
                             int index = targetNode.Parent.Nodes.IndexOf(targetNode) + 1;
                             targetNode.Parent.Nodes.Insert(index, draggedNode);
@@ -322,16 +323,16 @@ namespace Pickles_Playlist_Editor
                 {
                     if (childNode.Checked)
                     {
-                        Playlists[childNode.Text].Delete();
+                        Playlists[childNode.Name].Delete();
                     }
                     else
                     {
-                        Playlist playlist = Playlists[childNode.Text];
+                        Playlist playlist = Playlists[childNode.Name];
                         foreach (TreeNode subChild in childNode.Nodes)
                         {
                             if (subChild.Checked)
                             {
-                                Option song = playlist.Options.Find(x => x.Name == subChild.Text);
+                                Option song = playlist.Options.Find(x => x.Name == subChild.Name);
                                 playlist.Options.Remove(song);
                                 playlist.Save();
                                 string songDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlist.Name, song.Name);
