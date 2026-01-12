@@ -1,5 +1,6 @@
 using AutoUpdaterDotNET;
 using Pickles_Playlist_Editor.Utils;
+using System.Windows.Forms;
 
 namespace Pickles_Playlist_Editor
 {
@@ -37,6 +38,15 @@ namespace Pickles_Playlist_Editor
             }
 
             BPMDetector.ShowFirstTimeMessage();
+            Dictionary<string, bool> expandedPlaylists = new Dictionary<string, bool>();
+            string selectedSong = PlaylistTreeView.SelectedNode?.Name;
+            if (PlaylistTreeView.Nodes.Count > 0)
+            {
+                foreach (TreeNode childNode in PlaylistTreeView.Nodes[0].Nodes)
+                {
+                    expandedPlaylists[childNode.Name] = childNode.IsExpanded;
+                }
+            }
 
             try
             {
@@ -83,11 +93,54 @@ namespace Pickles_Playlist_Editor
                 PlaylistTreeView.Nodes.Add(rootNode);
                 PlaylistTreeView.CheckBoxes = true;
                 rootNode.Expand();
+                foreach (var kvp in expandedPlaylists)
+                {
+                    if (PlaylistTreeView.Nodes[0].Nodes.ContainsKey(kvp.Key) && kvp.Value)
+                    {
+                        PlaylistTreeView.Nodes[0].Nodes[kvp.Key].Expand();
+                    }
+                }
+                if (!string.IsNullOrWhiteSpace(selectedSong) && PlaylistTreeView.Nodes[0].Nodes.Find(selectedSong, true).Length > 0)
+                {
+                    PlaylistTreeView.SelectedNode = PlaylistTreeView.Nodes[0].Nodes.Find(selectedSong, true)[0];
+                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error loading playlists: " + ex.ToString());
                 return;
+            }
+        }
+
+        private void RecomputePlaylistDurations()
+        {
+            foreach (Playlist playlist in Playlists.Values)
+            {
+                if (PlaylistTreeView.Nodes[0].Nodes.Find(playlist.Name, false).Length == 0)
+                    continue;
+                TreeNode playlistNode = PlaylistTreeView.Nodes[0].Nodes.Find(playlist.Name, false)[0];
+                TimeSpan playlistTime = TimeSpan.Zero;
+                
+                if (playlist.Options == null) continue;
+                foreach (Option song in playlist.Options)
+                {
+                    try
+                    {
+                        TimeSpan time = TimeSpan.Zero;
+                        if (song.Files.ContainsKey("sound/bpmloop.scd"))
+                        {
+                            time = BPMDetector.GetDuration(song.Files["sound/bpmloop.scd"]);
+                            playlistTime = playlistTime.Add(time);
+                        }
+                
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error loading song " + song.Name + " in playlist " + playlist.Name + ": " + ex.ToString());
+                    }
+                }
+
+                playlistNode.Text = playlist.Name + GetTimeString(playlistTime);
             }
         }
 
@@ -209,6 +262,8 @@ namespace Pickles_Playlist_Editor
                     case 0:
                         return false;
                     case 1:
+                        if (draggedNode == null)
+                            return false;
                         // Confirm that the node at the drop location is not 
                         // the dragged node and that target node isn't null
                         // (for example if you drag outside the control)
@@ -231,10 +286,12 @@ namespace Pickles_Playlist_Editor
                             // Expand the node at the location 
                             // to show the dropped node.
                             targetNode.Expand();
+                            RecomputePlaylistDurations();
                         }
                         break;
                     case 2:
-
+                        if (draggedNode == null)
+                            return false;
                         // Confirm that the node at the drop location is not 
                         // the dragged node and that target node isn't null
                         // (for example if you drag outside the control)
@@ -262,6 +319,7 @@ namespace Pickles_Playlist_Editor
                             // Expand the node at the location 
                             // to show the dropped node.
                             targetNode.Expand();
+                            RecomputePlaylistDurations();
                         }
                         break;
                 }
