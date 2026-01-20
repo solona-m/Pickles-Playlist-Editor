@@ -37,7 +37,6 @@ namespace Pickles_Playlist_Editor
                 return;
             }
 
-            BPMDetector.ShowFirstTimeMessage();
             Dictionary<string, bool> expandedPlaylists = new Dictionary<string, bool>();
             string selectedSong = PlaylistTreeView.SelectedNode?.Name;
             if (PlaylistTreeView.Nodes.Count > 0)
@@ -51,6 +50,15 @@ namespace Pickles_Playlist_Editor
             try
             {
                 Playlists = Playlist.GetAll();
+
+                bool skipDurationComputation = false;
+                if (BPMDetector.ShowFirstTimeMessage())
+                {
+                    skipDurationComputation = true;
+                    // User has been shown the first time message
+                    RecomputePlaylistDurationsAsync();
+                }
+
                 PlaylistTreeView.Nodes.Clear();
                 PlaylistTreeView.ImageList = new ImageList();
                 PlaylistTreeView.ImageList.ImageSize = new Size(16, 16);
@@ -71,12 +79,12 @@ namespace Pickles_Playlist_Editor
                         try
                         {
                             TimeSpan time = TimeSpan.Zero;
-                            if (song.Files.ContainsKey("sound/bpmloop.scd"))
+                            if (!skipDurationComputation && song.Files.ContainsKey("sound/bpmloop.scd"))
                             {
                                 time = BPMDetector.GetDuration(song.Files["sound/bpmloop.scd"]);
                                 playlistTime = playlistTime.Add(time);
                             }
-                            TreeNode songNode = new TreeNode(song.Name + GetBPMString(song) + GetTimeString(time));
+                            TreeNode songNode = new TreeNode(song.Name + (skipDurationComputation ? string.Empty : GetBPMString(song)) + GetTimeString(time));
                             songNode.ImageKey = "song";
                             songNode.Name = song.Name;
                             playlistNode.Nodes.Add(songNode);
@@ -112,11 +120,11 @@ namespace Pickles_Playlist_Editor
             }
         }
 
-        private void RecomputePlaylistDurations()
+        private void RecomputePlaylistDurations(bool checkUI = true)
         {
             foreach (Playlist playlist in Playlists.Values)
             {
-                if (PlaylistTreeView.Nodes[0].Nodes.Find(playlist.Name, false).Length == 0)
+                if (checkUI && PlaylistTreeView.Nodes[0].Nodes.Find(playlist.Name, false).Length == 0)
                     continue;
                 TreeNode playlistNode = PlaylistTreeView.Nodes[0].Nodes.Find(playlist.Name, false)[0];
                 TimeSpan playlistTime = TimeSpan.Zero;
@@ -142,6 +150,11 @@ namespace Pickles_Playlist_Editor
 
                 playlistNode.Text = playlist.Name + GetTimeString(playlistTime);
             }
+
+            if (checkUI)
+                return;
+            LoadPlaylists();
+            SetProgressBarPercent(100);
         }
 
         private string GetBPMString(Option song)
@@ -187,7 +200,10 @@ namespace Pickles_Playlist_Editor
             if (percent > 100) percent = 100;
             progressBar1.Value = percent;
             if (percent == 100)
+            {
                 progressBar1.ResetText();
+                progressBar1.Value = 0;
+            }
         }
 
         public void SetProgressBarText(string text)
@@ -574,6 +590,79 @@ namespace Pickles_Playlist_Editor
             }
 
             return true;
+        }
+
+        private Task RecomputePlaylistDurationsAsync()
+        {
+            // Snapshot playlist file paths on the UI thread to avoid cross-thread access
+            var playlistScdPaths = new List<List<string>>();
+            var playlists = Playlist.GetAll();
+            foreach (var playlist in playlists.Values)
+            {
+                var files = new List<string>();
+                if (playlist.Options != null)
+                {
+                    foreach (var opt in playlist.Options)
+                    {
+                        if (opt?.Files != null && opt.Files.TryGetValue("sound/bpmloop.scd", out var scdPath))
+                        {
+                            // store full path as used elsewhere in the app
+                            files.Add(Path.Combine(Settings.PenumbraLocation, Settings.ModName, scdPath));
+                        }
+                    }
+                }
+                playlistScdPaths.Add(files);
+            }
+            
+
+            // Run expensive duration work on a background thread, then update UI
+            return Task.Run(() =>
+            {
+                try
+                {
+                    SetProgressBarText("Computing song durations and bpm...");
+                    int filesProcessed = 0;
+                    int totalFiles = 0;
+                    foreach (var fileList in playlistScdPaths)
+                    {
+                        foreach (var scd in fileList)
+                        {
+                            totalFiles++;
+                        }
+                    }
+                    
+                    foreach (var fileList in playlistScdPaths)
+                    {
+                        foreach (var scd in fileList)
+                        {
+                            try
+                            {
+                                // warm/cache duration (BPMDetector caches results internally)
+                                BPMDetector.GetDuration(scd);
+                                filesProcessed++;
+                                SetProgressBarPercent((int)((filesProcessed / (double)totalFiles) * 100));
+                            }
+                            catch
+                            {
+                                // ignore per-file failures
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    // Marshal back to UI thread to update nodes safely
+                    if (IsHandleCreated)
+                    {
+                        BeginInvoke(new Action(() => RecomputePlaylistDurations(false)));
+                    }
+                    else
+                    {
+                        // fallback: call directly (rare)
+                        RecomputePlaylistDurations(false);
+                    }
+                }
+            });
         }
     }
 }

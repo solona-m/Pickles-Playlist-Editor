@@ -15,20 +15,21 @@ namespace Pickles_Playlist_Editor.Utils
         private static PersistentDictionary<string, int> bpmCache = new PersistentDictionary<string, int>("bpm_cache.dat");
         private static PersistentDictionary<string, int> durationCache = new PersistentDictionary<string, int>("duration_cache.dat");
 
-        internal static void ShowFirstTimeMessage()
+        internal static bool ShowFirstTimeMessage()
         {
             try
             {
-                if (bpmCache["FIRST_TIME_MESSAGE_SHOWN"] == 4)
-                    return;
+                if (bpmCache["FIRST_TIME_MESSAGE_SHOWN"] == 7)
+                    return false;
             }
             catch (Exception ex)
             {
             }
 
-            System.Windows.Forms.MessageBox.Show("BPM and length detection may take some time depending on the length and number of tracks being analyzed. Values are cached for faster access in the future.");
+            System.Windows.Forms.MessageBox.Show("BPM and length detection may take some time depending on the length and number of tracks being analyzed. Values are cached for faster access in the future. Do not close the app until this completes.");
 
-            bpmCache["FIRST_TIME_MESSAGE_SHOWN"] = 4;
+            bpmCache["FIRST_TIME_MESSAGE_SHOWN"] = 7;
+            return true;
         }
 
         private struct SongAttributes
