@@ -342,7 +342,7 @@ namespace Pickles_Playlist_Editor
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error during drag and drop: " + ex.Message);
+                MessageBox.Show("Error during drag and drop: " + ex.ToString());
                 return false;
             }
 

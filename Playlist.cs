@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using VfxEditor.ScdFormat;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace Pickles_Playlist_Editor
 {
@@ -86,6 +87,7 @@ namespace Pickles_Playlist_Editor
 
 
             File.WriteAllText(Path.Combine(Settings.PenumbraLocation, Settings.ModName, fileName), json);
+            Directory.CreateDirectory(Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistName));
         }
 
         static Option AddFiles(string playlistName, Playlist group, string file)
