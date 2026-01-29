@@ -31,12 +31,18 @@ namespace Pickles_Playlist_Editor
 
         public void LoadPlaylists()
         {
+            LoadPlaylists(string.Empty);
+        }
+
+        public void LoadPlaylists(string filter)
+        {
             if (InvokeRequired)
             {
                 Invoke(new Action(LoadPlaylists));
                 return;
             }
 
+            //PlaylistTreeView.BeginUpdate();
             Dictionary<string, bool> expandedPlaylists = new Dictionary<string, bool>();
             string selectedSong = PlaylistTreeView.SelectedNode?.Name;
             if (PlaylistTreeView.Nodes.Count > 0)
@@ -66,13 +72,14 @@ namespace Pickles_Playlist_Editor
                 PlaylistTreeView.ImageList.Images.Add("song", Properties.Resources.noteIcon);
                 PlaylistTreeView.ShowNodeToolTips = true;
                 TreeNode rootNode = new TreeNode("Playlists");
-
+                
+                PlaylistTreeView.Nodes.Add(rootNode);
                 foreach (Playlist playlist in Playlists.Values)
                 {
                     TreeNode playlistNode = new TreeNode(playlist.Name);
                     TimeSpan playlistTime = TimeSpan.Zero;
                     playlistNode.ImageKey = "playlist";
-                    rootNode.Nodes.Add(playlistNode);
+                    bool matchFound = false;
                     if (playlist.Options == null) continue;
                     foreach (Option song in playlist.Options)
                     {
@@ -87,18 +94,37 @@ namespace Pickles_Playlist_Editor
                             TreeNode songNode = new TreeNode(song.Name + (skipDurationComputation ? string.Empty : GetBPMString(song)) + GetTimeString(time));
                             songNode.ImageKey = "song";
                             songNode.Name = song.Name;
-                            playlistNode.Nodes.Add(songNode);
+                            if (!string.IsNullOrEmpty(filter))
+                            {
+                                var comparison = StringComparison.OrdinalIgnoreCase;
+                                if (playlist.Name?.IndexOf(filter, comparison) >= 0 ||
+                                    song.Name?.IndexOf(filter, comparison) >= 0)
+                                {
+                                    matchFound = true;
+                                    playlistNode.Nodes.Add(songNode);
+                                }
+                            }
+                            else
+                            {
+                                playlistNode.Nodes.Add(songNode);
+                            }
                         }
                         catch (Exception ex)
                         {
                             MessageBox.Show("Error loading song " + song.Name + " in playlist " + playlist.Name + ": " + ex.ToString());
                         }
                     }
+                    if (filter.Length > 0 && playlistNode.Nodes.Count == 0)
+                        continue;
+                    rootNode.Nodes.Add(playlistNode);
 
                     playlistNode.Name = playlist.Name;
                     playlistNode.Text = playlist.Name + GetTimeString(playlistTime);
+                    if (matchFound)
+                    {
+                        expandedPlaylists[playlist.Name] = true;
+                    }
                 }
-                PlaylistTreeView.Nodes.Add(rootNode);
                 PlaylistTreeView.CheckBoxes = true;
                 rootNode.Expand();
                 foreach (var kvp in expandedPlaylists)
@@ -112,12 +138,24 @@ namespace Pickles_Playlist_Editor
                 {
                     PlaylistTreeView.SelectedNode = PlaylistTreeView.Nodes[0].Nodes.Find(selectedSong, true)[0];
                 }
+                //PlaylistTreeView.EndUpdate();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error loading playlists: " + ex.ToString());
                 return;
             }
+        }
+
+        /// <summary>
+        /// Filter handler for the search box.
+        /// Rebuilds the tree to only include playlists and songs that contain the filter text.
+        /// Matching is case-insensitive and checks playlist name and song name.
+        /// </summary>
+        private void SearchTextBox_TextChanged(object? sender, EventArgs e)
+        {
+            var filter = searchTextBox.Text?.Trim();
+            LoadPlaylists(filter != null ? filter : string.Empty);
         }
 
         private void RecomputePlaylistDurations(bool checkUI = true)

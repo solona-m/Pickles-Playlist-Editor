@@ -35,6 +35,9 @@ namespace Pickles_Playlist_Editor
             tableLayoutPanel1 = new TableLayoutPanel();
             PlaylistTreeView = new TreeView();
             progressBar1 = new CustomProgressBar();
+            searchLayoutPanel = new TableLayoutPanel();
+            searchTextBox = new TextBox();
+            searchLabel = new Label();
             toolStrip1 = new ToolStrip();
             NewButton = new ToolStripButton();
             DeleteButton = new ToolStripButton();
@@ -48,6 +51,7 @@ namespace Pickles_Playlist_Editor
             nextButton = new ToolStripButton();
             panel1.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
+            searchLayoutPanel.SuspendLayout();
             toolStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -68,11 +72,12 @@ namespace Pickles_Playlist_Editor
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tableLayoutPanel1.Controls.Add(PlaylistTreeView, 0, 1);
             tableLayoutPanel1.Controls.Add(progressBar1, 0, 2);
+            tableLayoutPanel1.Controls.Add(searchLayoutPanel, 0, 0);
             tableLayoutPanel1.Dock = DockStyle.Fill;
             tableLayoutPanel1.Location = new Point(0, 25);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
             tableLayoutPanel1.RowCount = 3;
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 5F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
             tableLayoutPanel1.Size = new Size(1075, 619);
@@ -82,9 +87,9 @@ namespace Pickles_Playlist_Editor
             // 
             PlaylistTreeView.AllowDrop = true;
             PlaylistTreeView.Dock = DockStyle.Fill;
-            PlaylistTreeView.Location = new Point(3, 8);
+            PlaylistTreeView.Location = new Point(3, 31);
             PlaylistTreeView.Name = "PlaylistTreeView";
-            PlaylistTreeView.Size = new Size(1069, 580);
+            PlaylistTreeView.Size = new Size(1069, 557);
             PlaylistTreeView.TabIndex = 2;
             PlaylistTreeView.AfterCheck += PlaylistTreeView_AfterCheck;
             PlaylistTreeView.ItemDrag += PlaylistTreeView_ItemDrag;
@@ -99,6 +104,39 @@ namespace Pickles_Playlist_Editor
             progressBar1.Name = "progressBar1";
             progressBar1.Size = new Size(1069, 22);
             progressBar1.TabIndex = 3;
+            // 
+            // searchLayoutPanel
+            // 
+            searchLayoutPanel.ColumnCount = 2;
+            searchLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 60F));
+            searchLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            searchLayoutPanel.Controls.Add(searchTextBox, 1, 0);
+            searchLayoutPanel.Controls.Add(searchLabel, 0, 0);
+            searchLayoutPanel.Dock = DockStyle.Fill;
+            searchLayoutPanel.Location = new Point(3, 3);
+            searchLayoutPanel.Name = "searchLayoutPanel";
+            searchLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            searchLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
+            searchLayoutPanel.Size = new Size(1069, 22);
+            searchLayoutPanel.TabIndex = 4;
+            // 
+            // searchTextBox
+            // 
+            searchTextBox.Dock = DockStyle.Fill;
+            searchTextBox.Location = new Point(63, 3);
+            searchTextBox.Name = "searchTextBox";
+            searchTextBox.Size = new Size(1003, 23);
+            searchTextBox.TabIndex = 0;
+            searchTextBox.TextChanged += SearchTextBox_TextChanged;
+            // 
+            // searchLabel
+            // 
+            searchLabel.AutoSize = true;
+            searchLabel.Location = new Point(3, 0);
+            searchLabel.Name = "searchLabel";
+            searchLabel.Size = new Size(42, 15);
+            searchLabel.TabIndex = 1;
+            searchLabel.Text = "Search";
             // 
             // toolStrip1
             // 
@@ -218,6 +256,8 @@ namespace Pickles_Playlist_Editor
             panel1.ResumeLayout(false);
             panel1.PerformLayout();
             tableLayoutPanel1.ResumeLayout(false);
+            searchLayoutPanel.ResumeLayout(false);
+            searchLayoutPanel.PerformLayout();
             toolStrip1.ResumeLayout(false);
             toolStrip1.PerformLayout();
             ResumeLayout(false);
@@ -233,6 +273,10 @@ namespace Pickles_Playlist_Editor
         private ToolStripButton SettingsButton;
         private ToolStripButton ShuffleButton;
         private TableLayoutPanel tableLayoutPanel1;
+        private TableLayoutPanel searchLayoutPanel;
+
+        // Search box for filtering the tree view
+        private TextBox searchTextBox;
         private CustomProgressBar progressBar1;
 
         class CustomProgressBar : ProgressBar
@@ -275,5 +319,6 @@ namespace Pickles_Playlist_Editor
         private ToolStripButton StopIcon;
         private ToolStripButton previousButton;
         private ToolStripButton nextButton;
+        private Label searchLabel;
     }
 }
