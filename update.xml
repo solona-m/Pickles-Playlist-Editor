@@ -5,7 +5,7 @@
   <!-- Changelog can be plain text or HTML. Use CDATA to include markup safely. -->
   <changelog>
     <![CDATA[
-    <h3>What's new in 1.1.0.6</h3>
+    <h3>What's new in 1.1.0.7</h3>
     <ul>
       <li>fix new empty playlist creation</li>
     </ul>
