@@ -331,11 +331,18 @@ namespace Pickles_Playlist_Editor
                             targetNode.Nodes.Insert(targetNode.Nodes.Count, draggedNode);
                             playlist.Options.Remove(song);
                             playlist.Save();
-                            song.Files["sound/bpmloop.scd"] = Path.Combine(targetPlaylist.Name, song.Name, "bpmloop.scd");
+                            string oldPath = song.Files["sound/bpmloop.scd"];
+                            string oldDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, oldPath.Substring(0, oldPath.LastIndexOf('\\')));
+                            string oldSongName = oldPath.Substring(oldPath.LastIndexOf('\\') + 1, oldPath.Length - oldPath.LastIndexOf('\\')-1);
+                            song.Files["sound/bpmloop.scd"] = Path.Combine(targetPlaylist.Name, song.Name, oldSongName);
+
                             targetPlaylist.Options.Add(song);
                             targetPlaylist.Save();
-                            Directory.Move(Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlist.Name, song.Name),
-                                Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetPlaylist.Name, song.Name));
+
+                            string newDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetPlaylist.Name, song.Name);
+                            if (!Directory.Exists(newDir))
+                                Directory.CreateDirectory(newDir);
+                            File.Move(Path.Combine(oldDir, oldSongName), Path.Combine(newDir, oldSongName));
 
                             // Expand the node at the location 
                             // to show the dropped node.
@@ -361,14 +368,18 @@ namespace Pickles_Playlist_Editor
                             targetNode.Parent.Nodes.Insert(index, draggedNode);
                             playlist.Options.Remove(song);
                             playlist.Save();
-                            song.Files["sound/bpmloop.scd"] = Path.Combine(targetPlaylist.Name, song.Name, "bpmloop.scd");
+                            string oldPath = song.Files["sound/bpmloop.scd"];
+                            string oldDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, oldPath.Substring(0, oldPath.LastIndexOf('\\')));
+                            string oldSongName = oldPath.Substring(oldPath.LastIndexOf('\\') + 1, oldPath.Length - oldPath.LastIndexOf('\\') - 1);
+                            song.Files["sound/bpmloop.scd"] = Path.Combine(targetPlaylist.Name, song.Name, oldSongName);
+
                             targetPlaylist.Options.Insert(index, song);
                             targetPlaylist.Save();
 
-                            string sourceDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlist.Name, song.Name);
-                            string destDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetPlaylist.Name, song.Name);
-                            if (sourceDir != destDir)
-                                Directory.Move(sourceDir, destDir);
+                            string newDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetPlaylist.Name, song.Name);
+                            if (!Directory.Exists(newDir))
+                                Directory.CreateDirectory(newDir);
+                            File.Move(Path.Combine(oldDir, oldSongName), Path.Combine(newDir, oldSongName));
 
                             // Expand the node at the location 
                             // to show the dropped node.
