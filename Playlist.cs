@@ -31,12 +31,18 @@ namespace Pickles_Playlist_Editor
 
         public static void Create(string playlistName, string dir, Action<int>? callback)
         {
+            if (playlistName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            {
+                MessageBox.Show("Playlist name cannot contain any of the following characters: " + string.Join(" ", Path.GetInvalidFileNameChars()));
+                return;
+            }
+
             Playlist group = new Playlist();
             group.Name = playlistName;
             group.Options = new List<Option>();
 
             Playlist mergedGroup = null;
-            var groupFileNames = Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*_" + playlistName + ".json");
+            var groupFileNames = GetJsonFiles(playlistName);
             string fileName;
             if (groupFileNames.Length == 1)
             {
@@ -102,7 +108,8 @@ namespace Pickles_Playlist_Editor
                     filenameroot = Path.GetDirectoryName(file);
                     filenameroot = filenameroot.Split(Path.DirectorySeparatorChar).Last();
                 }
-                string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistName, filenameroot);
+                string cleanPlaylistName = playlistName.Replace("/", "_");
+                string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName, filenameroot);
                 Directory.CreateDirectory(outDir);
                 using (BinaryWriter writer = new BinaryWriter(new FileStream(Path.Combine(outDir, "bpmloop.scd"), FileMode.Create)))
                 {
@@ -113,7 +120,7 @@ namespace Pickles_Playlist_Editor
                 opt.Files = new Dictionary<string, string>();
                 opt.Files.Add(
                     "sound/bpmloop.scd",
-                    Path.Combine(playlistName, filenameroot, "bpmloop.scd"));
+                    Path.Combine(cleanPlaylistName, filenameroot, "bpmloop.scd"));
                 group.Options.Add(opt);
             }
             catch (Exception ex)
@@ -185,7 +192,7 @@ namespace Pickles_Playlist_Editor
 
         public void Save()
         {
-            var fileNames = Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*_" + Name + ".json");
+            var fileNames = GetJsonFiles(Name);
             if (fileNames.Length == 0) return;
             string fileName = fileNames[0];
             string json = JsonConvert.SerializeObject(this, Formatting.Indented);
@@ -198,7 +205,12 @@ namespace Pickles_Playlist_Editor
                 return;
             if (Directory.Exists(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name)))
                 Directory.Delete(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name), true);
-            File.Delete(Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*_" + Name + ".json")[0]);
+            File.Delete(GetJsonFiles(Name)[0]);
+        }
+
+        private static string[] GetJsonFiles(string name)
+        {
+            return Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*_" + name.Replace("/","_") + ".json");
         }
 
         internal void Shuffle()
