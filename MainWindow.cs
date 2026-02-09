@@ -86,9 +86,9 @@ namespace Pickles_Playlist_Editor
                         try
                         {
                             TimeSpan time = TimeSpan.Zero;
-                            if (!skipDurationComputation && song.Files.ContainsKey("sound/bpmloop.scd"))
+                            if (!skipDurationComputation && !string.IsNullOrEmpty(Playlist.GetScdPath(song)))
                             {
-                                time = BPMDetector.GetDuration(song.Files["sound/bpmloop.scd"]);
+                                time = BPMDetector.GetDuration(Playlist.GetScdPath(song));
                                 playlistTime = playlistTime.Add(time);
                             }
                             TreeNode songNode = new TreeNode(song.Name + (skipDurationComputation ? string.Empty : GetBPMString(song)) + GetTimeString(time));
@@ -173,9 +173,9 @@ namespace Pickles_Playlist_Editor
                     try
                     {
                         TimeSpan time = TimeSpan.Zero;
-                        if (song.Files.ContainsKey("sound/bpmloop.scd"))
+                        if (!string.IsNullOrEmpty(Playlist.GetScdPath(song)))
                         {
-                            time = BPMDetector.GetDuration(song.Files["sound/bpmloop.scd"]);
+                            time = BPMDetector.GetDuration(Playlist.GetScdPath(song));
                             playlistTime = playlistTime.Add(time);
                         }
                 
@@ -197,9 +197,10 @@ namespace Pickles_Playlist_Editor
 
         private string GetBPMString(Option song)
         {
-            if (!song.Files.ContainsKey("sound/bpmloop.scd"))
+            string scdPath = Playlist.GetScdPath(song);
+            if (string.IsNullOrEmpty(scdPath))
                 return string.Empty;
-            return " (" + BPMDetector.GetBPMFromSCD(song.Files["sound/bpmloop.scd"]) + " BPM)";
+            return " (" + BPMDetector.GetBPMFromSCD(scdPath) + " BPM)";
         }
 
         private string GetTimeString(TimeSpan time)
@@ -331,10 +332,13 @@ namespace Pickles_Playlist_Editor
                             targetNode.Nodes.Insert(targetNode.Nodes.Count, draggedNode);
                             playlist.Options.Remove(song);
                             playlist.Save();
-                            string oldPath = song.Files["sound/bpmloop.scd"];
+                            string oldPath = Playlist.GetScdPath(song);
                             string oldDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, oldPath.Substring(0, oldPath.LastIndexOf('\\')));
                             string oldSongName = oldPath.Substring(oldPath.LastIndexOf('\\') + 1, oldPath.Length - oldPath.LastIndexOf('\\')-1);
-                            song.Files["sound/bpmloop.scd"] = Path.Combine(targetPlaylist.Name, song.Name, oldSongName);
+                            {
+                                var scdKey = Playlist.GetScdKey(song) ?? Settings.BaselineScdKey;
+                                song.Files[scdKey] = Path.Combine(targetPlaylist.Name, song.Name, oldSongName);
+                            }
 
                             targetPlaylist.Options.Add(song);
                             targetPlaylist.Save();
@@ -368,10 +372,13 @@ namespace Pickles_Playlist_Editor
                             targetNode.Parent.Nodes.Insert(index, draggedNode);
                             playlist.Options.Remove(song);
                             playlist.Save();
-                            string oldPath = song.Files["sound/bpmloop.scd"];
+                            string oldPath = Playlist.GetScdPath(song);
                             string oldDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, oldPath.Substring(0, oldPath.LastIndexOf('\\')));
                             string oldSongName = oldPath.Substring(oldPath.LastIndexOf('\\') + 1, oldPath.Length - oldPath.LastIndexOf('\\') - 1);
-                            song.Files["sound/bpmloop.scd"] = Path.Combine(targetPlaylist.Name, song.Name, oldSongName);
+                            {
+                                var scdKey = Playlist.GetScdKey(song) ?? Settings.BaselineScdKey;
+                                song.Files[scdKey] = Path.Combine(targetPlaylist.Name, song.Name, oldSongName);
+                            }
 
                             targetPlaylist.Options.Insert(index, song);
                             targetPlaylist.Save();
@@ -553,7 +560,7 @@ namespace Pickles_Playlist_Editor
 
         private void PlayOption(Option opt)
         {
-            string optPath = opt.Files["sound/bpmloop.scd"];
+            string optPath = Playlist.GetScdPath(opt);
             string songPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, optPath);
             if (File.Exists(songPath))
             {
@@ -653,10 +660,14 @@ namespace Pickles_Playlist_Editor
                 {
                     foreach (var opt in playlist.Options)
                     {
-                        if (opt?.Files != null && opt.Files.TryGetValue("sound/bpmloop.scd", out var scdPath))
+                        if (opt?.Files != null)
                         {
-                            // store full path as used elsewhere in the app
-                            files.Add(Path.Combine(Settings.PenumbraLocation, Settings.ModName, scdPath));
+                            var scdPath = Playlist.GetScdPath(opt);
+                            if (!string.IsNullOrEmpty(scdPath))
+                            {
+                                // store full path as used elsewhere in the app
+                                files.Add(Path.Combine(Settings.PenumbraLocation, Settings.ModName, scdPath));
+                            }
                         }
                     }
                 }

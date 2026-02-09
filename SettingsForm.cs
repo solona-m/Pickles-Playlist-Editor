@@ -15,6 +15,9 @@ namespace Pickles_Playlist_Editor
         public SettingsForm()
         {
             InitializeComponent();
+            DirecotryPathTextBox.Text = Path.Combine(Settings.PenumbraLocation ?? string.Empty, Settings.ModName ?? string.Empty);
+            BaselineScdTextBox.Text = Settings.BaselineScdKey;
+            ValidateFields();
         }
 
         private void BrowseButton_Click(object sender, EventArgs e)
@@ -27,10 +30,17 @@ namespace Pickles_Playlist_Editor
 
         private void ValidateFields()
         {
-            OkButton.Enabled = !string.IsNullOrEmpty(DirecotryPathTextBox.Text) && Directory.Exists(DirecotryPathTextBox.Text) && File.Exists(Path.Combine(DirecotryPathTextBox.Text, "meta.json"));
+            bool validDirectory = !string.IsNullOrEmpty(DirecotryPathTextBox.Text) && Directory.Exists(DirecotryPathTextBox.Text) && File.Exists(Path.Combine(DirecotryPathTextBox.Text, "meta.json"));
+            bool validScd = !string.IsNullOrWhiteSpace(BaselineScdTextBox.Text) && BaselineScdTextBox.Text.Trim().EndsWith(".scd", StringComparison.OrdinalIgnoreCase);
+            OkButton.Enabled = validDirectory && validScd;
         }
 
         private void DirecotryPathTextBox_TextChanged(object sender, EventArgs e)
+        {
+            ValidateFields();
+        }
+
+        private void BaselineScdTextBox_TextChanged(object sender, EventArgs e)
         {
             ValidateFields();
         }
@@ -43,7 +53,8 @@ namespace Pickles_Playlist_Editor
                 string penLocation = DirecotryPathTextBox.Text.Substring(0, DirecotryPathTextBox.Text.Length - modName.Length);
                 Settings.ModName = modName;
                 Settings.PenumbraLocation = penLocation;
-                this.Close();   
+                Settings.BaselineScdKey = BaselineScdTextBox.Text;
+                this.Close();
             }
         }
     }

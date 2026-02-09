@@ -7,6 +7,7 @@ namespace Pickles_Playlist_Editor
         private static string s_valueName = "PenumbraPath";
         private static string s_subKey = @"SOFTWARE\ScdConverter";
         private static string s_defaultModName = "Gimme Pickle's DJ Muzik, Movez, and VFX";
+        private static string s_defaultBaselineScdKey = "sound/bpmloop.scd";
         public static string[] SupportedFileTypes = new string[] { ".ogg", ".wav", ".mp3", ".m4a", ".scd" };
 
         public static string PenumbraLocation
@@ -46,6 +47,30 @@ namespace Pickles_Playlist_Editor
                     {
                         // Write the value
                         key.SetValue("ModName", value);
+                    }
+                }
+            }
+        }
+
+        public static string BaselineScdKey
+        {
+            get
+            {
+                string key = (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("BaselineScdKey", s_defaultBaselineScdKey);
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    return s_defaultBaselineScdKey;
+                }
+                return key.Trim();
+            }
+            set
+            {
+                string normalized = string.IsNullOrWhiteSpace(value) ? s_defaultBaselineScdKey : value.Trim();
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey))
+                {
+                    if (key != null)
+                    {
+                        key.SetValue("BaselineScdKey", normalized);
                     }
                 }
             }
