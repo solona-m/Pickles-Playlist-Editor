@@ -111,7 +111,7 @@ namespace Pickles_Playlist_Editor
                 string cleanPlaylistName = playlistName.Replace("/", "_");
                 string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName, filenameroot);
                 Directory.CreateDirectory(outDir);
-                using (BinaryWriter writer = new BinaryWriter(new FileStream(Path.Combine(outDir, "bpmloop.scd"), FileMode.Create)))
+                using (BinaryWriter writer = new BinaryWriter(new FileStream(Path.Combine(outDir, GetBaselineScdFileName()), FileMode.Create)))
                 {
                     scdFile.Write(writer);
                 }
@@ -119,8 +119,8 @@ namespace Pickles_Playlist_Editor
                 opt.Name = filenameroot;
                 opt.Files = new Dictionary<string, string>();
                 opt.Files.Add(
-                    "sound/bpmloop.scd",
-                    Path.Combine(cleanPlaylistName, filenameroot, "bpmloop.scd"));
+                    Settings.BaselineScdKey,
+                    Path.Combine(cleanPlaylistName, filenameroot, GetBaselineScdFileName()));
                 group.Options.Add(opt);
             }
             catch (Exception ex)
@@ -128,6 +128,39 @@ namespace Pickles_Playlist_Editor
                 MessageBox.Show("Error adding file " + file + ": " + ex.ToString());
             }
             return opt;
+        }
+
+
+
+        public static string? GetScdKey(Option opt)
+        {
+            if (opt?.Files == null || opt.Files.Count == 0)
+                return null;
+
+            if (opt.Files.ContainsKey(Settings.BaselineScdKey))
+                return Settings.BaselineScdKey;
+
+            if (opt.Files.ContainsKey("sound/bpmloop.scd"))
+                return "sound/bpmloop.scd";
+
+            return opt.Files.Keys.FirstOrDefault(k => k.EndsWith(".scd", StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static string GetScdPath(Option opt)
+        {
+            string? key = GetScdKey(opt);
+            if (key == null)
+                return string.Empty;
+            return opt.Files[key];
+        }
+
+        public static string GetBaselineScdFileName()
+        {
+            string key = Settings.BaselineScdKey.Replace('/', Path.DirectorySeparatorChar);
+            string fileName = Path.GetFileName(key);
+            if (string.IsNullOrWhiteSpace(fileName))
+                return "bpmloop.scd";
+            return fileName;
         }
 
         public static Dictionary<string, Playlist> GetAll()
@@ -236,11 +269,11 @@ namespace Pickles_Playlist_Editor
             List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase)).ToList();
             if (direction == SortDirection.Ascending)
             {
-                otherOptions = otherOptions.OrderBy(o => BPMDetector.GetBPMFromSCD(o.Files["sound/bpmloop.scd"])).ToList();
+                otherOptions = otherOptions.OrderBy(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
             }
             else
             {
-                otherOptions = otherOptions.OrderByDescending(o => BPMDetector.GetBPMFromSCD(o.Files["sound/bpmloop.scd"])).ToList();
+                otherOptions = otherOptions.OrderByDescending(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
             }
             Options = new List<Option>();
             if (offOption != null)

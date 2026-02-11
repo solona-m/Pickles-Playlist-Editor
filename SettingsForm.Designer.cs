@@ -33,6 +33,8 @@
             tableLayoutPanel2 = new TableLayoutPanel();
             BrowseButton = new Button();
             DirecotryPathTextBox = new TextBox();
+            label2 = new Label();
+            BaselineScdTextBox = new TextBox();
             OkButton = new Button();
             tableLayoutPanel1.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
@@ -44,15 +46,19 @@
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tableLayoutPanel1.Controls.Add(label1, 0, 0);
             tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 0, 1);
-            tableLayoutPanel1.Controls.Add(OkButton, 0, 2);
+            tableLayoutPanel1.Controls.Add(label2, 0, 2);
+            tableLayoutPanel1.Controls.Add(BaselineScdTextBox, 0, 3);
+            tableLayoutPanel1.Controls.Add(OkButton, 0, 4);
             tableLayoutPanel1.Dock = DockStyle.Fill;
             tableLayoutPanel1.Location = new Point(0, 0);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
-            tableLayoutPanel1.RowCount = 3;
+            tableLayoutPanel1.RowCount = 5;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.Size = new Size(594, 115);
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 35F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tableLayoutPanel1.Size = new Size(594, 170);
             tableLayoutPanel1.TabIndex = 0;
             // 
             // label1
@@ -100,13 +106,32 @@
             DirecotryPathTextBox.TabIndex = 1;
             DirecotryPathTextBox.TextChanged += DirecotryPathTextBox_TextChanged;
             // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Dock = DockStyle.Fill;
+            label2.Location = new Point(3, 70);
+            label2.Name = "label2";
+            label2.Size = new Size(588, 20);
+            label2.TabIndex = 2;
+            label2.Text = "Baseline SCD key (e.g. sound/bpmloop.scd)";
+            // 
+            // BaselineScdTextBox
+            // 
+            BaselineScdTextBox.Dock = DockStyle.Fill;
+            BaselineScdTextBox.Location = new Point(3, 93);
+            BaselineScdTextBox.Name = "BaselineScdTextBox";
+            BaselineScdTextBox.Size = new Size(588, 23);
+            BaselineScdTextBox.TabIndex = 3;
+            BaselineScdTextBox.TextChanged += BaselineScdTextBox_TextChanged;
+            // 
             // OkButton
             // 
             OkButton.Dock = DockStyle.Fill;
-            OkButton.Location = new Point(3, 73);
+            OkButton.Location = new Point(3, 128);
             OkButton.Name = "OkButton";
             OkButton.Size = new Size(588, 39);
-            OkButton.TabIndex = 2;
+            OkButton.TabIndex = 4;
             OkButton.Text = "Ok";
             OkButton.UseVisualStyleBackColor = true;
             OkButton.Click += OkButton_Click;
@@ -115,7 +140,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(594, 115);
+            ClientSize = new Size(594, 170);
             Controls.Add(tableLayoutPanel1);
             Icon = Properties.Resources.gearIcon;
             Name = "SettingsForm";
@@ -134,6 +159,8 @@
         private TableLayoutPanel tableLayoutPanel2;
         private Button BrowseButton;
         private TextBox DirecotryPathTextBox;
+        private Label label2;
+        private TextBox BaselineScdTextBox;
         private Button OkButton;
     }
 }
