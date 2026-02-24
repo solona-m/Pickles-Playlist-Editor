@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,11 +13,28 @@ namespace Pickles_Playlist_Editor
 {
     public partial class SettingsForm : Form
     {
+        // Checkbox for normalize volume
+        private CheckBox NormalizeVolumeCheckBox;
+
         public SettingsForm()
         {
             InitializeComponent();
+
             DirecotryPathTextBox.Text = Path.Combine(Settings.PenumbraLocation ?? string.Empty, Settings.ModName ?? string.Empty);
             BaselineScdTextBox.Text = Settings.BaselineScdKey;
+
+            // Create and place the checkbox (below the BaselineScdTextBox)
+            NormalizeVolumeCheckBox = new CheckBox
+            {
+                Text = "Normalize Volume",
+                AutoSize = true,
+                Checked = Settings.NormalizeVolume, // connect to stored setting
+            };
+            // Position it under the BaselineScdTextBox (adjust spacing if needed)
+            NormalizeVolumeCheckBox.Location = new Point(BaselineScdTextBox.Left, BaselineScdTextBox.Bottom + 8);
+            Controls.Add(NormalizeVolumeCheckBox);
+            NormalizeVolumeCheckBox.BringToFront();
+
             ValidateFields();
         }
 
@@ -54,6 +72,13 @@ namespace Pickles_Playlist_Editor
                 Settings.ModName = modName;
                 Settings.PenumbraLocation = penLocation;
                 Settings.BaselineScdKey = BaselineScdTextBox.Text;
+
+                // Save normalize volume setting
+                if (NormalizeVolumeCheckBox != null)
+                {
+                    Settings.NormalizeVolume = NormalizeVolumeCheckBox.Checked;
+                }
+
                 this.Close();
             }
         }

@@ -83,6 +83,8 @@ namespace Pickles_Playlist_Editor
                     if (playlist.Options == null) continue;
                     foreach (Option song in playlist.Options)
                     {
+                        if (song == null)
+                            continue;
                         try
                         {
                             TimeSpan time = TimeSpan.Zero;

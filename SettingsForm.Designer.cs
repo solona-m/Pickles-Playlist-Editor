@@ -56,9 +56,9 @@
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 35F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 72F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel1.Size = new Size(594, 170);
+            tableLayoutPanel1.Size = new Size(594, 200);
             tableLayoutPanel1.TabIndex = 0;
             // 
             // label1
@@ -128,9 +128,9 @@
             // OkButton
             // 
             OkButton.Dock = DockStyle.Fill;
-            OkButton.Location = new Point(3, 128);
+            OkButton.Location = new Point(3, 165);
             OkButton.Name = "OkButton";
-            OkButton.Size = new Size(588, 39);
+            OkButton.Size = new Size(588, 32);
             OkButton.TabIndex = 4;
             OkButton.Text = "Ok";
             OkButton.UseVisualStyleBackColor = true;
@@ -140,7 +140,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(594, 170);
+            ClientSize = new Size(594, 200);
             Controls.Add(tableLayoutPanel1);
             Icon = Properties.Resources.gearIcon;
             Name = "SettingsForm";
