@@ -44,6 +44,9 @@ namespace Pickles_Playlist_Editor
             PlaylistTreeView = new TreeView();
             progressBar1 = new CustomProgressBar();
             toolStrip1 = new ToolStrip();
+            AddSongsDropDownButton = new ToolStripDropDownButton();
+            fromMyComputerToolStripMenuItem = new ToolStripMenuItem();
+            fromYouTubeToolStripMenuItem = new ToolStripMenuItem();
             NewButton = new ToolStripButton();
             DeleteButton = new ToolStripButton();
             SettingsButton = new ToolStripButton();
@@ -209,20 +212,42 @@ namespace Pickles_Playlist_Editor
             // 
             // toolStrip1
             // 
-            toolStrip1.Items.AddRange(new ToolStripItem[] { NewButton, DeleteButton, SettingsButton, ShuffleButton, SortByBPM, PlayButton, PauseButton, StopIcon, previousButton, nextButton });
+            toolStrip1.Items.AddRange(new ToolStripItem[] { AddSongsDropDownButton, NewButton, DeleteButton, SettingsButton, ShuffleButton, SortByBPM, PlayButton, PauseButton, StopIcon, previousButton, nextButton });
             toolStrip1.Location = new Point(0, 0);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.Size = new Size(1075, 25);
             toolStrip1.TabIndex = 1;
             toolStrip1.Text = "toolStrip1";
             // 
+            // AddSongsDropDownButton
+            // 
+            AddSongsDropDownButton.DropDownItems.AddRange(new ToolStripItem[] { fromMyComputerToolStripMenuItem, fromYouTubeToolStripMenuItem });
+            AddSongsDropDownButton.Image = (Image)resources.GetObject("AddSongsDropDownButton.Image");
+            AddSongsDropDownButton.ImageTransparentColor = Color.Magenta;
+            AddSongsDropDownButton.Name = "AddSongsDropDownButton";
+            AddSongsDropDownButton.Size = new Size(93, 22);
+            AddSongsDropDownButton.Text = "Add Songs";
+            // 
+            // fromMyComputerToolStripMenuItem
+            // 
+            fromMyComputerToolStripMenuItem.Name = "fromMyComputerToolStripMenuItem";
+            fromMyComputerToolStripMenuItem.Size = new Size(179, 22);
+            fromMyComputerToolStripMenuItem.Text = "From My Computer";
+            fromMyComputerToolStripMenuItem.Click += fromMyComputerToolStripMenuItem_Click;
+            // 
+            // fromYouTubeToolStripMenuItem
+            // 
+            fromYouTubeToolStripMenuItem.Name = "fromYouTubeToolStripMenuItem";
+            fromYouTubeToolStripMenuItem.Size = new Size(179, 22);
+            fromYouTubeToolStripMenuItem.Text = "From YouTube";
+            // 
             // NewButton
             // 
             NewButton.Image = (Image)resources.GetObject("NewButton.Image");
             NewButton.ImageTransparentColor = Color.Magenta;
             NewButton.Name = "NewButton";
-            NewButton.Size = new Size(51, 22);
-            NewButton.Text = "New";
+            NewButton.Size = new Size(91, 22);
+            NewButton.Text = "New Playlist";
             NewButton.Click += NewButton_Click;
             // 
             // DeleteButton
@@ -396,5 +421,8 @@ namespace Pickles_Playlist_Editor
         private ToolStripButton previousButton;
         private ToolStripButton nextButton;
         private Label searchLabel;
+        private ToolStripDropDownButton AddSongsDropDownButton;
+        private ToolStripMenuItem fromMyComputerToolStripMenuItem;
+        private ToolStripMenuItem fromYouTubeToolStripMenuItem;
     }
 }

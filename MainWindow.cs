@@ -11,6 +11,8 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Drawing;
+using System.Threading;
 
 namespace Pickles_Playlist_Editor
 {
@@ -26,6 +28,161 @@ namespace Pickles_Playlist_Editor
             InitializeComponent();
             InitializeYouTubeDownloadControls();
             InitializeTreeContextMenu();
+        }
+
+        // Async helper + updated call sites
+        // Runs the heavy playlist Add/Insert on a background thread and performs UI updates afterwards.
+        private async Task<(bool flowControl, bool value)> AddOrInsertFilesToPlaylistAsync(TreeNode targetNode, Playlist targetPlaylist, string[] files)
+        {
+            if (files == null || files.Length == 0) return (flowControl: true, value: default);
+
+            // Ensure UI shows progress start
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action(() =>
+                {
+                    SetProgressBarText("Importing songs...");
+                    progressBar1.Value = 0;
+                }));
+            }
+            else
+            {
+                SetProgressBarText("Importing songs...");
+                progressBar1.Value = 0;
+            }
+
+            // Determine insert index if needed
+            int insertIndex = -1;
+            if (targetNode != null && targetNode.Level == 2)
+            {
+                insertIndex = targetNode.Parent.Nodes.IndexOf(targetNode) + 1;
+            }
+
+            // Do the expensive Add/Insert on a background thread.
+            await Task.Run(() =>
+            {
+                // The progress callback is thread-safe (it marshals to UI).
+                try
+                {
+                    if (targetNode != null && targetNode.Level == 2)
+                    {
+                        targetPlaylist.Insert(files, insertIndex, SetProgressBarPercent);
+                    }
+                    else
+                    {
+                        targetPlaylist.Add(files, SetProgressBarPercent);
+                    }
+                }
+                catch
+                {
+                    // Let caller handle exceptions if needed; swallow here to ensure finally runs.
+                    throw;
+                }
+            }).ConfigureAwait(false);
+
+            // Marshal UI updates back to UI thread
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action(() =>
+                {
+                    LoadPlaylists();
+                    PlaylistTreeView.Nodes[0].Expand();
+                    try
+                    {
+                        if (targetNode != null)
+                        {
+                            if (targetNode.Level == 2)
+                                PlaylistTreeView.Nodes[0].Nodes[targetNode.Parent.Name].Expand();
+                            else
+                                PlaylistTreeView.Nodes[0].Nodes[targetNode.Name].Expand();
+                        }
+                    }
+                    catch { /* ignore missing nodes */ }
+                    SetProgressBarPercent(0);
+                }));
+            }
+            else
+            {
+                LoadPlaylists();
+                PlaylistTreeView.Nodes[0].Expand();
+                try
+                {
+                    if (targetNode != null)
+                    {
+                        if (targetNode.Level == 2)
+                            PlaylistTreeView.Nodes[0].Nodes[targetNode.Parent.Name].Expand();
+                        else
+                            PlaylistTreeView.Nodes[0].Nodes[targetNode.Name].Expand();
+                    }
+                }
+                catch { /* ignore missing nodes */ }
+                SetProgressBarPercent(0);
+            }
+
+            return (flowControl: false, value: false);
+        }
+
+        // Updated AddSongsButton_Click to await the async helper
+        private async void AddSongsButton_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                var playlists = Playlist.GetAll();
+
+                // Determine target playlist and node
+                var selectedNode = PlaylistTreeView.SelectedNode;
+                Playlist targetPlaylist = null;
+                TreeNode? targetNode = selectedNode;
+
+                if (selectedNode == null)
+                {
+                    // Fallback to ResolveTargetPlaylistForSingle (returns default when nothing selected)
+                    var targetName = ResolveTargetPlaylistForSingle();
+                    if (!playlists.ContainsKey(targetName))
+                    {
+                        MessageBox.Show($"Target playlist '{targetName}' not found.");
+                        return;
+                    }
+                    targetPlaylist = playlists[targetName];
+
+                    // Try to find a corresponding TreeNode for UI updates (may be null)
+                    if (PlaylistTreeView.Nodes.Count > 0)
+                    {
+                        var found = PlaylistTreeView.Nodes[0].Nodes.Find(targetName, false);
+                        if (found.Length > 0) targetNode = found[0];
+                    }
+                }
+                else
+                {
+                    GetPlaylistFromTargetNode(selectedNode, out targetPlaylist);
+                    targetNode = selectedNode;
+                }
+
+                if (targetPlaylist == null)
+                {
+                    MessageBox.Show("Please select a playlist or a song inside a playlist to add files to.");
+                    return;
+                }
+
+                using var dlg = new OpenFileDialog
+                {
+                    Multiselect = true,
+                    Filter = "Audio Files|*.ogg;*.wav;*.mp3;*.m4a",
+                    Title = "Select audio files to add"
+                };
+
+                if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+                var files = dlg.FileNames;
+                if (files == null || files.Length == 0) return;
+
+                // Run the add/insert on a background thread and update the UI afterwards
+                await AddOrInsertFilesToPlaylistAsync(targetNode ?? PlaylistTreeView.Nodes[0], targetPlaylist, files);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error adding songs: " + ex.Message);
+            }
         }
 
         private void InitializeYouTubeDownloadControls()
@@ -117,7 +274,7 @@ namespace Pickles_Playlist_Editor
                 PlaylistTreeView.ImageList.Images.Add("song", Properties.Resources.noteIcon);
                 PlaylistTreeView.ShowNodeToolTips = true;
                 TreeNode rootNode = new TreeNode("Playlists");
-                
+
                 PlaylistTreeView.Nodes.Add(rootNode);
                 foreach (Playlist playlist in Playlists.Values)
                 {
@@ -213,7 +370,7 @@ namespace Pickles_Playlist_Editor
                     continue;
                 TreeNode playlistNode = PlaylistTreeView.Nodes[0].Nodes.Find(playlist.Name, false)[0];
                 TimeSpan playlistTime = TimeSpan.Zero;
-                
+
                 if (playlist.Options == null) continue;
                 foreach (Option song in playlist.Options)
                 {
@@ -225,7 +382,7 @@ namespace Pickles_Playlist_Editor
                             time = BPMDetector.GetDuration(Playlist.GetScdPath(song));
                             playlistTime = playlistTime.Add(time);
                         }
-                
+
                     }
                     catch (Exception ex)
                     {
@@ -874,54 +1031,20 @@ namespace Pickles_Playlist_Editor
         {
             try
             {
-                // Retrieve the client coordinates of the drop location.
-                Point targetPoint = PlaylistTreeView.PointToClient(new Point(e.X, e.Y));
-
-                // Retrieve the node at the drop location.
-                TreeNode targetNode = PlaylistTreeView.GetNodeAt(targetPoint);
-                if (targetNode == null)
-                    return false;
-
-                string parentName = targetNode.Level == 0 ? null : targetNode.Level == 1 ? targetNode.Name : targetNode.Parent.Name;
-
+                TreeNode targetNode;
+                string parentName;
                 Playlist targetPlaylist;
-
-                switch (targetNode.Level)
+                (bool flowControl, bool value) = GetTreeNode(e, out targetNode, out targetPlaylist);
+                if (!flowControl)
                 {
-                    case 0:
-                        return false;
-                    case 1:
-                        targetPlaylist = Playlists[targetNode.Name];
-                        break;
-                    case 2:
-                        targetPlaylist = Playlists[targetNode.Parent.Name];
-                        break;
-                    default:
-                        return false;
-
+                    return value;
                 }
 
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                if (files != null && files.Length > 0)
+                (bool flowControl2, bool value2) = AddOrInsertFilesToPlaylist(targetNode, targetPlaylist, files);
+                if (!flowControl)
                 {
-                    SetProgressBarText("Importing songs...");
-                    progressBar1.Value = 0;
-                    if (targetNode.Level == 2)
-                    {
-                        int index = targetNode.Parent.Nodes.IndexOf(targetNode) + 1;
-                        targetPlaylist.Insert(files, index, SetProgressBarPercent);
-                    }
-                    else
-                    {
-                        targetPlaylist.Add(files, SetProgressBarPercent);
-                    }
-
-
-                    LoadPlaylists();
-                    PlaylistTreeView.Nodes[0].Expand();
-                    PlaylistTreeView.Nodes[0].Nodes[parentName].Expand();
-                    SetProgressBarPercent(0);
-                    return false;
+                    return value2;
                 }
 
                 // Retrieve the node that was dragged.
@@ -949,7 +1072,7 @@ namespace Pickles_Playlist_Editor
                             playlist.Save();
                             string oldPath = Playlist.GetScdPath(song);
                             string oldDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, oldPath.Substring(0, oldPath.LastIndexOf('\\')));
-                            string oldSongName = oldPath.Substring(oldPath.LastIndexOf('\\') + 1, oldPath.Length - oldPath.LastIndexOf('\\')-1);
+                            string oldSongName = oldPath.Substring(oldPath.LastIndexOf('\\') + 1, oldPath.Length - oldPath.LastIndexOf('\\') - 1);
                             {
                                 var scdKey = Playlist.GetScdKey(song) ?? Settings.BaselineScdKey;
                                 song.Files[scdKey] = Path.Combine(targetPlaylist.Name, song.Name, oldSongName);
@@ -1018,6 +1141,82 @@ namespace Pickles_Playlist_Editor
             }
 
             return true;
+        }
+
+        private (bool flowControl, bool value) AddOrInsertFilesToPlaylist(TreeNode targetNode, Playlist targetPlaylist, string[] files)
+        {
+            if (files != null && files.Length > 0)
+            {
+                SetProgressBarText("Importing songs...");
+                progressBar1.Value = 0;
+                if (targetNode.Level == 2)
+                {
+                    int index = targetNode.Parent.Nodes.IndexOf(targetNode) + 1;
+                    targetPlaylist.Insert(files, index, SetProgressBarPercent);
+                }
+                else
+                {
+                    targetPlaylist.Add(files, SetProgressBarPercent);
+                }
+
+
+                LoadPlaylists();
+                PlaylistTreeView.Nodes[0].Expand();
+                if (targetNode.Level == 2)
+                {
+                    PlaylistTreeView.Nodes[0].Nodes[targetNode.Parent.Name].Expand();
+                }
+                else
+                {
+
+                    PlaylistTreeView.Nodes[0].Nodes[targetNode.Name].Expand();
+                }
+                SetProgressBarPercent(0);
+                return (flowControl: false, value: false);
+            }
+
+            return (flowControl: true, value: default);
+        }
+
+        private (bool flowControl, bool value) GetTreeNode(DragEventArgs e, out TreeNode targetNode, out Playlist targetPlaylist)
+        {
+
+            // Retrieve the client coordinates of the drop location.
+            Point targetPoint = PlaylistTreeView.PointToClient(new Point(e.X, e.Y));
+
+            // Retrieve the node at the drop location.
+            targetNode = PlaylistTreeView.GetNodeAt(targetPoint);
+            GetPlaylistFromTargetNode(targetNode, out targetPlaylist);
+
+            return (flowControl: true, value: default);
+        }
+
+        private void GetPlaylistFromTargetNode(TreeNode targetNode, out Playlist targetPlaylist)
+        {
+
+            if (targetNode == null)
+            {
+                targetPlaylist = null;
+            }
+            switch (targetNode.Level)
+            {
+                case 0:
+                    {
+                        targetPlaylist = null;
+                    }
+                    break;
+                case 1:
+                    targetPlaylist = Playlists[targetNode.Name];
+                    break;
+                case 2:
+                    targetPlaylist = Playlists[targetNode.Parent.Name];
+                    break;
+                default:
+                    {
+                        targetPlaylist = null;
+                    }
+                    break;
+            }
         }
 
         private void PlaylistTreeView_AfterCheck(object sender, TreeViewEventArgs e)
@@ -1288,7 +1487,7 @@ namespace Pickles_Playlist_Editor
                 }
                 playlistScdPaths.Add(files);
             }
-            
+
 
             // Run expensive duration work on a background thread, then update UI
             return Task.Run(() =>
@@ -1305,7 +1504,7 @@ namespace Pickles_Playlist_Editor
                             totalFiles++;
                         }
                     }
-                    
+
                     foreach (var fileList in playlistScdPaths)
                     {
                         foreach (var scd in fileList)
@@ -1338,6 +1537,11 @@ namespace Pickles_Playlist_Editor
                     }
                 }
             });
+        }
+
+        private void fromMyComputerToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            AddSongsButton_Click(sender, e);
         }
     }
 }
