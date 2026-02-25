@@ -1,10 +1,7 @@
 ﻿using libZPlay;
 using Pickles_Playlist_Editor.Tools;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,6 +10,7 @@ namespace Pickles_Playlist_Editor
     internal static class Player
     {
         static ZPlay player = new ZPlay();
+        private static readonly int[] EqualizerBands = [64, 250, 1000, 4000, 12000];
 
         enum PauseState
         {
@@ -22,13 +20,46 @@ namespace Pickles_Playlist_Editor
         }
 
         private static PauseState currentState = PauseState.STOPPED;
-
-        public static event Action PlaybackEnded;
+        public static bool IsPlaying => currentState == PauseState.PLAYING || currentState == PauseState.PAUSED;
 
         private static CancellationTokenSource monitorCts;
+        private static string? extractedTempOggPath;
 
         // Added optional onEnded callback parameter
         public static void Play(string filePath, Action? onEnded = null)
+        {
+            // Release any existing playback handle before writing a new temporary file.
+            if (currentState == PauseState.PLAYING || currentState == PauseState.PAUSED)
+            {
+                Stop();
+            }
+
+            CleanupExtractedTempFile();
+
+            string extractedOgg = CreateExtractedOggPathNearScd(filePath, "now_playing");
+            ScdOggExtractor.ExtractOgg(filePath, extractedOgg);
+            extractedTempOggPath = extractedOgg;
+            PlayOgg(extractedOgg, onEnded);
+        }
+
+        public static string CreateExtractedOggPathNearScd(string scdPath, string fileTag)
+        {
+            if (string.IsNullOrWhiteSpace(scdPath))
+                throw new ArgumentException("SCD path is required.", nameof(scdPath));
+
+            string? sourceDir = Path.GetDirectoryName(scdPath);
+            if (string.IsNullOrWhiteSpace(sourceDir))
+                sourceDir = Path.GetTempPath();
+
+            string baseName = Path.GetFileNameWithoutExtension(scdPath);
+            if (string.IsNullOrWhiteSpace(baseName))
+                baseName = "audio";
+
+            string suffix = string.IsNullOrWhiteSpace(fileTag) ? "preview" : fileTag;
+            return Path.Combine(sourceDir, $"{baseName}_{suffix}_{Guid.NewGuid():N}.ogg");
+        }
+
+        public static void PlayOgg(string oggPath, Action? onEnded = null)
         {
             if (currentState == PauseState.PLAYING || currentState == PauseState.PAUSED)
             {
@@ -36,38 +67,14 @@ namespace Pickles_Playlist_Editor
             }
 
             currentState = PauseState.PLAYING;
-            string tmpOgg = Path.Combine(System.IO.Path.GetTempPath(), "now_playing.ogg");
-            ScdOggExtractor.ExtractOgg(filePath, tmpOgg);
-
-            // open the extracted OGG for playback
-            player.OpenFile(tmpOgg, TStreamFormat.sfOgg);
-
-            player.SetPlayerVolume(35, 35); // Set volume to 80%
+            player.OpenFile(oggPath, TStreamFormat.sfOgg);
+            player.SetPlayerVolume(35, 35);
             player.StartPlayback();
 
-            // If caller provided an onEnded callback, subscribe once and auto-unsubscribe
-            if (onEnded != null)
-            {
-                Action? handler = null;
-                handler = () =>
-                {
-                    try
-                    {
-                        onEnded();
-                    }
-                    finally
-                    {
-                        if (handler != null) PlaybackEnded -= handler;
-                    }
-                };
-                PlaybackEnded += handler;
-            }
-
-            // start monitor
-            StartPlaybackMonitor();
+            StartPlaybackMonitor(onEnded);
         }
 
-        private static void StartPlaybackMonitor()
+        private static void StartPlaybackMonitor(Action? onEnded)
         {
             monitorCts?.Cancel();
             monitorCts = new CancellationTokenSource();
@@ -107,7 +114,7 @@ namespace Pickles_Playlist_Editor
                 catch (TaskCanceledException) { currentState = PauseState.STOPPED; }
 
                 if (currentState == PauseState.PLAYING)
-                    PlaybackEnded?.Invoke();
+                    onEnded?.Invoke();
             }, ct);
         }
 
@@ -119,11 +126,11 @@ namespace Pickles_Playlist_Editor
                 player.PausePlayback();
                 return;
             }
-            else
+
+            if (currentState == PauseState.PAUSED)
             {
                 currentState = PauseState.PLAYING;
                 player.ResumePlayback();
-                return;
             }
         }
 
@@ -133,6 +140,64 @@ namespace Pickles_Playlist_Editor
             monitorCts?.Cancel();
             player.StopPlayback();
             player.Close();
+            CleanupExtractedTempFile();
+        }
+
+        private static void CleanupExtractedTempFile()
+        {
+            if (string.IsNullOrWhiteSpace(extractedTempOggPath) || !File.Exists(extractedTempOggPath))
+            {
+                extractedTempOggPath = null;
+                return;
+            }
+
+            try
+            {
+                File.Delete(extractedTempOggPath);
+            }
+            catch (IOException)
+            {
+                // Ignore if the file is still in use; next stop/play will attempt cleanup again.
+            }
+            finally
+            {
+                extractedTempOggPath = null;
+            }
+        }
+
+        public static void ApplyRealtimeEqualizer(EqualizerSettings settings)
+        {
+            if (!IsPlaying)
+                return;
+
+            int[] points = (int[])EqualizerBands.Clone();
+            if (!player.SetEqualizerPoints(ref points, points.Length))
+                return;
+
+            int[] bandGains =
+            [
+                ConvertToBandGain(settings.BassGain),
+                ConvertToBandGain(settings.LowMidGain),
+                ConvertToBandGain(settings.MidGain),
+                ConvertToBandGain(settings.HighMidGain),
+                ConvertToBandGain(settings.TrebleGain)
+            ];
+
+            player.EnableEqualizer(true);
+            player.SetEqualizerParam(0, ref bandGains, bandGains.Length);
+        }
+
+        public static void DisableRealtimeEqualizer()
+        {
+            if (!IsPlaying)
+                return;
+
+            player.EnableEqualizer(false);
+        }
+
+        private static int ConvertToBandGain(float gain)
+        {
+            return (int)Math.Round(gain);
         }
 
     }

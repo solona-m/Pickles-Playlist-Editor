@@ -53,6 +53,37 @@ namespace Pickles_Playlist_Editor
             OkButton.Enabled = validDirectory && validScd;
         }
 
+        private void BrowseBaselineScdButton_Click(object sender, EventArgs e)
+        {
+            using OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "SCD files (*.scd)|*.scd|All files (*.*)|*.*";
+
+            if (Directory.Exists(DirecotryPathTextBox.Text))
+                openFileDialog.InitialDirectory = DirecotryPathTextBox.Text;
+
+            if (openFileDialog.ShowDialog() != DialogResult.OK || string.IsNullOrWhiteSpace(openFileDialog.FileName))
+                return;
+
+            string selectedPath = openFileDialog.FileName;
+            string baselineKey = Path.GetFileName(selectedPath);
+
+            if (Directory.Exists(DirecotryPathTextBox.Text))
+            {
+                try
+                {
+                    string relativePath = Path.GetRelativePath(DirecotryPathTextBox.Text, selectedPath);
+                    if (!relativePath.StartsWith(".."))
+                        baselineKey = relativePath.Replace(Path.DirectorySeparatorChar, '/');
+                }
+                catch
+                {
+                    baselineKey = Path.GetFileName(selectedPath);
+                }
+            }
+
+            BaselineScdTextBox.Text = baselineKey;
+        }
+
         private void DirecotryPathTextBox_TextChanged(object sender, EventArgs e)
         {
             ValidateFields();

@@ -1,22 +1,63 @@
 using AutoUpdaterDotNET;
+using Pickles_Playlist_Editor.Tools;
 using Pickles_Playlist_Editor.Utils;
+using System.Diagnostics;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using VfxEditor.ScdFormat;
+using VfxEditor.ScdFormat.Music.Data;
 
 namespace Pickles_Playlist_Editor
 {
     public partial class MainWindow : Form
     {
         private Dictionary<string, Playlist> Playlists { get; set; }
+        private readonly ContextMenuStrip _treeContextMenu = new ContextMenuStrip();
+        private TreeNode? _contextMenuNode;
 
         public MainWindow()
         {
             AutoUpdater.Start("https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest/download/update.xml");
             InitializeComponent();
+            InitializeYouTubeDownloadControls();
+            InitializeTreeContextMenu();
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void InitializeYouTubeDownloadControls()
         {
+            ytDownloadModeComboBox.Items.Clear();
+            ytDownloadModeComboBox.Items.AddRange(new object[] { "Single Track", "Playlist" });
+            ytDownloadModeComboBox.SelectedIndex = 0;
+        }
 
+        private void InitializeTreeContextMenu()
+        {
+            var extractAudioMenuItem = new ToolStripMenuItem("Extract Audio", null, ExtractAudioMenuItem_Click);
+            var normalizeAudioMenuItem = new ToolStripMenuItem("Normalize Audio", null, NormalizeAudioMenuItem_Click);
+            var addSilenceMenuItem = new ToolStripMenuItem("Add 3 Seconds Silence", null, AddSilenceMenuItem_Click);
+            var applyEqMenuItem = new ToolStripMenuItem("Manage EQ Settings", null, ApplyEqSettingsMenuItem_Click);
+
+            _treeContextMenu.Items.AddRange(new ToolStripItem[]
+            {
+                extractAudioMenuItem,
+                normalizeAudioMenuItem,
+                addSilenceMenuItem,
+                new ToolStripSeparator(),
+                applyEqMenuItem
+            });
+        }
+
+        private async void Form1_Load(object sender, EventArgs e)
+        {
+            try
+            {
+                await YtDlpService.EnsureUpToDateAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Unable to initialize yt-dlp: {ex.Message}", "yt-dlp", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         private void panel1_Paint(object sender, PaintEventArgs e)
@@ -217,6 +258,633 @@ namespace Pickles_Playlist_Editor
         private void PlaylistTreeView_ItemDrag(object sender, ItemDragEventArgs e)
         {
             DoDragDrop(e.Item, DragDropEffects.Move);
+        }
+
+        private void PlaylistTreeView_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
+        {
+            if (e.Button != MouseButtons.Right)
+                return;
+
+            PlaylistTreeView.SelectedNode = e.Node;
+            _contextMenuNode = e.Node;
+
+            bool validTarget = e.Node.Level == 1 || e.Node.Level == 2;
+            foreach (ToolStripItem item in _treeContextMenu.Items)
+            {
+                item.Enabled = validTarget;
+            }
+
+            if (validTarget)
+            {
+                _treeContextMenu.Show(PlaylistTreeView, e.Location);
+            }
+        }
+
+        private async void ExtractAudioMenuItem_Click(object? sender, EventArgs e)
+        {
+            var node = _contextMenuNode;
+            if (node == null)
+                return;
+
+            var targetSongs = GetSongTargetsForNode(node);
+            if (targetSongs.Count == 0)
+            {
+                MessageBox.Show("No songs were found for extraction.");
+                return;
+            }
+
+            using var folderDialog = new FolderBrowserDialog
+            {
+                Description = "Choose output folder for extracted OGG files"
+            };
+
+            if (folderDialog.ShowDialog() != DialogResult.OK || string.IsNullOrWhiteSpace(folderDialog.SelectedPath))
+                return;
+
+            SetProgressBarText("Extracting audio...");
+            SetProgressBarPercent(0);
+
+            int extracted = 0;
+            var errors = new List<string>();
+            string baseOutput = folderDialog.SelectedPath;
+
+            await Task.Run(() =>
+            {
+                foreach (var (playlist, option) in targetSongs)
+                {
+                    try
+                    {
+                        string outputDir = node.Level == 1
+                            ? Path.Combine(baseOutput, SanitizeFileName(playlist.Name))
+                            : baseOutput;
+
+                        string outPath = GetUniquePath(outputDir, SanitizeFileName(option.Name), ".ogg");
+                        string fullScdPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, Playlist.GetScdPath(option));
+                        ScdOggExtractor.ExtractOgg(fullScdPath, outPath);
+                        extracted++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"{playlist.Name}/{option.Name}: {ex.Message}");
+                    }
+                    finally
+                    {
+                        int percent = (int)((extracted + errors.Count) / (double)targetSongs.Count * 100);
+                        SetProgressBarPercent(percent);
+                    }
+                }
+            });
+
+            SetProgressBarPercent(100);
+            ShowOperationSummary("Audio extraction finished", extracted, targetSongs.Count, errors);
+        }
+
+        private async void NormalizeAudioMenuItem_Click(object? sender, EventArgs e)
+        {
+            var node = _contextMenuNode;
+            if (node == null)
+                return;
+
+            var targetSongs = GetSongTargetsForNode(node);
+            if (targetSongs.Count == 0)
+            {
+                MessageBox.Show("No songs were found for normalization.");
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Normalize and repack {targetSongs.Count} song(s)? This will overwrite existing SCD files.",
+                "Normalize Audio",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (confirm != DialogResult.Yes)
+                return;
+
+            SetProgressBarText("Normalizing audio...");
+            SetProgressBarPercent(0);
+
+            int normalized = 0;
+            var errors = new List<string>();
+
+            await Task.Run(() =>
+            {
+                foreach (var (playlist, option) in targetSongs)
+                {
+                    try
+                    {
+                        NormalizeSongAudio(option);
+                        normalized++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"{playlist.Name}/{option.Name}: {ex.Message}");
+                    }
+                    finally
+                    {
+                        int percent = (int)((normalized + errors.Count) / (double)targetSongs.Count * 100);
+                        SetProgressBarPercent(percent);
+                    }
+                }
+            });
+
+            SetProgressBarPercent(100);
+            RecomputePlaylistDurations();
+            ShowOperationSummary("Audio normalization finished", normalized, targetSongs.Count, errors);
+        }
+
+        private async void AddSilenceMenuItem_Click(object? sender, EventArgs e)
+        {
+            var node = _contextMenuNode;
+            if (node == null)
+                return;
+
+            var targetSongs = GetSongTargetsForNode(node);
+            if (targetSongs.Count == 0)
+            {
+                MessageBox.Show("No songs were found to add silence to.");
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Extract, add 3 seconds of silence, and repack {targetSongs.Count} song(s)? This will overwrite existing SCD files.",
+                "Add Silence",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (confirm != DialogResult.Yes)
+                return;
+
+            SetProgressBarText("Adding silence...");
+            SetProgressBarPercent(0);
+
+            int updated = 0;
+            var errors = new List<string>();
+
+            await Task.Run(() =>
+            {
+                foreach (var (playlist, option) in targetSongs)
+                {
+                    try
+                    {
+                        AddSilenceToSongAudio(option);
+                        updated++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"{playlist.Name}/{option.Name}: {ex.Message}");
+                    }
+                    finally
+                    {
+                        int percent = (int)((updated + errors.Count) / (double)targetSongs.Count * 100);
+                        SetProgressBarPercent(percent);
+                    }
+                }
+            });
+
+            SetProgressBarPercent(100);
+            RecomputePlaylistDurations();
+            ShowOperationSummary("Add silence finished", updated, targetSongs.Count, errors);
+        }
+
+        private async void ApplyEqSettingsMenuItem_Click(object? sender, EventArgs e)
+        {
+            var node = _contextMenuNode;
+            if (node == null)
+                return;
+
+            await OpenEqualizerWorkflowAsync(node);
+        }
+
+        private async Task OpenEqualizerWorkflowAsync(TreeNode node)
+        {
+            var targets = GetSongTargetsForNode(node);
+            if (targets.Count == 0)
+            {
+                MessageBox.Show("No songs were found for equalizer processing.");
+                return;
+            }
+
+            using var form = new EqualizerForm();
+            if (form.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            await ApplyEqualizerSettingsToTargetsAsync(targets, form.SelectedSettings);
+        }
+
+        private List<(Playlist playlist, Option option)> GetSongTargetsForNode(TreeNode node)
+        {
+            var results = new List<(Playlist playlist, Option option)>();
+
+            if (node.Level == 2)
+            {
+                var playlist = Playlists[node.Parent.Name];
+                var option = playlist.Options.FirstOrDefault(x => x.Name == node.Name);
+                if (option != null && !string.IsNullOrEmpty(Playlist.GetScdPath(option)))
+                {
+                    results.Add((playlist, option));
+                }
+                return results;
+            }
+
+            if (node.Level == 1)
+            {
+                var playlist = Playlists[node.Name];
+                foreach (var option in playlist.Options)
+                {
+                    if (!string.IsNullOrEmpty(Playlist.GetScdPath(option)))
+                    {
+                        results.Add((playlist, option));
+                    }
+                }
+            }
+
+            return results;
+        }
+
+        private async Task ApplyEqualizerSettingsToTargetsAsync(List<(Playlist playlist, Option option)> targets, EqualizerSettings settings)
+        {
+            var confirm = MessageBox.Show(
+                $"Extract OGG from SCD, apply EQ settings, and repack {targets.Count} song(s)? This will overwrite existing SCD files.",
+                "Apply EQ Settings",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (confirm != DialogResult.Yes)
+                return;
+
+            SetProgressBarText("Applying EQ settings...");
+            SetProgressBarPercent(0);
+
+            int updated = 0;
+            var errors = new List<string>();
+            string filterChain = settings.ToFilterChain();
+
+            await Task.Run(() =>
+            {
+                int total = targets.Count;
+                int current = 0;
+
+                foreach (var (playlist, option) in targets)
+                {
+                    current++;
+                    try
+                    {
+                        SetProgressBarText($"Applying EQ settings ({current}/{total})");
+                        ApplyEqualizerSettingsToSongAudio(option, filterChain);
+                        updated++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"{playlist.Name}/{option.Name}: {ex.Message}");
+                    }
+                    finally
+                    {
+                        int percent = (int)((updated + errors.Count) / (double)targets.Count * 100);
+                        SetProgressBarPercent(percent);
+                    }
+                }
+            });
+
+            SetProgressBarPercent(100);
+            RecomputePlaylistDurations();
+            ShowOperationSummary("Apply EQ settings finished", updated, targets.Count, errors);
+        }
+
+        private static string SanitizeFileName(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "audio";
+
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var cleaned = new string(value.Select(c => invalidChars.Contains(c) ? '_' : c).ToArray());
+            return string.IsNullOrWhiteSpace(cleaned) ? "audio" : cleaned;
+        }
+
+        private static string GetUniquePath(string folder, string fileNameNoExt, string extension)
+        {
+            Directory.CreateDirectory(folder);
+            string candidate = Path.Combine(folder, fileNameNoExt + extension);
+            if (!File.Exists(candidate))
+                return candidate;
+
+            int idx = 1;
+            while (true)
+            {
+                candidate = Path.Combine(folder, $"{fileNameNoExt}_{idx}{extension}");
+                if (!File.Exists(candidate))
+                    return candidate;
+                idx++;
+            }
+        }
+
+        private static void NormalizeSongAudio(Option option)
+        {
+            string relativeScdPath = Playlist.GetScdPath(option);
+            string fullScdPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, relativeScdPath);
+            if (!File.Exists(fullScdPath))
+                throw new FileNotFoundException("SCD file not found.", fullScdPath);
+
+            string tempRoot = Path.Combine(Path.GetTempPath(), "pickles-normalize", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempRoot);
+
+            string extractedOgg = Path.Combine(tempRoot, "source.ogg");
+            string normalizedOgg = Path.Combine(tempRoot, "normalized.ogg");
+
+            try
+            {
+                ScdOggExtractor.ExtractOgg(fullScdPath, extractedOgg);
+                RunFfmpegNormalization(extractedOgg, normalizedOgg);
+
+                var scd = ScdFile.Import(fullScdPath);
+                if (scd.Audio.Count == 0)
+                    throw new InvalidOperationException("No audio entries were found in the SCD.");
+
+                var oldEntry = scd.Audio[0];
+                var newEntry = ScdVorbis.ImportOgg(normalizedOgg, oldEntry);
+                scd.Replace(oldEntry, newEntry);
+
+                using var writer = new BinaryWriter(new FileStream(fullScdPath, FileMode.Create, FileAccess.Write, FileShare.None));
+                scd.Write(writer);
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot))
+                    Directory.Delete(tempRoot, true);
+            }
+        }
+
+        private static void AddSilenceToSongAudio(Option option)
+        {
+            string relativeScdPath = Playlist.GetScdPath(option);
+            string fullScdPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, relativeScdPath);
+            if (!File.Exists(fullScdPath))
+                throw new FileNotFoundException("SCD file not found.", fullScdPath);
+
+            string tempRoot = Path.Combine(Path.GetTempPath(), "pickles-add-silence", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempRoot);
+
+            string extractedOgg = Path.Combine(tempRoot, "source.ogg");
+            string updatedOgg = Path.Combine(tempRoot, "with_silence.ogg");
+
+            try
+            {
+                ScdOggExtractor.ExtractOgg(fullScdPath, extractedOgg);
+                RunFfmpegAddSilence(extractedOgg, updatedOgg);
+
+                var scd = ScdFile.Import(fullScdPath);
+                if (scd.Audio.Count == 0)
+                    throw new InvalidOperationException("No audio entries were found in the SCD.");
+
+                var oldEntry = scd.Audio[0];
+                var newEntry = ScdVorbis.ImportOgg(updatedOgg, oldEntry);
+                scd.Replace(oldEntry, newEntry);
+
+                using var writer = new BinaryWriter(new FileStream(fullScdPath, FileMode.Create, FileAccess.Write, FileShare.None));
+                scd.Write(writer);
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot))
+                    Directory.Delete(tempRoot, true);
+            }
+        }
+
+        private static void ApplyEqualizerSettingsToSongAudio(Option option, string filterChain)
+        {
+            string relativeScdPath = Playlist.GetScdPath(option);
+            string fullScdPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, relativeScdPath);
+            if (!File.Exists(fullScdPath))
+                throw new FileNotFoundException("SCD file not found.", fullScdPath);
+
+            string tempRoot = Path.Combine(Path.GetTempPath(), "pickles-equalizer", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempRoot);
+
+            string extractedOgg = Path.Combine(tempRoot, "source.ogg");
+            string updatedOgg = Path.Combine(tempRoot, "equalized.ogg");
+
+            try
+            {
+                ScdOggExtractor.ExtractOgg(fullScdPath, extractedOgg);
+                RunFfmpegEqualizer(extractedOgg, updatedOgg, filterChain, "apply");
+
+                var scd = ScdFile.Import(fullScdPath);
+                if (scd.Audio.Count == 0)
+                    throw new InvalidOperationException("No audio entries were found in the SCD.");
+
+                var oldEntry = scd.Audio[0];
+                var newEntry = ScdVorbis.ImportOgg(updatedOgg, oldEntry);
+                scd.Replace(oldEntry, newEntry);
+
+                using var writer = new BinaryWriter(new FileStream(fullScdPath, FileMode.Create, FileAccess.Write, FileShare.None));
+                scd.Write(writer);
+            }
+            finally
+            {
+                if (Directory.Exists(tempRoot))
+                    Directory.Delete(tempRoot, true);
+            }
+        }
+
+        private static void RunFfmpegNormalization(string inputOggPath, string outputOggPath)
+        {
+            string args = $"-y -i \"{inputOggPath}\" -af \"loudnorm=I=-18:LRA=11:TP=-1.5\" -vn -acodec libvorbis -q:a 7 \"{outputOggPath}\"";
+            RunFfmpegAndValidate(args, outputOggPath, "ffmpeg normalization failed");
+        }
+
+        private static void RunFfmpegAddSilence(string inputOggPath, string outputOggPath)
+        {
+            string args = $"-y -i \"{inputOggPath}\" -af \"apad=pad_dur=3\" -vn -acodec libvorbis -q:a 7 \"{outputOggPath}\"";
+            RunFfmpegAndValidate(args, outputOggPath, "ffmpeg add silence failed");
+        }
+
+        private static void RunFfmpegEqualizer(string inputOggPath, string outputOggPath, string filterChain, string operationName)
+        {
+            string args = $"-y -i \"{inputOggPath}\" -af \"{filterChain}\" -vn -acodec libvorbis -q:a 7 \"{outputOggPath}\"";
+            RunFfmpegAndValidate(args, outputOggPath, $"ffmpeg equalizer ({operationName}) failed");
+        }
+
+        private static void RunFfmpegFilters(string inputOggPath, string outputOggPath, bool normalize, bool addSilence)
+        {
+            var filters = new List<string>();
+            if (normalize)
+                filters.Add("loudnorm=I=-18:LRA=11:TP=-1.5");
+            if (addSilence)
+                filters.Add("apad=pad_dur=3");
+
+            string filterArg = filters.Count > 0 ? $"-af \"{string.Join(',', filters)}\"" : string.Empty;
+
+            string args = $"-y -i \"{inputOggPath}\" {filterArg} -vn -acodec libvorbis -q:a 7 \"{outputOggPath}\"";
+            RunFfmpegAndValidate(args, outputOggPath, "ffmpeg processing failed");
+        }
+
+        private static void RunFfmpegAndValidate(string arguments, string outputOggPath, string errorPrefix)
+        {
+            using var process = new Process();
+            process.StartInfo.FileName = "ffmpeg.exe";
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.CreateNoWindow = true;
+            process.StartInfo.RedirectStandardError = true;
+            process.StartInfo.RedirectStandardOutput = false;
+            process.StartInfo.Arguments = arguments;
+
+            process.Start();
+            string message = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0 || !File.Exists(outputOggPath))
+            {
+                throw new InvalidOperationException($"{errorPrefix}: {message}");
+            }
+        }
+
+        private void ShowOperationSummary(string title, int successCount, int totalCount, List<string> errors)
+        {
+            if (errors.Count == 0)
+            {
+                MessageBox.Show($"{title}. Processed {successCount}/{totalCount} song(s).");
+                return;
+            }
+
+            string details = string.Join(Environment.NewLine, errors.Take(10));
+            if (errors.Count > 10)
+                details += Environment.NewLine + $"...and {errors.Count - 10} more.";
+
+            MessageBox.Show($"{title}. Processed {successCount}/{totalCount} song(s).{Environment.NewLine}{Environment.NewLine}Errors:{Environment.NewLine}{details}");
+        }
+
+
+
+        private async void YtDownloadButton_Click(object? sender, EventArgs e)
+        {
+            string url = ytUrlTextBox.Text?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                MessageBox.Show("Please enter a YouTube URL.");
+                return;
+            }
+
+            ytDownloadButton.Enabled = false;
+            SetProgressBarText("Preparing download...");
+            SetProgressBarPercent(5);
+
+            string tempDir = Path.Combine(Path.GetTempPath(), "pickles-ytdlp", Guid.NewGuid().ToString("N"));
+            try
+            {
+                YtDownloadMode selectedMode = GetSelectedYtDownloadMode();
+                var result = await YtDlpService.DownloadAudioAsync(url, tempDir, selectedMode, UpdateYtDownloadProgress);
+                SetProgressBarPercent(60);
+
+                var filesToImport = result.DownloadedFiles;
+                if (ytNormalizeCheckBox.Checked || ytAddSilenceCheckBox.Checked)
+                {
+                    SetProgressBarText("Post-processing audio...");
+                    filesToImport = await PostProcessDownloadedFilesAsync(result.DownloadedFiles, ytNormalizeCheckBox.Checked, ytAddSilenceCheckBox.Checked);
+                }
+
+                if (result.IsPlaylist)
+                {
+                    string playlistName = GetUniquePlaylistName(result.Title);
+                    Playlist.Create(playlistName, string.Empty, null);
+                    var playlists = Playlist.GetAll();
+                    playlists[playlistName].Add(filesToImport.ToArray());
+                }
+                else
+                {
+                    string targetPlaylist = ResolveTargetPlaylistForSingle();
+                    var playlists = Playlist.GetAll();
+                    if (!playlists.ContainsKey(targetPlaylist))
+                    {
+                        Playlist.Create(targetPlaylist, string.Empty, null);
+                        playlists = Playlist.GetAll();
+                    }
+                    playlists[targetPlaylist].Add(filesToImport.ToArray());
+                }
+
+                LoadPlaylists();
+                SetProgressBarPercent(100);
+                MessageBox.Show($"Imported {filesToImport.Count} track(s) from YouTube.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"YouTube download failed: {ex.Message}");
+            }
+            finally
+            {
+                ytDownloadButton.Enabled = true;
+                if (Directory.Exists(tempDir))
+                    Directory.Delete(tempDir, true);
+            }
+        }
+
+        private async Task<List<string>> PostProcessDownloadedFilesAsync(List<string> inputFiles, bool normalize, bool addSilence)
+        {
+            return await Task.Run(() =>
+            {
+                var outputFiles = new List<string>();
+                int index = 0;
+                foreach (var file in inputFiles)
+                {
+                    int current = index + 1;
+                    if (normalize)
+                        SetProgressBarText($"Normalizing {current}/{inputFiles.Count}");
+                    else if (addSilence)
+                        SetProgressBarText($"Adding silence {current}/{inputFiles.Count}");
+
+                    string outPath = Path.Combine(Path.GetDirectoryName(file)!, $"processed_{index++}.ogg");
+                    RunFfmpegFilters(file, outPath, normalize, addSilence);
+                    outputFiles.Add(outPath);
+                    SetProgressBarPercent(60 + (int)Math.Round((current / (double)inputFiles.Count) * 35));
+                }
+                return outputFiles;
+            });
+        }
+
+        private YtDownloadMode GetSelectedYtDownloadMode()
+        {
+            return ytDownloadModeComboBox.SelectedIndex == 1 ? YtDownloadMode.Playlist : YtDownloadMode.Single;
+        }
+
+        private void UpdateYtDownloadProgress(YtDlpProgressInfo info)
+        {
+            string text = $"{info.Stage} {info.Current}/{info.Total}";
+            SetProgressBarText(text);
+
+            int baseProgress = 10;
+            int maxProgress = 60;
+            double stageProgress = ((info.Current - 1) / (double)Math.Max(1, info.Total));
+            if (info.Percent.HasValue)
+                stageProgress += (info.Percent.Value / 100.0) / Math.Max(1, info.Total);
+
+            int percent = baseProgress + (int)Math.Round(stageProgress * (maxProgress - baseProgress));
+            SetProgressBarPercent(percent);
+        }
+
+        private string ResolveTargetPlaylistForSingle()
+        {
+            var selected = PlaylistTreeView.SelectedNode;
+            if (selected != null)
+            {
+                if (selected.Level == 1) return selected.Name;
+                if (selected.Level == 2 && selected.Parent != null) return selected.Parent.Name;
+            }
+            return "YouTube Singles";
+        }
+
+        private string GetUniquePlaylistName(string baseName)
+        {
+            string candidate = SanitizeFileName(baseName);
+            if (string.IsNullOrWhiteSpace(candidate))
+                candidate = "YouTube Playlist";
+
+            var existing = Playlist.GetAll();
+            if (!existing.ContainsKey(candidate))
+                return candidate;
+
+            int idx = 1;
+            while (existing.ContainsKey($"{candidate} {idx}"))
+                idx++;
+            return $"{candidate} {idx}";
         }
 
         private void PlaylistTreeView_DragEnter(object sender, DragEventArgs e)
