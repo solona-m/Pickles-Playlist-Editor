@@ -16,8 +16,9 @@ Getting started
 It is important to note, the Pickles Playlist Editor DOES NOT normalize the audio volume on import, so will still need to use audacity to do that, and any other tweaks to audio to prep it for import.
 DOES NOT WORK ON THUNDERDOME DJ PACK!!
 Understanding the Top Buttons
- 
-1)	NEW - Allows you to add new playlists
+
+0) Add Songs - lets you add songs from your computer or youtube (you can also drag/drop)
+1)	NEW Playlist - Allows you to add new playlists
 2)	DELETE:   will allow you to delete any checked marked songs or playlists
 WARNING THIS CAN NOT BE UNDONE!!!
 3)	Shuffle: as it says, it will shuffle selected songs or playlists around more randomly
