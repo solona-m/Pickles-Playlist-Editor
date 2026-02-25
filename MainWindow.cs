@@ -26,7 +26,6 @@ namespace Pickles_Playlist_Editor
         {
             AutoUpdater.Start("https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest/download/update.xml");
             InitializeComponent();
-            InitializeYouTubeDownloadControls();
             InitializeTreeContextMenu();
         }
 
@@ -183,13 +182,6 @@ namespace Pickles_Playlist_Editor
             {
                 MessageBox.Show("Error adding songs: " + ex.Message);
             }
-        }
-
-        private void InitializeYouTubeDownloadControls()
-        {
-            ytDownloadModeComboBox.Items.Clear();
-            ytDownloadModeComboBox.Items.AddRange(new object[] { "Single Track", "Playlist" });
-            ytDownloadModeComboBox.SelectedIndex = 0;
         }
 
         private void InitializeTreeContextMenu()
@@ -857,68 +849,50 @@ namespace Pickles_Playlist_Editor
 
 
 
-        private async void YtDownloadButton_Click(object? sender, EventArgs e)
+        private void YtDownloadButton_Click(object? sender, EventArgs e)
         {
-            string url = ytUrlTextBox.Text?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(url))
+            using var dlg = new YouTubeDownloadForm();
+            dlg.DownloadFinished += result =>
             {
-                MessageBox.Show("Please enter a YouTube URL.");
-                return;
-            }
-
-            ytDownloadButton.Enabled = false;
-            SetProgressBarText("Preparing download...");
-            SetProgressBarPercent(5);
-
-            string tempDir = Path.Combine(Path.GetTempPath(), "pickles-ytdlp", Guid.NewGuid().ToString("N"));
-            try
-            {
-                YtDownloadMode selectedMode = GetSelectedYtDownloadMode();
-                var result = await YtDlpService.DownloadAudioAsync(url, tempDir, selectedMode, UpdateYtDownloadProgress);
-                SetProgressBarPercent(60);
-
-                var filesToImport = result.DownloadedFiles;
-                if (Settings.NormalizeVolume)
+                // This runs on UI thread because the form raises the event while open.
+                try
                 {
-                    SetProgressBarText("Post-processing audio...");
-                    filesToImport = await PostProcessDownloadedFilesAsync(result.DownloadedFiles, true);
-                }
+                    var filesToImport = result.DownloadedFiles;
+                    if (filesToImport == null || filesToImport.Count == 0) return;
 
-                if (result.IsPlaylist)
-                {
-                    string playlistName = GetUniquePlaylistName(result.Title);
-                    Playlist.Create(playlistName, string.Empty, null);
-                    var playlists = Playlist.GetAll();
-                    playlists[playlistName].Add(filesToImport.ToArray());
-                }
-                else
-                {
-                    string targetPlaylist = ResolveTargetPlaylistForSingle();
-                    var playlists = Playlist.GetAll();
-                    if (!playlists.ContainsKey(targetPlaylist))
+                    if (result.IsPlaylist)
                     {
-                        Playlist.Create(targetPlaylist, string.Empty, null);
-                        playlists = Playlist.GetAll();
+                        string playlistName = GetUniquePlaylistName(result.Title);
+                        Playlist.Create(playlistName, string.Empty, null);
+                        var playlists = Playlist.GetAll();
+                        playlists[playlistName].Add(filesToImport.ToArray());
                     }
-                    bool oldNormalize = Settings.NormalizeVolume;
-                    Settings.NormalizeVolume = false;
-                    playlists[targetPlaylist].Add(filesToImport.ToArray());
-                    Settings.NormalizeVolume = oldNormalize;
-                }
+                    else
+                    {
+                        string targetPlaylist = ResolveTargetPlaylistForSingle();
+                        var playlists = Playlist.GetAll();
+                        if (!playlists.ContainsKey(targetPlaylist))
+                        {
+                            Playlist.Create(targetPlaylist, string.Empty, null);
+                            playlists = Playlist.GetAll();
+                        }
+                        // Add without re-normalizing (main logic previously disabled normalize during Add)
+                        bool oldNormalize = Settings.NormalizeVolume;
+                        Settings.NormalizeVolume = false;
+                        playlists[targetPlaylist].Add(filesToImport.ToArray());
+                        Settings.NormalizeVolume = oldNormalize;
+                    }
 
-                LoadPlaylists();
-                SetProgressBarPercent(100);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"YouTube download failed: {ex.Message}");
-            }
-            finally
-            {
-                ytDownloadButton.Enabled = true;
-                if (Directory.Exists(tempDir))
-                    Directory.Delete(tempDir, true);
-            }
+                    LoadPlaylists();
+                    SetProgressBarPercent(100);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to add downloaded files: {ex.Message}");
+                }
+            };
+
+            dlg.ShowDialog(this);
         }
 
         private async Task<List<string>> PostProcessDownloadedFilesAsync(List<string> inputFiles, bool normalize)
@@ -940,26 +914,6 @@ namespace Pickles_Playlist_Editor
                 }
                 return outputFiles;
             });
-        }
-
-        private YtDownloadMode GetSelectedYtDownloadMode()
-        {
-            return ytDownloadModeComboBox.SelectedIndex == 1 ? YtDownloadMode.Playlist : YtDownloadMode.Single;
-        }
-
-        private void UpdateYtDownloadProgress(YtDlpProgressInfo info)
-        {
-            string text = $"{info.Stage} {info.Current}/{info.Total}";
-            SetProgressBarText(text);
-
-            int baseProgress = 10;
-            int maxProgress = 60;
-            double stageProgress = ((info.Current - 1) / (double)Math.Max(1, info.Total));
-            if (info.Percent.HasValue)
-                stageProgress += (info.Percent.Value / 100.0) / Math.Max(1, info.Total);
-
-            int percent = baseProgress + (int)Math.Round(stageProgress * (maxProgress - baseProgress));
-            SetProgressBarPercent(percent);
         }
 
         private string ResolveTargetPlaylistForSingle()
@@ -1542,6 +1496,11 @@ namespace Pickles_Playlist_Editor
         private void fromMyComputerToolStripMenuItem_Click(object sender, EventArgs e)
         {
             AddSongsButton_Click(sender, e);
+        }
+
+        private void fromYouTubeToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            YtDownloadButton_Click(sender, e);
         }
     }
 }
