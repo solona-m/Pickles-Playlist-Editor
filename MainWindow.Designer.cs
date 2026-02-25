@@ -173,7 +173,7 @@ namespace Pickles_Playlist_Editor
             fromYouTubeToolStripMenuItem.Name = "fromYouTubeToolStripMenuItem";
             fromYouTubeToolStripMenuItem.Size = new Size(179, 22);
             fromYouTubeToolStripMenuItem.Text = "From YouTube";
-            fromYouTubeToolStripMenuItem.Click += fromYouTubeToolStripMenuItem_Click;
+            fromYouTubeToolStripMenuItem.Click += YtDownloadButton_Click;
             // 
             // NewButton
             // 
