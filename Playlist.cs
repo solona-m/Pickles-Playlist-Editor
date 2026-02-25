@@ -58,12 +58,16 @@ namespace Pickles_Playlist_Editor
                 groupFileNames = Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*");
                 List<string> groupfiles = new List<string>(groupFileNames);
                 groupfiles.Sort();
-                string lastName = groupfiles[groupfiles.Count - 1];
-                fileName = lastName;
                 mergedGroup = group;
-                mergedGroup.Priority = mergedGroup.Priority + 1;
 
-                int groupNumber = Int32.Parse(Path.GetFileNameWithoutExtension(lastName).Substring(6, 3)) + 1;
+                int groupNumber = 1;
+                if (groupfiles.Count > 0)
+                {
+                    string lastName = groupfiles[groupfiles.Count - 1];
+                    groupNumber = Int32.Parse(Path.GetFileNameWithoutExtension(lastName).Substring(6, 3)) + 1;
+                    mergedGroup.Priority = mergedGroup.Priority + 1;
+                }
+
                 fileName = string.Format("group_{0}_{1}.json", string.Format("{0:D3}", groupNumber), playlistName);
             }
 
@@ -168,7 +172,12 @@ namespace Pickles_Playlist_Editor
             Dictionary<string, Playlist> playlists = new Dictionary<string, Playlist>();
             if (Settings.PenumbraLocation == null || Settings.ModName == null)
                 return playlists;
-            var fileNames = Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*.json");
+
+            string modDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
+            if (!Directory.Exists(modDirectory))
+                return playlists;
+
+            var fileNames = Directory.GetFiles(modDirectory, "group_*.json");
             foreach (string file in fileNames)
             {
                 try
@@ -243,6 +252,13 @@ namespace Pickles_Playlist_Editor
 
         private static string[] GetJsonFiles(string name)
         {
+            if (Settings.PenumbraLocation == null || Settings.ModName == null)
+                return Array.Empty<string>();
+
+            string modDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
+            if (!Directory.Exists(modDirectory))
+                return Array.Empty<string>();
+
             return Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*_" + name.Replace("/","_") + ".json");
         }
 
