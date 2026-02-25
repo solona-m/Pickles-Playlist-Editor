@@ -662,8 +662,10 @@ namespace Pickles_Playlist_Editor
             {
                 ScdOggExtractor.ExtractOgg(fullScdPath, extractedOgg);
                 FFMpeg.Equalize(extractedOgg, filterChain);
-
+                bool oldNormalize = Settings.NormalizeVolume;
+                Settings.NormalizeVolume = false;
                 var scd = ScdFile.Import(fullScdPath);
+                Settings.NormalizeVolume = oldNormalize;
                 if (scd.Audio.Count == 0)
                     throw new InvalidOperationException("No audio entries were found in the SCD.");
 
