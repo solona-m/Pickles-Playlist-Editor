@@ -130,6 +130,27 @@ namespace Pickles_Playlist_Editor.Utils
             }
         }
 
+        public static void UpdateCacheForSCD(string oldFullPath, string newFullPath)
+        {
+            try
+            {
+                if (bpmCache.ContainsKey(oldFullPath))
+                {
+                    bpmCache[newFullPath] = bpmCache[oldFullPath];
+                    bpmCache.Remove(oldFullPath);
+                }
+                if (durationCache.ContainsKey(oldFullPath))
+                {
+                    durationCache[newFullPath] = durationCache[oldFullPath];
+                    durationCache.Remove(oldFullPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                // ignore cache update failures
+            }
+        }
+
         public static int GetBPMFromSCD(string scdFile)
         {
             try

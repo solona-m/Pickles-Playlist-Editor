@@ -36,10 +36,7 @@ namespace Pickles_Playlist_Editor
                             Playlist.Create(targetPlaylist, string.Empty, null);
                             playlists = Playlist.GetAll();
                         }
-                        bool oldNormalize = Settings.NormalizeVolume;
-                        Settings.NormalizeVolume = false;
                         playlists[targetPlaylist].Add(filesToImport.ToArray());
-                        Settings.NormalizeVolume = oldNormalize;
                     }
 
                     LoadPlaylists();
@@ -67,7 +64,6 @@ namespace Pickles_Playlist_Editor
                         SetProgressBarText($"Normalizing {current}/{inputFiles.Count}");
 
                     FFMpeg.StripVideo(file);
-                    FFMpeg.AdjustVolume(file, 10);
                     outputFiles.Add(file);
                     SetProgressBarPercent(60 + (int)Math.Round((current / (double)inputFiles.Count) * 35));
                 }

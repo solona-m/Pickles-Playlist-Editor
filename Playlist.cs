@@ -3,10 +3,13 @@ using Pickles_Playlist_Editor.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using VfxEditor.ScdFormat;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
+using System.IO;
+using System.Text.RegularExpressions;
 
 namespace Pickles_Playlist_Editor
 {
@@ -113,9 +116,9 @@ namespace Pickles_Playlist_Editor
                     filenameroot = filenameroot.Split(Path.DirectorySeparatorChar).Last();
                 }
                 string cleanPlaylistName = playlistName.Replace("/", "_");
-                string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName, filenameroot);
+                string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName);
                 Directory.CreateDirectory(outDir);
-                using (BinaryWriter writer = new BinaryWriter(new FileStream(Path.Combine(outDir, GetBaselineScdFileName()), FileMode.Create)))
+                using (BinaryWriter writer = new BinaryWriter(new FileStream(Path.Combine(outDir, Path.GetFileName(filenameroot)+".scd"), FileMode.Create)))
                 {
                     scdFile.Write(writer);
                 }
@@ -124,7 +127,7 @@ namespace Pickles_Playlist_Editor
                 opt.Files = new Dictionary<string, string>();
                 opt.Files.Add(
                     Settings.BaselineScdKey,
-                    Path.Combine(cleanPlaylistName, filenameroot, GetBaselineScdFileName()));
+                    Path.Combine(cleanPlaylistName, Path.GetFileName(filenameroot)+".scd"));
                 group.Options.Add(opt);
             }
             catch (Exception ex)
@@ -134,7 +137,73 @@ namespace Pickles_Playlist_Editor
             return opt;
         }
 
+        public void Cleanup()
+        {
+            Playlist playlist = this;
+            string cleanPlaylistName = playlist.Name.Replace("/", "_");
+            string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName);
+            Directory.CreateDirectory(outDir);
+            List<Option> optionsToRemove = new List<Option>();
+            foreach (Option song in playlist.Options)
+            {
+                if (song.Name.Equals("Off", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (song.Name.Equals("Default", StringComparison.OrdinalIgnoreCase))
+                    continue;
 
+                if (song.Files != null)
+                {
+                    string oldPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, song.Files[song.Files.Keys.First()]);
+                    if (!File.Exists(oldPath))
+                    {
+                        optionsToRemove.Add(song);
+                        continue;
+                    }
+
+                    // Sanitize the desired filename so it is valid on Windows
+                    var safeName = SanitizeFileName(song.Name);
+                    if (string.IsNullOrWhiteSpace(safeName))
+                        safeName = "audio";
+
+                    // Ensure extension is .scd
+                    string fileName = safeName.EndsWith(".scd", StringComparison.OrdinalIgnoreCase) ? safeName : safeName + ".scd";
+
+                    string newPath = Path.Combine(outDir, fileName);
+
+                    // If target file already exists, append a numeric suffix to avoid collision
+                    newPath = GetNonCollidingPath(newPath);
+
+                    if (oldPath != newPath)
+                    {
+                        File.Move(oldPath, newPath);
+                        BPMDetector.UpdateCacheForSCD(oldPath, newPath);
+                        song.Files[song.Files.Keys.First()] = Path.Combine(cleanPlaylistName, Path.GetFileName(newPath));
+                    }
+                }
+            }
+            foreach (Option opt in optionsToRemove)
+            {
+                playlist.Options.Remove(opt);
+            }
+            this.Save();
+        }
+
+        private static string GetNonCollidingPath(string path)
+        {
+            if (!File.Exists(path)) return path;
+
+            string dir = Path.GetDirectoryName(path) ?? "";
+            string name = Path.GetFileNameWithoutExtension(path);
+            string ext = Path.GetExtension(path);
+            int idx = 1;
+            string candidate;
+            do
+            {
+                candidate = Path.Combine(dir, $"{name}_{idx}{ext}");
+                idx++;
+            } while (File.Exists(candidate));
+            return candidate;
+        }
 
         public static string? GetScdKey(Option opt)
         {
@@ -298,6 +367,40 @@ namespace Pickles_Playlist_Editor
             }
             Options.AddRange(otherOptions);
             Save();
+        }
+
+        /// <summary>
+        /// Replace invalid characters for Windows filenames, trim trailing dots/spaces and limit length.
+        /// </summary>
+        private static string SanitizeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+
+            // Replace directory separators and invalid filename characters with underscore
+            var invalid = Path.GetInvalidFileNameChars().ToHashSet();
+            var sb = new StringBuilder(input.Length);
+            foreach (var ch in input)
+            {
+                if (invalid.Contains(ch) || char.IsControl(ch))
+                    sb.Append('_');
+                else
+                    sb.Append(ch);
+            }
+
+            var result = sb.ToString();
+
+            // Trim trailing spaces and dots (Windows does not allow names that end with dot/space)
+            result = result.TrimEnd(' ', '.');
+
+            // Limit filename length (reserve space for extension .scd)
+            const int maxFileName = 200;
+            if (result.Length > maxFileName)
+                result = result.Substring(0, maxFileName);
+
+            // As an extra safeguard remove any remaining invalid subsequences
+            result = Regex.Replace(result, @"[\\\/:\*\?""<>\|]", "_");
+
+            return result;
         }
     }
 }

@@ -14,7 +14,7 @@ namespace Pickles_Playlist_Editor
 {
     public partial class MainWindow : Form
     {
-        private Dictionary<string, Playlist> Playlists { get; set; }
+        public static Dictionary<string, Playlist> Playlists { get; set; }
         private readonly ContextMenuStrip _treeContextMenu = new ContextMenuStrip();
         private TreeNode? _contextMenuNode;
 

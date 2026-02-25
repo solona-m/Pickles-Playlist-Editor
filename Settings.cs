@@ -111,6 +111,5 @@ namespace Pickles_Playlist_Editor
                 }
             }
         }
-
     }
 }

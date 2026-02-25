@@ -107,7 +107,6 @@ namespace Pickles_Playlist_Editor
                     {
                         _status.Text = $"Post-processing {Path.GetFileName(file)}";
                         FFMpeg.StripVideo(file);
-                        FFMpeg.AdjustVolume(file, 10);
                         processed.Add(file);
                         // update progress simply
                         _progress.Value = Math.Clamp(_progress.Value + 5, 60, 95);
