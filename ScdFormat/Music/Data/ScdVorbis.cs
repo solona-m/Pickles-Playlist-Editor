@@ -1,6 +1,8 @@
 using NAudio.Vorbis;
 using NAudio.Wave;
 using NVorbis;
+using Pickles_Playlist_Editor;
+using Pickles_Playlist_Editor.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -161,8 +163,12 @@ namespace VfxEditor.ScdFormat.Music.Data {
 
         // =======================
 
-        public static ScdAudioEntry ImportOgg( string path, ScdAudioEntry oldEntry ) 
+        public static ScdAudioEntry ImportOgg( string path, ScdAudioEntry oldEntry, bool normalize = true) 
         {
+            if (Settings.NormalizeVolume && normalize)
+            {
+                FFMpeg.NormalizeVolume(path);
+            }
             using (FileStream fs = File.OpenRead(path))
             {
                 using var oggReader = new NVorbis.VorbisReader(fs, false);

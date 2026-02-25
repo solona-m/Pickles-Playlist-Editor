@@ -7,6 +7,10 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using VfxEditor.ScdFormat;
 using VfxEditor.ScdFormat.Music.Data;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Pickles_Playlist_Editor
 {
@@ -35,14 +39,14 @@ namespace Pickles_Playlist_Editor
         {
             var extractAudioMenuItem = new ToolStripMenuItem("Extract Audio", null, ExtractAudioMenuItem_Click);
             var normalizeAudioMenuItem = new ToolStripMenuItem("Normalize Audio", null, NormalizeAudioMenuItem_Click);
-            var addSilenceMenuItem = new ToolStripMenuItem("Add 3 Seconds Silence", null, AddSilenceMenuItem_Click);
+            var increaseVolumeMenuItem = new ToolStripMenuItem("Increase Volume", null, IncreaseVolumeMenuItem_Click);
             var applyEqMenuItem = new ToolStripMenuItem("Manage EQ Settings", null, ApplyEqSettingsMenuItem_Click);
 
             _treeContextMenu.Items.AddRange(new ToolStripItem[]
             {
                 extractAudioMenuItem,
                 normalizeAudioMenuItem,
-                addSilenceMenuItem,
+                increaseVolumeMenuItem,
                 new ToolStripSeparator(),
                 applyEqMenuItem
             });
@@ -393,7 +397,7 @@ namespace Pickles_Playlist_Editor
             ShowOperationSummary("Audio normalization finished", normalized, targetSongs.Count, errors);
         }
 
-        private async void AddSilenceMenuItem_Click(object? sender, EventArgs e)
+        private async void IncreaseVolumeMenuItem_Click(object? sender, EventArgs e)
         {
             var node = _contextMenuNode;
             if (node == null)
@@ -402,20 +406,11 @@ namespace Pickles_Playlist_Editor
             var targetSongs = GetSongTargetsForNode(node);
             if (targetSongs.Count == 0)
             {
-                MessageBox.Show("No songs were found to add silence to.");
+                MessageBox.Show("No songs were found for volume adjustment.");
                 return;
             }
 
-            var confirm = MessageBox.Show(
-                $"Extract, add 3 seconds of silence, and repack {targetSongs.Count} song(s)? This will overwrite existing SCD files.",
-                "Add Silence",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
-
-            if (confirm != DialogResult.Yes)
-                return;
-
-            SetProgressBarText("Adding silence...");
+            SetProgressBarText("Increasing volume...");
             SetProgressBarPercent(0);
 
             int updated = 0;
@@ -427,7 +422,7 @@ namespace Pickles_Playlist_Editor
                 {
                     try
                     {
-                        AddSilenceToSongAudio(option);
+                        IncreaseSongVolume(option, 10);
                         updated++;
                     }
                     catch (Exception ex)
@@ -444,7 +439,7 @@ namespace Pickles_Playlist_Editor
 
             SetProgressBarPercent(100);
             RecomputePlaylistDurations();
-            ShowOperationSummary("Add silence finished", updated, targetSongs.Count, errors);
+            ShowOperationSummary("Increase volume finished", updated, targetSongs.Count, errors);
         }
 
         private async void ApplyEqSettingsMenuItem_Click(object? sender, EventArgs e)
@@ -589,19 +584,18 @@ namespace Pickles_Playlist_Editor
             Directory.CreateDirectory(tempRoot);
 
             string extractedOgg = Path.Combine(tempRoot, "source.ogg");
-            string normalizedOgg = Path.Combine(tempRoot, "normalized.ogg");
 
             try
             {
                 ScdOggExtractor.ExtractOgg(fullScdPath, extractedOgg);
-                RunFfmpegNormalization(extractedOgg, normalizedOgg);
+                FFMpeg.NormalizeVolume(extractedOgg);
 
                 var scd = ScdFile.Import(fullScdPath);
                 if (scd.Audio.Count == 0)
                     throw new InvalidOperationException("No audio entries were found in the SCD.");
 
                 var oldEntry = scd.Audio[0];
-                var newEntry = ScdVorbis.ImportOgg(normalizedOgg, oldEntry);
+                var newEntry = ScdVorbis.ImportOgg(extractedOgg, oldEntry);
                 scd.Replace(oldEntry, newEntry);
 
                 using var writer = new BinaryWriter(new FileStream(fullScdPath, FileMode.Create, FileAccess.Write, FileShare.None));
@@ -614,30 +608,31 @@ namespace Pickles_Playlist_Editor
             }
         }
 
-        private static void AddSilenceToSongAudio(Option option)
+        private static void IncreaseSongVolume(Option option, int db)
         {
             string relativeScdPath = Playlist.GetScdPath(option);
             string fullScdPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, relativeScdPath);
             if (!File.Exists(fullScdPath))
                 throw new FileNotFoundException("SCD file not found.", fullScdPath);
 
-            string tempRoot = Path.Combine(Path.GetTempPath(), "pickles-add-silence", Guid.NewGuid().ToString("N"));
+            string tempRoot = Path.Combine(Path.GetTempPath(), "pickles-increase-volume", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempRoot);
 
             string extractedOgg = Path.Combine(tempRoot, "source.ogg");
-            string updatedOgg = Path.Combine(tempRoot, "with_silence.ogg");
 
             try
             {
                 ScdOggExtractor.ExtractOgg(fullScdPath, extractedOgg);
-                RunFfmpegAddSilence(extractedOgg, updatedOgg);
+
+                // Call FFMpeg.AdjustVolume with db change
+                FFMpeg.AdjustVolume(extractedOgg, db);
 
                 var scd = ScdFile.Import(fullScdPath);
                 if (scd.Audio.Count == 0)
                     throw new InvalidOperationException("No audio entries were found in the SCD.");
 
                 var oldEntry = scd.Audio[0];
-                var newEntry = ScdVorbis.ImportOgg(updatedOgg, oldEntry);
+                var newEntry = ScdVorbis.ImportOgg(extractedOgg, oldEntry, false);
                 scd.Replace(oldEntry, newEntry);
 
                 using var writer = new BinaryWriter(new FileStream(fullScdPath, FileMode.Create, FileAccess.Write, FileShare.None));
@@ -666,7 +661,7 @@ namespace Pickles_Playlist_Editor
             try
             {
                 ScdOggExtractor.ExtractOgg(fullScdPath, extractedOgg);
-                RunFfmpegEqualizer(extractedOgg, updatedOgg, filterChain, "apply");
+                FFMpeg.Equalize(extractedOgg, filterChain);
 
                 var scd = ScdFile.Import(fullScdPath);
                 if (scd.Audio.Count == 0)
@@ -683,58 +678,6 @@ namespace Pickles_Playlist_Editor
             {
                 if (Directory.Exists(tempRoot))
                     Directory.Delete(tempRoot, true);
-            }
-        }
-
-        private static void RunFfmpegNormalization(string inputOggPath, string outputOggPath)
-        {
-            string args = $"-y -i \"{inputOggPath}\" -af \"loudnorm=I=-18:LRA=11:TP=-1.5\" -vn -acodec libvorbis -q:a 7 \"{outputOggPath}\"";
-            RunFfmpegAndValidate(args, outputOggPath, "ffmpeg normalization failed");
-        }
-
-        private static void RunFfmpegAddSilence(string inputOggPath, string outputOggPath)
-        {
-            string args = $"-y -i \"{inputOggPath}\" -af \"apad=pad_dur=3\" -vn -acodec libvorbis -q:a 7 \"{outputOggPath}\"";
-            RunFfmpegAndValidate(args, outputOggPath, "ffmpeg add silence failed");
-        }
-
-        private static void RunFfmpegEqualizer(string inputOggPath, string outputOggPath, string filterChain, string operationName)
-        {
-            string args = $"-y -i \"{inputOggPath}\" -af \"{filterChain}\" -vn -acodec libvorbis -q:a 7 \"{outputOggPath}\"";
-            RunFfmpegAndValidate(args, outputOggPath, $"ffmpeg equalizer ({operationName}) failed");
-        }
-
-        private static void RunFfmpegFilters(string inputOggPath, string outputOggPath, bool normalize, bool addSilence)
-        {
-            var filters = new List<string>();
-            if (normalize)
-                filters.Add("loudnorm=I=-18:LRA=11:TP=-1.5");
-            if (addSilence)
-                filters.Add("apad=pad_dur=3");
-
-            string filterArg = filters.Count > 0 ? $"-af \"{string.Join(',', filters)}\"" : string.Empty;
-
-            string args = $"-y -i \"{inputOggPath}\" {filterArg} -vn -acodec libvorbis -q:a 7 \"{outputOggPath}\"";
-            RunFfmpegAndValidate(args, outputOggPath, "ffmpeg processing failed");
-        }
-
-        private static void RunFfmpegAndValidate(string arguments, string outputOggPath, string errorPrefix)
-        {
-            using var process = new Process();
-            process.StartInfo.FileName = "ffmpeg.exe";
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.RedirectStandardError = true;
-            process.StartInfo.RedirectStandardOutput = false;
-            process.StartInfo.Arguments = arguments;
-
-            process.Start();
-            string message = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-
-            if (process.ExitCode != 0 || !File.Exists(outputOggPath))
-            {
-                throw new InvalidOperationException($"{errorPrefix}: {message}");
             }
         }
 
@@ -776,10 +719,10 @@ namespace Pickles_Playlist_Editor
                 SetProgressBarPercent(60);
 
                 var filesToImport = result.DownloadedFiles;
-                if (ytNormalizeCheckBox.Checked || ytAddSilenceCheckBox.Checked)
+                if (Settings.NormalizeVolume)
                 {
                     SetProgressBarText("Post-processing audio...");
-                    filesToImport = await PostProcessDownloadedFilesAsync(result.DownloadedFiles, ytNormalizeCheckBox.Checked, ytAddSilenceCheckBox.Checked);
+                    filesToImport = await PostProcessDownloadedFilesAsync(result.DownloadedFiles, true);
                 }
 
                 if (result.IsPlaylist)
@@ -798,12 +741,14 @@ namespace Pickles_Playlist_Editor
                         Playlist.Create(targetPlaylist, string.Empty, null);
                         playlists = Playlist.GetAll();
                     }
+                    bool oldNormalize = Settings.NormalizeVolume;
+                    Settings.NormalizeVolume = false;
                     playlists[targetPlaylist].Add(filesToImport.ToArray());
+                    Settings.NormalizeVolume = oldNormalize;
                 }
 
                 LoadPlaylists();
                 SetProgressBarPercent(100);
-                MessageBox.Show($"Imported {filesToImport.Count} track(s) from YouTube.");
             }
             catch (Exception ex)
             {
@@ -817,7 +762,7 @@ namespace Pickles_Playlist_Editor
             }
         }
 
-        private async Task<List<string>> PostProcessDownloadedFilesAsync(List<string> inputFiles, bool normalize, bool addSilence)
+        private async Task<List<string>> PostProcessDownloadedFilesAsync(List<string> inputFiles, bool normalize)
         {
             return await Task.Run(() =>
             {
@@ -828,12 +773,10 @@ namespace Pickles_Playlist_Editor
                     int current = index + 1;
                     if (normalize)
                         SetProgressBarText($"Normalizing {current}/{inputFiles.Count}");
-                    else if (addSilence)
-                        SetProgressBarText($"Adding silence {current}/{inputFiles.Count}");
 
-                    string outPath = Path.Combine(Path.GetDirectoryName(file)!, $"processed_{index++}.ogg");
-                    RunFfmpegFilters(file, outPath, normalize, addSilence);
-                    outputFiles.Add(outPath);
+                    FFMpeg.StripVideo(file);
+                    FFMpeg.AdjustVolume(file, 10);
+                    outputFiles.Add(file);
                     SetProgressBarPercent(60 + (int)Math.Round((current / (double)inputFiles.Count) * 35));
                 }
                 return outputFiles;

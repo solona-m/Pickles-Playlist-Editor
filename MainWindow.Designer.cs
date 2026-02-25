@@ -34,17 +34,15 @@ namespace Pickles_Playlist_Editor
             panel1 = new Panel();
             tableLayoutPanel1 = new TableLayoutPanel();
             youtubeDownloadLayoutPanel = new TableLayoutPanel();
-            ytAddSilenceCheckBox = new CheckBox();
-            ytNormalizeCheckBox = new CheckBox();
             ytDownloadModeComboBox = new ComboBox();
             ytDownloadButton = new Button();
             ytUrlTextBox = new TextBox();
             ytUrlLabel = new Label();
-            PlaylistTreeView = new TreeView();
-            progressBar1 = new CustomProgressBar();
             searchLayoutPanel = new TableLayoutPanel();
             searchTextBox = new TextBox();
             searchLabel = new Label();
+            PlaylistTreeView = new TreeView();
+            progressBar1 = new CustomProgressBar();
             toolStrip1 = new ToolStrip();
             NewButton = new ToolStripButton();
             DeleteButton = new ToolStripButton();
@@ -102,8 +100,6 @@ namespace Pickles_Playlist_Editor
             youtubeDownloadLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
             youtubeDownloadLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
             youtubeDownloadLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
-            youtubeDownloadLayoutPanel.Controls.Add(ytAddSilenceCheckBox, 4, 0);
-            youtubeDownloadLayoutPanel.Controls.Add(ytNormalizeCheckBox, 3, 0);
             youtubeDownloadLayoutPanel.Controls.Add(ytDownloadModeComboBox, 2, 0);
             youtubeDownloadLayoutPanel.Controls.Add(ytDownloadButton, 5, 0);
             youtubeDownloadLayoutPanel.Controls.Add(ytUrlTextBox, 1, 0);
@@ -116,32 +112,12 @@ namespace Pickles_Playlist_Editor
             youtubeDownloadLayoutPanel.Size = new Size(1069, 30);
             youtubeDownloadLayoutPanel.TabIndex = 5;
             // 
-            // ytAddSilenceCheckBox
-            // 
-            ytAddSilenceCheckBox.AutoSize = true;
-            ytAddSilenceCheckBox.Location = new Point(872, 7);
-            ytAddSilenceCheckBox.Name = "ytAddSilenceCheckBox";
-            ytAddSilenceCheckBox.Size = new Size(82, 16);
-            ytAddSilenceCheckBox.TabIndex = 4;
-            ytAddSilenceCheckBox.Text = "+3s silence";
-            ytAddSilenceCheckBox.UseVisualStyleBackColor = true;
-            // 
-            // ytNormalizeCheckBox
-            // 
-            ytNormalizeCheckBox.AutoSize = true;
-            ytNormalizeCheckBox.Location = new Point(752, 7);
-            ytNormalizeCheckBox.Name = "ytNormalizeCheckBox";
-            ytNormalizeCheckBox.Size = new Size(79, 16);
-            ytNormalizeCheckBox.TabIndex = 3;
-            ytNormalizeCheckBox.Text = "Normalize";
-            ytNormalizeCheckBox.UseVisualStyleBackColor = true;
-            // 
             // ytDownloadModeComboBox
             // 
             ytDownloadModeComboBox.Dock = DockStyle.Fill;
             ytDownloadModeComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
             ytDownloadModeComboBox.FormattingEnabled = true;
-            ytDownloadModeComboBox.Location = new Point(632, 3);
+            ytDownloadModeComboBox.Location = new Point(612, 3);
             ytDownloadModeComboBox.Name = "ytDownloadModeComboBox";
             ytDownloadModeComboBox.Size = new Size(114, 23);
             ytDownloadModeComboBox.TabIndex = 5;
@@ -163,7 +139,7 @@ namespace Pickles_Playlist_Editor
             ytUrlTextBox.Location = new Point(93, 3);
             ytUrlTextBox.Name = "ytUrlTextBox";
             ytUrlTextBox.PlaceholderText = "Paste YouTube URL (single or playlist)";
-            ytUrlTextBox.Size = new Size(533, 23);
+            ytUrlTextBox.Size = new Size(513, 23);
             ytUrlTextBox.TabIndex = 1;
             // 
             // ytUrlLabel
@@ -171,32 +147,9 @@ namespace Pickles_Playlist_Editor
             ytUrlLabel.AutoSize = true;
             ytUrlLabel.Location = new Point(3, 0);
             ytUrlLabel.Name = "ytUrlLabel";
-            ytUrlLabel.Size = new Size(55, 15);
+            ytUrlLabel.Size = new Size(54, 15);
             ytUrlLabel.TabIndex = 0;
             ytUrlLabel.Text = "YouTube";
-            // 
-            // PlaylistTreeView
-            // 
-            PlaylistTreeView.AllowDrop = true;
-            PlaylistTreeView.Dock = DockStyle.Fill;
-            PlaylistTreeView.Location = new Point(3, 59);
-            PlaylistTreeView.Name = "PlaylistTreeView";
-            PlaylistTreeView.Size = new Size(1069, 529);
-            PlaylistTreeView.TabIndex = 2;
-            PlaylistTreeView.AfterCheck += PlaylistTreeView_AfterCheck;
-            PlaylistTreeView.ItemDrag += PlaylistTreeView_ItemDrag;
-            PlaylistTreeView.VisibleChanged += playlistTreeView_onload;
-            PlaylistTreeView.DragDrop += PlaylistTreeView_DragDrop;
-            PlaylistTreeView.DragEnter += PlaylistTreeView_DragEnter;
-            PlaylistTreeView.NodeMouseClick += PlaylistTreeView_NodeMouseClick;
-            // 
-            // progressBar1
-            // 
-            progressBar1.Dock = DockStyle.Fill;
-            progressBar1.Location = new Point(3, 594);
-            progressBar1.Name = "progressBar1";
-            progressBar1.Size = new Size(1069, 22);
-            progressBar1.TabIndex = 3;
             // 
             // searchLayoutPanel
             // 
@@ -206,7 +159,7 @@ namespace Pickles_Playlist_Editor
             searchLayoutPanel.Controls.Add(searchTextBox, 1, 0);
             searchLayoutPanel.Controls.Add(searchLabel, 0, 0);
             searchLayoutPanel.Dock = DockStyle.Fill;
-            searchLayoutPanel.Location = new Point(3, 31);
+            searchLayoutPanel.Location = new Point(3, 39);
             searchLayoutPanel.Name = "searchLayoutPanel";
             searchLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             searchLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
@@ -230,6 +183,29 @@ namespace Pickles_Playlist_Editor
             searchLabel.Size = new Size(42, 15);
             searchLabel.TabIndex = 1;
             searchLabel.Text = "Search";
+            // 
+            // PlaylistTreeView
+            // 
+            PlaylistTreeView.AllowDrop = true;
+            PlaylistTreeView.Dock = DockStyle.Fill;
+            PlaylistTreeView.Location = new Point(3, 67);
+            PlaylistTreeView.Name = "PlaylistTreeView";
+            PlaylistTreeView.Size = new Size(1069, 521);
+            PlaylistTreeView.TabIndex = 2;
+            PlaylistTreeView.AfterCheck += PlaylistTreeView_AfterCheck;
+            PlaylistTreeView.ItemDrag += PlaylistTreeView_ItemDrag;
+            PlaylistTreeView.NodeMouseClick += PlaylistTreeView_NodeMouseClick;
+            PlaylistTreeView.VisibleChanged += playlistTreeView_onload;
+            PlaylistTreeView.DragDrop += PlaylistTreeView_DragDrop;
+            PlaylistTreeView.DragEnter += PlaylistTreeView_DragEnter;
+            // 
+            // progressBar1
+            // 
+            progressBar1.Dock = DockStyle.Fill;
+            progressBar1.Location = new Point(3, 594);
+            progressBar1.Name = "progressBar1";
+            progressBar1.Size = new Size(1069, 22);
+            progressBar1.TabIndex = 3;
             // 
             // toolStrip1
             // 
@@ -373,9 +349,7 @@ namespace Pickles_Playlist_Editor
         private TextBox ytUrlTextBox;
         private Label ytUrlLabel;
         private Button ytDownloadButton;
-        private CheckBox ytNormalizeCheckBox;
         private ComboBox ytDownloadModeComboBox;
-        private CheckBox ytAddSilenceCheckBox;
 
         // Search box for filtering the tree view
         private TextBox searchTextBox;

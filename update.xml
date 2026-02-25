@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <item>
-  <version>1.1.1.1</version>
+  <version>1.1.2.0</version>
   <url>https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest/download/PicklesPlaylistEditor.zip</url>
   <!-- Changelog can be plain text or HTML. Use CDATA to include markup safely. -->
   <changelog>
     <![CDATA[
-    <h3>What's new in 1.1.1.1</h3>
+    <h3>What's new in 1.1.2.0</h3>
     <ul>
-      <li>mp3s will be volume normalized on import (you can disable in settings)</li>
+      <li>added youtube downloader, equalizer and old song normalization (thanks to Shaala for the contributions!)</li>
     </ul>
     <p>For full details see the release page: https://github.com/solona-m/Pickles-Playlist-Editor/releases</p>
   ]]>
