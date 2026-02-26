@@ -101,6 +101,9 @@ namespace Pickles_Playlist_Editor
 
             File.WriteAllText(Path.Combine(Settings.PenumbraLocation, Settings.ModName, fileName), json);
             Directory.CreateDirectory(Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistName));
+
+            // Notify Penumbra (if present) to refresh this mod because files/config changed.
+            RefreshPenumbraMod();
         }
 
         static Option AddFiles(string playlistName, Playlist group, string file)
@@ -186,6 +189,7 @@ namespace Pickles_Playlist_Editor
                 playlist.Options.Remove(opt);
             }
             this.Save();
+            // Save() will refresh Penumbra; no need to call here.
         }
 
         private static string GetNonCollidingPath(string path)
@@ -308,6 +312,9 @@ namespace Pickles_Playlist_Editor
             string fileName = fileNames[0];
             string json = JsonConvert.SerializeObject(this, Formatting.Indented);
             File.WriteAllText(fileName, json);
+
+            // Notify Penumbra (if present) that the mod directory changed so it can refresh.
+            RefreshPenumbraMod();
         }
 
         public void Delete()
@@ -317,6 +324,9 @@ namespace Pickles_Playlist_Editor
             if (Directory.Exists(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name)))
                 Directory.Delete(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name), true);
             File.Delete(GetJsonFiles(Name)[0]);
+
+            // Notify Penumbra after removing files
+            RefreshPenumbraMod();
         }
 
         private static string[] GetJsonFiles(string name)
@@ -401,6 +411,23 @@ namespace Pickles_Playlist_Editor
             result = Regex.Replace(result, @"[\\\/:\*\?""<>\|]", "_");
 
             return result;
+        }
+
+        /// <summary>
+        /// Attempt to notify Penumbra (FFXIV Dalamud plugin) that the mod folder changed so Penumbra can refresh its cache.
+        /// This is a best-effort notification: Penumbra watches file changes; touching meta.json or creating a transient marker file
+        /// commonly triggers a refresh. This function does not interact with Dalamud directly.
+        /// </summary>
+        private static void RefreshPenumbraMod()
+        {
+            try
+            {
+                PenumbraApi.ReloadMod(Settings.ModName, Settings.ModName);
+            }
+            catch
+            {
+                // best-effort only; swallow any errors to avoid breaking the UI
+            }
         }
     }
 }
