@@ -12,6 +12,8 @@ a.	NOTE: Depending on folder permissions, may get errors if you place it in say 
 
 2)	Open Folder and Pin “Pickles Playlist Editor.exe” someplace for easy access in future or just Run .exe
 
+3)	(optional) if you don't want to reload the mod after every change, open penumbra. Click the settings tab at top left. Expand Advanced. Check Enable HTTP API.
+
 Getting started
 It is important to note, the Pickles Playlist Editor DOES NOT normalize the audio volume on import, so will still need to use audacity to do that, and any other tweaks to audio to prep it for import.
 DOES NOT WORK ON THUNDERDOME DJ PACK!!
