@@ -1,13 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <item>
-  <version>1.1.3.0</version>
+  <version>1.1.3.1</version>
   <url>https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest/download/PicklesPlaylistEditor.zip</url>
   <!-- Changelog can be plain text or HTML. Use CDATA to include markup safely. -->
   <changelog>
     <![CDATA[
-    <h3>What's new in 1.1.3.0</h3>
+    <h3>What's new in 1.1.3.1</h3>
     <ul>
       <li>added youtube downloader, equalizer and old song normalization (thanks to Shaala for the contributions!)</li>
+      <li>added library cleanup button in settings which will rename and reorganize your scd files. backup before trying this</li>
+      <li>the dj mod will auto reload when you make playlist changes. You must have the penumbra http api enabled in penumbra advanced settings. disable this in settings if you have animations in your dj mod with your songs.</li>
     </ul>
     <p>For full details see the release page: https://github.com/solona-m/Pickles-Playlist-Editor/releases</p>
   ]]>
