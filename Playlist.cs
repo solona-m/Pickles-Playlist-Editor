@@ -162,6 +162,10 @@ namespace Pickles_Playlist_Editor
                         optionsToRemove.Add(song);
                         continue;
                     }
+                    if (Path.GetExtension(oldPath) != ".scd")
+                    {
+                        continue;
+                    }
 
                     // Sanitize the desired filename so it is valid on Windows
                     var safeName = SanitizeFileName(song.Name);
@@ -181,6 +185,16 @@ namespace Pickles_Playlist_Editor
                         File.Move(oldPath, newPath);
                         BPMDetector.UpdateCacheForSCD(oldPath, newPath);
                         song.Files[song.Files.Keys.First()] = Path.Combine(cleanPlaylistName, Path.GetFileName(newPath));
+                    }
+                }
+
+                // delete empty folders
+                string playlistFolder = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName);
+                foreach (string subDir in Directory.GetDirectories(playlistFolder))
+                {
+                    if (Directory.GetFiles(subDir).Length == 0 && Directory.GetDirectories(subDir).Length == 0)
+                    {
+                        Directory.Delete(subDir);
                     }
                 }
             }
