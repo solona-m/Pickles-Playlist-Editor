@@ -9,8 +9,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <ApplicationIcon>pickle.ico</ApplicationIcon>
-    <AssemblyVersion>1.1.2.2</AssemblyVersion>
-    <FileVersion>1.1.2.2</FileVersion>
+    <AssemblyVersion>1.1.3.0</AssemblyVersion>
+    <FileVersion>1.1.3.0</FileVersion>
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
 

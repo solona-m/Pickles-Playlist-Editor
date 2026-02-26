@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <item>
-  <version>1.1.2.2</version>
+  <version>1.1.3.0</version>
   <url>https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest/download/PicklesPlaylistEditor.zip</url>
   <!-- Changelog can be plain text or HTML. Use CDATA to include markup safely. -->
   <changelog>
     <![CDATA[
-    <h3>What's new in 1.1.2.2</h3>
+    <h3>What's new in 1.1.3.0</h3>
     <ul>
       <li>added youtube downloader, equalizer and old song normalization (thanks to Shaala for the contributions!)</li>
     </ul>
