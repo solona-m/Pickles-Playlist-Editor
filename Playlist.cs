@@ -436,7 +436,8 @@ namespace Pickles_Playlist_Editor
         {
             try
             {
-                PenumbraApi.ReloadMod(Settings.ModName, Settings.ModName);
+                if (Settings.AutoReloadMod)
+                    PenumbraApi.ReloadMod(Settings.ModName, Settings.ModName);
             }
             catch
             {

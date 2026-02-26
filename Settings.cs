@@ -111,5 +111,40 @@ namespace Pickles_Playlist_Editor
                 }
             }
         }
+
+        /// <summary>
+        /// Controls whether the mod should be auto-reloaded (Penumbra) after changes.
+        /// Default: true.
+        /// Stored as integer 1 (true) or 0 (false) under the same registry subkey.
+        /// </summary>
+        public static bool AutoReloadMod
+        {
+            get
+            {
+                try
+                {
+                    var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("AutoReloadMod", 1);
+                    if (value is int iv) return iv != 0;
+                    if (value is long lv) return lv != 0;
+                    if (value is string sv && bool.TryParse(sv, out var bv)) return bv;
+                    if (value is string sv2 && int.TryParse(sv2, out var parsed)) return parsed != 0;
+                }
+                catch
+                {
+                    // fallthrough to default
+                }
+                return true;
+            }
+            set
+            {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey))
+                {
+                    if (key != null)
+                    {
+                        key.SetValue("AutoReloadMod", value ? 1 : 0);
+                    }
+                }
+            }
+        }
     }
 }

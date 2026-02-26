@@ -21,6 +21,7 @@ namespace Pickles_Playlist_Editor
             BaselineScdTextBox.Text = Settings.BaselineScdKey;
 
             NormalizeVolumeCheckBox.Checked = Settings.NormalizeVolume;
+            autoreloadCheckBox.Checked = Settings.AutoReloadMod;
             ValidateFields();
         }
 
@@ -95,6 +96,7 @@ namespace Pickles_Playlist_Editor
                 {
                     Settings.NormalizeVolume = NormalizeVolumeCheckBox.Checked;
                 }
+                Settings.AutoReloadMod = autoreloadCheckBox.Checked;
 
                 this.Close();
             }

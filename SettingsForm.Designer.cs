@@ -39,6 +39,8 @@
             NormalizeVolumeLabel = new Label();
             NormalizeVolumeCheckBox = new CheckBox();
             OrganizeLibraryButton = new Button();
+            label3 = new Label();
+            autoreloadCheckBox = new CheckBox();
             OkButton = new Button();
             tableLayoutPanel1.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
@@ -62,12 +64,12 @@
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 61F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 8F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 97F));
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 17F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel1.Size = new Size(631, 206);
+            tableLayoutPanel1.Size = new Size(631, 246);
             tableLayoutPanel1.TabIndex = 0;
             // 
             // label1
@@ -141,12 +143,16 @@
             checksTableLayoutPanel.Controls.Add(NormalizeVolumeLabel, 0, 1);
             checksTableLayoutPanel.Controls.Add(NormalizeVolumeCheckBox, 1, 1);
             checksTableLayoutPanel.Controls.Add(OrganizeLibraryButton, 0, 0);
+            checksTableLayoutPanel.Controls.Add(label3, 0, 2);
+            checksTableLayoutPanel.Controls.Add(autoreloadCheckBox, 1, 2);
             checksTableLayoutPanel.Dock = DockStyle.Fill;
             checksTableLayoutPanel.Location = new Point(3, 113);
             checksTableLayoutPanel.Name = "checksTableLayoutPanel";
+            checksTableLayoutPanel.RowCount = 3;
             checksTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 27F));
             checksTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 43F));
-            checksTableLayoutPanel.Size = new Size(625, 55);
+            checksTableLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            checksTableLayoutPanel.Size = new Size(625, 91);
             checksTableLayoutPanel.TabIndex = 4;
             // 
             // NormalizeVolumeLabel
@@ -160,9 +166,10 @@
             // 
             // NormalizeVolumeCheckBox
             // 
+            NormalizeVolumeCheckBox.Dock = DockStyle.Fill;
             NormalizeVolumeCheckBox.Location = new Point(203, 30);
             NormalizeVolumeCheckBox.Name = "NormalizeVolumeCheckBox";
-            NormalizeVolumeCheckBox.Size = new Size(18, 14);
+            NormalizeVolumeCheckBox.Size = new Size(419, 37);
             NormalizeVolumeCheckBox.TabIndex = 7;
             // 
             // OrganizeLibraryButton
@@ -176,12 +183,33 @@
             OrganizeLibraryButton.UseVisualStyleBackColor = true;
             OrganizeLibraryButton.Click += OrganizeLibraryButton_Click;
             // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new Point(3, 70);
+            label3.Name = "label3";
+            label3.Size = new Size(100, 15);
+            label3.TabIndex = 9;
+            label3.Text = "Auto Reload Mod";
+            // 
+            // autoreloadCheckBox
+            // 
+            autoreloadCheckBox.AutoSize = true;
+            autoreloadCheckBox.Checked = true;
+            autoreloadCheckBox.CheckState = CheckState.Checked;
+            autoreloadCheckBox.Dock = DockStyle.Top;
+            autoreloadCheckBox.Location = new Point(203, 73);
+            autoreloadCheckBox.Name = "autoreloadCheckBox";
+            autoreloadCheckBox.Size = new Size(419, 14);
+            autoreloadCheckBox.TabIndex = 10;
+            autoreloadCheckBox.UseVisualStyleBackColor = true;
+            // 
             // OkButton
             // 
             OkButton.Dock = DockStyle.Fill;
-            OkButton.Location = new Point(3, 174);
+            OkButton.Location = new Point(3, 210);
             OkButton.Name = "OkButton";
-            OkButton.Size = new Size(625, 29);
+            OkButton.Size = new Size(625, 33);
             OkButton.TabIndex = 4;
             OkButton.Text = "Ok";
             OkButton.UseVisualStyleBackColor = true;
@@ -191,7 +219,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(631, 206);
+            ClientSize = new Size(631, 246);
             Controls.Add(tableLayoutPanel1);
             Icon = Properties.Resources.gearIcon;
             Name = "SettingsForm";
@@ -201,6 +229,7 @@
             tableLayoutPanel2.ResumeLayout(false);
             tableLayoutPanel2.PerformLayout();
             checksTableLayoutPanel.ResumeLayout(false);
+            checksTableLayoutPanel.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -222,5 +251,7 @@
 
         // Label + checkbox for organizing library on start
         private Button OrganizeLibraryButton;
+        private Label label3;
+        private CheckBox autoreloadCheckBox;
     }
 }
