@@ -16,7 +16,7 @@ a.	NOTE: Depending on folder permissions, may get errors if you place it in say 
 
 Getting started
 The program will detect and automatically configure itself for DJ Pickles dj mod (the original one!). To use this for thunderdome.exe or another dj mod, or if you aren't seeing any songs, open settings and browse to your dj mod directory. 
-DJ Pickles Mod uses sound/bpmloop.scd as the baseline scd. Thunderdome uses sound/dam.scd. [Yue's + Lu's] Dj uses sound/lolo.scd.
+DJ Pickles Mod uses sound/bpmloop.scd as the baseline scd. Thunderdome uses sound/dam.scd. [Yue's + Lu's] Dj uses sound/lolo.scd. The program may hang for a little bit after you change these settings, depending on how many songs you have. Be patient.
 The default songs that come with thunderdome are recorded in an unsupported encoding, so bpm detection and playback on them are not supported, but will work for new songs you add. If the program is taking a long time to load, you can delete the default thunderdome playlists.
 
 Understanding the Top Buttons
