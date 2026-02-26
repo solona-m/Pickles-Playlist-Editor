@@ -28,7 +28,7 @@ WARNING THIS CAN NOT BE UNDONE!!!
 7)	STOP: will stop playing song,
 8)	PREVIOUS: will go back 1 song
 9)	NEXT: will skip ahead one song
-10)	SETTINGS: will allow you to locate mod location file
+10)	SETTINGS: will allow you to locate the directory of your mod if you aren't using pickles dj mod, set the scd being replaced, disable normalization of songs on import and optionally, reorganize your scds so they're all stored in folders named for each playlist with the file name as the song name (backup your mod before you press this!)
 
 Linking Editor to FFXIV (*skip if using pickles mod and it loads showing all your playlists already)
  
