@@ -177,11 +177,11 @@ namespace Pickles_Playlist_Editor
 
                     string newPath = Path.Combine(outDir, fileName);
 
-                    // If target file already exists, append a numeric suffix to avoid collision
-                    newPath = GetNonCollidingPath(newPath);
-
                     if (oldPath != newPath)
                     {
+                        // If target file already exists, append a numeric suffix to avoid collision
+                        newPath = GetNonCollidingPath(newPath);
+
                         File.Move(oldPath, newPath);
                         BPMDetector.UpdateCacheForSCD(oldPath, newPath);
                         song.Files[song.Files.Keys.First()] = Path.Combine(cleanPlaylistName, Path.GetFileName(newPath));
