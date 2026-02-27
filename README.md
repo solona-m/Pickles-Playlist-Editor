@@ -15,8 +15,10 @@ a.	NOTE: Depending on folder permissions, may get errors if you place it in say 
 3)	(optional) if you don't want to reload the mod after every change, open penumbra. Click the settings tab at top left. Expand Advanced. Check Enable HTTP API.
 
 Getting started
-It is important to note, the Pickles Playlist Editor DOES NOT normalize the audio volume on import, so will still need to use audacity to do that, and any other tweaks to audio to prep it for import.
-DOES NOT WORK ON THUNDERDOME DJ PACK!!
+The program will detect and automatically configure itself for DJ Pickles dj mod (the original one!). To use this for thunderdome.exe or another dj mod, or if you aren't seeing any songs, open settings and browse to your dj mod directory. 
+DJ Pickles Mod uses sound/bpmloop.scd as the baseline scd. Thunderdome uses sound/dam.scd. [Yue's + Lu's] Dj uses sound/lolo.scd. The program may hang for a little bit after you change these settings, depending on how many songs you have. Be patient.
+The default songs that come with thunderdome are recorded in an unsupported encoding, so bpm detection and playback on them are not supported, but will work for new songs you add. If the program is taking a long time to load, you can delete the default thunderdome playlists.
+
 Understanding the Top Buttons
 
 0) Add Songs - lets you add songs from your computer or youtube (you can also drag/drop)
