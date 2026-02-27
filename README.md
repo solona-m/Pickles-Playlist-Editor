@@ -3,6 +3,7 @@ Created by Solona
 Guide written by Cat with Keyboard 
 (Who the heck thought that was a good idea?) 
 
+BACKUP YOUR DJ MOD BEFORE USING THIS EDITOR!  I AM NOT RESPONSIBLE FOR ANY CORRUPTION OF FILES OR LOSS OF DATA!
 
 Download link
 https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest
