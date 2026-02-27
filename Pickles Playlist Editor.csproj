@@ -54,6 +54,9 @@
     <None Update="libzplay.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="README.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="update.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
