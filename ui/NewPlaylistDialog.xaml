@@ -1,0 +1,29 @@
+<ContentDialog
+    x:Class="Pickles_Playlist_Editor.NewPlaylistDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Uid="NewPlaylistDlg"
+    Title="New Playlist"
+    PrimaryButtonText="Create"
+    CloseButtonText="Cancel"
+    PrimaryButtonClick="GoButton_Click"
+    DefaultButton="Primary">
+
+    <StackPanel Spacing="8" MinWidth="500">
+
+        <TextBlock x:Uid="PlaylistNameLabel" Text="Playlist Name"/>
+        <TextBox x:Name="PlaylistNameTextBox" TextChanged="PlaylistNameTextBox_TextChanged"/>
+
+        <TextBlock x:Uid="MusicFilesDirLabel" Text="Music Files Directory (optional)"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="DirectoryPathTextBox" Grid.Column="0" Margin="0,0,4,0"
+                     TextChanged="DirectoryPathTextBox_TextChanged"/>
+            <Button x:Uid="BrowseButton" Grid.Column="1" Content="Browse" Click="BrowseButton_Click"/>
+        </Grid>
+
+    </StackPanel>
+</ContentDialog>

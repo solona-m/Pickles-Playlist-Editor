@@ -1,0 +1,52 @@
+<ContentDialog
+    x:Class="Pickles_Playlist_Editor.SettingsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Uid="SettingsDlg"
+    Title="Settings"
+    PrimaryButtonText="OK"
+    CloseButtonText="Cancel"
+    PrimaryButtonClick="OkButton_Click"
+    DefaultButton="Primary">
+
+    <StackPanel Spacing="8" MinWidth="500">
+
+        <TextBlock x:Uid="ModDirLabel" Text="Mod Directory in Penumbra" FontWeight="SemiBold"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="DirectoryPathTextBox" Grid.Column="0" Margin="0,0,4,0"
+                     TextChanged="DirectoryPathTextBox_TextChanged"/>
+            <Button x:Uid="BrowseModDirButton" Grid.Column="1" Content="Browse" Click="BrowseButton_Click"/>
+        </Grid>
+
+        <TextBlock x:Uid="BaselineScdLabel" Text="Baseline SCD key (e.g. sound/bpmloop.scd)" FontWeight="SemiBold"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="BaselineScdTextBox" Grid.Column="0" Margin="0,0,4,0"
+                     TextChanged="BaselineScdTextBox_TextChanged"/>
+            <Button x:Uid="BrowseBaselineScdButton" Grid.Column="1" Content="Browse" Click="BrowseBaselineScdButton_Click"/>
+        </Grid>
+
+        <TextBlock x:Uid="BackgroundImageLabel" Text="Background Image" FontWeight="SemiBold"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="BackgroundImageTextBox" Grid.Column="0" Margin="0,0,4,0"/>
+            <Button x:Uid="BrowseBackgroundButton" Grid.Column="1" Content="Browse" Click="BrowseBackgroundButton_Click"/>
+        </Grid>
+
+        <CheckBox x:Name="NormalizeVolumeCheckBox" x:Uid="NormalizeVolumeCheckBox" Content="Normalize Volume"/>
+        <CheckBox x:Name="AutoReloadCheckBox" x:Uid="AutoReloadCheckBox" Content="Auto Reload Mod" IsChecked="True"/>
+
+        <Button x:Uid="OrganizeLibraryButton" Content="Organize Library" Click="OrganizeLibraryButton_Click" HorizontalAlignment="Stretch"/>
+
+    </StackPanel>
+</ContentDialog>

@@ -1,0 +1,79 @@
+<ContentDialog
+    x:Class="Pickles_Playlist_Editor.EqualizerDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Uid="EqualizerDlg"
+    Title="Equalizer"
+    PrimaryButtonText="Apply"
+    SecondaryButtonText="Discard"
+    DefaultButton="Primary">
+
+    <StackPanel Spacing="12" MinWidth="600">
+        <TextBlock x:Name="EqualizerHint" x:Uid="EqualizerHint" Text="Adjust EQ settings, then test playback in the app."/>
+
+        <!-- Bass -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="140"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="70"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Uid="BassLabel2" Grid.Column="0" Text="Bass (64 Hz)" VerticalAlignment="Center"/>
+            <Slider Grid.Column="1" x:Name="BassSlider" Minimum="-120" Maximum="120" StepFrequency="1"
+                    ValueChanged="Slider_ValueChanged"/>
+            <TextBlock Grid.Column="2" x:Name="BassLabel" Text="0.0 dB" VerticalAlignment="Center" TextAlignment="Right"/>
+        </Grid>
+
+        <!-- Low Mid -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="140"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="70"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Uid="LowMidLabel2" Grid.Column="0" Text="Low Mid (250 Hz)" VerticalAlignment="Center"/>
+            <Slider Grid.Column="1" x:Name="LowMidSlider" Minimum="-120" Maximum="120" StepFrequency="1"
+                    ValueChanged="Slider_ValueChanged"/>
+            <TextBlock Grid.Column="2" x:Name="LowMidLabel" Text="0.0 dB" VerticalAlignment="Center" TextAlignment="Right"/>
+        </Grid>
+
+        <!-- Mid -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="140"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="70"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Uid="MidLabel2" Grid.Column="0" Text="Mid (1 kHz)" VerticalAlignment="Center"/>
+            <Slider Grid.Column="1" x:Name="MidSlider" Minimum="-120" Maximum="120" StepFrequency="1"
+                    ValueChanged="Slider_ValueChanged"/>
+            <TextBlock Grid.Column="2" x:Name="MidLabel" Text="0.0 dB" VerticalAlignment="Center" TextAlignment="Right"/>
+        </Grid>
+
+        <!-- High Mid -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="140"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="70"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Uid="HighMidLabel2" Grid.Column="0" Text="High Mid (4 kHz)" VerticalAlignment="Center"/>
+            <Slider Grid.Column="1" x:Name="HighMidSlider" Minimum="-120" Maximum="120" StepFrequency="1"
+                    ValueChanged="Slider_ValueChanged"/>
+            <TextBlock Grid.Column="2" x:Name="HighMidLabel" Text="0.0 dB" VerticalAlignment="Center" TextAlignment="Right"/>
+        </Grid>
+
+        <!-- Treble -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="140"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="70"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Uid="TrebleLabel2" Grid.Column="0" Text="Treble (12 kHz)" VerticalAlignment="Center"/>
+            <Slider Grid.Column="1" x:Name="TrebleSlider" Minimum="-120" Maximum="120" StepFrequency="1"
+                    ValueChanged="Slider_ValueChanged"/>
+            <TextBlock Grid.Column="2" x:Name="TrebleLabel" Text="0.0 dB" VerticalAlignment="Center" TextAlignment="Right"/>
+        </Grid>
+    </StackPanel>
+</ContentDialog>

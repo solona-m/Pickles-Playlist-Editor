@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<item>
+  <version>1.1.4.2</version>
+  <url>https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest/download/PicklesPlaylistEditor.zip</url>
+  <!-- Changelog can be plain text or HTML. Use CDATA to include markup safely. -->
+  <changelog>
+    <![CDATA[
+    <h3>What's new in 1.1.4.2</h3>
+    <ul>
+      <li>Added settings autodetection for common dj mods</li>
+    </ul>
+    <p>For full details see the release page: https://github.com/solona-m/Pickles-Playlist-Editor/releases</p>
+  ]]>
+  </changelog>
+  <mandatory>false</mandatory>
+</item>

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="AddSongsButton.Label" xml:space="preserve"><value>Lägg till låtar</value></data>
+  <data name="FromMyComputerMenuItem.Text" xml:space="preserve"><value>Från min dator</value></data>
+  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>Från YouTube</value></data>
+  <data name="NewButton.Label" xml:space="preserve"><value>Ny spellista</value></data>
+  <data name="DeleteButton.Label" xml:space="preserve"><value>Ta bort</value></data>
+  <data name="ShuffleButton.Label" xml:space="preserve"><value>Blanda</value></data>
+  <data name="SortByBPMButton.Label" xml:space="preserve"><value>Sortera</value></data>
+  <data name="SortByBPMMenuItem.Text" xml:space="preserve"><value>Sortera efter BPM</value></data>
+  <data name="SortByNameMenuItem.Text" xml:space="preserve"><value>Sortera efter namn</value></data>
+  <data name="PreviousButton.Label" xml:space="preserve"><value>Föregående</value></data>
+  <data name="PlayButton.Label" xml:space="preserve"><value>Spela</value></data>
+  <data name="PauseButton.Label" xml:space="preserve"><value>Pausa</value></data>
+  <data name="StopButton.Label" xml:space="preserve"><value>Stoppa</value></data>
+  <data name="NextButton.Label" xml:space="preserve"><value>Nästa</value></data>
+  <data name="SettingsButton.Label" xml:space="preserve"><value>Inställningar</value></data>
+  <data name="SearchLabel.Text" xml:space="preserve"><value>Sök</value></data>
+  <data name="EqualizerDlg.Title" xml:space="preserve"><value>Equalizer</value></data>
+  <data name="EqualizerDlg.PrimaryButtonText" xml:space="preserve"><value>Tillämpa</value></data>
+  <data name="EqualizerDlg.SecondaryButtonText" xml:space="preserve"><value>Ignorera</value></data>
+  <data name="EqualizerHint.Text" xml:space="preserve"><value>Justera EQ-inställningar och testa uppspelning i appen.</value></data>
+  <data name="BassLabel2.Text" xml:space="preserve"><value>Bas (64 Hz)</value></data>
+  <data name="LowMidLabel2.Text" xml:space="preserve"><value>Lågt mellantone (250 Hz)</value></data>
+  <data name="MidLabel2.Text" xml:space="preserve"><value>Mellantoner (1 kHz)</value></data>
+  <data name="HighMidLabel2.Text" xml:space="preserve"><value>Högt mellantone (4 kHz)</value></data>
+  <data name="TrebleLabel2.Text" xml:space="preserve"><value>Diskant (12 kHz)</value></data>
+  <data name="NewPlaylistDlg.Title" xml:space="preserve"><value>Ny spellista</value></data>
+  <data name="NewPlaylistDlg.PrimaryButtonText" xml:space="preserve"><value>Skapa</value></data>
+  <data name="NewPlaylistDlg.CloseButtonText" xml:space="preserve"><value>Avbryt</value></data>
+  <data name="PlaylistNameLabel.Text" xml:space="preserve"><value>Spellistans namn</value></data>
+  <data name="MusicFilesDirLabel.Text" xml:space="preserve"><value>Musikfilskatalog (valfritt)</value></data>
+  <data name="BrowseButton.Content" xml:space="preserve"><value>Bläddra</value></data>
+  <data name="SettingsDlg.Title" xml:space="preserve"><value>Inställningar</value></data>
+  <data name="SettingsDlg.PrimaryButtonText" xml:space="preserve"><value>OK</value></data>
+  <data name="SettingsDlg.CloseButtonText" xml:space="preserve"><value>Avbryt</value></data>
+  <data name="ModDirLabel.Text" xml:space="preserve"><value>Mod-katalog i Penumbra</value></data>
+  <data name="BrowseModDirButton.Content" xml:space="preserve"><value>Bläddra</value></data>
+  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Bas-SCD-nyckel (t.ex. sound/bpmloop.scd)</value></data>
+  <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Bläddra</value></data>
+  <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Bakgrundsbild</value></data>
+  <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Bläddra</value></data>
+  <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalisera volym</value></data>
+  <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Ladda om mod automatiskt</value></data>
+  <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organisera bibliotek</value></data>
+  <data name="YouTubeDlg.Title" xml:space="preserve"><value>Lägg till låtar från YouTube</value></data>
+  <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Ladda ner</value></data>
+  <data name="YouTubeDlg.CloseButtonText" xml:space="preserve"><value>Stäng</value></data>
+  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>YouTube-URL:</value></data>
+  <data name="ModeLabel.Text" xml:space="preserve"><value>Läge:</value></data>
+  <data name="SingleTrackItem.Content" xml:space="preserve"><value>Enstaka spår</value></data>
+  <data name="PlaylistItem.Content" xml:space="preserve"><value>Spellista</value></data>
+  <data name="Btn_Yes" xml:space="preserve"><value>Ja</value></data>
+  <data name="Btn_No" xml:space="preserve"><value>Nej</value></data>
+  <data name="Btn_Install" xml:space="preserve"><value>Installera</value></data>
+  <data name="Btn_Later" xml:space="preserve"><value>Senare</value></data>
+  <data name="Dlg_Error" xml:space="preserve"><value>Fel</value></data>
+  <data name="Dlg_NoPlaylist_Title" xml:space="preserve"><value>Ingen spellista</value></data>
+  <data name="Dlg_NoPlaylist_Content" xml:space="preserve"><value>Välj en spellista eller låt först.</value></data>
+  <data name="Dlg_ErrorAddingSongs" xml:space="preserve"><value>Fel vid tillägg av låtar: {0}</value></data>
+  <data name="Dlg_BPMDetection_Title" xml:space="preserve"><value>BPM-detektering</value></data>
+  <data name="Dlg_BPMDetection_Content" xml:space="preserve"><value>BPM- och längddetektering kan ta lite tid beroende på antal spår. Värden cachas för snabbare åtkomst i framtida sessioner.</value></data>
+  <data name="Dlg_ConfirmDelete_Title" xml:space="preserve"><value>Bekräfta borttagning</value></data>
+  <data name="Dlg_ConfirmDelete_Content" xml:space="preserve"><value>Är du säker på att du vill ta bort de valda spellistorna/låtarna? Detta kan inte ångras.</value></data>
+  <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Fel vid borttagning: {0}</value></data>
+  <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Uppdatering tillgänglig</value></data>
+  <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>Version {0} är tillgänglig. Installera nu?</value></data>
+  <data name="Dlg_ExtractAudio_Title" xml:space="preserve"><value>Extrahera ljud</value></data>
+  <data name="Dlg_ExtractAudio_NoSongs" xml:space="preserve"><value>Inga låtar hittades för extrahering.</value></data>
+  <data name="Summary_ExtractAudio" xml:space="preserve"><value>Ljudextrahering slutförd</value></data>
+  <data name="Dlg_NormalizeAudio_Title" xml:space="preserve"><value>Normalisera ljud</value></data>
+  <data name="Dlg_NoSongs" xml:space="preserve"><value>Inga låtar hittades.</value></data>
+  <data name="Dlg_NormalizeConfirm" xml:space="preserve"><value>Normalisera och packa om {0} låt(ar)? Detta skriver över befintliga SCD-filer.</value></data>
+  <data name="Summary_NormalizeAudio" xml:space="preserve"><value>Ljudnormalisering slutförd</value></data>
+  <data name="Dlg_IncreaseVolume_Title" xml:space="preserve"><value>Öka volym</value></data>
+  <data name="Summary_IncreaseVolume" xml:space="preserve"><value>Volymökning slutförd</value></data>
+  <data name="Dlg_Equalizer_Title" xml:space="preserve"><value>Equalizer</value></data>
+  <data name="Dlg_ApplyEQ_Title" xml:space="preserve"><value>Tillämpa EQ-inställningar</value></data>
+  <data name="Dlg_ApplyEQConfirm" xml:space="preserve"><value>Tillämpa EQ på {0} låt(ar)? Detta skriver över befintliga SCD-filer.</value></data>
+  <data name="Summary_ApplyEQ" xml:space="preserve"><value>EQ-inställningar tillämpade</value></data>
+  <data name="Prog_ApplyingEQ" xml:space="preserve"><value>Tillämpar EQ ({0}/{1})</value></data>
+  <data name="Prog_ImportingSongs" xml:space="preserve"><value>Importerar låtar...</value></data>
+  <data name="Prog_ComputingDurations" xml:space="preserve"><value>Beräknar låtlängder och BPM...</value></data>
+  <data name="Dlg_FileNotFound_Title" xml:space="preserve"><value>Filen hittades inte</value></data>
+  <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>Låtfil hittades inte: {0}</value></data>
+  <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>Fel vid filsläppning: {0}</value></data>
+  <data name="Dlg_ErrorDragDrop" xml:space="preserve"><value>Fel vid dra och släpp: {0}</value></data>
+  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Ange en YouTube-URL.</value></data>
+  <data name="Prog_PreparingDownload" xml:space="preserve"><value>Förbereder nedladdning...</value></data>
+  <data name="Prog_PostProcessingAudio" xml:space="preserve"><value>Efterbearbetar ljud...</value></data>
+  <data name="Prog_PostProcessingFile" xml:space="preserve"><value>Efterbearbetar {0}</value></data>
+  <data name="Prog_Done" xml:space="preserve"><value>Klart</value></data>
+  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>YouTube-nedladdning misslyckades: {0}</value></data>
+  <data name="Dlg_YTAddFailed" xml:space="preserve"><value>Det gick inte att lägga till nedladdade filer: {0}</value></data>
+  <data name="YT_DefaultPlaylist" xml:space="preserve"><value>YouTube-spellista</value></data>
+  <data name="Menu_ExtractAudio" xml:space="preserve"><value>Extrahera ljud</value></data>
+  <data name="Menu_NormalizeAudio" xml:space="preserve"><value>Normalisera ljud</value></data>
+  <data name="Menu_IncreaseVolume" xml:space="preserve"><value>Öka volym</value></data>
+  <data name="Menu_ManageEQ" xml:space="preserve"><value>Hantera EQ-inställningar</value></data>
+  <data name="Dlg_ErrorLoadingSong" xml:space="preserve"><value>Fel vid inläsning av låt {0} i spellistan {1}: {2}</value></data>
+  <data name="Dlg_ErrorLoadingPlaylists" xml:space="preserve"><value>Fel vid inläsning av spellistor: {0}</value></data>
+  <data name="Dlg_Processed" xml:space="preserve"><value>{0}/{1} låt(ar) bearbetade.</value></data>
+  <data name="Dlg_ProcessedErrors" xml:space="preserve"><value>\n\nFel:\n{0}</value></data>
+  <data name="Dlg_AndMore" xml:space="preserve"><value>...och {0} till.</value></data>
+  <data name="Prog_ExtractingAudio" xml:space="preserve"><value>Extraherar ljud...</value></data>
+  <data name="Prog_NormalizingAudio" xml:space="preserve"><value>Normaliserar ljud...</value></data>
+  <data name="Prog_IncreasingVolume" xml:space="preserve"><value>Ökar volym...</value></data>
+  <data name="Prog_ApplyingEQSettings" xml:space="preserve"><value>Tillämpar EQ-inställningar...</value></data>
+</root>

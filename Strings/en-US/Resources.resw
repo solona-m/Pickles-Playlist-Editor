@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="AddSongsButton.Label" xml:space="preserve"><value>Add Songs</value></data>
+  <data name="FromMyComputerMenuItem.Text" xml:space="preserve"><value>From My Computer</value></data>
+  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>From YouTube</value></data>
+  <data name="NewButton.Label" xml:space="preserve"><value>New Playlist</value></data>
+  <data name="DeleteButton.Label" xml:space="preserve"><value>Delete</value></data>
+  <data name="ShuffleButton.Label" xml:space="preserve"><value>Shuffle</value></data>
+  <data name="SortByBPMButton.Label" xml:space="preserve"><value>Sort</value></data>
+  <data name="SortByBPMMenuItem.Text" xml:space="preserve"><value>Sort by BPM</value></data>
+  <data name="SortByNameMenuItem.Text" xml:space="preserve"><value>Sort by Name</value></data>
+  <data name="PreviousButton.Label" xml:space="preserve"><value>Previous</value></data>
+  <data name="PlayButton.Label" xml:space="preserve"><value>Play</value></data>
+  <data name="PauseButton.Label" xml:space="preserve"><value>Pause</value></data>
+  <data name="StopButton.Label" xml:space="preserve"><value>Stop</value></data>
+  <data name="NextButton.Label" xml:space="preserve"><value>Next</value></data>
+  <data name="SettingsButton.Label" xml:space="preserve"><value>Settings</value></data>
+  <data name="SearchLabel.Text" xml:space="preserve"><value>Search</value></data>
+  <data name="EqualizerDlg.Title" xml:space="preserve"><value>Equalizer</value></data>
+  <data name="EqualizerDlg.PrimaryButtonText" xml:space="preserve"><value>Apply</value></data>
+  <data name="EqualizerDlg.SecondaryButtonText" xml:space="preserve"><value>Discard</value></data>
+  <data name="EqualizerHint.Text" xml:space="preserve"><value>Adjust EQ settings, then test playback in the app.</value></data>
+  <data name="BassLabel2.Text" xml:space="preserve"><value>Bass (64 Hz)</value></data>
+  <data name="LowMidLabel2.Text" xml:space="preserve"><value>Low Mid (250 Hz)</value></data>
+  <data name="MidLabel2.Text" xml:space="preserve"><value>Mid (1 kHz)</value></data>
+  <data name="HighMidLabel2.Text" xml:space="preserve"><value>High Mid (4 kHz)</value></data>
+  <data name="TrebleLabel2.Text" xml:space="preserve"><value>Treble (12 kHz)</value></data>
+  <data name="NewPlaylistDlg.Title" xml:space="preserve"><value>New Playlist</value></data>
+  <data name="NewPlaylistDlg.PrimaryButtonText" xml:space="preserve"><value>Create</value></data>
+  <data name="NewPlaylistDlg.CloseButtonText" xml:space="preserve"><value>Cancel</value></data>
+  <data name="PlaylistNameLabel.Text" xml:space="preserve"><value>Playlist Name</value></data>
+  <data name="MusicFilesDirLabel.Text" xml:space="preserve"><value>Music Files Directory (optional)</value></data>
+  <data name="BrowseButton.Content" xml:space="preserve"><value>Browse</value></data>
+  <data name="SettingsDlg.Title" xml:space="preserve"><value>Settings</value></data>
+  <data name="SettingsDlg.PrimaryButtonText" xml:space="preserve"><value>OK</value></data>
+  <data name="SettingsDlg.CloseButtonText" xml:space="preserve"><value>Cancel</value></data>
+  <data name="ModDirLabel.Text" xml:space="preserve"><value>Mod Directory in Penumbra</value></data>
+  <data name="BrowseModDirButton.Content" xml:space="preserve"><value>Browse</value></data>
+  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Baseline SCD key (e.g. sound/bpmloop.scd)</value></data>
+  <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Browse</value></data>
+  <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Background Image</value></data>
+  <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Browse</value></data>
+  <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalize Volume</value></data>
+  <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Auto Reload Mod</value></data>
+  <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organize Library</value></data>
+  <data name="YouTubeDlg.Title" xml:space="preserve"><value>Add Songs From YouTube</value></data>
+  <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Download</value></data>
+  <data name="YouTubeDlg.CloseButtonText" xml:space="preserve"><value>Close</value></data>
+  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>YouTube URL:</value></data>
+  <data name="ModeLabel.Text" xml:space="preserve"><value>Mode:</value></data>
+  <data name="SingleTrackItem.Content" xml:space="preserve"><value>Single Track</value></data>
+  <data name="PlaylistItem.Content" xml:space="preserve"><value>Playlist</value></data>
+  <data name="Btn_Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="Btn_No" xml:space="preserve"><value>No</value></data>
+  <data name="Btn_Install" xml:space="preserve"><value>Install</value></data>
+  <data name="Btn_Later" xml:space="preserve"><value>Later</value></data>
+  <data name="Dlg_Error" xml:space="preserve"><value>Error</value></data>
+  <data name="Dlg_NoPlaylist_Title" xml:space="preserve"><value>No Playlist</value></data>
+  <data name="Dlg_NoPlaylist_Content" xml:space="preserve"><value>Please select a playlist or song first.</value></data>
+  <data name="Dlg_ErrorAddingSongs" xml:space="preserve"><value>Error adding songs: {0}</value></data>
+  <data name="Dlg_BPMDetection_Title" xml:space="preserve"><value>BPM Detection</value></data>
+  <data name="Dlg_BPMDetection_Content" xml:space="preserve"><value>BPM and length detection may take some time depending on the number of tracks. Values are cached for faster access in future sessions.</value></data>
+  <data name="Dlg_ConfirmDelete_Title" xml:space="preserve"><value>Confirm Deletion</value></data>
+  <data name="Dlg_ConfirmDelete_Content" xml:space="preserve"><value>Are you sure you want to delete the selected playlists/songs? This cannot be undone.</value></data>
+  <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Error during deletion: {0}</value></data>
+  <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Update Available</value></data>
+  <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>Version {0} is available. Install now?</value></data>
+  <data name="Dlg_ExtractAudio_Title" xml:space="preserve"><value>Extract Audio</value></data>
+  <data name="Dlg_ExtractAudio_NoSongs" xml:space="preserve"><value>No songs were found for extraction.</value></data>
+  <data name="Summary_ExtractAudio" xml:space="preserve"><value>Audio extraction finished</value></data>
+  <data name="Dlg_NormalizeAudio_Title" xml:space="preserve"><value>Normalize Audio</value></data>
+  <data name="Dlg_NoSongs" xml:space="preserve"><value>No songs were found.</value></data>
+  <data name="Dlg_NormalizeConfirm" xml:space="preserve"><value>Normalize and repack {0} song(s)? This will overwrite existing SCD files.</value></data>
+  <data name="Summary_NormalizeAudio" xml:space="preserve"><value>Audio normalization finished</value></data>
+  <data name="Dlg_IncreaseVolume_Title" xml:space="preserve"><value>Increase Volume</value></data>
+  <data name="Summary_IncreaseVolume" xml:space="preserve"><value>Increase volume finished</value></data>
+  <data name="Dlg_Equalizer_Title" xml:space="preserve"><value>Equalizer</value></data>
+  <data name="Dlg_ApplyEQ_Title" xml:space="preserve"><value>Apply EQ Settings</value></data>
+  <data name="Dlg_ApplyEQConfirm" xml:space="preserve"><value>Apply EQ to {0} song(s)? This will overwrite existing SCD files.</value></data>
+  <data name="Summary_ApplyEQ" xml:space="preserve"><value>Apply EQ settings finished</value></data>
+  <data name="Prog_ApplyingEQ" xml:space="preserve"><value>Applying EQ ({0}/{1})</value></data>
+  <data name="Prog_ImportingSongs" xml:space="preserve"><value>Importing songs...</value></data>
+  <data name="Prog_ComputingDurations" xml:space="preserve"><value>Computing song durations and BPM...</value></data>
+  <data name="Dlg_FileNotFound_Title" xml:space="preserve"><value>File Not Found</value></data>
+  <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>Song file not found: {0}</value></data>
+  <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>Error during file drop: {0}</value></data>
+  <data name="Dlg_ErrorDragDrop" xml:space="preserve"><value>Error during drag and drop: {0}</value></data>
+  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Please enter a YouTube URL.</value></data>
+  <data name="Prog_PreparingDownload" xml:space="preserve"><value>Preparing download...</value></data>
+  <data name="Prog_PostProcessingAudio" xml:space="preserve"><value>Post-processing audio...</value></data>
+  <data name="Prog_PostProcessingFile" xml:space="preserve"><value>Post-processing {0}</value></data>
+  <data name="Prog_Done" xml:space="preserve"><value>Done</value></data>
+  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>YouTube download failed: {0}</value></data>
+  <data name="Dlg_YTAddFailed" xml:space="preserve"><value>Failed to add downloaded files: {0}</value></data>
+  <data name="YT_DefaultPlaylist" xml:space="preserve"><value>YouTube Playlist</value></data>
+  <data name="Menu_ExtractAudio" xml:space="preserve"><value>Extract Audio</value></data>
+  <data name="Menu_NormalizeAudio" xml:space="preserve"><value>Normalize Audio</value></data>
+  <data name="Menu_IncreaseVolume" xml:space="preserve"><value>Increase Volume</value></data>
+  <data name="Menu_ManageEQ" xml:space="preserve"><value>Manage EQ Settings</value></data>
+  <data name="Dlg_ErrorLoadingSong" xml:space="preserve"><value>Error loading song {0} in playlist {1}: {2}</value></data>
+  <data name="Dlg_ErrorLoadingPlaylists" xml:space="preserve"><value>Error loading playlists: {0}</value></data>
+  <data name="Dlg_Processed" xml:space="preserve"><value>Processed {0}/{1} song(s).</value></data>
+  <data name="Dlg_ProcessedErrors" xml:space="preserve"><value>\n\nErrors:\n{0}</value></data>
+  <data name="Dlg_AndMore" xml:space="preserve"><value>...and {0} more.</value></data>
+  <data name="Prog_ExtractingAudio" xml:space="preserve"><value>Extracting audio...</value></data>
+  <data name="Prog_NormalizingAudio" xml:space="preserve"><value>Normalizing audio...</value></data>
+  <data name="Prog_IncreasingVolume" xml:space="preserve"><value>Increasing volume...</value></data>
+  <data name="Prog_ApplyingEQSettings" xml:space="preserve"><value>Applying EQ settings...</value></data>
+</root>

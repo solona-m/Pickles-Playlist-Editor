@@ -1,0 +1,42 @@
+using Dalamud.Bindings.ImGui;
+using System;
+using System.IO;
+
+namespace VfxEditor.Parsing {
+    public class ParsedFlag<T> : ParsedSimpleBase<T> where T : Enum {
+        private readonly int Size;
+        private readonly bool ShowIntField;
+
+        public int IntValue => ( int )( object )Value;
+
+        public ParsedFlag( string name, T value, int size = 4 ) : base( name, value ) {
+            Size = size;
+        }
+
+        public ParsedFlag( string name, int size = 4, bool showIntField = false ) : base( name ) {
+            Size = size;
+            ShowIntField = showIntField;
+        }
+
+        public override void Read( BinaryReader reader ) => Read( reader, 0 );
+
+        public override void Read( BinaryReader reader, int size ) {
+            var intValue = Size switch {
+                4 => reader.ReadInt32(),
+                2 => reader.ReadInt16(),
+                1 => reader.ReadByte(),
+                _ => reader.ReadByte()
+            };
+            Value = ( T )( object )intValue;
+        }
+
+        public override void Write( BinaryWriter writer ) {
+            var intValue = Value == null ? -1 : IntValue;
+            if( Size == 4 ) writer.Write( intValue );
+            else if( Size == 2 ) writer.Write( ( short )intValue );
+            else writer.Write( ( byte )intValue );
+        }
+
+        public bool HasFlag( T option ) => Value.HasFlag( option );
+    }
+}
