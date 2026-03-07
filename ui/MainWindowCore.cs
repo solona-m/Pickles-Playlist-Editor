@@ -403,7 +403,7 @@ namespace Pickles_Playlist_Editor
         {
             try
             {
-                var mgr = new UpdateManager(new GithubSource("https://github.com/solona-m/Pickles-Playlist-Editor-Release", null, false));
+                var mgr = new UpdateManager(new GithubSource("https://github.com/solona-m/Pickles-Playlist-Editor", null, false));
                 var update = await mgr.CheckForUpdatesAsync();
                 if (update == null) return;
 
