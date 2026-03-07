@@ -132,7 +132,7 @@ namespace Pickles_Playlist_Editor
             {
                 try
                 {
-                    var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("NormalizeVolume", 1);
+                    var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("NormalizeVolume", 0);
                     if (value is int iv) return iv != 0;
                     if (value is long lv) return lv != 0;
                     if (value is string sv && bool.TryParse(sv, out var bv)) return bv;
