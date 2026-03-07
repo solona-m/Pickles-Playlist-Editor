@@ -163,9 +163,9 @@ namespace VfxEditor.ScdFormat.Music.Data {
 
         // =======================
 
-        public static ScdAudioEntry ImportOgg( string path, ScdAudioEntry oldEntry, bool normalize = true) 
+        public static ScdAudioEntry ImportOgg( string path, ScdAudioEntry oldEntry) 
         {
-            if (Settings.NormalizeVolume && normalize)
+            if (Settings.NormalizeVolume)
             {
                 FFMpeg.NormalizeVolume(path);
             }

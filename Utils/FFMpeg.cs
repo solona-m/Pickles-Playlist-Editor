@@ -19,7 +19,7 @@ namespace Pickles_Playlist_Editor.Utils
         public static void NormalizeVolume(string oggName)
         {
             string tmp = Path.Combine(Path.GetDirectoryName(oggName), "tmp_" + Path.GetFileName(oggName));
-            Run($"-i \"{oggName}\" -af loudnorm=I=-14:LRA=7:TP=-1 -acodec libvorbis -q:a 7 \"{tmp}\"");
+            Run($"-i \"{oggName}\" -af loudnorm=I=-14:LRA=11:TP=-1 -acodec libvorbis -q:a 7 \"{tmp}\"");
             File.Move(tmp, oggName, true);
         }
 
