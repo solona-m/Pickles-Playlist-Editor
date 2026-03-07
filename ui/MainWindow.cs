@@ -204,7 +204,7 @@ namespace Pickles_Playlist_Editor
                 if (targetPlaylist == null)
                 {
                     var name = ResolveTargetPlaylistForSingle();
-                    if (!Playlists.TryGetValue(name, out targetPlaylist))
+                    if (name == null || !Playlists.TryGetValue(name, out targetPlaylist))
                     {
                         await ShowDialogAsync(AppStrings.Dlg_NoPlaylist_Title, AppStrings.Dlg_NoPlaylist_Content);
                         return;

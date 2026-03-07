@@ -396,7 +396,7 @@ namespace Pickles_Playlist_Editor
                 if (_selectedNode.Level == 1) return _selectedNode.Name;
                 if (_selectedNode.Level == 2 && _selectedNode.Parent != null) return _selectedNode.Parent.Name;
             }
-            return "YouTube Singles";
+            return null;
         }
 
         private async Task CheckForUpdatesAsync()
