@@ -142,7 +142,7 @@ namespace Pickles_Playlist_Editor
                 {
                     // fallthrough to default
                 }
-                return true;
+                return false;
             }
             set
             {
