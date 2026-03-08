@@ -22,6 +22,10 @@ namespace Pickles_Playlist_Editor
             normalize.Click += NormalizeAudioMenuItem_Click;
             var increase = new MenuFlyoutItem { Text = AppStrings.Menu_IncreaseVolume };
             increase.Click += IncreaseVolumeMenuItem_Click;
+            var rename = new MenuFlyoutItem { Text = AppStrings.Menu_Rename };
+            rename.Click += RenameMenuItem_Click;
+            flyout.Items.Add(rename);
+            flyout.Items.Add(new MenuFlyoutSeparator());
             flyout.Items.Add(extract);
             flyout.Items.Add(normalize);
             flyout.Items.Add(increase);
@@ -30,6 +34,15 @@ namespace Pickles_Playlist_Editor
             eq.Click += ApplyEqSettingsMenuItem_Click;
             flyout.Items.Add(eq);
             return flyout;
+        }
+
+        private async void RenameMenuItem_Click(object sender, object e)
+        {
+            var node = _contextMenuNode;
+            if (node == null || (node.Level != 1 && node.Level != 2))
+                return;
+
+            await RenameNodeAsync(node);
         }
 
         private async void ExtractAudioMenuItem_Click(object sender, object e)
