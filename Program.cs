@@ -19,7 +19,7 @@ namespace Pickles_Playlist_Editor
 
             try
             {
-                VelopackApp.Build().Run();
+                TryRunVelopack();
 
                 global::WinRT.ComWrappersSupport.InitializeComWrappers();
                 global::Microsoft.UI.Xaml.Application.Start((p) =>
@@ -41,7 +41,20 @@ namespace Pickles_Playlist_Editor
             catch (Exception ex)
             {
                 LogCrash("Main: " + ex);
-                throw;
+                global::System.Environment.Exit(1);
+            }
+        }
+
+        static void TryRunVelopack()
+        {
+            try
+            {
+                VelopackApp.Build().Run();
+            }
+            catch (Exception ex)
+            {
+                // Update checks should never prevent the app from launching.
+                LogCrash("Velopack: " + ex);
             }
         }
 
