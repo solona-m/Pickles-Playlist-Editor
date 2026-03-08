@@ -322,6 +322,74 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+
+        public static bool IsValidName(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return false;
+            return name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
+        }
+
+        public bool Rename(string newName)
+        {
+            lock (_lock)
+            {
+                if (string.IsNullOrWhiteSpace(newName))
+                    return false;
+
+                newName = newName.Trim();
+                if (!IsValidName(newName))
+                    throw new ArgumentException("Playlist name cannot contain any invalid filename characters.");
+
+                string oldName = Name;
+                if (string.Equals(oldName, newName, StringComparison.Ordinal))
+                    return false;
+
+                if (GetJsonFiles(newName).Length > 0)
+                    throw new InvalidOperationException($"A playlist named '{newName}' already exists.");
+
+                string modDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
+                string? oldJsonPath = GetJsonFiles(oldName).FirstOrDefault();
+                if (string.IsNullOrEmpty(oldJsonPath) || !File.Exists(oldJsonPath))
+                    throw new FileNotFoundException("Playlist JSON file not found.", oldJsonPath);
+
+                string oldFolder = Path.Combine(modDirectory, oldName);
+                string newFolder = Path.Combine(modDirectory, newName);
+
+                if (Directory.Exists(oldFolder) && !string.Equals(oldFolder, newFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (Directory.Exists(newFolder))
+                        throw new InvalidOperationException($"A playlist folder named '{newName}' already exists.");
+                    Directory.Move(oldFolder, newFolder);
+                }
+
+                string newJsonPath = Path.Combine(modDirectory, Path.GetFileName(oldJsonPath).Replace(oldName.Replace("/", "_"), newName.Replace("/", "_")));
+                if (!string.Equals(oldJsonPath, newJsonPath, StringComparison.OrdinalIgnoreCase))
+                    File.Move(oldJsonPath, newJsonPath);
+
+                Name = newName;
+
+                if (Options != null)
+                {
+                    foreach (var song in Options)
+                    {
+                        if (song?.Files == null) continue;
+                        var keys = song.Files.Keys.ToList();
+                        foreach (var key in keys)
+                        {
+                            var rel = song.Files[key];
+                            if (string.IsNullOrWhiteSpace(rel)) continue;
+                            var updated = rel.Replace(oldName.Replace("/", "_") + Path.DirectorySeparatorChar, newName.Replace("/", "_") + Path.DirectorySeparatorChar)
+                                             .Replace(oldName.Replace("/", "_") + '/', newName.Replace("/", "_") + '/');
+                            song.Files[key] = updated;
+                        }
+                    }
+                }
+
+                Save();
+                return true;
+            }
+        }
+
         public void Save()
         {
             lock (_lock)

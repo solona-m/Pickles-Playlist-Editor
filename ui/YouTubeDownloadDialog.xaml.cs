@@ -4,6 +4,7 @@ using Pickles_Playlist_Editor.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Pickles_Playlist_Editor
@@ -13,15 +14,47 @@ namespace Pickles_Playlist_Editor
         public List<string> DownloadedFiles { get; set; } = new();
         public bool IsPlaylist { get; init; }
         public string Title { get; init; } = string.Empty;
+        public string? TargetPlaylistName { get; init; }
     }
 
     public sealed partial class YouTubeDownloadDialog : ContentDialog
     {
         public YouTubeDownloadResult? DownloadResult { get; private set; }
 
-        public YouTubeDownloadDialog()
+        public YouTubeDownloadDialog() : this(null)
+        {
+        }
+
+        public YouTubeDownloadDialog(string? preferredPlaylistName)
         {
             this.InitializeComponent();
+            LoadTargetPlaylists(preferredPlaylistName);
+            UpdateTargetPlaylistState();
+        }
+
+        private void LoadTargetPlaylists(string? preferredPlaylistName)
+        {
+            var playlistNames = Playlist.GetAll().Keys.OrderBy(x => x).ToList();
+            TargetPlaylistComboBox.ItemsSource = playlistNames;
+
+            if (!string.IsNullOrWhiteSpace(preferredPlaylistName) && playlistNames.Contains(preferredPlaylistName))
+                TargetPlaylistComboBox.SelectedItem = preferredPlaylistName;
+            else if (playlistNames.Count > 0)
+                TargetPlaylistComboBox.SelectedIndex = 0;
+        }
+
+        private void ModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdateTargetPlaylistState();
+        }
+
+        private void UpdateTargetPlaylistState()
+        {
+            if (TargetPlaylistComboBox == null || ModeComboBox == null)
+                return;
+
+            // Playlist mode always creates a brand-new playlist, so selecting a target is disabled.
+            TargetPlaylistComboBox.IsEnabled = ModeComboBox.SelectedIndex != 1;
         }
 
         private async void DownloadButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
@@ -65,6 +98,7 @@ namespace Pickles_Playlist_Editor
                     DownloadedFiles = dlResult.DownloadedFiles,
                     IsPlaylist = dlResult.IsPlaylist,
                     Title = dlResult.Title ?? string.Empty,
+                    TargetPlaylistName = mode == YtDownloadMode.Single ? TargetPlaylistComboBox.SelectedItem as string : null,
                 };
 
                 ProgressBar1.Value = 60;

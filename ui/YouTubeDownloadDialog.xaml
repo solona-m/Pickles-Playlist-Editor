@@ -15,10 +15,13 @@
         <TextBox x:Name="UrlTextBox"/>
 
         <TextBlock x:Uid="ModeLabel" Text="Mode:"/>
-        <ComboBox x:Name="ModeComboBox" SelectedIndex="0" HorizontalAlignment="Stretch">
+        <ComboBox x:Name="ModeComboBox" SelectedIndex="0" HorizontalAlignment="Stretch" SelectionChanged="ModeComboBox_SelectionChanged">
             <ComboBoxItem x:Uid="SingleTrackItem" Content="Single Track"/>
             <ComboBoxItem x:Uid="PlaylistItem" Content="Playlist"/>
         </ComboBox>
+
+        <TextBlock x:Uid="TargetPlaylistLabel" Text="Target Playlist:"/>
+        <ComboBox x:Name="TargetPlaylistComboBox" HorizontalAlignment="Stretch"/>
 
         <ProgressBar x:Name="ProgressBar1" Minimum="0" Maximum="100" Value="0" Height="16" Margin="0,8,0,0"/>
         <TextBlock x:Name="StatusLabel" Text="" TextWrapping="Wrap"/>
