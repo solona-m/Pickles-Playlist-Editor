@@ -44,6 +44,7 @@ namespace Pickles_Playlist_Editor
         public static string Menu_ExtractAudio => _r.GetString("Menu_ExtractAudio");
         public static string Menu_NormalizeAudio => _r.GetString("Menu_NormalizeAudio");
         public static string Menu_IncreaseVolume => _r.GetString("Menu_IncreaseVolume");
+        public static string Menu_Rename => _r.GetString("Menu_Rename");
         public static string Menu_ManageEQ => _r.GetString("Menu_ManageEQ");
 
         public static string ErrorAddingSongs(string msg) => string.Format(_r.GetString("Dlg_ErrorAddingSongs"), msg);

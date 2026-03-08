@@ -11,7 +11,7 @@ namespace Pickles_Playlist_Editor
     {
         private async void YtDownloadButton_Click(object sender, RoutedEventArgs e)
         {
-            var dlg = new YouTubeDownloadDialog { XamlRoot = this.Content.XamlRoot };
+            var dlg = new YouTubeDownloadDialog(ResolveTargetPlaylistForSingle()) { XamlRoot = this.Content.XamlRoot };
             await dlg.ShowAsync();
 
             var result = dlg.DownloadResult;
@@ -30,7 +30,10 @@ namespace Pickles_Playlist_Editor
                 }
                 else
                 {
-                    string targetPlaylist = ResolveTargetPlaylistForSingle();
+                    string targetPlaylist = result.TargetPlaylistName ?? ResolveTargetPlaylistForSingle();
+                    if (string.IsNullOrWhiteSpace(targetPlaylist))
+                        targetPlaylist = AppStrings.YT_DefaultPlaylist;
+
                     var playlists = Playlist.GetAll();
                     if (!playlists.ContainsKey(targetPlaylist))
                     {
