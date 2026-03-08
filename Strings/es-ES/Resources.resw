@@ -108,6 +108,6 @@
   <data name="Prog_NormalizingAudio" xml:space="preserve"><value>Normalizando audio...</value></data>
   <data name="Prog_IncreasingVolume" xml:space="preserve"><value>Aumentando el volumen...</value></data>
   <data name="Prog_ApplyingEQSettings" xml:space="preserve"><value>Aplicando configuración del ecualizador...</value></data>
-  <data name="Menu_Rename" xml:space="preserve"><value>Rename</value></data>
-  <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Target Playlist:</value></data>
+  <data name="Menu_Rename" xml:space="preserve"><value>Renombrar</value></data>
+  <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Lista de reproducción de destino:</value></data>
 </root>
