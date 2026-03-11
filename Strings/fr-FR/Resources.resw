@@ -17,6 +17,7 @@
   <data name="StopButton.Label" xml:space="preserve"><value>Arrêt</value></data>
   <data name="NextButton.Label" xml:space="preserve"><value>Suivant</value></data>
   <data name="SettingsButton.Label" xml:space="preserve"><value>Paramètres</value></data>
+  <data name="HelpButton.Label" xml:space="preserve"><value>Aide</value></data>
   <data name="SearchLabel.Text" xml:space="preserve"><value>Rechercher</value></data>
   <data name="EqualizerDlg.Title" xml:space="preserve"><value>Égaliseur</value></data>
   <data name="EqualizerDlg.PrimaryButtonText" xml:space="preserve"><value>Appliquer</value></data>
