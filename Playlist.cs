@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Pickles_Playlist_Editor.Utils;
 using System;
 using System.Collections.Generic;
@@ -27,8 +27,6 @@ namespace Pickles_Playlist_Editor
         public string Type { get { return "Single"; } }
         public int DefaultSettings { get { return 0; } }
         public List<Option> Options { get; set; } = new List<Option>();
-
-        private readonly Lock _lock = new();
 
 
         public static void Create(string playlistName, string dir, Action<int>? callback)
@@ -75,7 +73,7 @@ namespace Pickles_Playlist_Editor
             {
                 int count = 0, totalCount = 0;
                 foreach (string ext in Settings.SupportedFileTypes)
-                { 
+                {
                     string[] fileNames = Directory.GetFiles(dir, "*" + ext, SearchOption.AllDirectories);
                     totalCount += fileNames.Length;
                 }
@@ -83,7 +81,7 @@ namespace Pickles_Playlist_Editor
                 foreach (string ext in Settings.SupportedFileTypes)
                 {
                     string[] fileNames = Directory.GetFiles(dir, "*"+ext, SearchOption.AllDirectories);
-                    
+
                     foreach (string file in fileNames)
                     {
                         AddFiles(playlistName, mergedGroup, file);
@@ -139,71 +137,68 @@ namespace Pickles_Playlist_Editor
 
         public void Cleanup()
         {
-            lock (_lock)
+            Playlist playlist = this;
+            string cleanPlaylistName = playlist.Name.Replace("/", "_");
+            string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName);
+            Directory.CreateDirectory(outDir);
+            List<Option> optionsToRemove = new List<Option>();
+            foreach (Option song in playlist.Options)
             {
-                Playlist playlist = this;
-                string cleanPlaylistName = playlist.Name.Replace("/", "_");
-                string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName);
-                Directory.CreateDirectory(outDir);
-                List<Option> optionsToRemove = new List<Option>();
-                foreach (Option song in playlist.Options)
+                if (song.Name.Equals("Off", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (song.Name.Equals("Default", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (song.Files != null)
                 {
-                    if (song.Name.Equals("Off", StringComparison.OrdinalIgnoreCase))
-                        continue;
-                    if (song.Name.Equals("Default", StringComparison.OrdinalIgnoreCase))
-                        continue;
-
-                    if (song.Files != null)
+                    string oldPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, song.Files[song.Files.Keys.First()]);
+                    if (!File.Exists(oldPath))
                     {
-                        string oldPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, song.Files[song.Files.Keys.First()]);
-                        if (!File.Exists(oldPath))
-                        {
-                            optionsToRemove.Add(song);
-                            continue;
-                        }
-                        if (Path.GetExtension(oldPath) != ".scd")
-                        {
-                            continue;
-                        }
-
-                        // Sanitize the desired filename so it is valid on Windows
-                        var safeName = SanitizeFileName(song.Name);
-                        if (string.IsNullOrWhiteSpace(safeName))
-                            safeName = "audio";
-
-                        // Ensure extension is .scd
-                        string fileName = safeName.EndsWith(".scd", StringComparison.OrdinalIgnoreCase) ? safeName : safeName + ".scd";
-
-                        string newPath = Path.Combine(outDir, fileName);
-
-                        if (oldPath != newPath)
-                        {
-                            // If target file already exists, append a numeric suffix to avoid collision
-                            newPath = GetNonCollidingPath(newPath);
-
-                            File.Move(oldPath, newPath);
-                            BPMDetector.UpdateCacheForSCD(oldPath, newPath);
-                            song.Files[song.Files.Keys.First()] = Path.Combine(cleanPlaylistName, Path.GetFileName(newPath));
-                        }
+                        optionsToRemove.Add(song);
+                        continue;
+                    }
+                    if (Path.GetExtension(oldPath) != ".scd")
+                    {
+                        continue;
                     }
 
-                    // delete empty folders
-                    string playlistFolder = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName);
-                    foreach (string subDir in Directory.GetDirectories(playlistFolder))
+                    // Sanitize the desired filename so it is valid on Windows
+                    var safeName = SanitizeFileName(song.Name);
+                    if (string.IsNullOrWhiteSpace(safeName))
+                        safeName = "audio";
+
+                    // Ensure extension is .scd
+                    string fileName = safeName.EndsWith(".scd", StringComparison.OrdinalIgnoreCase) ? safeName : safeName + ".scd";
+
+                    string newPath = Path.Combine(outDir, fileName);
+
+                    if (oldPath != newPath)
                     {
-                        if (Directory.GetFiles(subDir).Length == 0 && Directory.GetDirectories(subDir).Length == 0)
-                        {
-                            Directory.Delete(subDir);
-                        }
+                        // If target file already exists, append a numeric suffix to avoid collision
+                        newPath = GetNonCollidingPath(newPath);
+
+                        File.Move(oldPath, newPath);
+                        BPMDetector.UpdateCacheForSCD(oldPath, newPath);
+                        song.Files[song.Files.Keys.First()] = Path.Combine(cleanPlaylistName, Path.GetFileName(newPath));
                     }
                 }
-                foreach (Option opt in optionsToRemove)
+
+                // delete empty folders
+                string playlistFolder = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName);
+                foreach (string subDir in Directory.GetDirectories(playlistFolder))
                 {
-                    playlist.Options.Remove(opt);
+                    if (Directory.GetFiles(subDir).Length == 0 && Directory.GetDirectories(subDir).Length == 0)
+                    {
+                        Directory.Delete(subDir);
+                    }
                 }
-                this.Save();
-                // Save() will refresh Penumbra; no need to call here.
             }
+            foreach (Option opt in optionsToRemove)
+            {
+                playlist.Options.Remove(opt);
+            }
+            this.Save();
+            // Save() will refresh Penumbra; no need to call here.
         }
 
         private static string GetNonCollidingPath(string path)
@@ -290,36 +285,30 @@ namespace Pickles_Playlist_Editor
 
         public void Add(string[] fileNames, Action<int>? callback = null)
         {
-            lock (_lock)
+            int count = 0;
+            foreach (string file in fileNames)
             {
-                int count = 0;
-                foreach (string file in fileNames)
-                {
-                    if (Settings.SupportedFileTypes.Contains(Path.GetExtension(file).ToLower()))
-                        AddFiles(Name, this, file);
-                    if (callback != null)
-                        callback((int)((float)(++count)/fileNames.Length*100));
-                }
-                Save();
+                if (Settings.SupportedFileTypes.Contains(Path.GetExtension(file).ToLower()))
+                    AddFiles(Name, this, file);
+                if (callback != null)
+                    callback((int)((float)(++count)/fileNames.Length*100));
             }
+            Save();
         }
 
         public void Insert(string[] fileNames, int index, Action<int>? callback = null)
         {
-            lock (_lock)
+            int count = 0;
+            foreach (string file in fileNames)
             {
-                int count = 0;
-                foreach (string file in fileNames)
-                {
-                    Option opt = AddFiles(Name, this, file);
-                    Options.RemoveAt(Options.Count - 1);
-                    Options.Insert(index, opt);
-                    index++;
-                    if (callback != null)
-                        callback((int)((float)(++count) / fileNames.Length * 100));
-                }
-                Save();
+                Option opt = AddFiles(Name, this, file);
+                Options.RemoveAt(Options.Count - 1);
+                Options.Insert(index, opt);
+                index++;
+                if (callback != null)
+                    callback((int)((float)(++count) / fileNames.Length * 100));
             }
+            Save();
         }
 
 
@@ -331,94 +320,85 @@ namespace Pickles_Playlist_Editor
 
         public bool Rename(string newName)
         {
-            lock (_lock)
+            if (string.IsNullOrWhiteSpace(newName))
+                return false;
+
+            newName = newName.Trim();
+            if (!IsValidName(newName))
+                throw new ArgumentException("Playlist name cannot contain any invalid filename characters.");
+
+            string oldName = Name;
+            if (string.Equals(oldName, newName, StringComparison.Ordinal))
+                return false;
+
+            if (GetJsonFiles(newName).Length > 0)
+                throw new InvalidOperationException($"A playlist named '{newName}' already exists.");
+
+            string modDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
+            string? oldJsonPath = GetJsonFiles(oldName).FirstOrDefault();
+            if (string.IsNullOrEmpty(oldJsonPath) || !File.Exists(oldJsonPath))
+                throw new FileNotFoundException("Playlist JSON file not found.", oldJsonPath);
+
+            string oldFolder = Path.Combine(modDirectory, oldName);
+            string newFolder = Path.Combine(modDirectory, newName);
+
+            if (Directory.Exists(oldFolder) && !string.Equals(oldFolder, newFolder, StringComparison.OrdinalIgnoreCase))
             {
-                if (string.IsNullOrWhiteSpace(newName))
-                    return false;
+                if (Directory.Exists(newFolder))
+                    throw new InvalidOperationException($"A playlist folder named '{newName}' already exists.");
+                Directory.Move(oldFolder, newFolder);
+            }
 
-                newName = newName.Trim();
-                if (!IsValidName(newName))
-                    throw new ArgumentException("Playlist name cannot contain any invalid filename characters.");
+            string newJsonPath = Path.Combine(modDirectory, Path.GetFileName(oldJsonPath).Replace(oldName.Replace("/", "_"), newName.Replace("/", "_")));
+            if (!string.Equals(oldJsonPath, newJsonPath, StringComparison.OrdinalIgnoreCase))
+                File.Move(oldJsonPath, newJsonPath);
 
-                string oldName = Name;
-                if (string.Equals(oldName, newName, StringComparison.Ordinal))
-                    return false;
+            Name = newName;
 
-                if (GetJsonFiles(newName).Length > 0)
-                    throw new InvalidOperationException($"A playlist named '{newName}' already exists.");
-
-                string modDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
-                string? oldJsonPath = GetJsonFiles(oldName).FirstOrDefault();
-                if (string.IsNullOrEmpty(oldJsonPath) || !File.Exists(oldJsonPath))
-                    throw new FileNotFoundException("Playlist JSON file not found.", oldJsonPath);
-
-                string oldFolder = Path.Combine(modDirectory, oldName);
-                string newFolder = Path.Combine(modDirectory, newName);
-
-                if (Directory.Exists(oldFolder) && !string.Equals(oldFolder, newFolder, StringComparison.OrdinalIgnoreCase))
+            if (Options != null)
+            {
+                foreach (var song in Options)
                 {
-                    if (Directory.Exists(newFolder))
-                        throw new InvalidOperationException($"A playlist folder named '{newName}' already exists.");
-                    Directory.Move(oldFolder, newFolder);
-                }
-
-                string newJsonPath = Path.Combine(modDirectory, Path.GetFileName(oldJsonPath).Replace(oldName.Replace("/", "_"), newName.Replace("/", "_")));
-                if (!string.Equals(oldJsonPath, newJsonPath, StringComparison.OrdinalIgnoreCase))
-                    File.Move(oldJsonPath, newJsonPath);
-
-                Name = newName;
-
-                if (Options != null)
-                {
-                    foreach (var song in Options)
+                    if (song?.Files == null) continue;
+                    var keys = song.Files.Keys.ToList();
+                    foreach (var key in keys)
                     {
-                        if (song?.Files == null) continue;
-                        var keys = song.Files.Keys.ToList();
-                        foreach (var key in keys)
-                        {
-                            var rel = song.Files[key];
-                            if (string.IsNullOrWhiteSpace(rel)) continue;
-                            var updated = rel.Replace(oldName.Replace("/", "_") + Path.DirectorySeparatorChar, newName.Replace("/", "_") + Path.DirectorySeparatorChar)
-                                             .Replace(oldName.Replace("/", "_") + '/', newName.Replace("/", "_") + '/');
-                            song.Files[key] = updated;
-                        }
+                        var rel = song.Files[key];
+                        if (string.IsNullOrWhiteSpace(rel)) continue;
+                        var updated = rel.Replace(oldName.Replace("/", "_") + Path.DirectorySeparatorChar, newName.Replace("/", "_") + Path.DirectorySeparatorChar)
+                                         .Replace(oldName.Replace("/", "_") + '/', newName.Replace("/", "_") + '/');
+                        song.Files[key] = updated;
                     }
                 }
-
-                Save();
-                return true;
             }
+
+            Save();
+            return true;
         }
 
         public void Save()
         {
-            lock (_lock)
-            {
-                var fileNames = GetJsonFiles(Name);
-                if (fileNames.Length == 0) return;
-                string fileName = fileNames[0];
-                string json = JsonConvert.SerializeObject(this, Formatting.Indented);
-                File.WriteAllText(fileName, json);
+            var fileNames = GetJsonFiles(Name);
+            if (fileNames.Length == 0) return;
+            string fileName = fileNames[0];
+            string json = JsonConvert.SerializeObject(this, Formatting.Indented);
+            File.WriteAllText(fileName, json);
 
-                // Notify Penumbra (if present) that the mod directory changed so it can refresh.
-                RefreshPenumbraMod();
-            }
+            // Notify Penumbra (if present) that the mod directory changed so it can refresh.
+            RefreshPenumbraMod();
         }
 
         public void Delete()
         {
-            lock (_lock)
-            {
-                if (string.IsNullOrEmpty(Name))
-                    return;
-                if (Directory.Exists(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name)))
-                    Directory.Delete(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name), true);
-                if (GetJsonFiles(Name).Length > 0)
-                    File.Delete(GetJsonFiles(Name)[0]);
+            if (string.IsNullOrEmpty(Name))
+                return;
+            if (Directory.Exists(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name)))
+                Directory.Delete(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name), true);
+            if (GetJsonFiles(Name).Length > 0)
+                File.Delete(GetJsonFiles(Name)[0]);
 
-                // Notify Penumbra after removing files
-                RefreshPenumbraMod();
-            }
+            // Notify Penumbra after removing files
+            RefreshPenumbraMod();
         }
 
         private static string[] GetJsonFiles(string name)
@@ -435,54 +415,45 @@ namespace Pickles_Playlist_Editor
 
         internal void Shuffle()
         {
-            lock (_lock)
+            int n = Options.Count;
+            List<Option> shuffledOptions = new List<Option>(n);
+            shuffledOptions.Add(Options[0]); // Keep the "Off" option in place
+            Options.RemoveAt(0);
+            Random rng = new Random();
+            while (Options.Count > 0)
             {
-                int n = Options.Count;
-                List<Option> shuffledOptions = new List<Option>(n);
-                shuffledOptions.Add(Options[0]); // Keep the "Off" option in place
-                Options.RemoveAt(0);
-                Random rng = new Random();
-                while (Options.Count > 0)
-                {
-                    int k = rng.Next(Options.Count);
-                    shuffledOptions.Add(Options[k]);
-                    Options.RemoveAt(k);
-                }
-                Options = shuffledOptions;
-                Save();
+                int k = rng.Next(Options.Count);
+                shuffledOptions.Add(Options[k]);
+                Options.RemoveAt(k);
             }
+            Options = shuffledOptions;
+            Save();
         }
 
         internal void Sort(SortDirection direction)
         {
-            lock (_lock)
-            {
-                Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
-                List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase)).ToList();
-                if (direction == SortDirection.Ascending)
-                    otherOptions = otherOptions.OrderBy(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
-                else
-                    otherOptions = otherOptions.OrderByDescending(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
-                Options = new List<Option>();
-                if (offOption != null)
-                    Options.Add(offOption);
-                Options.AddRange(otherOptions);
-                Save();
-            }
+            Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
+            List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (direction == SortDirection.Ascending)
+                otherOptions = otherOptions.OrderBy(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
+            else
+                otherOptions = otherOptions.OrderByDescending(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
+            Options = new List<Option>();
+            if (offOption != null)
+                Options.Add(offOption);
+            Options.AddRange(otherOptions);
+            Save();
         }
 
         internal void SortByName()
         {
-            lock (_lock)
-            {
-                Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
-                List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase).ToList();
-                Options = new List<Option>();
-                if (offOption != null) Options.Add(offOption);
-                Options.AddRange(otherOptions);
-                Save();
-            }
+            Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
+            List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase).ToList();
+            Options = new List<Option>();
+            if (offOption != null) Options.Add(offOption);
+            Options.AddRange(otherOptions);
+            Save();
         }
 
         /// <summary>
