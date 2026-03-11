@@ -110,5 +110,7 @@
   <data name="Prog_IncreasingVolume" xml:space="preserve"><value>Volume verhogen...</value></data>
   <data name="Prog_ApplyingEQSettings" xml:space="preserve"><value>EQ-instellingen toepassen...</value></data>
   <data name="Menu_Rename" xml:space="preserve"><value>Hernoemen</value></data>
+  <data name="Dlg_OrganizeLibrary_Title" xml:space="preserve"><value>Waarschuwing</value></data>
+  <data name="Dlg_OrganizeLibrary_Content" xml:space="preserve"><value>Hiermee worden al je scd-bestanden hernoemd en in mappen geplaatst die naar je afspeellijsten zijn vernoemd. Maak een back-up van je mod voordat je verdergaat!</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Doelplaylist:</value></data>
 </root>

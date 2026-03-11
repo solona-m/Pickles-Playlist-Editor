@@ -110,5 +110,7 @@
   <data name="Prog_IncreasingVolume" xml:space="preserve"><value>Lautstärke wird erhöht...</value></data>
   <data name="Prog_ApplyingEQSettings" xml:space="preserve"><value>EQ-Einstellungen werden angewendet...</value></data>
   <data name="Menu_Rename" xml:space="preserve"><value>Umbenennen</value></data>
+  <data name="Dlg_OrganizeLibrary_Title" xml:space="preserve"><value>Warnung</value></data>
+  <data name="Dlg_OrganizeLibrary_Content" xml:space="preserve"><value>Dadurch werden alle SCD-Dateien umbenannt und in Ordnern abgelegt, die nach deinen Playlists benannt sind. Erstelle vor dem Fortfahren ein Backup deines Mods!</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Ziel-Playlist:</value></data>
 </root>

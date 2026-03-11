@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace Pickles_Playlist_Editor
 {
@@ -115,8 +116,19 @@ namespace Pickles_Playlist_Editor
             Settings.AutoReloadMod = AutoReloadCheckBox.IsChecked == true;
         }
 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
+
         private void OrganizeLibraryButton_Click(object sender, RoutedEventArgs e)
         {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+            int result = MessageBox(hwnd,
+                AppStrings.Dlg_OrganizeLibrary_Content,
+                AppStrings.Dlg_OrganizeLibrary_Title,
+                0x00000001 | 0x00000030); // MB_OKCANCEL | MB_ICONWARNING
+            if (result != 1) // IDOK
+                return;
+
             foreach (var playlist in MainWindow.Playlists.Values)
                 playlist.Cleanup();
         }

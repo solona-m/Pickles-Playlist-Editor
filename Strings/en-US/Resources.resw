@@ -111,4 +111,6 @@
   <data name="Prog_IncreasingVolume" xml:space="preserve"><value>Increasing volume...</value></data>
   <data name="Prog_ApplyingEQSettings" xml:space="preserve"><value>Applying EQ settings...</value></data>
   <data name="Menu_Rename" xml:space="preserve"><value>Rename</value></data>
+  <data name="Dlg_OrganizeLibrary_Title" xml:space="preserve"><value>Warning</value></data>
+  <data name="Dlg_OrganizeLibrary_Content" xml:space="preserve"><value>This will rename all of your scd files and put them in folders named after your playlists. Backup your mod before continuing!</value></data>
 </root>

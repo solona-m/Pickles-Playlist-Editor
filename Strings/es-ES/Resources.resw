@@ -110,5 +110,7 @@
   <data name="Prog_IncreasingVolume" xml:space="preserve"><value>Aumentando el volumen...</value></data>
   <data name="Prog_ApplyingEQSettings" xml:space="preserve"><value>Aplicando configuración del ecualizador...</value></data>
   <data name="Menu_Rename" xml:space="preserve"><value>Renombrar</value></data>
+  <data name="Dlg_OrganizeLibrary_Title" xml:space="preserve"><value>Advertencia</value></data>
+  <data name="Dlg_OrganizeLibrary_Content" xml:space="preserve"><value>Esto renombrará todos tus archivos scd y los colocará en carpetas con el nombre de tus listas de reproducción. ¡Haz una copia de seguridad de tu mod antes de continuar!</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Lista de reproducción de destino:</value></data>
 </root>
