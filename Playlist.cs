@@ -7,6 +7,7 @@ using System.Text;
 using VfxEditor.ScdFormat;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
 
 namespace Pickles_Playlist_Editor
 {
@@ -27,6 +28,9 @@ namespace Pickles_Playlist_Editor
         public string Type { get { return "Single"; } }
         public int DefaultSettings { get { return 0; } }
         public List<Option> Options { get; set; } = new List<Option>();
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
 
 
         public static void Create(string playlistName, string dir, Action<int>? callback)
@@ -415,45 +419,96 @@ namespace Pickles_Playlist_Editor
 
         internal void Shuffle()
         {
-            int n = Options.Count;
-            List<Option> shuffledOptions = new List<Option>(n);
-            shuffledOptions.Add(Options[0]); // Keep the "Off" option in place
-            Options.RemoveAt(0);
-            Random rng = new Random();
-            while (Options.Count > 0)
+            var jsonFiles = GetJsonFiles(Name);
+            string? backupPath = null;
+            if (jsonFiles.Length > 0 && File.Exists(jsonFiles[0]))
             {
-                int k = rng.Next(Options.Count);
-                shuffledOptions.Add(Options[k]);
-                Options.RemoveAt(k);
+                backupPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(jsonFiles[0]));
+                File.Copy(jsonFiles[0], backupPath, true);
             }
-            Options = shuffledOptions;
-            Save();
+            try
+            {
+                int n = Options.Count;
+                List<Option> shuffledOptions = new List<Option>(n);
+                shuffledOptions.Add(Options[0]); // Keep the "Off" option in place
+                Options.RemoveAt(0);
+                Random rng = new Random();
+                while (Options.Count > 0)
+                {
+                    int k = rng.Next(Options.Count);
+                    shuffledOptions.Add(Options[k]);
+                    Options.RemoveAt(k);
+                }
+                Options = shuffledOptions;
+                Save();
+            }
+            catch (Exception ex)
+            {
+                if (backupPath != null && File.Exists(backupPath) && jsonFiles.Length > 0)
+                    File.Copy(backupPath, jsonFiles[0], true);
+                MessageBoxW(IntPtr.Zero, ex.ToString(), "Shuffle Error", 0x00000010); // MB_OK | MB_ICONERROR
+                throw;
+            }
         }
 
         internal void Sort(SortDirection direction)
         {
-            Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
-            List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase)).ToList();
-            if (direction == SortDirection.Ascending)
-                otherOptions = otherOptions.OrderBy(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
-            else
-                otherOptions = otherOptions.OrderByDescending(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
-            Options = new List<Option>();
-            if (offOption != null)
-                Options.Add(offOption);
-            Options.AddRange(otherOptions);
-            Save();
+            var jsonFiles = GetJsonFiles(Name);
+            string? backupPath = null;
+            if (jsonFiles.Length > 0 && File.Exists(jsonFiles[0]))
+            {
+                backupPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(jsonFiles[0]));
+                File.Copy(jsonFiles[0], backupPath, true);
+            }
+            try
+            {
+                Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
+                List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (direction == SortDirection.Ascending)
+                    otherOptions = otherOptions.OrderBy(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
+                else
+                    otherOptions = otherOptions.OrderByDescending(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
+                Options = new List<Option>();
+                if (offOption != null)
+                    Options.Add(offOption);
+                Options.AddRange(otherOptions);
+                Save();
+            }
+            catch (Exception ex)
+            {
+                if (backupPath != null && File.Exists(backupPath) && jsonFiles.Length > 0)
+                    File.Copy(backupPath, jsonFiles[0], true);
+                MessageBoxW(IntPtr.Zero, ex.ToString(), "Sort Error", 0x00000010); // MB_OK | MB_ICONERROR
+                throw;
+            }
         }
 
         internal void SortByName()
         {
-            Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
-            List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase))
-                .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase).ToList();
-            Options = new List<Option>();
-            if (offOption != null) Options.Add(offOption);
-            Options.AddRange(otherOptions);
-            Save();
+            var jsonFiles = GetJsonFiles(Name);
+            string? backupPath = null;
+            if (jsonFiles.Length > 0 && File.Exists(jsonFiles[0]))
+            {
+                backupPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(jsonFiles[0]));
+                File.Copy(jsonFiles[0], backupPath, true);
+            }
+            try
+            {
+                Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
+                List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase).ToList();
+                Options = new List<Option>();
+                if (offOption != null) Options.Add(offOption);
+                Options.AddRange(otherOptions);
+                Save();
+            }
+            catch (Exception ex)
+            {
+                if (backupPath != null && File.Exists(backupPath) && jsonFiles.Length > 0)
+                    File.Copy(backupPath, jsonFiles[0], true);
+                MessageBoxW(IntPtr.Zero, ex.ToString(), "Sort Error", 0x00000010); // MB_OK | MB_ICONERROR
+                throw;
+            }
         }
 
         /// <summary>
