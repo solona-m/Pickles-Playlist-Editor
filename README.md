@@ -54,8 +54,10 @@ How to Shuffle Song Order
  
 10)	One the desired playlist is selected, simply click the “SHUFFLE” button at the top, and the songs with shuffle around.  
 a.	NOTE: at this time, the Playlist will be deselected after every shuffle and will need to be selected again for another shuffle.
+b. WARNING: If your playlist disappears after shuffle or any operation, don't panic. Just reboot the app. They will be back.
 
 Sort by BPM
 1)	Sort by BPM (Beats per minute) will shift all the songs between either highest to lowest BPM or from lowest to highest BPM.  This allows for a smoother transition between songs without a sudden shift in tempo, if so desired.
 DISCLAIMER
  Any songs added via the manual method and " by Pickles Playlist Editor will “may not” be able to be sorted under certain conditions.  If this happens delete playlist and remake and import all songs via the Editor for best results.
+
