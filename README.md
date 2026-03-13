@@ -64,5 +64,6 @@ b. WARNING: If your playlist disappears after shuffle or any operation, don't pa
 Sort
 Sort by BPM (Beats per minute) will shift all the songs between either highest to lowest BPM or from lowest to highest BPM.  This allows for a smoother transition between songs without a sudden shift in tempo, if so desired.
 
+Thanks to 0ceal0t for VFXEditor: https://github.com/0ceal0t/Dalamud-VFXEditor
 
 If you need help, please join https://discord.gg/solona and post in the #help channel. If you get an error with a callstack a screenshot would be very helpful.
