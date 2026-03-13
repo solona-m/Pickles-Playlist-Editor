@@ -10,6 +10,8 @@ Tired of hearing ads and twitch djs talking over the music? Become a mare dj! Yo
 * https://www.xivmodarchive.com/modid/128697
 * https://www.glamourdresser.com/mods/thunderdome-exe
 
+This program makes it easy to drag and drop your favorite songs into your mod of choice.
+
 Setup
 1) Download and run the exe in the releases link. https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest/download/PicklesPlaylistEditor-win-Setup.exe
 a.	NOTE: Windows is pissy about non-commercial software. You may need to click more info and run anyway on the smartscreen filter.
