@@ -9,8 +9,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <ApplicationIcon>pickle.ico</ApplicationIcon>
-    <AssemblyVersion>2.0.14.0</AssemblyVersion>
-    <FileVersion>2.0.14.0</FileVersion>
+    <AssemblyVersion>2.0.15.0</AssemblyVersion>
+    <FileVersion>2.0.15.0</FileVersion>
     <PlatformTarget>x86</PlatformTarget>
     <WindowsPackageType>None</WindowsPackageType>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
@@ -19,9 +19,6 @@
   <ItemGroup>
     <Content Include="pickle.ico" />
     <Content Include="Resources\pickle.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="ui\picklebackground.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -41,6 +38,12 @@
     <PackageReference Include="SharpDX" Version="4.2.0" />
     <PackageReference Include="SharpDX.Mathematics" Version="4.2.0" />
     <PackageReference Include="Velopack" Version="*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="ui\picklebackground.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
