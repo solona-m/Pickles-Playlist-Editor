@@ -6,6 +6,10 @@ Guide written by Cat with Keyboard
 
 BACKUP YOUR DJ MOD BEFORE USING THIS EDITOR!  I AM NOT RESPONSIBLE FOR ANY CORRUPTION OF FILES OR LOSS OF DATA!
 
+Tired of hearing ads and twitch djs talking over the music? Become a mare dj! You'll need a dj mod first. Here are the two publically available ones. The original dj mod by pickles is available to friends upon request:
+* https://www.xivmodarchive.com/modid/128697
+* https://www.glamourdresser.com/mods/thunderdome-exe
+
 Setup
 1) Download and run the exe in the releases link. https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest/download/PicklesPlaylistEditor-win-Setup.exe
 a.	NOTE: Windows is pissy about non-commercial software. You may need to click more info and run anyway on the smartscreen filter.
