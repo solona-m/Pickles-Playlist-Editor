@@ -6,7 +6,7 @@ Guide written by Cat with Keyboard
 
 BACKUP YOUR DJ MOD BEFORE USING THIS EDITOR!  I AM NOT RESPONSIBLE FOR ANY CORRUPTION OF FILES OR LOSS OF DATA!
 
-Tired of hearing ads and twitch djs talking over the music? Become a mare dj! You'll need a dj mod first. Here are the two publically available ones. The original dj mod by pickles is available to friends upon request:
+Tired of hearing ads and talking over the music at your venues? Become a mare dj! You'll need a dj mod first. Here are the two publically available ones. The original dj mod by pickles is available to friends upon request:
 * https://www.xivmodarchive.com/modid/128697
 * https://www.glamourdresser.com/mods/thunderdome-exe
 
