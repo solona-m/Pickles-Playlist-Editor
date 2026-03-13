@@ -32,14 +32,13 @@ Understanding the Top Buttons
 2)	DELETE:   will allow you to delete any checked marked songs or playlists
 WARNING THIS CAN NOT BE UNDONE!!!
 3)	Shuffle: as it says, it will shuffle selected songs or playlists around more randomly
-4)	Sort by BGM:   will sort the songs as it says
+4)	Sort: will sort the songs by beats per minute or name
 5)	PLAY:   This will allow you to play the selected songs back to hear them.
 6)	PAUSE: Pause the selected song
 7)	STOP: will stop playing song,
 8)	PREVIOUS: will go back 1 song
 9)	NEXT: will skip ahead one song
 10)	SETTINGS: will allow you to locate the directory of your mod if you aren't using pickles dj mod, set the scd being replaced, disable normalization of songs on import and optionally, reorganize your scds so they're all stored in folders named for each playlist with the file name as the song name (backup your mod before you press this!)
-
 
 Adding Playlists
 1)	Click on “NEW” on the top left of the screen. 
@@ -58,12 +57,9 @@ a.	NOTE: Any changes to the songs or playlists in game with effect the songs in 
 How to Shuffle Song Order
 3)	To Shuffle the songs order as they will appear in the mod pack, start by checking the box next to the playlist. 
  
-10)	One the desired playlist is selected, simply click the “SHUFFLE” button at the top, and the songs with shuffle around.  
+Once the desired playlist is selected, simply click the “SHUFFLE” button at the top, and the songs with shuffle around.  
 a.	NOTE: at this time, the Playlist will be deselected after every shuffle and will need to be selected again for another shuffle.
 b. WARNING: If your playlist disappears after shuffle or any operation, don't panic. Just reboot the app. They will be back.
 
-Sort by BPM
-1)	Sort by BPM (Beats per minute) will shift all the songs between either highest to lowest BPM or from lowest to highest BPM.  This allows for a smoother transition between songs without a sudden shift in tempo, if so desired.
-DISCLAIMER
- Any songs added via the manual method and " by Pickles Playlist Editor will “may not” be able to be sorted under certain conditions.  If this happens delete playlist and remake and import all songs via the Editor for best results.
-
+Sort
+Sort by BPM (Beats per minute) will shift all the songs between either highest to lowest BPM or from lowest to highest BPM.  This allows for a smoother transition between songs without a sudden shift in tempo, if so desired.
