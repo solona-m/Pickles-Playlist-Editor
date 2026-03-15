@@ -6,7 +6,10 @@ Guide written by Cat with Keyboard
 
 BACKUP YOUR DJ MOD BEFORE USING THIS EDITOR!  I AM NOT RESPONSIBLE FOR ANY CORRUPTION OF FILES OR LOSS OF DATA!
 
-Tired of hearing ads and twitch djs talking over the music? Become a mare dj! You'll need a dj mod first. Here are the two publically available ones. The original dj mod by pickles is available to friends upon request:
+Tired of hearing ads and talking over the music at your venues? Become a mare dj! This program gives you drag and drop addition of new songs to your dj mod. It automatically encodes from mp3, ogg, flac and m4a to scd, imports to your mod and refreshes it. Or you can import from youtube directly. The program will optionally automatically normalize volume, saving you a step in audacity. You can shuffle, sort and organize your songs, with aid of automatic song length and beats per minute detection. Playback your scd files directly in the program without booting the game.
+
+
+You'll need a dj mod first. Here are the two publically available ones. The original dj mod by pickles is available to friends upon request:
 * https://www.xivmodarchive.com/modid/128697
 * https://www.glamourdresser.com/mods/thunderdome-exe
 
@@ -64,5 +67,6 @@ b. WARNING: If your playlist disappears after shuffle or any operation, don't pa
 Sort
 Sort by BPM (Beats per minute) will shift all the songs between either highest to lowest BPM or from lowest to highest BPM.  This allows for a smoother transition between songs without a sudden shift in tempo, if so desired.
 
+Thanks to 0ceal0t for VFXEditor: https://github.com/0ceal0t/Dalamud-VFXEditor
 
 If you need help, please join https://discord.gg/solona and post in the #help channel. If you get an error with a callstack a screenshot would be very helpful.
