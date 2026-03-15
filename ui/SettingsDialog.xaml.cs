@@ -17,6 +17,7 @@ namespace Pickles_Playlist_Editor
                 Settings.ModName ?? string.Empty);
             BaselineScdTextBox.Text = Settings.BaselineScdKey;
             BackgroundImageTextBox.Text = Settings.BackgroundImagePath;
+            ScdVolumePercentageBox.Value = Settings.ScdVolumePercentage;
             NormalizeVolumeCheckBox.IsChecked = Settings.NormalizeVolume;
             AutoReloadCheckBox.IsChecked = Settings.AutoReloadMod;
             ValidateFields();
@@ -112,6 +113,7 @@ namespace Pickles_Playlist_Editor
             Settings.PenumbraLocation = penLocation;
             Settings.BaselineScdKey = BaselineScdTextBox.Text;
             Settings.BackgroundImagePath = BackgroundImageTextBox.Text.Trim();
+            Settings.ScdVolumePercentage = (int)ScdVolumePercentageBox.Value;
             Settings.NormalizeVolume = NormalizeVolumeCheckBox.IsChecked == true;
             Settings.AutoReloadMod = AutoReloadCheckBox.IsChecked == true;
         }
