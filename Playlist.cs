@@ -67,7 +67,7 @@ namespace Pickles_Playlist_Editor
                 {
                     string lastName = groupfiles[groupfiles.Count - 1];
                     groupNumber = Int32.Parse(Path.GetFileNameWithoutExtension(lastName).Substring(6, 3)) + 1;
-                    mergedGroup.Priority = mergedGroup.Priority + 1;
+                    mergedGroup.Priority = groupNumber;
                 }
 
                 fileName = string.Format("group_{0}_{1}.json", string.Format("{0:D3}", groupNumber), playlistName);
