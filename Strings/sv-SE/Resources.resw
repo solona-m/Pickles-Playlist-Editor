@@ -44,6 +44,7 @@
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Bakgrundsbild</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Bläddra</value></data>
   <data name="ScdVolumePercentageLabel.Text" xml:space="preserve"><value>SCD-volymprocent</value></data>
+<data name="LoopSongsCheckBox.Content" xml:space="preserve"><value>Loopa låtar</value></data>
 <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalisera volym</value></data>
   <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Tona ut med avstånd</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Ladda om mod automatiskt</value></data>
