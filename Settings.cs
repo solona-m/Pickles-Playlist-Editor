@@ -183,7 +183,7 @@ namespace Pickles_Playlist_Editor
 
         /// <summary>
         /// Controls whether songs loop when they finish playing.
-        /// Default: true.
+        /// Default: false.
         /// Stored as integer 1 (true) or 0 (false) under the same registry subkey.
         /// </summary>
         public static bool LoopSongs
@@ -192,7 +192,7 @@ namespace Pickles_Playlist_Editor
             {
                 try
                 {
-                    var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("LoopSongs", 1);
+                    var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("LoopSongs", 0);
                     if (value is int iv) return iv != 0;
                     if (value is long lv) return lv != 0;
                     if (value is string sv && bool.TryParse(sv, out var bv)) return bv;
@@ -202,7 +202,7 @@ namespace Pickles_Playlist_Editor
                 {
                     // fallthrough to default
                 }
-                return true;
+                return false;
             }
             set
             {

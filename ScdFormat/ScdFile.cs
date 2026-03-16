@@ -200,7 +200,7 @@ namespace VfxEditor.ScdFormat {
                 file.Sounds[0].BusDucking.Volume.Value = 0f;
                 file.Sounds[0].BusDucking.Number.Value = 1;
 
-                if(Settings.FadeWithDistance) {
+                if(Pickles_Playlist_Editor.Settings.FadeWithDistance) {
                     file.Sounds[0].BusNumber.Value = 8;
 
                     var panItem = new ScdTrackItem();
