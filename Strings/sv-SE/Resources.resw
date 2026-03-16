@@ -43,7 +43,8 @@
   <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Bläddra</value></data>
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Bakgrundsbild</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Bläddra</value></data>
-  <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalisera volym</value></data>
+  <data name="ScdVolumePercentageLabel.Text" xml:space="preserve"><value>SCD-volymprocent</value></data>
+<data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalisera volym</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Ladda om mod automatiskt</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organisera bibliotek</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Lägg till låtar från YouTube</value></data>
@@ -65,6 +66,8 @@
   <data name="Dlg_BPMDetection_Content" xml:space="preserve"><value>BPM- och längddetektering kan ta lite tid beroende på antal spår. Värden cachas för snabbare åtkomst i framtida sessioner.</value></data>
   <data name="Dlg_ConfirmDelete_Title" xml:space="preserve"><value>Bekräfta borttagning</value></data>
   <data name="Dlg_ConfirmDelete_Content" xml:space="preserve"><value>Är du säker på att du vill ta bort de valda spellistorna/låtarna? Detta kan inte ångras.</value></data>
+  <data name="Dlg_NonEmptyPlaylist_Title" xml:space="preserve"><value>Kan inte ta bort spellistan</value></data>
+  <data name="Dlg_NonEmptyPlaylist_Content" xml:space="preserve"><value>Endast tomma spellistor kan tas bort. Ta bort alla låtar från spellistan först.</value></data>
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Fel vid borttagning: {0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Uppdatering tillgänglig</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>Version {0} är tillgänglig. Installera nu?</value></data>

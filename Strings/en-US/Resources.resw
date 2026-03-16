@@ -43,7 +43,8 @@
   <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Browse</value></data>
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Background Image</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Browse</value></data>
-  <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalize Volume</value></data>
+  <data name="ScdVolumePercentageLabel.Text" xml:space="preserve"><value>SCD Volume Percentage</value></data>
+<data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalize Volume</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Auto Reload Mod</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organize Library</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Add Songs From YouTube</value></data>
@@ -66,6 +67,8 @@
   <data name="Dlg_BPMDetection_Content" xml:space="preserve"><value>BPM and length detection may take some time depending on the number of tracks. Values are cached for faster access in future sessions.</value></data>
   <data name="Dlg_ConfirmDelete_Title" xml:space="preserve"><value>Confirm Deletion</value></data>
   <data name="Dlg_ConfirmDelete_Content" xml:space="preserve"><value>Are you sure you want to delete the selected playlists/songs? This cannot be undone.</value></data>
+  <data name="Dlg_NonEmptyPlaylist_Title" xml:space="preserve"><value>Cannot Delete Playlist</value></data>
+  <data name="Dlg_NonEmptyPlaylist_Content" xml:space="preserve"><value>Only empty playlists can be deleted. Remove all songs from the playlist first.</value></data>
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Error during deletion: {0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Update Available</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>Version {0} is available. Install now?</value></data>

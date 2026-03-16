@@ -396,11 +396,11 @@ namespace Pickles_Playlist_Editor
         {
             if (string.IsNullOrEmpty(Name))
                 return;
-            if (Directory.Exists(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name)))
-                Directory.Delete(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name), true);
             if (GetJsonFiles(Name).Length > 0)
                 File.Delete(GetJsonFiles(Name)[0]);
 
+            if (Directory.Exists(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name)))
+                Directory.Delete(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name), true);
             // Notify Penumbra after removing files
             RefreshPenumbraMod();
         }
