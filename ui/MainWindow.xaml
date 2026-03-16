@@ -89,7 +89,7 @@
         <TreeView
             x:Name="PlaylistTreeView"
             Margin="0"
-            SelectionMode="Multiple"
+            SelectionMode="Single"
             AllowDrop="True"
             CanDragItems="True"
             CanReorderItems="False"

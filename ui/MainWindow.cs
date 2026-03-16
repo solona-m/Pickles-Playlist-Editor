@@ -412,10 +412,27 @@ namespace Pickles_Playlist_Editor
 
         private void PlaylistTreeView_SelectionChanged(TreeView sender, TreeViewSelectionChangedEventArgs args)
         {
+            var selected = PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>().ToList();
+
+            // Strip "Off" songs which can never be individually deleted.
+            var toDeselect = selected
+                .Where(item => item.Level == 2 && item.Name.Equals("Off", StringComparison.InvariantCultureIgnoreCase))
+                .ToList();
+
+            if (toDeselect.Count > 0)
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    foreach (var item in toDeselect)
+                        PlaylistTreeView.SelectedItems.Remove(item);
+                });
+                return; // SelectionChanged fires again after the deferred removes
+            }
+
             bool hasCheckedPlaylist = false;
             bool hasCheckedSong = false;
 
-            foreach (var item in PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>())
+            foreach (var item in selected)
             {
                 if (item.Level == 1) hasCheckedPlaylist = true;
                 if (item.Level == 2) { hasCheckedSong = true; _selectedNode = item; }
@@ -423,7 +440,7 @@ namespace Pickles_Playlist_Editor
 
             if (!hasCheckedSong)
             {
-                var single = PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>().FirstOrDefault();
+                var single = selected.FirstOrDefault();
                 if (single != null) _selectedNode = single;
             }
 
