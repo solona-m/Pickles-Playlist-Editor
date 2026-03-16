@@ -19,6 +19,7 @@ namespace Pickles_Playlist_Editor
             BackgroundImageTextBox.Text = Settings.BackgroundImagePath;
             ScdVolumePercentageBox.Value = Settings.ScdVolumePercentage;
             NormalizeVolumeCheckBox.IsChecked = Settings.NormalizeVolume;
+            FadeWithDistanceCheckBox.IsChecked = Settings.FadeWithDistance;
             AutoReloadCheckBox.IsChecked = Settings.AutoReloadMod;
             ValidateFields();
         }
@@ -115,6 +116,7 @@ namespace Pickles_Playlist_Editor
             Settings.BackgroundImagePath = BackgroundImageTextBox.Text.Trim();
             Settings.ScdVolumePercentage = (int)ScdVolumePercentageBox.Value;
             Settings.NormalizeVolume = NormalizeVolumeCheckBox.IsChecked == true;
+            Settings.FadeWithDistance = FadeWithDistanceCheckBox.IsChecked == true;
             Settings.AutoReloadMod = AutoReloadCheckBox.IsChecked == true;
         }
 

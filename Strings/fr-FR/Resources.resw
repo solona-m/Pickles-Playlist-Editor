@@ -45,6 +45,7 @@
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Parcourir</value></data>
   <data name="ScdVolumePercentageLabel.Text" xml:space="preserve"><value>Pourcentage de volume SCD</value></data>
 <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normaliser le volume</value></data>
+  <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Fondu avec la distance</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Recharger le mod automatiquement</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organiser la bibliothèque</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Ajouter des chansons depuis YouTube</value></data>

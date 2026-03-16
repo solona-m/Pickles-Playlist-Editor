@@ -194,6 +194,22 @@ namespace VfxEditor.ScdFormat {
                 file.Sounds[0].BusDucking.FadeTime.Value = 1200;
                 file.Sounds[0].BusDucking.Volume.Value = 0f;
                 file.Sounds[0].BusDucking.Number.Value = 1;
+
+                if(Settings.FadeWithDistance) {
+                    file.Sounds[0].BusNumber.Value = 8;
+
+                    var panItem = new ScdTrackItem();
+                    panItem.Type.Value = TrackCmd.Panning;
+                    panItem.UpdateData();
+                    ( ( TrackParamData )panItem.GetData() ).Value.Value = 0f;
+                    ( ( TrackParamData )panItem.GetData() ).Time.Value = 0;
+                    file.Tracks[0].Items.Insert( file.Tracks[0].Items.Count - 1, panItem );
+
+                    var layoutData = ( LayoutPointData )file.Sounds[0].Layout.GetData();
+                    layoutData.MinRange.Value = 85f;
+                    layoutData.MaxRange.Value = 10f;
+                }
+
                 return file;
 
             }

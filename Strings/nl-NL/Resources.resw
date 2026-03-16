@@ -45,6 +45,7 @@
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Bladeren</value></data>
   <data name="ScdVolumePercentageLabel.Text" xml:space="preserve"><value>SCD-volumepercentage</value></data>
 <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Volume normaliseren</value></data>
+  <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Vervagen met afstand</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Mod automatisch herladen</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Bibliotheek ordenen</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Nummers toevoegen van YouTube</value></data>

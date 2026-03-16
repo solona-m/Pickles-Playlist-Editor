@@ -45,6 +45,7 @@
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Bläddra</value></data>
   <data name="ScdVolumePercentageLabel.Text" xml:space="preserve"><value>SCD-volymprocent</value></data>
 <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalisera volym</value></data>
+  <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Tona ut med avstånd</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Ladda om mod automatiskt</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organisera bibliotek</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Lägg till låtar från YouTube</value></data>
