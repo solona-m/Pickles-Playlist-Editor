@@ -44,6 +44,7 @@
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Background Image</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Browse</value></data>
   <data name="ScdVolumePercentageLabel.Text" xml:space="preserve"><value>SCD Volume Percentage</value></data>
+<data name="LoopSongsCheckBox.Content" xml:space="preserve"><value>Loop Songs</value></data>
 <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalize Volume</value></data>
   <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Fade With Distance</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Auto Reload Mod</value></data>

@@ -18,6 +18,7 @@ namespace Pickles_Playlist_Editor
             BaselineScdTextBox.Text = Settings.BaselineScdKey;
             BackgroundImageTextBox.Text = Settings.BackgroundImagePath;
             ScdVolumePercentageBox.Value = Settings.ScdVolumePercentage;
+            LoopSongsCheckBox.IsChecked = Settings.LoopSongs;
             NormalizeVolumeCheckBox.IsChecked = Settings.NormalizeVolume;
             FadeWithDistanceCheckBox.IsChecked = Settings.FadeWithDistance;
             AutoReloadCheckBox.IsChecked = Settings.AutoReloadMod;
@@ -115,6 +116,7 @@ namespace Pickles_Playlist_Editor
             Settings.BaselineScdKey = BaselineScdTextBox.Text;
             Settings.BackgroundImagePath = BackgroundImageTextBox.Text.Trim();
             Settings.ScdVolumePercentage = (int)ScdVolumePercentageBox.Value;
+            Settings.LoopSongs = LoopSongsCheckBox.IsChecked == true;
             Settings.NormalizeVolume = NormalizeVolumeCheckBox.IsChecked == true;
             Settings.FadeWithDistance = FadeWithDistanceCheckBox.IsChecked == true;
             Settings.AutoReloadMod = AutoReloadCheckBox.IsChecked == true;
