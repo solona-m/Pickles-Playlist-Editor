@@ -17,6 +17,7 @@
   <data name="StopButton.Label" xml:space="preserve"><value>Arrêt</value></data>
   <data name="NextButton.Label" xml:space="preserve"><value>Suivant</value></data>
   <data name="SettingsButton.Label" xml:space="preserve"><value>Paramètres</value></data>
+  <data name="HelpButton.Label" xml:space="preserve"><value>Aide</value></data>
   <data name="SearchLabel.Text" xml:space="preserve"><value>Rechercher</value></data>
   <data name="EqualizerDlg.Title" xml:space="preserve"><value>Égaliseur</value></data>
   <data name="EqualizerDlg.PrimaryButtonText" xml:space="preserve"><value>Appliquer</value></data>
@@ -42,7 +43,8 @@
   <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Parcourir</value></data>
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Image d'arrière-plan</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Parcourir</value></data>
-  <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normaliser le volume</value></data>
+  <data name="ScdVolumePercentageLabel.Text" xml:space="preserve"><value>Pourcentage de volume SCD</value></data>
+<data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normaliser le volume</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Recharger le mod automatiquement</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organiser la bibliothèque</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Ajouter des chansons depuis YouTube</value></data>
@@ -64,6 +66,8 @@
   <data name="Dlg_BPMDetection_Content" xml:space="preserve"><value>La détection du BPM et de la durée peut prendre du temps selon le nombre de pistes. Les valeurs sont mises en cache pour les prochaines sessions.</value></data>
   <data name="Dlg_ConfirmDelete_Title" xml:space="preserve"><value>Confirmer la suppression</value></data>
   <data name="Dlg_ConfirmDelete_Content" xml:space="preserve"><value>Voulez-vous vraiment supprimer les listes/chansons sélectionnées ? Cette action est irréversible.</value></data>
+  <data name="Dlg_NonEmptyPlaylist_Title" xml:space="preserve"><value>Impossible de supprimer la liste</value></data>
+  <data name="Dlg_NonEmptyPlaylist_Content" xml:space="preserve"><value>Seules les listes vides peuvent être supprimées. Supprimez d'abord toutes les chansons de la liste.</value></data>
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Erreur lors de la suppression : {0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Mise à jour disponible</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>La version {0} est disponible. Installer maintenant ?</value></data>
@@ -108,6 +112,8 @@
   <data name="Prog_NormalizingAudio" xml:space="preserve"><value>Normalisation audio...</value></data>
   <data name="Prog_IncreasingVolume" xml:space="preserve"><value>Augmentation du volume...</value></data>
   <data name="Prog_ApplyingEQSettings" xml:space="preserve"><value>Application des paramètres EQ...</value></data>
-  <data name="Menu_Rename" xml:space="preserve"><value>Rename</value></data>
-  <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Target Playlist:</value></data>
+  <data name="Menu_Rename" xml:space="preserve"><value>Renommer</value></data>
+  <data name="Dlg_OrganizeLibrary_Title" xml:space="preserve"><value>Avertissement</value></data>
+  <data name="Dlg_OrganizeLibrary_Content" xml:space="preserve"><value>Cela renommera tous vos fichiers scd et les placera dans des dossiers portant le nom de vos listes de lecture. Sauvegardez votre mod avant de continuer !</value></data>
+  <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Liste de lecture cible :</value></data>
 </root>

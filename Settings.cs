@@ -12,14 +12,16 @@ namespace Pickles_Playlist_Editor
         private static string[] s_defaultModNames = {
             "Gimme Pickle's DJ Muzik, Movez, and VFX",
             "DAMThunderdome.exe",
-            "[yue's + lu's] dj"
+            "[yue's + lu's] dj",
+            "[Yue & Lu's] Mega Music Mod",
         };
         // Initialized with three dummy keys/values
         private static Dictionary<string, string> s_defaultBaselineScdKey = new Dictionary<string, string>
         {
             { s_defaultModNames[0], "sound/bpmloop.scd" },
             { s_defaultModNames[1], "sound/dam.scd" },
-            { s_defaultModNames[2], "sound/lolo.scd" }
+            { s_defaultModNames[2], "sound/lolo.scd" },
+            { s_defaultModNames[3], "sound/lolo.scd" }
         };
             
         public static string[] SupportedFileTypes = new string[] { ".ogg", ".wav", ".mp3", ".m4a", ".flac", ".scd" };
@@ -62,14 +64,33 @@ namespace Pickles_Playlist_Editor
                 string retval = (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("ModName");
                 if (string.IsNullOrWhiteSpace(retval))
                 {
-                    foreach (string defaultName in s_defaultModNames)
+                    string penumbra = PenumbraLocation;
+                    if (!string.IsNullOrWhiteSpace(penumbra))
                     {
-                        string potentialPath = System.IO.Path.Combine(PenumbraLocation, defaultName);
-                        if (System.IO.Directory.Exists(potentialPath))
+                        foreach (string defaultName in s_defaultModNames)
                         {
-                            ModName = defaultName; // save it for next time
-                            return defaultName;
+                            string potentialPath = System.IO.Path.Combine(penumbra, defaultName);
+                            if (System.IO.Directory.Exists(potentialPath))
+                            {
+                                ModName = defaultName; // save it for next time
+                                return defaultName;
+                            }
                         }
+
+                        // Fall back: search for any directory containing "[yue & lu's]"
+                        try
+                        {
+                            foreach (string dir in System.IO.Directory.EnumerateDirectories(penumbra))
+                            {
+                                string name = System.IO.Path.GetFileName(dir);
+                                if (name.Contains("[yue & lu's]", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    ModName = name; // save it for next time
+                                    return name;
+                                }
+                            }
+                        }
+                        catch { }
                     }
                 }
                 return retval;
@@ -102,6 +123,10 @@ namespace Pickles_Playlist_Editor
                     }
                     else
                     {
+                        if (!string.IsNullOrWhiteSpace(ModName) && ModName.Contains("[yue & lu's]", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return "sound/lolo.scd";
+                        }
                         return s_defaultBaselineScdKey[s_defaultModNames[0]]; // fallback to first default if mod name is unrecognized, but don't save it
                     }
                 }
@@ -206,6 +231,32 @@ namespace Pickles_Playlist_Editor
                     key?.DeleteValue("BackgroundImagePath", throwOnMissingValue: false);
                 else
                     key?.SetValue("BackgroundImagePath", value);
+            }
+        }
+
+        /// <summary>
+        /// Volume percentage applied to SCD output (1–100).
+        /// Default: 100.
+        /// </summary>
+        public static int ScdVolumePercentage
+        {
+            get
+            {
+                try
+                {
+                    var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("ScdVolumePercentage", 100);
+                    if (value is int iv && iv >= 1 && iv <= 100) return iv;
+                    if (value is long lv && lv >= 1 && lv <= 100) return (int)lv;
+                    if (value is string sv && int.TryParse(sv, out var parsed) && parsed >= 1 && parsed <= 100) return parsed;
+                }
+                catch { }
+                return 100;
+            }
+            set
+            {
+                int clamped = Math.Clamp(value, 1, 100);
+                using var key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                key?.SetValue("ScdVolumePercentage", clamped, RegistryValueKind.DWord);
             }
         }
 

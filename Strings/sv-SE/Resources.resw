@@ -17,6 +17,7 @@
   <data name="StopButton.Label" xml:space="preserve"><value>Stoppa</value></data>
   <data name="NextButton.Label" xml:space="preserve"><value>Nästa</value></data>
   <data name="SettingsButton.Label" xml:space="preserve"><value>Inställningar</value></data>
+  <data name="HelpButton.Label" xml:space="preserve"><value>Hjälp</value></data>
   <data name="SearchLabel.Text" xml:space="preserve"><value>Sök</value></data>
   <data name="EqualizerDlg.Title" xml:space="preserve"><value>Equalizer</value></data>
   <data name="EqualizerDlg.PrimaryButtonText" xml:space="preserve"><value>Tillämpa</value></data>
@@ -42,7 +43,8 @@
   <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Bläddra</value></data>
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Bakgrundsbild</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Bläddra</value></data>
-  <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalisera volym</value></data>
+  <data name="ScdVolumePercentageLabel.Text" xml:space="preserve"><value>SCD-volymprocent</value></data>
+<data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalisera volym</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Ladda om mod automatiskt</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organisera bibliotek</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Lägg till låtar från YouTube</value></data>
@@ -64,6 +66,8 @@
   <data name="Dlg_BPMDetection_Content" xml:space="preserve"><value>BPM- och längddetektering kan ta lite tid beroende på antal spår. Värden cachas för snabbare åtkomst i framtida sessioner.</value></data>
   <data name="Dlg_ConfirmDelete_Title" xml:space="preserve"><value>Bekräfta borttagning</value></data>
   <data name="Dlg_ConfirmDelete_Content" xml:space="preserve"><value>Är du säker på att du vill ta bort de valda spellistorna/låtarna? Detta kan inte ångras.</value></data>
+  <data name="Dlg_NonEmptyPlaylist_Title" xml:space="preserve"><value>Kan inte ta bort spellistan</value></data>
+  <data name="Dlg_NonEmptyPlaylist_Content" xml:space="preserve"><value>Endast tomma spellistor kan tas bort. Ta bort alla låtar från spellistan först.</value></data>
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Fel vid borttagning: {0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Uppdatering tillgänglig</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>Version {0} är tillgänglig. Installera nu?</value></data>
@@ -108,6 +112,8 @@
   <data name="Prog_NormalizingAudio" xml:space="preserve"><value>Normaliserar ljud...</value></data>
   <data name="Prog_IncreasingVolume" xml:space="preserve"><value>Ökar volym...</value></data>
   <data name="Prog_ApplyingEQSettings" xml:space="preserve"><value>Tillämpar EQ-inställningar...</value></data>
-  <data name="Menu_Rename" xml:space="preserve"><value>Rename</value></data>
-  <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Target Playlist:</value></data>
+  <data name="Menu_Rename" xml:space="preserve"><value>Byt namn</value></data>
+  <data name="Dlg_OrganizeLibrary_Title" xml:space="preserve"><value>Varning</value></data>
+  <data name="Dlg_OrganizeLibrary_Content" xml:space="preserve"><value>Detta kommer att byta namn på alla dina scd-filer och placera dem i mappar uppkallade efter dina spellistor. Säkerhetskopiera din mod innan du fortsätter!</value></data>
+  <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Målspellista:</value></data>
 </root>
