@@ -43,7 +43,8 @@
   <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Parcourir</value></data>
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Image d'arrière-plan</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Parcourir</value></data>
-  <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normaliser le volume</value></data>
+  <data name="ScdVolumePercentageLabel.Text" xml:space="preserve"><value>Pourcentage de volume SCD</value></data>
+<data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normaliser le volume</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Recharger le mod automatiquement</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organiser la bibliothèque</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Ajouter des chansons depuis YouTube</value></data>
@@ -65,6 +66,8 @@
   <data name="Dlg_BPMDetection_Content" xml:space="preserve"><value>La détection du BPM et de la durée peut prendre du temps selon le nombre de pistes. Les valeurs sont mises en cache pour les prochaines sessions.</value></data>
   <data name="Dlg_ConfirmDelete_Title" xml:space="preserve"><value>Confirmer la suppression</value></data>
   <data name="Dlg_ConfirmDelete_Content" xml:space="preserve"><value>Voulez-vous vraiment supprimer les listes/chansons sélectionnées ? Cette action est irréversible.</value></data>
+  <data name="Dlg_NonEmptyPlaylist_Title" xml:space="preserve"><value>Impossible de supprimer la liste</value></data>
+  <data name="Dlg_NonEmptyPlaylist_Content" xml:space="preserve"><value>Seules les listes vides peuvent être supprimées. Supprimez d'abord toutes les chansons de la liste.</value></data>
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Erreur lors de la suppression : {0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Mise à jour disponible</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>La version {0} est disponible. Installer maintenant ?</value></data>
