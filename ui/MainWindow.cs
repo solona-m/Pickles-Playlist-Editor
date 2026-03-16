@@ -433,6 +433,7 @@ namespace Pickles_Playlist_Editor
         }
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e) => _ = OpenSettingsAsync();
+        private async void HelpButton_Click(object sender, RoutedEventArgs e) => await Windows.System.Launcher.LaunchUriAsync(new Uri("https://discord.gg/solona"));
         private void NewButton_Click(object sender, RoutedEventArgs e) => _ = OpenNewPlaylistAsync();
         private void DeleteButton_Click(object sender, RoutedEventArgs e) => _ = DoDeleteAsync();
 

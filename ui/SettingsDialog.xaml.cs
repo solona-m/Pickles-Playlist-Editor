@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace Pickles_Playlist_Editor
 {
@@ -16,6 +17,7 @@ namespace Pickles_Playlist_Editor
                 Settings.ModName ?? string.Empty);
             BaselineScdTextBox.Text = Settings.BaselineScdKey;
             BackgroundImageTextBox.Text = Settings.BackgroundImagePath;
+            ScdVolumePercentageBox.Value = Settings.ScdVolumePercentage;
             NormalizeVolumeCheckBox.IsChecked = Settings.NormalizeVolume;
             AutoReloadCheckBox.IsChecked = Settings.AutoReloadMod;
             ValidateFields();
@@ -111,12 +113,24 @@ namespace Pickles_Playlist_Editor
             Settings.PenumbraLocation = penLocation;
             Settings.BaselineScdKey = BaselineScdTextBox.Text;
             Settings.BackgroundImagePath = BackgroundImageTextBox.Text.Trim();
+            Settings.ScdVolumePercentage = (int)ScdVolumePercentageBox.Value;
             Settings.NormalizeVolume = NormalizeVolumeCheckBox.IsChecked == true;
             Settings.AutoReloadMod = AutoReloadCheckBox.IsChecked == true;
         }
 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
+
         private void OrganizeLibraryButton_Click(object sender, RoutedEventArgs e)
         {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+            int result = MessageBox(hwnd,
+                AppStrings.Dlg_OrganizeLibrary_Content,
+                AppStrings.Dlg_OrganizeLibrary_Title,
+                0x00000001 | 0x00000030); // MB_OKCANCEL | MB_ICONWARNING
+            if (result != 1) // IDOK
+                return;
+
             foreach (var playlist in MainWindow.Playlists.Values)
                 playlist.Cleanup();
         }

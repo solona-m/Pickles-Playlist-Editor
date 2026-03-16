@@ -353,18 +353,33 @@ namespace Pickles_Playlist_Editor
 
                 if (result != ContentDialogResult.Primary) return false;
 
-                foreach (var item in PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>().ToList())
+                var selectedItems = PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>().ToList();
+                foreach (var item in selectedItems)
                 {
                     if (item.Level == 1 && Playlists.TryGetValue(item.Name, out var pl))
                     {
-                        pl.Delete();
+                        int checkedChildCount = selectedItems.Count(x => x.Level == 2 && x.Parent == item);
+                        if (checkedChildCount > 1)
+                        {
+                            // skip — child songs are selected
+                        }
+                        else if (pl.Options.Count > 1)
+                        {
+                            await ShowDialogAsync(
+                                AppStrings.Dlg_NonEmptyPlaylist_Title,
+                                AppStrings.Dlg_NonEmptyPlaylist_Content);
+                        }
+                        else
+                        {
+                            pl.Delete();
+                        }
                     }
                     else if (item.Level == 2 && item.Parent != null)
                     {
                         if (Playlists.TryGetValue(item.Parent.Name, out var parentPl))
                         {
                             var song = parentPl.Options.Find(x => x.Name == item.Name);
-                            if (song != null)
+                            if (song != null && !song.Name.Equals("Off", StringComparison.InvariantCultureIgnoreCase))
                             {
                                 parentPl.Options.Remove(song);
                                 parentPl.Save();

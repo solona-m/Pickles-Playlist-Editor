@@ -17,6 +17,8 @@ namespace Pickles_Playlist_Editor
         public static string Dlg_BPMDetection_Content => _r.GetString("Dlg_BPMDetection_Content");
         public static string Dlg_ConfirmDelete_Title => _r.GetString("Dlg_ConfirmDelete_Title");
         public static string Dlg_ConfirmDelete_Content => _r.GetString("Dlg_ConfirmDelete_Content");
+        public static string Dlg_NonEmptyPlaylist_Title => _r.GetString("Dlg_NonEmptyPlaylist_Title");
+        public static string Dlg_NonEmptyPlaylist_Content => _r.GetString("Dlg_NonEmptyPlaylist_Content");
         public static string Dlg_UpdateAvailable_Title => _r.GetString("Dlg_UpdateAvailable_Title");
         public static string Dlg_ExtractAudio_Title => _r.GetString("Dlg_ExtractAudio_Title");
         public static string Dlg_ExtractAudio_NoSongs => _r.GetString("Dlg_ExtractAudio_NoSongs");
@@ -45,6 +47,8 @@ namespace Pickles_Playlist_Editor
         public static string Menu_NormalizeAudio => _r.GetString("Menu_NormalizeAudio");
         public static string Menu_IncreaseVolume => _r.GetString("Menu_IncreaseVolume");
         public static string Menu_Rename => _r.GetString("Menu_Rename");
+        public static string Dlg_OrganizeLibrary_Title => _r.GetString("Dlg_OrganizeLibrary_Title");
+        public static string Dlg_OrganizeLibrary_Content => _r.GetString("Dlg_OrganizeLibrary_Content");
         public static string Menu_ManageEQ => _r.GetString("Menu_ManageEQ");
 
         public static string ErrorAddingSongs(string msg) => string.Format(_r.GetString("Dlg_ErrorAddingSongs"), msg);

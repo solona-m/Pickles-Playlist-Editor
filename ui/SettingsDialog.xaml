@@ -43,7 +43,10 @@
             <Button x:Uid="BrowseBackgroundButton" Grid.Column="1" Content="Browse" Click="BrowseBackgroundButton_Click"/>
         </Grid>
 
-        <CheckBox x:Name="NormalizeVolumeCheckBox" x:Uid="NormalizeVolumeCheckBox" Content="Normalize Volume"/>
+        <TextBlock x:Uid="ScdVolumePercentageLabel" Text="SCD Volume Percentage" FontWeight="SemiBold"/>
+        <NumberBox x:Name="ScdVolumePercentageBox" Minimum="1" Maximum="100" SpinButtonPlacementMode="Inline" SmallChange="1"/>
+
+<CheckBox x:Name="NormalizeVolumeCheckBox" x:Uid="NormalizeVolumeCheckBox" Content="Normalize Volume"/>
         <CheckBox x:Name="AutoReloadCheckBox" x:Uid="AutoReloadCheckBox" Content="Auto Reload Mod" IsChecked="True"/>
 
         <Button x:Uid="OrganizeLibraryButton" Content="Organize Library" Click="OrganizeLibraryButton_Click" HorizontalAlignment="Stretch"/>

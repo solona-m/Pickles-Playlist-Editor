@@ -65,6 +65,9 @@
                 <AppBarButton x:Name="SettingsButton" x:Uid="SettingsButton" Label="Settings" Click="SettingsButton_Click">
                     <AppBarButton.Icon><FontIcon Glyph="&#xE713;"/></AppBarButton.Icon>
                 </AppBarButton>
+                <AppBarButton x:Name="HelpButton" x:Uid="HelpButton" Label="Help" Click="HelpButton_Click">
+                    <AppBarButton.Icon><FontIcon Glyph="&#xE897;"/></AppBarButton.Icon>
+                </AppBarButton>
             </CommandBar.SecondaryCommands>
         </CommandBar>
 
