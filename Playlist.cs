@@ -29,9 +29,12 @@ namespace Pickles_Playlist_Editor
         public int DefaultSettings { get { return 0; } }
         public List<Option> Options { get; set; } = new List<Option>();
 
+        private bool? _isVFXGroup;
+
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
 
+        
 
         public static void Create(string playlistName, string dir, Action<int>? callback)
         {
@@ -559,9 +562,23 @@ namespace Pickles_Playlist_Editor
             string modDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
             if (!Directory.Exists(modDir)) return;
 
+            // Collect VFX group names that weren't in the treeview
+            var orderedSet = new HashSet<string>(orderedNames);
+            var allPlaylists = GetAll();
+            var vfxNames = new List<string>();
+            foreach (var kvp in allPlaylists)
+            {
+                if (!orderedSet.Contains(kvp.Key) && kvp.Value.IsVFXGroup())
+                    vfxNames.Add(kvp.Key);
+            }
+
+            // Combined list: treeview order first, then VFX groups
+            var allNames = new List<string>(orderedNames);
+            allNames.AddRange(vfxNames);
+
             // Phase 1: rename each playlist's JSON to a temp file to avoid collisions
             var entries = new List<(string name, string tempPath)>();
-            foreach (string name in orderedNames)
+            foreach (string name in allNames)
             {
                 var files = GetJsonFiles(name);
                 if (files.Length == 0) continue;
@@ -584,6 +601,35 @@ namespace Pickles_Playlist_Editor
             }
 
             RefreshPenumbraMod();
+        }
+
+        public bool IsVFXGroup()
+        {
+            if (_isVFXGroup.HasValue)
+                return _isVFXGroup.Value;
+
+            _isVFXGroup = ComputeIsVFXGroup();
+            return _isVFXGroup.Value;
+        }
+
+        private bool ComputeIsVFXGroup()
+        {
+            if (Options == null || Options.Count < 2)
+                return false;
+
+            foreach (var option in Options)
+            {
+                if (option.Files == null)
+                    continue;
+
+                foreach (var value in option.Files.Values)
+                {
+                    if (value != null && value.EndsWith(".scd", StringComparison.OrdinalIgnoreCase))
+                        return false;
+                }
+            }
+
+            return true;
         }
 
         internal static void RefreshPenumbraMod()

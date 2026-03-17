@@ -73,6 +73,9 @@ namespace Pickles_Playlist_Editor
 
                 foreach (var playlist in Playlists.Values)
                 {
+                    if (playlist.IsVFXGroup())
+                        continue;
+
                     bool wasExpanded = _playlistExpandedStates.TryGetValue(playlist.Name ?? "", out bool exp) && exp;
 
                     var playlistContent = new PlaylistNodeContent
