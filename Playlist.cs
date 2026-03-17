@@ -554,6 +554,38 @@ namespace Pickles_Playlist_Editor
         /// This is a best-effort notification: Penumbra watches file changes; touching meta.json or creating a transient marker file
         /// commonly triggers a refresh. This function does not interact with Dalamud directly.
         /// </summary>
+        internal static void ReorderAll(List<string> orderedNames)
+        {
+            string modDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
+            if (!Directory.Exists(modDir)) return;
+
+            // Phase 1: rename each playlist's JSON to a temp file to avoid collisions
+            var entries = new List<(string name, string tempPath)>();
+            foreach (string name in orderedNames)
+            {
+                var files = GetJsonFiles(name);
+                if (files.Length == 0) continue;
+                string tempPath = files[0] + ".reorder_tmp";
+                File.Move(files[0], tempPath);
+                entries.Add((name, tempPath));
+            }
+
+            // Phase 2: write back with sequential numbering and updated Priority
+            for (int i = 0; i < entries.Count; i++)
+            {
+                string cleanName = entries[i].name.Replace("/", "_");
+                string newPath = Path.Combine(modDir, $"group_{i + 1:D3}_{cleanName}.json");
+
+                string content = File.ReadAllText(entries[i].tempPath, Encoding.UTF8);
+                var jobj = Newtonsoft.Json.Linq.JObject.Parse(content);
+                jobj["Priority"] = i + 1;
+                File.WriteAllText(newPath, jobj.ToString(Newtonsoft.Json.Formatting.Indented), Encoding.UTF8);
+                File.Delete(entries[i].tempPath);
+            }
+
+            RefreshPenumbraMod();
+        }
+
         internal static void RefreshPenumbraMod()
         {
             try

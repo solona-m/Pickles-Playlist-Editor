@@ -99,6 +99,13 @@ namespace Pickles_Playlist_Editor
         {
             try
             {
+                // Playlist reordering (Level 1 → Level 0 or Level 1)
+                if (draggedContent.Level == 1)
+                {
+                    await HandlePlaylistReorderAsync(draggedContent, dropContent);
+                    return;
+                }
+
                 if (draggedContent.Level != 2 || draggedContent.Parent == null) return;
 
                 string oldPlaylistName = draggedContent.Parent.Name;
@@ -140,6 +147,51 @@ namespace Pickles_Playlist_Editor
                 File.Move(Path.Combine(oldDir, oldSongFile), Path.Combine(newDir, oldSongFile));
                 RecomputePlaylistDurations();
                 _playlistExpandedStates[targetPlaylist.Name] = true;
+            }
+            catch (Exception ex)
+            {
+                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorDragDrop(ex.Message));
+            }
+        }
+
+        private async Task HandlePlaylistReorderAsync(PlaylistNodeContent draggedContent, PlaylistNodeContent dropContent)
+        {
+            try
+            {
+                // WinUI removes the dragged item from ItemsSource during the drag,
+                // so Children no longer contains it. Build the list without it and insert.
+                var root = RootPlaylistItems[0];
+                var names = root.Children
+                    .Where(c => c.Level == 1 && c.Name != draggedContent.Name)
+                    .Select(c => c.Name)
+                    .ToList();
+
+                int insertIndex;
+                if (dropContent.Level == 0)
+                {
+                    insertIndex = 0;
+                }
+                else if (dropContent.Level == 1)
+                {
+                    insertIndex = names.IndexOf(dropContent.Name);
+                    if (insertIndex >= 0)
+                        insertIndex++; // insert after the drop target
+                    else
+                        insertIndex = names.Count;
+                }
+                else if (dropContent.Level == 2 && dropContent.Parent != null)
+                {
+                    insertIndex = names.IndexOf(dropContent.Parent.Name);
+                    if (insertIndex >= 0)
+                        insertIndex++; // insert after the parent playlist
+                    else
+                        insertIndex = names.Count;
+                }
+                else return;
+
+                names.Insert(insertIndex, draggedContent.Name);
+
+                await Task.Run(() => Playlist.ReorderAll(names));
             }
             catch (Exception ex)
             {
