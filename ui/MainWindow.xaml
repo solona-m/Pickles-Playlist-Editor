@@ -102,7 +102,9 @@
             DoubleTapped="PlaylistTreeView_DoubleTapped"
             RightTapped="PlaylistTreeView_RightTapped"
             SelectionChanged="PlaylistTreeView_SelectionChanged"
-            Loaded="PlaylistTreeView_Loaded">
+            Loaded="PlaylistTreeView_Loaded"
+            Expanding="PlaylistTreeView_Expanding"
+            Collapsed="PlaylistTreeView_Collapsed">
             <TreeView.ItemTemplate>
                 <DataTemplate x:DataType="local:PlaylistNodeContent">
                     <TreeViewItem ItemsSource="{x:Bind Children}"

@@ -12,11 +12,13 @@ namespace Pickles_Playlist_Editor
     {
         private PlaylistNodeContent? _draggedContent;
         private PlaylistNodeContent? _pendingDropTarget;
+        private bool _dragInProgress;
 
         private void PlaylistTreeView_DragItemsStarting(TreeView sender, TreeViewDragItemsStartingEventArgs e)
         {
             if (e.Items.Count == 1 && e.Items[0] is PlaylistNodeContent content)
             {
+                _dragInProgress = true;
                 _draggedContent = content;
                 _pendingDropTarget = null;
                 e.Data.RequestedOperation = DataPackageOperation.Move;
@@ -47,15 +49,27 @@ namespace Pickles_Playlist_Editor
             _draggedContent = null;
             _pendingDropTarget = null;
 
-            if (args.DropResult == DataPackageOperation.None) return; // cancelled — TreeView reverts itself
-
-            if (draggedContent == null || dropContent == null || dropContent == draggedContent)
+            if (args.DropResult == DataPackageOperation.None)
             {
-                LoadPlaylists(); // reset any internal reorder the TreeView already applied
+                // Cancelled — WinUI reverts its internal reorder; defer so WinUI finishes first.
+                DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+                {
+                    _dragInProgress = false;
+                    LoadPlaylists();
+                });
                 return;
             }
 
-            await HandleInternalReorderAsync(draggedContent, dropContent);
+            if (draggedContent != null && dropContent != null && dropContent != draggedContent)
+                await HandleInternalReorderAsync(draggedContent, dropContent);
+
+            // Defer tree rebuild to after WinUI completes its own post-drag cleanup,
+            // which otherwise resets IsExpanded on freshly created containers.
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                _dragInProgress = false;
+                LoadPlaylists();
+            });
         }
 
         private async Task HandleExternalDropAsync(DragEventArgs e)
@@ -124,10 +138,8 @@ namespace Pickles_Playlist_Editor
                 string newDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetPlaylist.Name);
                 Directory.CreateDirectory(newDir);
                 File.Move(Path.Combine(oldDir, oldSongFile), Path.Combine(newDir, oldSongFile));
-
-                dropContent.IsExpanded = true;
                 RecomputePlaylistDurations();
-                LoadPlaylists();
+                _playlistExpandedStates[targetPlaylist.Name] = true;
             }
             catch (Exception ex)
             {

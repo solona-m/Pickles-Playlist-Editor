@@ -19,6 +19,18 @@ namespace Pickles_Playlist_Editor
         private readonly Dictionary<string, bool> _playlistExpandedStates = new();
         private Storyboard? _spinnerStoryboard;
 
+        private void PlaylistTreeView_Expanding(Microsoft.UI.Xaml.Controls.TreeView _, Microsoft.UI.Xaml.Controls.TreeViewExpandingEventArgs e)
+        {
+            if (!_dragInProgress && e.Item is PlaylistNodeContent node && node.Level == 1)
+                _playlistExpandedStates[node.Name] = true;
+        }
+
+        private void PlaylistTreeView_Collapsed(Microsoft.UI.Xaml.Controls.TreeView _, Microsoft.UI.Xaml.Controls.TreeViewCollapsedEventArgs e)
+        {
+            if (!_dragInProgress && e.Item is PlaylistNodeContent node && node.Level == 1)
+                _playlistExpandedStates[node.Name] = false;
+        }
+
         public void LoadPlaylists() => LoadPlaylists(string.Empty);
 
         public void LoadPlaylistsAndExpand(string playlistName) => LoadPlaylists(string.Empty, playlistName);
@@ -31,13 +43,6 @@ namespace Pickles_Playlist_Editor
             {
                 DispatcherQueue.TryEnqueue(() => LoadPlaylists(filter, forceExpandedPlaylistName));
                 return;
-            }
-
-            // Snapshot expanded state before rebuild
-            if (RootPlaylistItems.Count > 0)
-            {
-                foreach (var child in RootPlaylistItems[0].Children)
-                    _playlistExpandedStates[child.Name] = child.IsExpanded;
             }
 
             try
