@@ -125,6 +125,19 @@ namespace Pickles_Playlist_Editor
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
 
+        private void RepairLibraryButton_Click(object sender, RoutedEventArgs e)
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+            int result = MessageBox(hwnd,
+                AppStrings.Dlg_RepairLibrary_Content,
+                AppStrings.Dlg_RepairLibrary_Title,
+                0x00000001 | 0x00000030); // MB_OKCANCEL | MB_ICONWARNING
+            if (result != 1) // IDOK
+                return;
+
+            Library.Repair();
+        }
+
         private void OrganizeLibraryButton_Click(object sender, RoutedEventArgs e)
         {
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
@@ -135,8 +148,7 @@ namespace Pickles_Playlist_Editor
             if (result != 1) // IDOK
                 return;
 
-            foreach (var playlist in MainWindow.Playlists.Values)
-                playlist.Cleanup();
+            Library.Cleanup();
         }
     }
 }

@@ -52,6 +52,7 @@
         <CheckBox x:Name="AutoReloadCheckBox" x:Uid="AutoReloadCheckBox" Content="Auto Reload Mod" IsChecked="True"/>
 
         <Button x:Uid="OrganizeLibraryButton" Content="Organize Library" Click="OrganizeLibraryButton_Click" HorizontalAlignment="Stretch"/>
+        <Button x:Uid="RepairLibraryButton" Content="Repair Library" Click="RepairLibraryButton_Click" HorizontalAlignment="Stretch"/>
 
     </StackPanel>
 </ContentDialog>

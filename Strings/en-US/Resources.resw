@@ -118,4 +118,7 @@
   <data name="Menu_Rename" xml:space="preserve"><value>Rename</value></data>
   <data name="Dlg_OrganizeLibrary_Title" xml:space="preserve"><value>Warning</value></data>
   <data name="Dlg_OrganizeLibrary_Content" xml:space="preserve"><value>This will rename all of your scd files and put them in folders named after your playlists. Backup your mod before continuing!</value></data>
+  <data name="RepairLibraryButton.Content" xml:space="preserve"><value>Repair Library</value></data>
+  <data name="Dlg_RepairLibrary_Title" xml:space="preserve"><value>Warning</value></data>
+  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>This will make a best effort to restore missing playlists from backup. Use with caution. Do you want to proceed?</value></data>
 </root>
