@@ -47,8 +47,13 @@ namespace Pickles_Playlist_Editor
             _draggedContent = null;
             _pendingDropTarget = null;
 
-            if (draggedContent == null || dropContent == null || dropContent == draggedContent) return;
-            if (args.DropResult == DataPackageOperation.None) return; // cancelled
+            if (args.DropResult == DataPackageOperation.None) return; // cancelled — TreeView reverts itself
+
+            if (draggedContent == null || dropContent == null || dropContent == draggedContent)
+            {
+                LoadPlaylists(); // reset any internal reorder the TreeView already applied
+                return;
+            }
 
             await HandleInternalReorderAsync(draggedContent, dropContent);
         }

@@ -302,6 +302,10 @@ namespace Pickles_Playlist_Editor
 
         public void Insert(string[] fileNames, int index, Action<int>? callback = null)
         {
+            int offIndex = Options.FindIndex(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
+            if (offIndex >= 0)
+                index = Math.Max(index, offIndex + 1);
+
             int count = 0;
             foreach (string file in fileNames)
             {
