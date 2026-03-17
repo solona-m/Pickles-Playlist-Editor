@@ -117,5 +117,8 @@
   <data name="Menu_Rename" xml:space="preserve"><value>Renommer</value></data>
   <data name="Dlg_OrganizeLibrary_Title" xml:space="preserve"><value>Avertissement</value></data>
   <data name="Dlg_OrganizeLibrary_Content" xml:space="preserve"><value>Cela renommera tous vos fichiers scd et les placera dans des dossiers portant le nom de vos listes de lecture. Sauvegardez votre mod avant de continuer !</value></data>
+  <data name="RepairLibraryButton.Content" xml:space="preserve"><value>Réparer la bibliothèque</value></data>
+  <data name="Dlg_RepairLibrary_Title" xml:space="preserve"><value>Avertissement</value></data>
+  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Cela tentera de restaurer les listes de lecture manquantes à partir des sauvegardes. À utiliser avec précaution. Voulez-vous continuer ?</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Liste de lecture cible :</value></data>
 </root>

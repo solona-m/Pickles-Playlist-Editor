@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 .claude/settings.local.json
 .claude/settings.local.json
+Tools/process_baks.py

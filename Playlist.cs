@@ -550,7 +550,7 @@ namespace Pickles_Playlist_Editor
         /// This is a best-effort notification: Penumbra watches file changes; touching meta.json or creating a transient marker file
         /// commonly triggers a refresh. This function does not interact with Dalamud directly.
         /// </summary>
-        private static void RefreshPenumbraMod()
+        internal static void RefreshPenumbraMod()
         {
             try
             {

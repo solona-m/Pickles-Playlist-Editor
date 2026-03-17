@@ -117,5 +117,8 @@
   <data name="Menu_Rename" xml:space="preserve"><value>Umbenennen</value></data>
   <data name="Dlg_OrganizeLibrary_Title" xml:space="preserve"><value>Warnung</value></data>
   <data name="Dlg_OrganizeLibrary_Content" xml:space="preserve"><value>Dadurch werden alle SCD-Dateien umbenannt und in Ordnern abgelegt, die nach deinen Playlists benannt sind. Erstelle vor dem Fortfahren ein Backup deines Mods!</value></data>
+  <data name="RepairLibraryButton.Content" xml:space="preserve"><value>Bibliothek reparieren</value></data>
+  <data name="Dlg_RepairLibrary_Title" xml:space="preserve"><value>Warnung</value></data>
+  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Dies versucht, fehlende Playlists aus Sicherungen wiederherzustellen. Vorsicht geboten. Möchtest du fortfahren?</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Ziel-Playlist:</value></data>
 </root>
