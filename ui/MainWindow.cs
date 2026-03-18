@@ -217,7 +217,7 @@ namespace Pickles_Playlist_Editor
                     targetContent = FindPlaylistNode(name);
                 }
 
-                var files = await PickFilesAsync(".ogg", ".wav", ".mp3", ".m4a", ".flac");
+                var files = await PickFilesAsync(".ogg", ".wav", ".mp3", ".m4a", ".flac", ".scd");
                 if (files == null || files.Length == 0) return;
 
                 await AddOrInsertFilesToPlaylistAsync(targetContent, targetPlaylist, files);
