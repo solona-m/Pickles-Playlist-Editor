@@ -174,7 +174,10 @@ namespace Pickles_Playlist_Editor
             if (System.IO.File.Exists(picklePath))
                 BusyPickleImage.Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(picklePath));
             LoadPlaylists();
+
             _ = CheckForUpdatesAsync();
+            if (string.IsNullOrWhiteSpace(Settings.PenumbraLocation) || string.IsNullOrWhiteSpace(Settings.ModName))
+                _ = OpenSettingsAsync();
         }
 
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)

@@ -114,22 +114,28 @@ namespace Pickles_Playlist_Editor
             get
             {
                 string key = (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("BaselineScdKey");
-                if (string.IsNullOrWhiteSpace(key))
+                try
                 {
-                    if (s_defaultBaselineScdKey.TryGetValue(ModName, out var defaultKey))
+                    if (string.IsNullOrWhiteSpace(ModName))
+                        return string.Empty;
+                    if (string.IsNullOrWhiteSpace(key))
                     {
-                        BaselineScdKey = defaultKey; // save it for next time
-                        return defaultKey;
-                    }
-                    else
-                    {
-                        if (!string.IsNullOrWhiteSpace(ModName) && ModName.Contains("[yue & lu's]", StringComparison.OrdinalIgnoreCase))
+                        if (s_defaultBaselineScdKey.TryGetValue(ModName, out var defaultKey))
                         {
-                            return "sound/lolo.scd";
+                            BaselineScdKey = defaultKey; // save it for next time
+                            return defaultKey;
                         }
-                        return s_defaultBaselineScdKey[s_defaultModNames[0]]; // fallback to first default if mod name is unrecognized, but don't save it
+                        else
+                        {
+                            if (!string.IsNullOrWhiteSpace(ModName) && ModName.Contains("[yue & lu's]", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return "sound/lolo.scd";
+                            }
+                            return s_defaultBaselineScdKey[s_defaultModNames[0]]; // fallback to first default if mod name is unrecognized, but don't save it
+                        }
                     }
                 }
+                catch {}
                 return key;
             }
             set

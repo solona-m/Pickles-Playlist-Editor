@@ -12,17 +12,26 @@ namespace Pickles_Playlist_Editor
         {
             this.InitializeComponent();
 
-            DirectoryPathTextBox.Text = Path.Combine(
-                Settings.PenumbraLocation ?? string.Empty,
-                Settings.ModName ?? string.Empty);
-            BaselineScdTextBox.Text = Settings.BaselineScdKey;
-            BackgroundImageTextBox.Text = Settings.BackgroundImagePath;
-            ScdVolumePercentageBox.Value = Settings.ScdVolumePercentage;
-            LoopSongsCheckBox.IsChecked = Settings.LoopSongs;
-            NormalizeVolumeCheckBox.IsChecked = Settings.NormalizeVolume;
-            FadeWithDistanceCheckBox.IsChecked = Settings.FadeWithDistance;
-            AutoReloadCheckBox.IsChecked = Settings.AutoReloadMod;
-            ValidateFields();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(Settings.ModName))
+                {
+                    DirectoryPathTextBox.Text = Path.Combine(
+                        Settings.PenumbraLocation ?? string.Empty,
+                        Settings.ModName ?? string.Empty);
+                }
+                BaselineScdTextBox.Text = Settings.BaselineScdKey;
+                BackgroundImageTextBox.Text = Settings.BackgroundImagePath;
+                ScdVolumePercentageBox.Value = Settings.ScdVolumePercentage;
+                LoopSongsCheckBox.IsChecked = Settings.LoopSongs;
+                NormalizeVolumeCheckBox.IsChecked = Settings.NormalizeVolume;
+                FadeWithDistanceCheckBox.IsChecked = Settings.FadeWithDistance;
+                AutoReloadCheckBox.IsChecked = Settings.AutoReloadMod;
+                ValidateFields();
+            }
+            catch (Exception e) {
+                Console.WriteLine(e.ToString());
+            }
         }
 
         private void ValidateFields()
