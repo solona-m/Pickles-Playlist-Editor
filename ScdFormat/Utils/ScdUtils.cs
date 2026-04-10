@@ -12,25 +12,33 @@ namespace VfxEditor.Formats.ScdFormat.Utils {
     public static class ScdUtils {
         public static string VorbisHeader => Path.Combine( Plugin.RootLocation, "Files", "vorbis_header.bin" );
 
-        public static void ConvertWavToOgg( string wavPath ) {
-            Cleanup();
-            
-            InteropUtils.Run( "oggenc2.exe", "-s 0 -q 6 --scale 1.0 --resample 44100 -o \"" + Path.GetDirectoryName(wavPath) + "\" \""+wavPath+"\"", true, out var _ );
+        public static string ConvertWavToOgg( string wavPath ) {
+            string oggName = GetOggPath(wavPath);
+
+            FFMpeg.ConvertMp3ToOgg(wavPath, oggName);
+            return oggName;
         }
 
         public static string Convertmp3toOgg(string mp3Path)
         {
+            string oggName = GetOggPath(mp3Path);
+
+            FFMpeg.ConvertMp3ToOgg(mp3Path, oggName);
+
+            FFMpeg.StripVideo(oggName);
+
+            return oggName;
+        }
+
+        private static string GetOggPath(string mp3Path)
+        {
+
             // Convert MP3 -> intermediate OGG that we'll run loudnorm on
             Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(mp3Path), "ogg"));
             string oggDir = Path.Combine(Path.GetDirectoryName(mp3Path), "ogg");
             string oggName = Path.Combine(oggDir, Path.GetFileNameWithoutExtension(mp3Path) + ".ogg");
 
             if (File.Exists(oggName)) File.Delete(oggName);
-
-            FFMpeg.ConvertMp3ToOgg(mp3Path, oggName);
-
-            FFMpeg.StripVideo(oggName);
-
             return oggName;
         }
 

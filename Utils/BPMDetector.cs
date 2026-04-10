@@ -128,6 +128,10 @@ namespace Pickles_Playlist_Editor.Utils
                     {
                         return new TimeSpan(0);
                     }
+                    finally
+                    {
+                        try { File.Delete(tmpOgg); } catch { }
+                    }
                 }
             }
             catch (Exception ex)
