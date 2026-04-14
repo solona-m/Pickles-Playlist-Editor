@@ -42,8 +42,14 @@ namespace Pickles_Playlist_Editor
                             using (var reader = new BinaryReader(File.Open(scdPath, FileMode.Open)))
                                 scd = new ScdFile(reader, false);
 
+                            if (scd.Audio.Count > 0)
+                                scd.Audio[0].NumChannels = 2;
+
                             if (scd.Sounds.Count > 0)
-                                scd.Sounds[0].Attributes.Value |= SoundAttribute.Fixed_Position;
+                            {
+                                scd.Sounds[0].Attributes.Value |= SoundAttribute.Bypass_PLIIz | SoundAttribute.Music | SoundAttribute.Fixed_Position;
+                                scd.Sounds[0].Attributes.Value &= ~SoundAttribute.Music_Surround;
+                            }
 
                             using (var writer = new BinaryWriter(File.Open(scdPath, FileMode.Create)))
                                 scd.Write(writer);
