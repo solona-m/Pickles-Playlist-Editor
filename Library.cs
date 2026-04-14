@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using VfxEditor.ScdFormat;
 
 namespace Pickles_Playlist_Editor
 {
@@ -17,6 +18,41 @@ namespace Pickles_Playlist_Editor
         {
             foreach (var playlist in MainWindow.Playlists.Values)
                 playlist.Cleanup();
+        }
+
+        public static void ConvertToStereo(Action<int> progress)
+        {
+            var allOptions = Playlist.GetAll().Values
+                .SelectMany(p => p.Options)
+                .ToList();
+            int total = allOptions.Count;
+            int done = 0;
+
+            foreach (var option in allOptions)
+            {
+                string rel = Playlist.GetScdPath(option);
+                if (!string.IsNullOrEmpty(rel))
+                {
+                    string scdPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, rel);
+                    if (File.Exists(scdPath))
+                    {
+                        try
+                        {
+                            ScdFile scd;
+                            using (var reader = new BinaryReader(File.Open(scdPath, FileMode.Open)))
+                                scd = new ScdFile(reader, false);
+
+                            if (scd.Sounds.Count > 0)
+                                scd.Sounds[0].Attributes.Value |= SoundAttribute.Fixed_Position;
+
+                            using (var writer = new BinaryWriter(File.Open(scdPath, FileMode.Create)))
+                                scd.Write(writer);
+                        }
+                        catch { }
+                    }
+                }
+                progress?.Invoke((int)(++done / (double)total * 100));
+            }
         }
 
         [LibraryImport("user32.dll", EntryPoint = "MessageBoxW", StringMarshalling = StringMarshalling.Utf16)]

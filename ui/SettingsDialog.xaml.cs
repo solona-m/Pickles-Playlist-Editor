@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Pickles_Playlist_Editor
 {
@@ -145,6 +146,17 @@ namespace Pickles_Playlist_Editor
                 return;
 
             Library.Repair();
+        }
+
+        private void ConvertToStereoButton_Click(object sender, RoutedEventArgs e)
+        {
+            this.Hide();
+            App.MainWindow.DispatcherQueue.TryEnqueue(async () =>
+            {
+                App.MainWindow.SetProgressBarText(AppStrings.Prog_ConvertingToStereo);
+                await Task.Run(() => Library.ConvertToStereo(App.MainWindow.SetProgressBarPercent));
+                App.MainWindow.ClearProgressDisplay();
+            });
         }
 
         private void OrganizeLibraryButton_Click(object sender, RoutedEventArgs e)

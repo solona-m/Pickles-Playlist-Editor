@@ -118,6 +118,8 @@
   <data name="Dlg_OrganizeLibrary_Title" xml:space="preserve"><value>Advertencia</value></data>
   <data name="Dlg_OrganizeLibrary_Content" xml:space="preserve"><value>Esto renombrará todos tus archivos scd y los colocará en carpetas con el nombre de tus listas de reproducción. ¡Haz una copia de seguridad de tu mod antes de continuar!</value></data>
   <data name="RepairLibraryButton.Content" xml:space="preserve"><value>Reparar biblioteca</value></data>
+  <data name="ConvertToStereoButton.Content" xml:space="preserve"><value>Convertir a estéreo</value></data>
+  <data name="Prog_ConvertingToStereo" xml:space="preserve"><value>Convirtiendo a estéreo...</value></data>
   <data name="Dlg_RepairLibrary_Title" xml:space="preserve"><value>Advertencia</value></data>
   <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Esto intentará restaurar las listas de reproducción faltantes desde las copias de seguridad. Úsalo con precaución. ¿Deseas continuar?</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Lista de reproducción de destino:</value></data>

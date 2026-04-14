@@ -118,6 +118,8 @@
   <data name="Dlg_OrganizeLibrary_Title" xml:space="preserve"><value>Varning</value></data>
   <data name="Dlg_OrganizeLibrary_Content" xml:space="preserve"><value>Detta kommer att byta namn på alla dina scd-filer och placera dem i mappar uppkallade efter dina spellistor. Säkerhetskopiera din mod innan du fortsätter!</value></data>
   <data name="RepairLibraryButton.Content" xml:space="preserve"><value>Reparera bibliotek</value></data>
+  <data name="ConvertToStereoButton.Content" xml:space="preserve"><value>Konvertera till stereo</value></data>
+  <data name="Prog_ConvertingToStereo" xml:space="preserve"><value>Konverterar till stereo...</value></data>
   <data name="Dlg_RepairLibrary_Title" xml:space="preserve"><value>Varning</value></data>
   <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Detta försöker återställa saknade spellistor från säkerhetskopior. Använd med försiktighet. Vill du fortsätta?</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Målspellista:</value></data>

@@ -53,6 +53,7 @@
 
         <Button x:Uid="OrganizeLibraryButton" Content="Organize Library" Click="OrganizeLibraryButton_Click" HorizontalAlignment="Stretch"/>
         <Button x:Uid="RepairLibraryButton" Content="Repair Library" Click="RepairLibraryButton_Click" HorizontalAlignment="Stretch"/>
+        <Button x:Uid="ConvertToStereoButton" Content="Convert to Stereo" Click="ConvertToStereoButton_Click" HorizontalAlignment="Stretch"/>
 
     </StackPanel>
 </ContentDialog>
