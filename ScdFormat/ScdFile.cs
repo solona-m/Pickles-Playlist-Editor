@@ -198,6 +198,7 @@ namespace VfxEditor.ScdFormat {
 
                 file.Sounds[0].Attributes.Value |= SoundAttribute.Loop | SoundAttribute.Fixed_Position | SoundAttribute.Extra_Desc;
                 file.Sounds[0].Volume.Value = Pickles_Playlist_Editor.Settings.ScdVolumePercentage / 100f;
+                file.Sounds[0].BusNumber.Value = (byte)Pickles_Playlist_Editor.Settings.BusNumber;
                 file.Sounds[0].BusDucking.FadeTime.Value = 1200;
                 file.Sounds[0].BusDucking.Volume.Value = 0f;
                 file.Sounds[0].BusDucking.Number.Value = 1;

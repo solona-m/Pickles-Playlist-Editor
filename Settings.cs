@@ -292,6 +292,41 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        /// <summary>
+        /// Controls which audio bus the imported SCD plays through (16=BGM, 2=SFX, 3=Voice, etc.).
+        /// Default: 16 (BGM). FadeWithDistance overrides this to bus 8 (positional) at import time.
+        /// Stored as integer under the same registry subkey.
+        /// </summary>
+        public static int BusNumber
+        {
+            get
+            {
+                try
+                {
+                    var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("BusNumber", 16);
+                    int[] valid = [16, 2, 3, 4, 5];
+                    if (value is int iv) { if (System.Array.IndexOf(valid, iv) >= 0) return iv; }
+                    else if (value is long lv) { int i = (int)lv; if (System.Array.IndexOf(valid, i) >= 0) return i; }
+                    else if (value is string sv && int.TryParse(sv, out var bv)) { if (System.Array.IndexOf(valid, bv) >= 0) return bv; }
+                }
+                catch
+                {
+                    // fallthrough to default
+                }
+                return 16;
+            }
+            set
+            {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey))
+                {
+                    if (key != null)
+                    {
+                        key.SetValue("BusNumber", value, RegistryValueKind.DWord);
+                    }
+                }
+            }
+        }
+
         public static readonly string DefaultBackgroundImagePath = System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "PicklesPlaylistEditor", "current", "ui", "picklebackground.png");

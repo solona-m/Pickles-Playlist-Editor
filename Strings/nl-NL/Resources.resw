@@ -48,6 +48,12 @@
 <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Volume normaliseren</value></data>
   <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Vervagen met afstand</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Mod automatisch herladen</value></data>
+  <data name="BusNumberLabel.Text" xml:space="preserve"><value>Afspeelkanaal</value></data>
+  <data name="BusNumberItem_BGM.Content" xml:space="preserve"><value>Achtergrondmuziek</value></data>
+  <data name="BusNumberItem_SoundEffect.Content" xml:space="preserve"><value>Geluidseffect</value></data>
+  <data name="BusNumberItem_Voice.Content" xml:space="preserve"><value>Stem</value></data>
+  <data name="BusNumberItem_System.Content" xml:space="preserve"><value>Systeem</value></data>
+  <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Omgeving</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Bibliotheek ordenen</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Nummers toevoegen van YouTube</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Downloaden</value></data>
