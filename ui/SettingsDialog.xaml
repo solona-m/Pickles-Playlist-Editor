@@ -46,6 +46,15 @@
         <TextBlock x:Uid="ScdVolumePercentageLabel" Text="SCD Volume Percentage" FontWeight="SemiBold"/>
         <NumberBox x:Name="ScdVolumePercentageBox" Minimum="1" Maximum="100" SpinButtonPlacementMode="Inline" SmallChange="1"/>
 
+        <TextBlock x:Uid="BusNumberLabel" Text="Playback Channel" FontWeight="SemiBold"/>
+        <ComboBox x:Name="BusNumberComboBox" HorizontalAlignment="Stretch">
+            <ComboBoxItem x:Uid="BusNumberItem_BGM"         Content="BGM"/>
+            <ComboBoxItem x:Uid="BusNumberItem_SoundEffect" Content="Sound Effect"/>
+            <ComboBoxItem x:Uid="BusNumberItem_Voice"       Content="Voice"/>
+            <ComboBoxItem x:Uid="BusNumberItem_System"      Content="System"/>
+            <ComboBoxItem x:Uid="BusNumberItem_Ambient"     Content="Ambient"/>
+        </ComboBox>
+
 <CheckBox x:Name="LoopSongsCheckBox" x:Uid="LoopSongsCheckBox" Content="Loop Songs" IsChecked="False"/>
         <CheckBox x:Name="NormalizeVolumeCheckBox" x:Uid="NormalizeVolumeCheckBox" Content="Normalize Volume"/>
         <CheckBox x:Name="FadeWithDistanceCheckBox" x:Uid="FadeWithDistanceCheckBox" Content="Fade With Distance"/>

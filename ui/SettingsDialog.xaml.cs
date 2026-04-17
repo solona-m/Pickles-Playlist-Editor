@@ -28,6 +28,7 @@ namespace Pickles_Playlist_Editor
                 NormalizeVolumeCheckBox.IsChecked = Settings.NormalizeVolume;
                 FadeWithDistanceCheckBox.IsChecked = Settings.FadeWithDistance;
                 AutoReloadCheckBox.IsChecked = Settings.AutoReloadMod;
+                BusNumberComboBox.SelectedIndex = BusNumberToIndex(Settings.BusNumber);
                 ValidateFields();
             }
             catch (Exception e) {
@@ -114,6 +115,18 @@ namespace Pickles_Playlist_Editor
 
         private void BaselineScdTextBox_TextChanged(object sender, TextChangedEventArgs e) => ValidateFields();
 
+        // Bus 1 (Unknown) is intentionally excluded from the UI.
+        // ComboBox indices: 0=BGM(0), 1=SoundEffect(2), 2=Voice(3), 3=System(4), 4=Ambient(5)
+        private static readonly int[] IndexToBusMap = [16, 2, 3, 4, 5];
+
+        private static int BusNumberToIndex(int busNumber) {
+            int idx = System.Array.IndexOf(IndexToBusMap, busNumber);
+            return idx >= 0 ? idx : 0;
+        }
+
+        private static int IndexToBusNumber(int index) =>
+            (index >= 0 && index < IndexToBusMap.Length) ? IndexToBusMap[index] : 0;
+
         private void OkButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
             string path = DirectoryPathTextBox.Text.TrimEnd('\\', '/');
@@ -130,6 +143,7 @@ namespace Pickles_Playlist_Editor
             Settings.NormalizeVolume = NormalizeVolumeCheckBox.IsChecked == true;
             Settings.FadeWithDistance = FadeWithDistanceCheckBox.IsChecked == true;
             Settings.AutoReloadMod = AutoReloadCheckBox.IsChecked == true;
+            Settings.BusNumber = IndexToBusNumber(BusNumberComboBox.SelectedIndex);
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]

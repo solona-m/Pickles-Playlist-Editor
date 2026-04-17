@@ -48,6 +48,12 @@
 <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalizar volumen</value></data>
   <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Atenuar con la distancia</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Recargar mod automáticamente</value></data>
+  <data name="BusNumberLabel.Text" xml:space="preserve"><value>Canal de reproducción</value></data>
+  <data name="BusNumberItem_BGM.Content" xml:space="preserve"><value>Música de fondo</value></data>
+  <data name="BusNumberItem_SoundEffect.Content" xml:space="preserve"><value>Efecto de sonido</value></data>
+  <data name="BusNumberItem_Voice.Content" xml:space="preserve"><value>Voz</value></data>
+  <data name="BusNumberItem_System.Content" xml:space="preserve"><value>Sistema</value></data>
+  <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Ambiente</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organizar biblioteca</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Añadir canciones de YouTube</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Descargar</value></data>
