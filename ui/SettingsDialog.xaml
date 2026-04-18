@@ -59,6 +59,7 @@
         <CheckBox x:Name="NormalizeVolumeCheckBox" x:Uid="NormalizeVolumeCheckBox" Content="Normalize Volume"/>
         <CheckBox x:Name="FadeWithDistanceCheckBox" x:Uid="FadeWithDistanceCheckBox" Content="Fade With Distance"/>
         <CheckBox x:Name="AutoReloadCheckBox" x:Uid="AutoReloadCheckBox" Content="Auto Reload Mod" IsChecked="True"/>
+        <CheckBox x:Name="FadeBackgroundMusicCheckBox" x:Uid="FadeBackgroundMusicCheckBox" Content="Fade background music" IsChecked="True"/>
 
         <Button x:Uid="OrganizeLibraryButton" Content="Organize Library" Click="OrganizeLibraryButton_Click" HorizontalAlignment="Stretch"/>
         <Button x:Uid="RepairLibraryButton" Content="Repair Library" Click="RepairLibraryButton_Click" HorizontalAlignment="Stretch"/>

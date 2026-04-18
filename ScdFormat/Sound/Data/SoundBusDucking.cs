@@ -21,9 +21,6 @@ namespace VfxEditor.ScdFormat.Sound.Data {
         }
 
         public void Write( BinaryWriter writer ) {
-            FadeTime.Value = 1200;
-            Volume.Value = 0f;
-            Number.Value = 1;
             writer.Write( Size );
             Number.Write( writer );
             Reserve1.Write( writer );

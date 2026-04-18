@@ -28,6 +28,7 @@ namespace Pickles_Playlist_Editor
                 NormalizeVolumeCheckBox.IsChecked = Settings.NormalizeVolume;
                 FadeWithDistanceCheckBox.IsChecked = Settings.FadeWithDistance;
                 AutoReloadCheckBox.IsChecked = Settings.AutoReloadMod;
+                FadeBackgroundMusicCheckBox.IsChecked = Settings.FadeBackgroundMusic;
                 BusNumberComboBox.SelectedIndex = BusNumberToIndex(Settings.BusNumber);
                 ValidateFields();
             }
@@ -143,6 +144,7 @@ namespace Pickles_Playlist_Editor
             Settings.NormalizeVolume = NormalizeVolumeCheckBox.IsChecked == true;
             Settings.FadeWithDistance = FadeWithDistanceCheckBox.IsChecked == true;
             Settings.AutoReloadMod = AutoReloadCheckBox.IsChecked == true;
+            Settings.FadeBackgroundMusic = FadeBackgroundMusicCheckBox.IsChecked == true;
             Settings.BusNumber = IndexToBusNumber(BusNumberComboBox.SelectedIndex);
         }
 

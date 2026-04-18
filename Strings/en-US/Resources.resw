@@ -48,6 +48,8 @@
 <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normalize Volume</value></data>
   <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Fade With Distance</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Auto Reload Mod</value></data>
+  <data name="FadeBackgroundMusicCheckBox.Content" xml:space="preserve"><value>Fade background music</value></data>
+
   <data name="BusNumberLabel.Text" xml:space="preserve"><value>Playback Channel</value></data>
   <data name="BusNumberItem_BGM.Content" xml:space="preserve"><value>BGM</value></data>
   <data name="BusNumberItem_SoundEffect.Content" xml:space="preserve"><value>Sound Effect</value></data>

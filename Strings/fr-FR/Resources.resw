@@ -48,6 +48,8 @@
 <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normaliser le volume</value></data>
   <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Fondu avec la distance</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Recharger le mod automatiquement</value></data>
+  <data name="FadeBackgroundMusicCheckBox.Content" xml:space="preserve"><value>Atténuer la musique de fond</value></data>
+
   <data name="BusNumberLabel.Text" xml:space="preserve"><value>Canal de lecture</value></data>
   <data name="BusNumberItem_BGM.Content" xml:space="preserve"><value>Musique de fond</value></data>
   <data name="BusNumberItem_SoundEffect.Content" xml:space="preserve"><value>Effet sonore</value></data>
