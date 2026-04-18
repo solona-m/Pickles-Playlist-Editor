@@ -9,6 +9,7 @@
     PrimaryButtonClick="OkButton_Click"
     DefaultButton="Primary">
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Spacing="8" MinWidth="500">
 
         <TextBlock x:Uid="ModDirLabel" Text="Mod Directory in Penumbra" FontWeight="SemiBold"/>
@@ -66,4 +67,5 @@
         <Button x:Uid="ConvertToStereoButton" Content="Convert to Stereo" Click="ConvertToStereoButton_Click" HorizontalAlignment="Stretch"/>
 
     </StackPanel>
+    </ScrollViewer>
 </ContentDialog>
