@@ -203,13 +203,28 @@ namespace VfxEditor.ScdFormat.Music.Data {
         }
 
         public static ScdAudioEntry ImportWav( string path, ScdAudioEntry oldEntry ) {
-           
-            return ImportOgg(ScdUtils.ConvertWavToOgg(path), oldEntry );
+            string oggPath = ScdUtils.ConvertWavToOgg(path);
+            try { return ImportOgg(oggPath, oldEntry); }
+            finally { DeleteIntermediateOgg(oggPath); }
         }
 
         public static ScdAudioEntry Importmp3(string mp3Path, ScdAudioEntry oldEntry)
         {
-            return ImportOgg(ScdUtils.Convertmp3toOgg(mp3Path), oldEntry);
+            string oggPath = ScdUtils.Convertmp3toOgg(mp3Path);
+            try { return ImportOgg(oggPath, oldEntry); }
+            finally { DeleteIntermediateOgg(oggPath); }
+        }
+
+        private static void DeleteIntermediateOgg(string oggPath)
+        {
+            try
+            {
+                if (File.Exists(oggPath)) File.Delete(oggPath);
+                string dir = Path.GetDirectoryName(oggPath);
+                if (dir != null && Directory.Exists(dir) && Directory.GetFileSystemEntries(dir).Length == 0)
+                    Directory.Delete(dir);
+            }
+            catch { }
         }
 
         // ================================

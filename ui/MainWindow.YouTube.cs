@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
@@ -51,6 +52,22 @@ namespace Pickles_Playlist_Editor
             {
                 await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.YTAddFailed(ex.Message));
             }
+            finally
+            {
+                CleanupYtTempFiles(result.DownloadedFiles);
+            }
+        }
+
+        private static void CleanupYtTempFiles(List<string> files)
+        {
+            if (files == null || files.Count == 0) return;
+            try
+            {
+                string dir = Path.GetDirectoryName(files[0]);
+                if (dir != null && Directory.Exists(dir))
+                    Directory.Delete(dir, true);
+            }
+            catch { }
         }
 
         private string GetUniquePlaylistName(string baseName)
