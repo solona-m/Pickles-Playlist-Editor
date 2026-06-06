@@ -47,6 +47,9 @@
         <TextBlock x:Uid="ScdVolumePercentageLabel" Text="SCD Volume Percentage" FontWeight="SemiBold"/>
         <NumberBox x:Name="ScdVolumePercentageBox" Minimum="1" Maximum="100" SpinButtonPlacementMode="Inline" SmallChange="1"/>
 
+        <TextBlock x:Uid="NormalizationLoudnessLabel" Text="Normalization Loudness (1 = quiet, 100 = loudest)" FontWeight="SemiBold"/>
+        <NumberBox x:Name="NormalizationLoudnessBox" Minimum="1" Maximum="100" SpinButtonPlacementMode="Inline" SmallChange="1"/>
+
         <TextBlock x:Uid="BusNumberLabel" Text="Playback Channel" FontWeight="SemiBold"/>
         <ComboBox x:Name="BusNumberComboBox" HorizontalAlignment="Stretch">
             <ComboBoxItem x:Uid="BusNumberItem_BGM"         Content="BGM"/>

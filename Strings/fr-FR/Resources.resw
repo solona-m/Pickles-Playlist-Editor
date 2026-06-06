@@ -44,6 +44,7 @@
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Image d'arrière-plan</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Parcourir</value></data>
   <data name="ScdVolumePercentageLabel.Text" xml:space="preserve"><value>Pourcentage de volume SCD</value></data>
+  <data name="NormalizationLoudnessLabel.Text" xml:space="preserve"><value>Sonie de normalisation (1 = faible, 100 = le plus fort)</value></data>
 <data name="LoopSongsCheckBox.Content" xml:space="preserve"><value>Répéter les chansons</value></data>
 <data name="NormalizeVolumeCheckBox.Content" xml:space="preserve"><value>Normaliser le volume</value></data>
   <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Fondu avec la distance</value></data>

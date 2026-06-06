@@ -396,6 +396,41 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        /// <summary>
+        /// Loudness target for volume normalization as a 1–100 slider value
+        /// (1 = quiet, 100 = loudest). Maps to a LUFS target via
+        /// <see cref="NormalizationLoudnessLufs"/>. Default: 70.
+        /// </summary>
+        public static int NormalizationLoudness
+        {
+            get
+            {
+                try
+                {
+                    var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("NormalizationLoudness", 70);
+                    if (value is int iv && iv >= 1 && iv <= 100) return iv;
+                    if (value is long lv && lv >= 1 && lv <= 100) return (int)lv;
+                    if (value is string sv && int.TryParse(sv, out var parsed) && parsed >= 1 && parsed <= 100) return parsed;
+                }
+                catch { }
+                return 70;
+            }
+            set
+            {
+                int clamped = Math.Clamp(value, 1, 100);
+                using var key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                key?.SetValue("NormalizationLoudness", clamped, RegistryValueKind.DWord);
+            }
+        }
+
+        /// <summary>
+        /// The configured loudness target expressed in LUFS for FFmpeg's loudnorm
+        /// filter. Maps the 1–100 <see cref="NormalizationLoudness"/> slider linearly
+        /// onto -24 LUFS (quiet) … -5 LUFS (loudest, loudnorm's maximum).
+        /// </summary>
+        public static double NormalizationLoudnessLufs
+            => -24.0 + (NormalizationLoudness - 1) * 19.0 / 99.0;
+
         public static (int Width, int Height) WindowSize
         {
             get

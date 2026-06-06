@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 
 namespace Pickles_Playlist_Editor.Utils
 {
@@ -19,7 +20,8 @@ namespace Pickles_Playlist_Editor.Utils
         public static void NormalizeVolume(string oggName)
         {
             string tmp = Path.Combine(Path.GetDirectoryName(oggName), "tmp_" + Path.GetFileName(oggName));
-            Run($"-i \"{oggName}\" -af loudnorm=I=-14:LRA=11:TP=-1 -acodec libvorbis -q:a 7 \"{tmp}\"");
+            string lufs = Settings.NormalizationLoudnessLufs.ToString("0.#", CultureInfo.InvariantCulture);
+            Run($"-i \"{oggName}\" -af loudnorm=I={lufs}:LRA=11:TP=-1 -acodec libvorbis -q:a 7 \"{tmp}\"");
             File.Move(tmp, oggName, true);
         }
 
