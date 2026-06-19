@@ -39,6 +39,7 @@ namespace Pickles_Playlist_Editor
         public static string Prog_PostProcessingAudio => _r.GetString("Prog_PostProcessingAudio");
         public static string Prog_Done => _r.GetString("Prog_Done");
         public static string YT_DefaultPlaylist => _r.GetString("YT_DefaultPlaylist");
+        public static string Dlg_YTNoCookies => _r.GetString("Dlg_YTNoCookies");
         public static string Prog_ExtractingAudio => _r.GetString("Prog_ExtractingAudio");
         public static string Prog_NormalizingAudio => _r.GetString("Prog_NormalizingAudio");
         public static string Prog_IncreasingVolume => _r.GetString("Prog_IncreasingVolume");

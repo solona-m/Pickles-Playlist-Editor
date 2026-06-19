@@ -32,6 +32,7 @@ namespace Pickles_Playlist_Editor
                 FadeBackgroundMusicCheckBox.IsChecked = Settings.FadeBackgroundMusic;
                 BusNumberComboBox.SelectedIndex = BusNumberToIndex(Settings.BusNumber);
                 SelectCurrentLanguage();
+                UpdateCookieStatus();
                 ValidateFields();
             }
             catch (Exception e) {
@@ -149,6 +150,20 @@ namespace Pickles_Playlist_Editor
 
         private string SelectedLanguageTag =>
             (LanguageComboBox.SelectedItem as ComboBoxItem)?.Tag as string ?? string.Empty;
+
+        private void UpdateCookieStatus()
+        {
+            CookieStatusText.Text = Pickles_Playlist_Editor.Tools.YtDlpService.HasCookies
+                ? "Cookies found. Age-restricted YouTube downloads are enabled."
+                : "No cookies found. Use the VRCVideoCacher browser extension to send cookies.";
+            ClearCookiesButton.IsEnabled = Pickles_Playlist_Editor.Tools.YtDlpService.HasCookies;
+        }
+
+        private void ClearCookiesButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            Pickles_Playlist_Editor.Tools.YtDlpService.ClearCookies();
+            UpdateCookieStatus();
+        }
 
         private void OkButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {

@@ -124,7 +124,10 @@ namespace Pickles_Playlist_Editor
             }
             catch (Exception ex)
             {
-                StatusLabel.Text = AppStrings.YTDownloadFailed(ex.Message);
+                bool needsCookies = ex.Message.Contains("Sign in to confirm your age", StringComparison.OrdinalIgnoreCase)
+                    || ex.Message.Contains("age-restricted", StringComparison.OrdinalIgnoreCase)
+                    || (ex.Message.Contains("cookies", StringComparison.OrdinalIgnoreCase) && ex.Message.Contains("authentication", StringComparison.OrdinalIgnoreCase));
+                StatusLabel.Text = needsCookies ? AppStrings.Dlg_YTNoCookies : AppStrings.YTDownloadFailed(ex.Message);
                 IsPrimaryButtonEnabled = true;
                 args.Cancel = true;
             }

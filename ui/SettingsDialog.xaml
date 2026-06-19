@@ -77,6 +77,10 @@
         <CheckBox x:Name="AutoReloadCheckBox" x:Uid="AutoReloadCheckBox" Content="Auto Reload Mod" IsChecked="True"/>
         <CheckBox x:Name="FadeBackgroundMusicCheckBox" x:Uid="FadeBackgroundMusicCheckBox" Content="Fade background music" IsChecked="True"/>
 
+        <TextBlock x:Uid="YtCookiesLabel" Text="YouTube Cookies" FontWeight="SemiBold"/>
+        <TextBlock x:Name="CookieStatusText" Text="No cookies found. Use the VRCVideoCacher browser extension to send cookies." TextWrapping="Wrap"/>
+        <Button x:Uid="ClearCookiesButton" x:Name="ClearCookiesButton" Content="Clear Cookies" Click="ClearCookiesButton_Click" HorizontalAlignment="Stretch"/>
+
         <Button x:Uid="OrganizeLibraryButton" Content="Organize Library" Click="OrganizeLibraryButton_Click" HorizontalAlignment="Stretch"/>
         <Button x:Uid="RepairLibraryButton" Content="Repair Library" Click="RepairLibraryButton_Click" HorizontalAlignment="Stretch"/>
         <Button x:Uid="ConvertToStereoButton" Content="Convert to Stereo" Click="ConvertToStereoButton_Click" HorizontalAlignment="Stretch"/>

@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using Pickles_Playlist_Editor.Tools;
 
 namespace Pickles_Playlist_Editor
 {
@@ -13,6 +14,7 @@ namespace Pickles_Playlist_Editor
 
         protected override void OnLaunched(LaunchActivatedEventArgs args)
         {
+            YtDlpService.StartCookieListener();
             MainWindow = new MainWindow();
             MainWindow.Activate();
         }

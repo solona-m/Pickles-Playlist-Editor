@@ -137,4 +137,5 @@
   <data name="Dlg_RestartRequired_Title" xml:space="preserve"><value>需要重启</value></data>
   <data name="Dlg_RestartRequired_Content" xml:space="preserve"><value>语言更改将在重启后完全生效。现在重启吗？</value></data>
   <data name="Tree_PlaylistsRoot" xml:space="preserve"><value>播放列表</value></data>
+  <data name="Dlg_YTNoCookies" xml:space="preserve"><value>此视频需要 YouTube 登录。如需下载年龄限制视频，请为 Chrome 安装 VRCVideoCacher Cookies Exporter 扩展程序：https://chromewebstore.google.com/detail/vrcvideocacher-cookies-ex/kfgelknbegappcajiflgfbjbdpbpokge</value></data>
 </root>
