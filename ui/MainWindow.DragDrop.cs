@@ -91,7 +91,7 @@ namespace Pickles_Playlist_Editor
             }
             catch (Exception ex)
             {
-                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorFileDrop(ex.Message));
+                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorFileDrop(FormatExceptionMessage(ex)));
             }
         }
 
@@ -132,25 +132,27 @@ namespace Pickles_Playlist_Editor
                 oldPlaylist.Options.Remove(song);
                 oldPlaylist.Save();
 
-                string oldPath = Playlist.GetScdPath(song);
-                int lastSlash = oldPath.LastIndexOf('\\');
-                string oldDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, oldPath[..lastSlash]);
-                string oldSongFile = oldPath[(lastSlash + 1)..];
+                string oldPath = Playlist.NormalizeRelativeModPath(Playlist.GetScdPath(song));
+                string oldDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, Path.GetDirectoryName(oldPath) ?? string.Empty);
+                string oldSongFile = Path.GetFileName(oldPath);
+                string targetScdDirectory = targetPlaylist.GetScdDirectoryForNewFiles();
+                string newDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetScdDirectory);
+                Directory.CreateDirectory(newDir);
+                string newPath = Playlist.GetNonCollidingPath(Path.Combine(newDir, oldSongFile));
+
                 var scdKey = Playlist.GetScdKey(song) ?? Settings.BaselineScdKey;
-                song.Files[scdKey] = Path.Combine(targetPlaylist.Name, oldSongFile);
+                song.Files[scdKey] = Path.Combine(targetScdDirectory, Path.GetFileName(newPath));
 
                 targetPlaylist.Options.Insert(Math.Min(insertIndex, targetPlaylist.Options.Count), song);
                 targetPlaylist.Save();
 
-                string newDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetPlaylist.Name);
-                Directory.CreateDirectory(newDir);
-                File.Move(Path.Combine(oldDir, oldSongFile), Path.Combine(newDir, oldSongFile));
+                File.Move(Path.Combine(oldDir, oldSongFile), newPath);
                 RecomputePlaylistDurations();
                 _playlistExpandedStates[targetPlaylist.Name] = true;
             }
             catch (Exception ex)
             {
-                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorDragDrop(ex.Message));
+                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorDragDrop(FormatExceptionMessage(ex)));
             }
         }
 
@@ -195,7 +197,7 @@ namespace Pickles_Playlist_Editor
             }
             catch (Exception ex)
             {
-                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorDragDrop(ex.Message));
+                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorDragDrop(FormatExceptionMessage(ex)));
             }
         }
 
@@ -231,26 +233,26 @@ namespace Pickles_Playlist_Editor
                     insertIndex = parentPl.Options.FindIndex(o => o.Name == targetContent.Name) + 1;
             }
 
+            var dispatcherQueue = _uiDispatcherQueue;
+            void ReportProgress(int percent) => dispatcherQueue.TryEnqueue(() => SetProgressBarPercent(percent));
+
             await Task.Run(() =>
             {
                 if (insertIndex >= 0)
-                    targetPlaylist.Insert(files, insertIndex, SetProgressBarPercent);
+                    targetPlaylist.Insert(files, insertIndex, ReportProgress);
                 else
-                    targetPlaylist.Add(files, SetProgressBarPercent);
-            }).ConfigureAwait(false);
-
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                LoadPlaylists();
-                if (targetContent != null)
-                {
-                    string expandName = targetContent.Level == 2 && targetContent.Parent != null
-                        ? targetContent.Parent.Name : targetContent.Name;
-                    var expandNode = FindPlaylistNode(expandName);
-                    if (expandNode != null) expandNode.IsExpanded = true;
-                }
-                ClearProgressDisplay();
+                    targetPlaylist.Add(files, ReportProgress);
             });
+
+            LoadPlaylists();
+            if (targetContent != null)
+            {
+                string expandName = targetContent.Level == 2 && targetContent.Parent != null
+                    ? targetContent.Parent.Name : targetContent.Name;
+                var expandNode = FindPlaylistNode(expandName);
+                if (expandNode != null) expandNode.IsExpanded = true;
+            }
+            ClearProgressDisplay();
         }
     }
 }

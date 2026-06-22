@@ -69,13 +69,14 @@ namespace VfxEditor.ScdFormat {
 
         public SoundRandomTracks RandomTracks = new(); // Includes Cycle
         public SoundTracks Tracks = new();
+        public byte[] TailPayload = [];
 
         private bool RoutingEnabled => Attributes.Value.HasFlag( SoundAttribute.Exist_Routing_Setting );
-        private bool BusDuckingEnabled { get { return true; } }
+        private bool BusDuckingEnabled => Attributes.Value.HasFlag( SoundAttribute.Bus_Ducking );
         private bool AccelerationEnabled => Attributes.Value.HasFlag( SoundAttribute.Acceleration );
         private bool AtomosEnabled => Attributes.Value.HasFlag( SoundAttribute.Atomosgear );
         private bool ExtraEnabled => Attributes.Value.HasFlag( SoundAttribute.Extra_Desc );
-        private bool BypassEnabled { get { return true; } }
+        private bool BypassEnabled => Attributes.Value.HasFlag( SoundAttribute.Bypass_PLIIz );
         private bool RandomTracksEnabled => Type.Value == SoundType.Random || Type.Value == SoundType.Cycle || Type.Value == SoundType.GroupRandom || Type.Value == SoundType.GroupOrder;
         private bool IsEmptyLoop => Type.Value == SoundType.Empty && Attributes.Value.HasFlag( SoundAttribute.Loop );
 
@@ -85,6 +86,15 @@ namespace VfxEditor.ScdFormat {
 
         public ScdSoundEntry( ScdLayoutEntry layout ) {
             Layout = layout;
+        }
+
+        public void Read( BinaryReader reader, int offset, int endOffset ) {
+            var oldPosition = reader.BaseStream.Position;
+            reader.BaseStream.Position = offset;
+            Read( reader );
+            var remaining = endOffset - ( int )reader.BaseStream.Position;
+            TailPayload = remaining > 0 ? reader.ReadBytes( remaining ) : [];
+            reader.BaseStream.Position = oldPosition;
         }
 
         public override void Read( BinaryReader reader ) {
@@ -131,6 +141,7 @@ namespace VfxEditor.ScdFormat {
 
             if( RandomTracksEnabled ) RandomTracks.Write( writer, Type.Value );
             else Tracks.Write( writer );
+            writer.Write( TailPayload );
         }
     }
 }

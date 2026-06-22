@@ -39,9 +39,9 @@ namespace Pickles_Playlist_Editor
 
         private void LoadPlaylists(string filter, string? forceExpandedPlaylistName)
         {
-            if (!DispatcherQueue.HasThreadAccess)
+            if (!_uiDispatcherQueue.HasThreadAccess)
             {
-                DispatcherQueue.TryEnqueue(() => LoadPlaylists(filter, forceExpandedPlaylistName));
+                _uiDispatcherQueue.TryEnqueue(() => LoadPlaylists(filter, forceExpandedPlaylistName));
                 return;
             }
 
@@ -239,7 +239,7 @@ namespace Pickles_Playlist_Editor
                 }
                 finally
                 {
-                    DispatcherQueue.TryEnqueue(() =>
+                    _uiDispatcherQueue.TryEnqueue(() =>
                     {
                         RecomputePlaylistDurations(false);
                         ClearProgressDisplay();
@@ -263,9 +263,9 @@ namespace Pickles_Playlist_Editor
 
         public void SetProgressBarPercent(int percent)
         {
-            if (!DispatcherQueue.HasThreadAccess)
+            if (!_uiDispatcherQueue.HasThreadAccess)
             {
-                DispatcherQueue.TryEnqueue(() => SetProgressBarPercent(percent));
+                _uiDispatcherQueue.TryEnqueue(() => SetProgressBarPercent(percent));
                 return;
             }
             if (percent < 0) percent = 0;
@@ -284,9 +284,9 @@ namespace Pickles_Playlist_Editor
 
         public void SetProgressBarText(string text)
         {
-            if (!DispatcherQueue.HasThreadAccess)
+            if (!_uiDispatcherQueue.HasThreadAccess)
             {
-                DispatcherQueue.TryEnqueue(() => SetProgressBarText(text));
+                _uiDispatcherQueue.TryEnqueue(() => SetProgressBarText(text));
                 return;
             }
             ProgressLabel.Text = text;
@@ -300,9 +300,9 @@ namespace Pickles_Playlist_Editor
 
         public void ClearProgressDisplay()
         {
-            if (!DispatcherQueue.HasThreadAccess)
+            if (!_uiDispatcherQueue.HasThreadAccess)
             {
-                DispatcherQueue.TryEnqueue(ClearProgressDisplay);
+                _uiDispatcherQueue.TryEnqueue(ClearProgressDisplay);
                 return;
             }
 
@@ -406,6 +406,22 @@ namespace Pickles_Playlist_Editor
                 if (_selectedNode.Level == 2 && _selectedNode.Parent != null) return _selectedNode.Parent.Name;
             }
             return null;
+        }
+
+        private static string FormatExceptionMessage(Exception ex)
+        {
+            var messages = new List<string>();
+            for (Exception? current = ex; current != null; current = current.InnerException)
+            {
+                string message = string.IsNullOrWhiteSpace(current.Message)
+                    ? current.GetType().Name
+                    : $"{current.GetType().Name}: {current.Message}";
+
+                if (!messages.Contains(message))
+                    messages.Add(message);
+            }
+
+            return messages.Count > 0 ? string.Join(Environment.NewLine, messages) : ex.ToString();
         }
 
         private async Task CheckForUpdatesAsync()

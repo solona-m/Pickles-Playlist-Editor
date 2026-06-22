@@ -18,6 +18,14 @@ namespace VfxEditor.ScdFormat.Sound.Data {
             Reserve2.Read( reader );
         }
 
+        public void ApplyRecommended( int playTimeLengthMs ) {
+            Version.Value = 2;
+            Reserved1 = 0;
+            Size = 0x10;
+            PlayTimeLength.Value = playTimeLengthMs;
+            Reserve2.SetBytes( [0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x79, 0x44] );
+        }
+
         public void Write( BinaryWriter writer ) {
             Version.Write( writer );
             writer.Write( Reserved1 );

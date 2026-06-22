@@ -1,7 +1,10 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -9,6 +12,9 @@ namespace Pickles_Playlist_Editor
 {
     public sealed partial class SettingsDialog : ContentDialog
     {
+        private bool _loading = true;
+        private bool _updatingBaselineScdOptions;
+
         public SettingsDialog()
         {
             this.InitializeComponent();
@@ -27,17 +33,21 @@ namespace Pickles_Playlist_Editor
                 NormalizationLoudnessBox.Value = Settings.NormalizationLoudness;
                 LoopSongsCheckBox.IsChecked = Settings.LoopSongs;
                 NormalizeVolumeCheckBox.IsChecked = Settings.NormalizeVolume;
+                ScdVersionShiftCheckBox.IsChecked = Settings.ScdVersionShift;
                 FadeWithDistanceCheckBox.IsChecked = Settings.FadeWithDistance;
                 AutoReloadCheckBox.IsChecked = Settings.AutoReloadMod;
                 FadeBackgroundMusicCheckBox.IsChecked = Settings.FadeBackgroundMusic;
                 BusNumberComboBox.SelectedIndex = BusNumberToIndex(Settings.BusNumber);
                 SelectCurrentLanguage();
                 UpdateCookieStatus();
-                ValidateFields();
             }
             catch (Exception e) {
                 Console.WriteLine(e.ToString());
             }
+
+            _loading = false;
+            RefreshBaselineScdOptions(updateTextFromMod: string.IsNullOrWhiteSpace(BaselineScdTextBox.Text));
+            ValidateFields();
         }
 
         private void ValidateFields()
@@ -50,74 +60,162 @@ namespace Pickles_Playlist_Editor
             IsPrimaryButtonEnabled = validDirectory && validScd;
         }
 
-        private async void BrowseButton_Click(object sender, RoutedEventArgs e)
+        private void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
-            var picker = new Windows.Storage.Pickers.FolderPicker();
-            picker.FileTypeFilter.Add("*");
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-            var folder = await picker.PickSingleFolderAsync();
-            if (folder != null)
+            using var dialog = new System.Windows.Forms.FolderBrowserDialog
             {
-                DirectoryPathTextBox.Text = folder.Path;
-                ValidateFields();
-            }
+                Description = "Select Penumbra mod directory",
+                UseDescriptionForTitle = true,
+                SelectedPath = Directory.Exists(DirectoryPathTextBox.Text) ? DirectoryPathTextBox.Text : string.Empty
+            };
+
+            if (dialog.ShowDialog(GetOwnerWindow()) != System.Windows.Forms.DialogResult.OK)
+                return;
+
+            DirectoryPathTextBox.Text = dialog.SelectedPath;
+            ValidateFields();
         }
 
-        private async void BrowseBaselineScdButton_Click(object sender, RoutedEventArgs e)
+        private void BaselineScdComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var picker = new Windows.Storage.Pickers.FileOpenPicker
-            {
-                ViewMode = Windows.Storage.Pickers.PickerViewMode.List
-            };
-            picker.FileTypeFilter.Add(".scd");
-            picker.FileTypeFilter.Add("*");
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-            var file = await picker.PickSingleFileAsync();
-            if (file == null) return;
+            if (_updatingBaselineScdOptions)
+                return;
 
-            string selectedPath = file.Path;
-            string baselineKey = Path.GetFileName(selectedPath);
+            if (BaselineScdComboBox.SelectedItem is string scdKey)
+                BaselineScdTextBox.Text = scdKey;
+        }
 
-            if (Directory.Exists(DirectoryPathTextBox.Text))
+        private void RefreshBaselineScdOptions(bool updateTextFromMod)
+        {
+            var scdKeys = FindScdKeysInMod(DirectoryPathTextBox.Text);
+            var current = NormalizeScdKey(BaselineScdTextBox.Text);
+            var selected = scdKeys.FirstOrDefault(key => string.Equals(key, current, StringComparison.OrdinalIgnoreCase));
+
+            _updatingBaselineScdOptions = true;
+            BaselineScdComboBox.Items.Clear();
+            foreach (var scdKey in scdKeys)
+                BaselineScdComboBox.Items.Add(scdKey);
+            BaselineScdComboBox.IsEnabled = scdKeys.Count > 0;
+            BaselineScdComboBox.SelectedItem = selected;
+            _updatingBaselineScdOptions = false;
+
+            if (!updateTextFromMod || scdKeys.Count == 0)
+                return;
+
+            BaselineScdTextBox.Text = selected ?? scdKeys[0];
+        }
+
+        private void SyncBaselineScdSelection()
+        {
+            if (_updatingBaselineScdOptions)
+                return;
+
+            var current = NormalizeScdKey(BaselineScdTextBox.Text);
+            var selected = BaselineScdComboBox.Items
+                .OfType<string>()
+                .FirstOrDefault(key => string.Equals(key, current, StringComparison.OrdinalIgnoreCase));
+
+            _updatingBaselineScdOptions = true;
+            BaselineScdComboBox.SelectedItem = selected;
+            _updatingBaselineScdOptions = false;
+        }
+
+        private static List<string> FindScdKeysInMod(string? modDirectory)
+        {
+            var scdKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(modDirectory) || !Directory.Exists(modDirectory))
+                return [];
+
+            foreach (var jsonPath in Directory.EnumerateFiles(modDirectory, "*.json", SearchOption.TopDirectoryOnly))
             {
                 try
                 {
-                    string rel = Path.GetRelativePath(DirectoryPathTextBox.Text, selectedPath);
-                    if (!rel.StartsWith(".."))
-                        baselineKey = rel.Replace(Path.DirectorySeparatorChar, '/');
+                    var root = JObject.Parse(File.ReadAllText(jsonPath));
+                    AddScdKeys(root["Files"] as JObject, scdKeys);
+                    if (root["Options"] is JArray options)
+                    {
+                        foreach (var option in options.OfType<JObject>())
+                            AddScdKeys(option["Files"] as JObject, scdKeys);
+                    }
                 }
-                catch
+                catch (Exception e)
                 {
-                    baselineKey = Path.GetFileName(selectedPath);
+                    Console.WriteLine($"Skipping Penumbra JSON '{jsonPath}': {e.Message}");
                 }
             }
 
-            BaselineScdTextBox.Text = baselineKey;
+            return scdKeys.OrderBy(key => key, StringComparer.OrdinalIgnoreCase).ToList();
         }
 
-        private async void BrowseBackgroundButton_Click(object sender, RoutedEventArgs e)
+        private static void AddScdKeys(JObject? files, HashSet<string> scdKeys)
         {
-            var picker = new Windows.Storage.Pickers.FileOpenPicker
+            if (files == null)
+                return;
+
+            foreach (var file in files.Properties())
             {
-                ViewMode = Windows.Storage.Pickers.PickerViewMode.Thumbnail
-            };
-            picker.FileTypeFilter.Add(".png");
-            picker.FileTypeFilter.Add(".jpg");
-            picker.FileTypeFilter.Add(".jpeg");
-            picker.FileTypeFilter.Add(".bmp");
-            picker.FileTypeFilter.Add(".gif");
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-            var file = await picker.PickSingleFileAsync();
-            if (file != null)
-                BackgroundImageTextBox.Text = file.Path;
+                var scdKey = NormalizeScdKey(file.Name);
+                if (scdKey.EndsWith(".scd", StringComparison.OrdinalIgnoreCase))
+                    scdKeys.Add(scdKey);
+            }
         }
 
-        private void DirectoryPathTextBox_TextChanged(object sender, TextChangedEventArgs e) => ValidateFields();
+        private static string NormalizeScdKey(string? scdKey) =>
+            (scdKey ?? string.Empty).Trim().Replace('\\', '/').TrimStart('/');
 
-        private void BaselineScdTextBox_TextChanged(object sender, TextChangedEventArgs e) => ValidateFields();
+        private void BrowseBackgroundButton_Click(object sender, RoutedEventArgs e)
+        {
+            using var dialog = new System.Windows.Forms.OpenFileDialog
+            {
+                Title = "Select background image",
+                Filter = "Image files (*.png;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files (*.*)|*.*",
+                CheckFileExists = true,
+                Multiselect = false,
+                InitialDirectory = GetExistingParentDirectory(BackgroundImageTextBox.Text)
+            };
+
+            if (dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK)
+                BackgroundImageTextBox.Text = dialog.FileName;
+        }
+
+        private static string GetExistingDirectory(string? path) =>
+            !string.IsNullOrWhiteSpace(path) && Directory.Exists(path) ? path : string.Empty;
+
+        private static string GetExistingParentDirectory(string? path)
+        {
+            try
+            {
+                return GetExistingDirectory(Path.GetDirectoryName(path ?? string.Empty));
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static System.Windows.Forms.IWin32Window GetOwnerWindow()
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+            return new Win32Window(hwnd);
+        }
+
+        private sealed class Win32Window(IntPtr handle) : System.Windows.Forms.IWin32Window
+        {
+            public IntPtr Handle { get; } = handle;
+        }
+
+        private void DirectoryPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_loading)
+                RefreshBaselineScdOptions(updateTextFromMod: true);
+            ValidateFields();
+        }
+
+        private void BaselineScdTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            SyncBaselineScdSelection();
+            ValidateFields();
+        }
 
         // Bus 1 (Unknown) is intentionally excluded from the UI.
         // ComboBox indices: 0=BGM(0), 1=SoundEffect(2), 2=Voice(3), 3=System(4), 4=Ambient(5)
@@ -180,6 +278,7 @@ namespace Pickles_Playlist_Editor
             Settings.NormalizationLoudness = (int)NormalizationLoudnessBox.Value;
             Settings.LoopSongs = LoopSongsCheckBox.IsChecked == true;
             Settings.NormalizeVolume = NormalizeVolumeCheckBox.IsChecked == true;
+            Settings.ScdVersionShift = ScdVersionShiftCheckBox.IsChecked == true;
             Settings.FadeWithDistance = FadeWithDistanceCheckBox.IsChecked == true;
             Settings.AutoReloadMod = AutoReloadCheckBox.IsChecked == true;
             Settings.FadeBackgroundMusic = FadeBackgroundMusicCheckBox.IsChecked == true;

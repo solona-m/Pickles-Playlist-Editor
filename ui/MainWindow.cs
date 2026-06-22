@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Windowing;
+using Microsoft.UI.Dispatching;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -23,6 +24,7 @@ namespace Pickles_Playlist_Editor
         private PlaylistNodeContent? _selectedNode;
 
         private readonly MenuFlyout _treeContextMenu;
+        private readonly DispatcherQueue _uiDispatcherQueue;
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, uint attr, ref int attrValue, int attrSize);
@@ -32,6 +34,7 @@ namespace Pickles_Playlist_Editor
         public MainWindow()
         {
             this.InitializeComponent();
+            _uiDispatcherQueue = DispatcherQueue;
 
             // Apply system dark/light theme — WinUI 3 doesn't do this automatically
             var uiSettings = new Windows.UI.ViewManagement.UISettings();
@@ -82,41 +85,76 @@ namespace Pickles_Playlist_Editor
             return await dialog.ShowAsync();
         }
 
-        // ─── File picker helpers (unpackaged: must set HWND) ─────────────────────
-
-        public async Task<string?> PickFolderAsync(string description = "")
+        // ─── File picker helpers
+        public Task<string?> PickFolderAsync(string description = "")
         {
-            var picker = new FolderPicker();
-            picker.FileTypeFilter.Add("*");
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-            var folder = await picker.PickSingleFolderAsync();
-            return folder?.Path;
+            using var dialog = new System.Windows.Forms.FolderBrowserDialog
+            {
+                Description = description,
+                UseDescriptionForTitle = !string.IsNullOrWhiteSpace(description)
+            };
+
+            return Task.FromResult(
+                dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
+                    ? dialog.SelectedPath
+                    : null);
         }
 
-        public async Task<string[]?> PickFilesAsync(params string[] extensions)
+        public Task<string[]?> PickFilesAsync(params string[] extensions)
         {
-            var picker = new FileOpenPicker { ViewMode = PickerViewMode.List };
-            foreach (var ext in extensions) picker.FileTypeFilter.Add(ext);
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-            var files = await picker.PickMultipleFilesAsync();
-            if (files == null || files.Count == 0) return null;
-            var paths = new string[files.Count];
-            for (int i = 0; i < files.Count; i++) paths[i] = files[i].Path;
-            return paths;
+            using var dialog = new System.Windows.Forms.OpenFileDialog
+            {
+                Filter = BuildFileDialogFilter(extensions),
+                CheckFileExists = true,
+                Multiselect = true
+            };
+
+            return Task.FromResult(
+                dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
+                    ? dialog.FileNames
+                    : null);
         }
 
-        public async Task<string?> PickSingleFileAsync(params string[] extensions)
+        public Task<string?> PickSingleFileAsync(params string[] extensions)
         {
-            var picker = new FileOpenPicker { ViewMode = PickerViewMode.List };
-            foreach (var ext in extensions) picker.FileTypeFilter.Add(ext);
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-            var file = await picker.PickSingleFileAsync();
-            return file?.Path;
+            using var dialog = new System.Windows.Forms.OpenFileDialog
+            {
+                Filter = BuildFileDialogFilter(extensions),
+                CheckFileExists = true,
+                Multiselect = false
+            };
+
+            return Task.FromResult(
+                dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
+                    ? dialog.FileName
+                    : null);
         }
 
+        private static string BuildFileDialogFilter(params string[] extensions)
+        {
+            var filters = extensions
+                .Where(ext => !string.IsNullOrWhiteSpace(ext))
+                .Select(ext => ext.StartsWith('.') ? ext : "." + ext)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            if (filters.Length == 0)
+                return "All files (*.*)|*.*";
+
+            string pattern = string.Join(';', filters.Select(ext => "*" + ext));
+            return $"Supported files ({pattern})|{pattern}|All files (*.*)|*.*";
+        }
+
+        private System.Windows.Forms.IWin32Window GetOwnerWindow()
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            return new Win32Window(hwnd);
+        }
+
+        private sealed class Win32Window(IntPtr handle) : System.Windows.Forms.IWin32Window
+        {
+            public IntPtr Handle { get; } = handle;
+        }
         // ─── Tree node helpers ───────────────────────────────────────────────────
 
         private static string GetNodeName(PlaylistNodeContent? node) => node?.Name ?? "";
@@ -224,7 +262,7 @@ namespace Pickles_Playlist_Editor
             }
             catch (System.Exception ex)
             {
-                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorAddingSongs(ex.Message));
+                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorAddingSongs(FormatExceptionMessage(ex)));
             }
         }
 

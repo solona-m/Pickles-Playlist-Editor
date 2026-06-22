@@ -90,11 +90,11 @@ namespace VfxEditor.Utils {
 
             for (var idx = 0; idx < Math.Min(data.Length, original.Length); idx++) {
                 if (data[idx] != original[idx] && (ignoreRange == null || !ignoreRange.Any(x => idx >= x.Item1 && idx < x.Item2))) {
+                    return VerifiedStatus.ERROR;
                 }
-                return VerifiedStatus.ERROR;
             }
-        
-            return VerifiedStatus.VERIFIED;
+
+            return ret ? VerifiedStatus.VERIFIED : VerifiedStatus.ERROR;
         }
 
         public static string Reverse( string data ) {
