@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <item>
-  <version>2.3.5.0</version>
+  <version>2.3.6.0</version>
   <url>https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest/download/PicklesPlaylistEditor.zip</url>
   <!-- Changelog can be plain text or HTML. Use CDATA to include markup safely. -->
   <changelog>
     <![CDATA[
-    <h3>What's new in 2.3.5.0</h3>
+    <h3>What's new in 2.3.6.0</h3>
     <ul>
       <li>Created SCD files should now open and verify more reliably in VFXEditor.</li>
       <li>Adding songs from your computer now opens the file picker correctly.</li>

@@ -1,0 +1,125 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version, without the leading v'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish Velopack release
+    runs-on: windows-latest
+
+    env:
+      PROJECT_FILE: Pickles Playlist Editor.csproj
+      APP_ID: PicklesPlaylistEditor
+      APP_TITLE: Pickles Playlist Editor
+      APP_AUTHORS: solona-m
+      MAIN_EXE: Pickles Playlist Editor.exe
+      RID: win-x86
+      VPK_VERSION: 1.2.0
+      REPO_URL: https://github.com/${{ github.repository }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Resolve release version
+        id: version
+        shell: pwsh
+        run: |
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            $version = '${{ inputs.version }}'
+          } else {
+            $version = '${{ github.ref_name }}'.TrimStart('v')
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Release version '$version' must look like 2.3.6."
+          }
+
+          $assemblyVersion = "$version.0"
+          $packageVersion = $version
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "assemblyVersion=$assemblyVersion" >> $env:GITHUB_OUTPUT
+          "packageVersion=$packageVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Restore
+        run: dotnet restore "$env:PROJECT_FILE" -r $env:RID
+
+      - name: Publish application
+        shell: pwsh
+        run: |
+          dotnet publish "$env:PROJECT_FILE" `
+            -c Release `
+            -r $env:RID `
+            --self-contained true `
+            -o publish `
+            /p:Version=${{ steps.version.outputs.packageVersion }} `
+            /p:AssemblyVersion=${{ steps.version.outputs.assemblyVersion }} `
+            /p:FileVersion=${{ steps.version.outputs.assemblyVersion }} `
+            /p:InformationalVersion=${{ steps.version.outputs.version }}
+
+      - name: Install Velopack CLI
+        shell: pwsh
+        run: |
+          dotnet tool install --global vpk --version $env:VPK_VERSION
+          "$env:USERPROFILE\.dotnet\tools" >> $env:GITHUB_PATH
+
+      - name: Download previous Velopack release
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          vpk download github `
+            --repoUrl $env:REPO_URL `
+            --token '${{ secrets.GITHUB_TOKEN }}'
+
+      - name: Pack Velopack release
+        shell: pwsh
+        run: |
+          vpk pack `
+            --packId $env:APP_ID `
+            --packVersion ${{ steps.version.outputs.packageVersion }} `
+            --packDir publish `
+            --mainExe "$env:MAIN_EXE" `
+            --packTitle "$env:APP_TITLE" `
+            --packAuthors "$env:APP_AUTHORS" `
+            --runtime $env:RID `
+            --icon pickle.ico `
+            --outputDir Releases
+
+      - name: Upload Velopack release to GitHub
+        shell: pwsh
+        run: |
+          vpk upload github `
+            --repoUrl $env:REPO_URL `
+            --token '${{ secrets.GITHUB_TOKEN }}' `
+            --outputDir Releases `
+            --publish `
+            --merge `
+            --releaseName "$env:APP_TITLE v${{ steps.version.outputs.packageVersion }}" `
+            --tag "v${{ steps.version.outputs.packageVersion }}" `
+            --targetCommitish '${{ github.sha }}'
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: velopack-release-${{ steps.version.outputs.packageVersion }}
+          path: Releases/*
