@@ -17,6 +17,11 @@ namespace VfxEditor.Parsing {
 
         public override void Read( BinaryReader reader, int size ) => Read( reader );
 
+        public void SetBytes( byte[] data ) {
+            if( data == null || data.Length != Size ) return;
+            Data = data;
+        }
+
         public override void Write( BinaryWriter writer ) => writer.Write( Data );
     }
 }

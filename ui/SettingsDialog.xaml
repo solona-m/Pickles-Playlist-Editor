@@ -43,7 +43,9 @@
             </Grid.ColumnDefinitions>
             <TextBox x:Name="BaselineScdTextBox" Grid.Column="0" Margin="0,0,4,0"
                      TextChanged="BaselineScdTextBox_TextChanged"/>
-            <Button x:Uid="BrowseBaselineScdButton" Grid.Column="1" Content="Browse" Click="BrowseBaselineScdButton_Click"/>
+            <ComboBox x:Name="BaselineScdComboBox" Grid.Column="1" Width="180"
+                      PlaceholderText="Available paths"
+                      SelectionChanged="BaselineScdComboBox_SelectionChanged"/>
         </Grid>
 
         <TextBlock x:Uid="BackgroundImageLabel" Text="Background Image" FontWeight="SemiBold"/>
@@ -73,6 +75,7 @@
 
 <CheckBox x:Name="LoopSongsCheckBox" x:Uid="LoopSongsCheckBox" Content="Loop Songs" IsChecked="False"/>
         <CheckBox x:Name="NormalizeVolumeCheckBox" x:Uid="NormalizeVolumeCheckBox" Content="Normalize Volume"/>
+        <CheckBox x:Name="ScdVersionShiftCheckBox" x:Uid="ScdVersionShiftCheckBox" Content="Version Shift" IsChecked="True"/>
         <CheckBox x:Name="FadeWithDistanceCheckBox" x:Uid="FadeWithDistanceCheckBox" Content="Fade With Distance"/>
         <CheckBox x:Name="AutoReloadCheckBox" x:Uid="AutoReloadCheckBox" Content="Auto Reload Mod" IsChecked="True"/>
         <CheckBox x:Name="FadeBackgroundMusicCheckBox" x:Uid="FadeBackgroundMusicCheckBox" Content="Fade background music" IsChecked="True"/>

@@ -14,7 +14,7 @@ namespace VfxEditor.ScdFormat {
                 var newItem = new ScdTrackItem();
                 newItem.Read( reader );
                 Items.Add( newItem );
-                if( newItem.Type.Value == TrackCmd.End || newItem.Type.Value == TrackCmd.MidiEnd || newItem.Type.Value == TrackCmd.EndForLoop ) break;
+                if( newItem.Type.Value == TrackCmd.End || newItem.Type.Value == TrackCmd.LoopEnd || newItem.Type.Value == TrackCmd.MidiEnd || newItem.Type.Value == TrackCmd.EndForLoop ) break;
             }
         }
 

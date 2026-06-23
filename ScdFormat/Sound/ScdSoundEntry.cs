@@ -69,6 +69,7 @@ namespace VfxEditor.ScdFormat {
 
         public SoundRandomTracks RandomTracks = new(); // Includes Cycle
         public SoundTracks Tracks = new();
+        public byte[] TailPayload = [];
 
         private bool RoutingEnabled => Attributes.Value.HasFlag( SoundAttribute.Exist_Routing_Setting );
         private bool BusDuckingEnabled => Attributes.Value.HasFlag( SoundAttribute.Bus_Ducking );
@@ -85,6 +86,15 @@ namespace VfxEditor.ScdFormat {
 
         public ScdSoundEntry( ScdLayoutEntry layout ) {
             Layout = layout;
+        }
+
+        public void Read( BinaryReader reader, int offset, int endOffset ) {
+            var oldPosition = reader.BaseStream.Position;
+            reader.BaseStream.Position = offset;
+            Read( reader );
+            var remaining = endOffset - ( int )reader.BaseStream.Position;
+            TailPayload = remaining > 0 ? reader.ReadBytes( remaining ) : [];
+            reader.BaseStream.Position = oldPosition;
         }
 
         public override void Read( BinaryReader reader ) {
@@ -131,6 +141,7 @@ namespace VfxEditor.ScdFormat {
 
             if( RandomTracksEnabled ) RandomTracks.Write( writer, Type.Value );
             else Tracks.Write( writer );
+            writer.Write( TailPayload );
         }
     }
 }

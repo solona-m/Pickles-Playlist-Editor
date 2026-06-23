@@ -102,7 +102,7 @@ namespace Pickles_Playlist_Editor
 
 
             File.WriteAllText(Path.Combine(Settings.PenumbraLocation, Settings.ModName, fileName), json);
-            Directory.CreateDirectory(Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistName));
+            Directory.CreateDirectory(Path.Combine(Settings.PenumbraLocation, Settings.ModName, ResolvePlaylistScdDirectory(playlistName, mergedGroup)));
 
             // Notify Penumbra (if present) to refresh this mod because files/config changed.
             RefreshPenumbraMod();
@@ -120,10 +120,16 @@ namespace Pickles_Playlist_Editor
                     filenameroot = Path.GetDirectoryName(file);
                     filenameroot = filenameroot.Split(Path.DirectorySeparatorChar).Last();
                 }
-                string cleanPlaylistName = playlistName.Replace("/", "_");
-                string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName);
+                string playlistScdDirectory = ResolvePlaylistScdDirectory(playlistName, group);
+                string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistScdDirectory);
                 Directory.CreateDirectory(outDir);
-                using (BinaryWriter writer = new BinaryWriter(new FileStream(Path.Combine(outDir, Path.GetFileName(filenameroot)+".scd"), FileMode.Create)))
+
+                string safeFileName = SanitizeFileName(Path.GetFileName(filenameroot));
+                if (string.IsNullOrWhiteSpace(safeFileName))
+                    safeFileName = "audio";
+
+                string targetPath = GetNonCollidingPath(Path.Combine(outDir, safeFileName + ".scd"));
+                using (BinaryWriter writer = new BinaryWriter(new FileStream(targetPath, FileMode.CreateNew)))
                 {
                     scdFile.Write(writer);
                 }
@@ -132,7 +138,7 @@ namespace Pickles_Playlist_Editor
                 opt.Files = new Dictionary<string, string>();
                 opt.Files.Add(
                     Settings.BaselineScdKey,
-                    Path.Combine(cleanPlaylistName, Path.GetFileName(filenameroot)+".scd"));
+                    Path.Combine(playlistScdDirectory, Path.GetFileName(targetPath)));
                 group.Options.Add(opt);
             }
             catch (Exception ex)
@@ -142,11 +148,41 @@ namespace Pickles_Playlist_Editor
             return opt;
         }
 
+        private static string ResolvePlaylistScdDirectory(string playlistName, Playlist group)
+        {
+            var directories = group.Options?
+                .Where(option => option?.Files != null)
+                .SelectMany(option => option.Files.Values)
+                .Select(NormalizeRelativeModPath)
+                .Where(path => path.EndsWith(".scd", StringComparison.OrdinalIgnoreCase))
+                .Select(Path.GetDirectoryName)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .GroupBy(path => path!, StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(grouping => grouping.Count())
+                .ThenBy(grouping => grouping.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(grouping => grouping.Key)
+                .FirstOrDefault();
+
+            return directories ?? GetDefaultPlaylistDirectoryName(playlistName);
+        }
+
+        internal string GetScdDirectoryForNewFiles() => ResolvePlaylistScdDirectory(Name, this);
+
+        private static string GetDefaultPlaylistDirectoryName(string playlistName) =>
+            playlistName.Replace("/", "_");
+
+        internal static string NormalizeRelativeModPath(string? path) =>
+            (path ?? string.Empty)
+                .Trim()
+                .Replace('/', Path.DirectorySeparatorChar)
+                .Replace('\\', Path.DirectorySeparatorChar)
+                .TrimStart(Path.DirectorySeparatorChar);
+
         public void Cleanup()
         {
             Playlist playlist = this;
-            string cleanPlaylistName = playlist.Name.Replace("/", "_");
-            string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName);
+            string playlistScdDirectory = playlist.GetScdDirectoryForNewFiles();
+            string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistScdDirectory);
             Directory.CreateDirectory(outDir);
             List<Option> optionsToRemove = new List<Option>();
             foreach (Option song in playlist.Options)
@@ -186,12 +222,12 @@ namespace Pickles_Playlist_Editor
 
                         File.Move(oldPath, newPath);
                         BPMDetector.UpdateCacheForSCD(oldPath, newPath);
-                        song.Files[song.Files.Keys.First()] = Path.Combine(cleanPlaylistName, Path.GetFileName(newPath));
+                        song.Files[song.Files.Keys.First()] = Path.Combine(playlistScdDirectory, Path.GetFileName(newPath));
                     }
                 }
 
                 // delete empty folders
-                string playlistFolder = Path.Combine(Settings.PenumbraLocation, Settings.ModName, cleanPlaylistName);
+                string playlistFolder = outDir;
                 foreach (string subDir in Directory.GetDirectories(playlistFolder))
                 {
                     if (Directory.GetFiles(subDir).Length == 0 && Directory.GetDirectories(subDir).Length == 0)
@@ -208,7 +244,7 @@ namespace Pickles_Playlist_Editor
             // Save() will refresh Penumbra; no need to call here.
         }
 
-        private static string GetNonCollidingPath(string path)
+        internal static string GetNonCollidingPath(string path)
         {
             if (!File.Exists(path)) return path;
 
