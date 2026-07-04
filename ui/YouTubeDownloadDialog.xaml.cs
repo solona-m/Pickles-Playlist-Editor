@@ -127,7 +127,11 @@ namespace Pickles_Playlist_Editor
                 bool needsCookies = ex.Message.Contains("Sign in to confirm your age", StringComparison.OrdinalIgnoreCase)
                     || ex.Message.Contains("age-restricted", StringComparison.OrdinalIgnoreCase)
                     || (ex.Message.Contains("cookies", StringComparison.OrdinalIgnoreCase) && ex.Message.Contains("authentication", StringComparison.OrdinalIgnoreCase));
-                StatusLabel.Text = needsCookies ? AppStrings.Dlg_YTNoCookies : AppStrings.YTDownloadFailed(ex.Message);
+
+                if (needsCookies && YtDlpService.GetCookieStatus() == CookieStatus.Expired)
+                    StatusLabel.Text = "This video requires YouTube sign-in, but the saved cookies have expired. Re-export cookies using the VRCVideoCacher browser extension.";
+                else
+                    StatusLabel.Text = needsCookies ? AppStrings.Dlg_YTNoCookies : AppStrings.YTDownloadFailed(ex.Message);
                 IsPrimaryButtonEnabled = true;
                 args.Cancel = true;
             }

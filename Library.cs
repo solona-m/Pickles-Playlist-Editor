@@ -23,8 +23,10 @@ namespace Pickles_Playlist_Editor
         // Rebuilds every library SCD's headers from the canonical default.scd plus the app's
         // current settings, keeping each file's existing audio. Copies NumChannels from
         // default.scd. Self-heals older files written with the now-fixed Bypass bug.
-        public static void ConvertToStereo(Action<int> progress)
+        public static List<string> ConvertToStereo(Action<int> progress)
         {
+            var errors = new List<string>();
+
             var allOptions = Playlist.GetAll().Values
                 .SelectMany(p => p.Options)
                 .ToList();
@@ -46,7 +48,7 @@ namespace Pickles_Playlist_Editor
                             // Read the existing file purely to recover its audio (read by offset,
                             // so it survives any header misalignment from the old Bypass bug).
                             ScdFile existing;
-                            using (var reader = new BinaryReader(File.Open(scdPath, FileMode.Open)))
+                            using (var reader = new BinaryReader(File.Open(scdPath, FileMode.Open, FileAccess.Read, FileShare.Read)))
                                 existing = new ScdFile(reader, false);
 
                             if (existing.Audio.Count == 0)
@@ -69,11 +71,16 @@ namespace Pickles_Playlist_Editor
                             using (var writer = new BinaryWriter(File.Open(scdPath, FileMode.Create)))
                                 rebuilt.Write(writer);
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            errors.Add($"{Path.GetFileName(scdPath)}: {ex.Message}");
+                        }
                     }
                 }
                 progress?.Invoke((int)(++done / (double)total * 100));
             }
+
+            return errors;
         }
 
         [LibraryImport("user32.dll", EntryPoint = "MessageBoxW", StringMarshalling = StringMarshalling.Utf16)]

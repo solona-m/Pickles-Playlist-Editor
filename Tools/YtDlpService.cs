@@ -20,6 +20,14 @@ public enum YtDownloadMode
     Playlist
 }
 
+public enum CookieStatus
+{
+    NotFound,
+    Valid,
+    Expired,
+    Invalid
+}
+
 public sealed class YtDlpProgressInfo
 {
     public required string Stage { get; init; }
@@ -43,6 +51,49 @@ public static class YtDlpService
     private static volatile bool _isListeningForCookies;
 
     public static bool HasCookies => !string.IsNullOrEmpty(_cookiesPath) && File.Exists(_cookiesPath);
+
+    public static CookieStatus GetCookieStatus()
+    {
+        if (!HasCookies)
+            return CookieStatus.NotFound;
+
+        try
+        {
+            var lines = File.ReadAllLines(_cookiesPath!);
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            bool sawAnyCookie = false;
+            long maxExpiry = 0;
+
+            foreach (var rawLine in lines)
+            {
+                string line = rawLine.Trim();
+                if (line.Length == 0 || line.StartsWith("#"))
+                    continue;
+
+                string[] fields = line.Split('\t');
+                if (fields.Length < 7)
+                    continue;
+
+                sawAnyCookie = true;
+                if (long.TryParse(fields[4], out long expiry) && expiry > maxExpiry)
+                    maxExpiry = expiry;
+            }
+
+            if (!sawAnyCookie)
+                return CookieStatus.Invalid;
+
+            // maxExpiry == 0 means every cookie is a session cookie (no expiration recorded);
+            // there's nothing to compare against time, so treat it as valid.
+            if (maxExpiry > 0 && maxExpiry < now)
+                return CookieStatus.Expired;
+
+            return CookieStatus.Valid;
+        }
+        catch
+        {
+            return CookieStatus.Invalid;
+        }
+    }
 
     private static string? FindCookiesFile()
     {
@@ -168,9 +219,22 @@ public static class YtDlpService
     {
         Directory.CreateDirectory(outputDirectory);
         string playlistFlag = mode == YtDownloadMode.Playlist ? "--yes-playlist" : "--no-playlist";
-        string cookiesArg = CookiesArg;
         string denoArg = DenoArg;
         string ffmpegArg = FfmpegArg;
+
+        try
+        {
+            return await DownloadAudioAttemptAsync(url, outputDirectory, playlistFlag, denoArg, ffmpegArg, useCookies: false, onProgress);
+        }
+        catch (Exception) when (GetCookieStatus() == CookieStatus.Valid)
+        {
+            return await DownloadAudioAttemptAsync(url, outputDirectory, playlistFlag, denoArg, ffmpegArg, useCookies: true, onProgress);
+        }
+    }
+
+    private static async Task<YtDlpDownloadResult> DownloadAudioAttemptAsync(string url, string outputDirectory, string playlistFlag, string denoArg, string ffmpegArg, bool useCookies, Action<YtDlpProgressInfo>? onProgress)
+    {
+        string cookiesArg = useCookies ? CookiesArg : string.Empty;
 
         var infoJson = await RunYtDlpAsync($"--dump-single-json --no-warnings --skip-download {denoArg} {playlistFlag} {cookiesArg} \"{url}\"");
         var parsed = JObject.Parse(infoJson);

@@ -488,6 +488,32 @@ namespace Pickles_Playlist_Editor
         public static double NormalizationTruePeak
             => -1.5 + (NormalizationLoudness - 1) * 1.2 / 99.0;
 
+        /// <summary>
+        /// When true, volume normalization also trims leading and trailing digital
+        /// silence from the audio so tracks start (and end) on the first/last audible
+        /// sample. Default: true.
+        /// </summary>
+        public static bool TrimSilence
+        {
+            get
+            {
+                try
+                {
+                    var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("TrimSilence", 1);
+                    if (value is int iv) return iv != 0;
+                    if (value is long lv) return lv != 0;
+                    if (value is string sv && int.TryParse(sv, out var parsed)) return parsed != 0;
+                }
+                catch { }
+                return true;
+            }
+            set
+            {
+                using var key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                key?.SetValue("TrimSilence", value ? 1 : 0, RegistryValueKind.DWord);
+            }
+        }
+
         public static (int Width, int Height) WindowSize
         {
             get

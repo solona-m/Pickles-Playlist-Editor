@@ -251,9 +251,17 @@ namespace Pickles_Playlist_Editor
 
         private void UpdateCookieStatus()
         {
-            CookieStatusText.Text = Pickles_Playlist_Editor.Tools.YtDlpService.HasCookies
-                ? "Cookies found. Age-restricted YouTube downloads are enabled."
-                : "No cookies found. Use the VRCVideoCacher browser extension to send cookies.";
+            var status = Pickles_Playlist_Editor.Tools.YtDlpService.GetCookieStatus();
+            CookieStatusText.Text = status switch
+            {
+                Pickles_Playlist_Editor.Tools.CookieStatus.Valid =>
+                    "Cookies found. Age-restricted YouTube downloads are enabled.",
+                Pickles_Playlist_Editor.Tools.CookieStatus.Expired =>
+                    "Cookies found but they appear to be expired. Re-export cookies using the VRCVideoCacher browser extension.",
+                Pickles_Playlist_Editor.Tools.CookieStatus.Invalid =>
+                    "Cookies found but could not be read. Re-export cookies using the VRCVideoCacher browser extension.",
+                _ => "No cookies found. Use the VRCVideoCacher browser extension to send cookies.",
+            };
             ClearCookiesButton.IsEnabled = Pickles_Playlist_Editor.Tools.YtDlpService.HasCookies;
         }
 
@@ -348,8 +356,17 @@ namespace Pickles_Playlist_Editor
             App.MainWindow.DispatcherQueue.TryEnqueue(async () =>
             {
                 App.MainWindow.SetProgressBarText(AppStrings.Prog_ConvertingToStereo);
-                await Task.Run(() => Library.ConvertToStereo(App.MainWindow.SetProgressBarPercent));
+                List<string> errors = null;
+                await Task.Run(() => { errors = Library.ConvertToStereo(App.MainWindow.SetProgressBarPercent); });
                 App.MainWindow.ClearProgressDisplay();
+
+                if (errors != null && errors.Count > 0)
+                {
+                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                    string msg = $"{errors.Count} file(s) could not be updated:\n\n" + string.Join("\n", errors.Take(10));
+                    if (errors.Count > 10) msg += $"\n...and {errors.Count - 10} more.";
+                    MessageBox(hwnd, msg, "Convert to Stereo — Errors", 0x00000030); // MB_ICONWARNING
+                }
             });
         }
 

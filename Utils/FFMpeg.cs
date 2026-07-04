@@ -53,6 +53,16 @@ namespace Pickles_Playlist_Editor.Utils
                 filter = $"loudnorm=I={lufs}:LRA=11:TP={tp}";
             }
 
+            // Optionally strip leading and trailing digital silence. silenceremove only
+            // trims from the front, so trailing silence is removed by reversing the
+            // stream, trimming its (now-leading) tail, then reversing back. Done before
+            // the gain stage so the audible content starts on sample zero.
+            if (Settings.TrimSilence)
+            {
+                const string trim = "silenceremove=start_periods=1:start_duration=0:start_threshold=-50dB:detection=peak";
+                filter = $"{trim},areverse,{trim},areverse,{filter}";
+            }
+
             Run($"-i \"{oggName}\" -af {filter} -acodec libvorbis -q:a 7 \"{tmp}\"");
             File.Move(tmp, oggName, true);
         }
