@@ -305,7 +305,7 @@ namespace Pickles_Playlist_Editor
                 if (playlistContent != null && playlistContent.Children.Count > 1)
                     _selectedNode = playlistContent.Children[1];
 
-                PlayOption(firstOption);
+                PlayOption(firstOption, node.Name);
                 return;
             }
 
@@ -319,7 +319,7 @@ namespace Pickles_Playlist_Editor
 
             var option = playlist.Options.FirstOrDefault(x => string.Equals(x.Name, node.Name, StringComparison.Ordinal));
             if (option != null)
-                PlayOption(option);
+                PlayOption(option, node.Parent.Name);
         }
 
         private async Task RenameNodeAsync(PlaylistNodeContent node)

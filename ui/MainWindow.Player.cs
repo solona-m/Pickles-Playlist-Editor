@@ -1,5 +1,7 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Microsoft.UI.Xaml;
 
 namespace Pickles_Playlist_Editor
@@ -10,10 +12,32 @@ namespace Pickles_Playlist_Editor
         private const string PauseGlyph = "";
         private const string VolumeGlyph = "";
         private const string MuteGlyph = "";
+        private const string RepeatAllGlyph = "";
+        private const string RepeatOneGlyph = "";
+
+        private enum RepeatMode { Off, All, One }
 
         private readonly DispatcherTimer _playbackTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
         private bool _isSeeking;
         private double _lastVolumeBeforeMute = 100;
+
+        // Starts true so the Slider's XAML-declared default (Value="100"), which fires
+        // ValueChanged during InitializeComponent(), doesn't clobber the saved volume
+        // before InitializePlaybackTimer() gets a chance to restore it.
+        private bool _suppressVolumePersist = true;
+
+        private bool _shuffleEnabled;
+        private RepeatMode _repeatMode = RepeatMode.Off;
+        private readonly Random _shuffleRng = new();
+        private List<int> _shuffleOrder = new();
+        private int _shufflePos = -1;
+        private string? _shufflePlaylistName;
+
+        // The song actually loaded in the player. Deliberately separate from
+        // _selectedNode (tree selection): a background playlist reload can reassign
+        // _selectedNode via TreeView SelectionChanged, which must not derail playback.
+        private string? _nowPlayingPlaylistName;
+        private string? _nowPlayingSongName;
 
         private void InitializePlaybackTimer()
         {
@@ -24,21 +48,68 @@ namespace Pickles_Playlist_Editor
             // itself never fire during a drag. handledEventsToo lets us see them anyway.
             SeekSlider.AddHandler(UIElement.PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(SeekSlider_PointerPressed), true);
             SeekSlider.AddHandler(UIElement.PointerReleasedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(SeekSlider_PointerReleased), true);
+
+            int savedVolume = Settings.PlaybackVolume;
+            Player.SetVolume(savedVolume);
+            VolumeSlider.Value = savedVolume;
+            _suppressVolumePersist = false;
+        }
+
+        // Resolves playlist/node/index context from whatever song is actually playing,
+        // not from tree selection. Used by Prev/Next/shuffle so navigation can't be
+        // hijacked by unrelated selection changes (e.g. a background playlist reload).
+        private (Playlist playlist, PlaylistNodeContent playlistNode, string playlistName, int idx)? GetNowPlayingContext()
+        {
+            if (_nowPlayingPlaylistName == null || _nowPlayingSongName == null) return null;
+            if (!Playlists.TryGetValue(_nowPlayingPlaylistName, out var playlist)) return null;
+            int idx = playlist.Options.FindIndex(x => x.Name == _nowPlayingSongName);
+            if (idx < 0) return null;
+            var playlistNode = FindPlaylistNode(_nowPlayingPlaylistName);
+            if (playlistNode == null) return null;
+            return (playlist, playlistNode, _nowPlayingPlaylistName, idx);
+        }
+
+        // Builds a shuffled play order over the playlist's real songs (Options index 0 is
+        // the "Off" placeholder). This never touches the playlist's own saved order.
+        private void BuildShuffleOrder(Playlist playlist, string playlistName, int keepFirst)
+        {
+            var indices = Enumerable.Range(1, Math.Max(0, playlist.Options.Count - 1)).ToList();
+            for (int i = indices.Count - 1; i > 0; i--)
+            {
+                int j = _shuffleRng.Next(i + 1);
+                (indices[i], indices[j]) = (indices[j], indices[i]);
+            }
+            if (keepFirst >= 0)
+            {
+                indices.Remove(keepFirst);
+                indices.Insert(0, keepFirst);
+            }
+            _shuffleOrder = indices;
+            _shufflePlaylistName = playlistName;
+            _shufflePos = keepFirst >= 0 ? 0 : -1;
         }
 
         private void PrevButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_selectedNode == null || _selectedNode.Level != 2) return;
-            string songName = _selectedNode.Name;
-            string? playlistName = _selectedNode.Parent?.Name;
-            if (playlistName == null || !Playlists.TryGetValue(playlistName, out var playlist)) return;
-            int idx = playlist.Options.FindIndex(x => x.Name == songName);
-            if (idx <= 1) return;
-            var prevOpt = playlist.Options[idx - 1];
-            var playlistContent = FindPlaylistNode(playlistName);
-            if (playlistContent != null && idx - 1 < playlistContent.Children.Count)
-                _selectedNode = playlistContent.Children[idx - 1];
-            PlayOption(prevOpt);
+            var ctx = GetNowPlayingContext();
+            if (ctx == null) return;
+            var (playlist, playlistNode, playlistName, idx) = ctx.Value;
+
+            int prevIdx;
+            if (_shuffleEnabled && _shufflePlaylistName == playlistName && _shufflePos > 0)
+            {
+                _shufflePos--;
+                prevIdx = _shuffleOrder[_shufflePos];
+            }
+            else
+            {
+                if (idx <= 1) return;
+                prevIdx = idx - 1;
+            }
+
+            if (prevIdx < playlistNode.Children.Count)
+                _selectedNode = playlistNode.Children[prevIdx];
+            PlayOption(playlist.Options[prevIdx], playlistName, isShuffleNav: true);
         }
 
         private void NextButton_Click(object sender, RoutedEventArgs e)
@@ -46,31 +117,62 @@ namespace Pickles_Playlist_Editor
             PlayNext();
         }
 
-        private bool PlayNext()
+        private bool PlayNext(bool isAutoAdvance = false)
         {
-            if (_selectedNode == null || _selectedNode.Level != 2)
+            var ctx = GetNowPlayingContext();
+            if (ctx == null)
             {
                 ResetPlaybackUI();
                 return false;
             }
-            string songName = _selectedNode.Name;
-            string? playlistName = _selectedNode.Parent?.Name;
-            if (playlistName == null || !Playlists.TryGetValue(playlistName, out var playlist))
+            var (playlist, playlistNode, playlistName, idx) = ctx.Value;
+
+            if (isAutoAdvance && _repeatMode == RepeatMode.One)
             {
-                ResetPlaybackUI();
-                return false;
+                PlayOption(playlist.Options[idx], playlistName, isShuffleNav: true);
+                return true;
             }
-            int idx = playlist.Options.FindIndex(x => x.Name == songName);
-            if (idx < 0 || idx + 1 >= playlist.Options.Count)
+
+            int nextIdx;
+            if (_shuffleEnabled)
             {
-                ResetPlaybackUI();
-                return false;
+                if (_shufflePlaylistName != playlistName || _shuffleOrder.Count == 0)
+                    BuildShuffleOrder(playlist, playlistName, keepFirst: idx);
+
+                if (_shufflePos + 1 < _shuffleOrder.Count)
+                {
+                    _shufflePos++;
+                }
+                else if (_repeatMode == RepeatMode.All)
+                {
+                    BuildShuffleOrder(playlist, playlistName, keepFirst: -1);
+                    _shufflePos = 0;
+                }
+                else
+                {
+                    ResetPlaybackUI();
+                    return false;
+                }
+                nextIdx = _shuffleOrder[_shufflePos];
             }
-            var nextOpt = playlist.Options[idx + 1];
-            var playlistContent = FindPlaylistNode(playlistName);
-            if (playlistContent != null && idx + 1 < playlistContent.Children.Count)
-                _selectedNode = playlistContent.Children[idx + 1];
-            PlayOption(nextOpt);
+            else
+            {
+                nextIdx = idx + 1;
+                if (nextIdx >= playlist.Options.Count)
+                {
+                    if (_repeatMode == RepeatMode.All)
+                        nextIdx = 1;
+                    else
+                    {
+                        ResetPlaybackUI();
+                        return false;
+                    }
+                }
+            }
+
+            if (nextIdx < playlistNode.Children.Count)
+                _selectedNode = playlistNode.Children[nextIdx];
+            PlayOption(playlist.Options[nextIdx], playlistName, isShuffleNav: true);
             return true;
         }
 
@@ -83,7 +185,7 @@ namespace Pickles_Playlist_Editor
                 string? playlistName = _selectedNode.Parent?.Name;
                 if (playlistName == null || !Playlists.TryGetValue(playlistName, out var playlist)) return;
                 var opt = playlist.Options.Find(x => x.Name == songName);
-                if (opt != null) PlayOption(opt);
+                if (opt != null) PlayOption(opt, playlistName);
                 return;
             }
 
@@ -91,18 +193,30 @@ namespace Pickles_Playlist_Editor
             UpdatePlayPauseIcon();
         }
 
-        private void PlayOption(Option opt)
+        private void PlayOption(Option opt, string playlistName, bool isShuffleNav = false)
         {
             string songPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, Playlist.GetScdPath(opt));
             if (File.Exists(songPath))
             {
+                _nowPlayingPlaylistName = playlistName;
+                _nowPlayingSongName = opt.Name;
+
                 NowPlayingLabel.Text = opt.Name;
                 Player.Play(songPath, onEnded: () =>
                 {
-                    DispatcherQueue.TryEnqueue(() => PlayNext());
+                    DispatcherQueue.TryEnqueue(() => PlayNext(isAutoAdvance: true));
                 });
                 UpdatePlayPauseIcon();
                 _playbackTimer.Start();
+
+                // A manually chosen song (double-click, Play button) anchors a fresh
+                // shuffle cycle instead of continuing whatever order was already built.
+                if (_shuffleEnabled && !isShuffleNav && Playlists.TryGetValue(playlistName, out var playlist))
+                {
+                    int idx = playlist.Options.FindIndex(x => x.Name == opt.Name);
+                    if (idx >= 0)
+                        BuildShuffleOrder(playlist, playlistName, keepFirst: idx);
+                }
             }
             else
             {
@@ -162,10 +276,14 @@ namespace Pickles_Playlist_Editor
         {
             Player.SetVolume((int)e.NewValue);
             MuteIcon.Glyph = e.NewValue <= 0 ? MuteGlyph : VolumeGlyph;
+            if (!_suppressVolumePersist)
+                Settings.PlaybackVolume = (int)e.NewValue;
         }
 
         private void MuteButton_Click(object sender, RoutedEventArgs e)
         {
+            // Muting/unmuting shouldn't overwrite the remembered volume with 0.
+            _suppressVolumePersist = true;
             if (VolumeSlider.Value > 0)
             {
                 _lastVolumeBeforeMute = VolumeSlider.Value;
@@ -175,6 +293,46 @@ namespace Pickles_Playlist_Editor
             {
                 VolumeSlider.Value = _lastVolumeBeforeMute > 0 ? _lastVolumeBeforeMute : 100;
             }
+            _suppressVolumePersist = false;
+        }
+
+        private void ShuffleToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            _shuffleEnabled = !_shuffleEnabled;
+            if (_shuffleEnabled)
+            {
+                var ctx = GetNowPlayingContext();
+                if (ctx != null)
+                {
+                    var (playlist, _, playlistName, idx) = ctx.Value;
+                    BuildShuffleOrder(playlist, playlistName, keepFirst: idx);
+                }
+            }
+            else
+            {
+                _shuffleOrder.Clear();
+                _shufflePos = -1;
+                _shufflePlaylistName = null;
+            }
+            UpdateShuffleRepeatIcons();
+        }
+
+        private void RepeatToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            _repeatMode = _repeatMode switch
+            {
+                RepeatMode.Off => RepeatMode.All,
+                RepeatMode.All => RepeatMode.One,
+                _ => RepeatMode.Off
+            };
+            UpdateShuffleRepeatIcons();
+        }
+
+        private void UpdateShuffleRepeatIcons()
+        {
+            ShuffleIcon.Opacity = _shuffleEnabled ? 1.0 : 0.5;
+            RepeatIcon.Opacity = _repeatMode == RepeatMode.Off ? 0.5 : 1.0;
+            RepeatIcon.Glyph = _repeatMode == RepeatMode.One ? RepeatOneGlyph : RepeatAllGlyph;
         }
     }
 }

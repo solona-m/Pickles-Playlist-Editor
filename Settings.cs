@@ -514,6 +514,32 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        /// <summary>
+        /// Playback volume for the bottom player bar (0–100). Default: 100.
+        /// Distinct from <see cref="ScdVolumePercentage"/>, which controls exported SCD loudness.
+        /// </summary>
+        public static int PlaybackVolume
+        {
+            get
+            {
+                try
+                {
+                    var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("PlaybackVolume", 100);
+                    if (value is int iv && iv >= 0 && iv <= 100) return iv;
+                    if (value is long lv && lv >= 0 && lv <= 100) return (int)lv;
+                    if (value is string sv && int.TryParse(sv, out var parsed) && parsed >= 0 && parsed <= 100) return parsed;
+                }
+                catch { }
+                return 100;
+            }
+            set
+            {
+                int clamped = Math.Clamp(value, 0, 100);
+                using var key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                key?.SetValue("PlaybackVolume", clamped, RegistryValueKind.DWord);
+            }
+        }
+
         public static (int Width, int Height) WindowSize
         {
             get
