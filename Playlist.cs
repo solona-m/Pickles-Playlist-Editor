@@ -140,6 +140,19 @@ namespace Pickles_Playlist_Editor
                     Settings.BaselineScdKey,
                     Path.Combine(playlistScdDirectory, Path.GetFileName(targetPath)));
                 group.Options.Add(opt);
+
+                try
+                {
+                    string scdPath = Playlist.GetScdPath(opt);
+                    int bpm = BPMDetector.GetBPMFromSCD(scdPath);
+                    string key = KeyDetector.GetKeyFromSCD(scdPath);
+                    TimeSpan duration = BPMDetector.GetDuration(scdPath);
+                    OptionStatsNaming.UpdateName(opt, bpm, key, duration);
+                }
+                catch
+                {
+                    // Stats detection failure must not block import.
+                }
             }
             catch (Exception ex)
             {

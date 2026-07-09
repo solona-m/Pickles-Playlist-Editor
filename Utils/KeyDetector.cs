@@ -87,16 +87,16 @@ namespace Pickles_Playlist_Editor.Utils
             }
         }
 
-        internal static string TryGetCachedKey(string scdFile)
+        internal static string? TryGetCachedKey(string scdFile)
         {
             try
             {
                 string path = Path.Combine(Settings.PenumbraLocation, Settings.ModName, scdFile);
-                return keyCache.ContainsKey(path) ? keyCache[path] : string.Empty;
+                return keyCache.ContainsKey(path) ? keyCache[path] : null;
             }
             catch
             {
-                return string.Empty;
+                return null;
             }
         }
 
@@ -240,7 +240,7 @@ namespace Pickles_Playlist_Editor.Utils
                 }
             }
 
-            return $"{NoteNames[bestRoot]} {(bestIsMinor ? "Minor" : "Major")}";
+            return $"{NoteNames[bestRoot]}{(bestIsMinor ? "m" : "")}";
         }
 
         private static double Correlate(double[] chroma, double[] profile, int root)

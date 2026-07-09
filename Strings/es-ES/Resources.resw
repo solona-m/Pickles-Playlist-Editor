@@ -139,8 +139,7 @@
   <data name="Dlg_RestartRequired_Content" xml:space="preserve"><value>El cambio de idioma se aplicará por completo tras reiniciar. ¿Reiniciar ahora?</value></data>
   <data name="Tree_PlaylistsRoot" xml:space="preserve"><value>Listas de reproducción</value></data>
   <data name="Dlg_YTNoCookies" xml:space="preserve"><value>Este vídeo requiere inicio de sesión en YouTube. Para descargar vídeos con restricción de edad, instala la extensión VRCVideoCacher Cookies Exporter para Chrome: https://chromewebstore.google.com/detail/vrcvideocacher-cookies-ex/kfgelknbegappcajiflgfbjbdpbpokge</value></data>
-  <data name="Menu_DetectKeys" xml:space="preserve"><value>Detectar tonalidades</value></data>
-  <data name="Dlg_DetectKeys_Title" xml:space="preserve"><value>Detectar tonalidades</value></data>
-  <data name="Prog_DetectingKeys" xml:space="preserve"><value>Detectando tonalidades...</value></data>
-  <data name="Summary_DetectKeys" xml:space="preserve"><value>Detección de tonalidades finalizada</value></data>
+  <data name="Menu_ComputeStats" xml:space="preserve"><value>Calcular estadísticas</value></data>
+  <data name="Prog_ComputingStats" xml:space="preserve"><value>Calculando BPM y tonalidad...</value></data>
+  <data name="Summary_ComputeStats" xml:space="preserve"><value>Cálculo de estadísticas finalizado</value></data>
 </root>

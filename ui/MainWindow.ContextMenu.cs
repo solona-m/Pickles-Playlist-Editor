@@ -31,9 +31,21 @@ namespace Pickles_Playlist_Editor
             eq.Click += ApplyEqSettingsMenuItem_Click;
             flyout.Items.Add(eq);
             flyout.Items.Add(new MenuFlyoutSeparator());
-            var detectKeys = new MenuFlyoutItem { Text = AppStrings.Menu_DetectKeys };
-            detectKeys.Click += DetectKeysMenuItem_Click;
-            flyout.Items.Add(detectKeys);
+            var computeStats = new MenuFlyoutItem { Text = AppStrings.Menu_ComputeStats };
+            computeStats.Click += ComputeStatsMenuItem_Click;
+            flyout.Items.Add(computeStats);
+            return flyout;
+        }
+
+        private MenuFlyout BuildRootContextMenu()
+        {
+            var flyout = new MenuFlyout();
+            var normalize = new MenuFlyoutItem { Text = AppStrings.Menu_NormalizeAudio };
+            normalize.Click += NormalizeAudioMenuItem_Click;
+            flyout.Items.Add(normalize);
+            var computeStats = new MenuFlyoutItem { Text = AppStrings.Menu_ComputeStats };
+            computeStats.Click += ComputeStatsMenuItem_Click;
+            flyout.Items.Add(computeStats);
             return flyout;
         }
 
@@ -115,28 +127,40 @@ namespace Pickles_Playlist_Editor
             await OpenEqualizerWorkflowAsync(node);
         }
 
-        private async void DetectKeysMenuItem_Click(object sender, object e)
+        private async void ComputeStatsMenuItem_Click(object sender, object e)
         {
             var node = _contextMenuNode;
             if (node == null) return;
             var targetSongs = GetSongTargetsForNode(node);
-            if (targetSongs.Count == 0) { await ShowDialogAsync(AppStrings.Dlg_DetectKeys_Title, AppStrings.Dlg_NoSongs); return; }
-            SetProgressBarText(AppStrings.Prog_DetectingKeys);
+            if (targetSongs.Count == 0) { await ShowDialogAsync(AppStrings.Menu_ComputeStats, AppStrings.Dlg_NoSongs); return; }
+            SetProgressBarText(AppStrings.Prog_ComputingStats);
             SetProgressBarPercent(0);
-            int detected = 0;
+            int processed = 0;
             var errors = new List<string>();
+            var touchedPlaylists = new HashSet<Playlist>();
             await Task.Run(() =>
             {
                 foreach (var (playlist, option) in targetSongs)
                 {
-                    try { KeyDetector.GetKeyFromSCD(Playlist.GetScdPath(option)); detected++; }
+                    try
+                    {
+                        string scdPath = Playlist.GetScdPath(option);
+                        int bpm = BPMDetector.GetBPMFromSCD(scdPath);
+                        string key = KeyDetector.GetKeyFromSCD(scdPath);
+                        TimeSpan duration = BPMDetector.GetDuration(scdPath);
+                        OptionStatsNaming.UpdateName(option, bpm, key, duration);
+                        touchedPlaylists.Add(playlist);
+                        processed++;
+                    }
                     catch (Exception ex) { errors.Add($"{playlist.Name}/{option.Name}: {ex.Message}"); }
-                    finally { SetProgressBarPercent((int)((detected + errors.Count) / (double)targetSongs.Count * 100)); }
+                    finally { SetProgressBarPercent((int)((processed + errors.Count) / (double)targetSongs.Count * 100)); }
                 }
+                foreach (var playlist in touchedPlaylists)
+                    playlist.Save();
             });
             SetProgressBarPercent(100);
             LoadPlaylists();
-            ShowOperationSummary(AppStrings.Summary_DetectKeys, detected, targetSongs.Count, errors);
+            ShowOperationSummary(AppStrings.Summary_ComputeStats, processed, targetSongs.Count, errors);
         }
 
         private List<(Playlist playlist, Option option)> GetSongTargetsForNode(PlaylistNodeContent node)
@@ -153,9 +177,17 @@ namespace Pickles_Playlist_Editor
                 return results;
             }
             if (node.Level == 1 && Playlists.TryGetValue(node.Name, out var playlist))
+            {
                 foreach (var opt in playlist.Options)
                     if (!string.IsNullOrEmpty(Playlist.GetScdPath(opt)))
                         results.Add((playlist, opt));
+                return results;
+            }
+            if (node.Level == 0)
+                foreach (var pl in Playlists.Values)
+                    foreach (var opt in pl.Options)
+                        if (!string.IsNullOrEmpty(Playlist.GetScdPath(opt)))
+                            results.Add((pl, opt));
             return results;
         }
 

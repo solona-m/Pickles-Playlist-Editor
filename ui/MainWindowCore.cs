@@ -16,6 +16,7 @@ namespace Pickles_Playlist_Editor
     public sealed partial class MainWindow
     {
         private bool _busyOverlayVisible;
+        private bool _didBackfillStatsFromCache;
         private readonly Dictionary<string, bool> _playlistExpandedStates = new();
         private Storyboard? _spinnerStoryboard;
 
@@ -48,6 +49,7 @@ namespace Pickles_Playlist_Editor
             try
             {
                 Playlists = Playlist.GetAll();
+                BackfillStatsFromCacheIfNeeded();
 
                 bool skipDurationComputation = false;
                 if (BPMDetector.IsFirstTimeMessage())
@@ -104,10 +106,7 @@ namespace Pickles_Playlist_Editor
                                 playlistTime = playlistTime.Add(time);
                             }
 
-                            string displayText = song.Name
-                                + (skipDurationComputation ? "" : GetBPMString(song))
-                                + (skipDurationComputation ? "" : GetKeyString(song))
-                                + GetTimeString(time);
+                            string displayText = song.Name;
 
                             var songContent = new PlaylistNodeContent
                             {
@@ -197,6 +196,40 @@ namespace Pickles_Playlist_Editor
                 LoadPlaylists();
         }
 
+        // One-time, cache-only backfill: songs whose Name has never had stats baked in
+        // (e.g. imported before this feature existed) get whatever's already cached
+        // written into their Name. Never triggers new BPM/key/duration detection.
+        private void BackfillStatsFromCacheIfNeeded()
+        {
+            if (_didBackfillStatsFromCache) return;
+            _didBackfillStatsFromCache = true;
+
+            var touchedPlaylists = new HashSet<Playlist>();
+            foreach (var playlist in Playlists.Values)
+            {
+                if (playlist.Options == null) continue;
+                foreach (var option in playlist.Options)
+                {
+                    if (option == null || string.IsNullOrEmpty(option.Name)) continue;
+                    if (OptionStatsNaming.StripSuffix(option.Name) != option.Name) continue;
+
+                    string scdPath = Playlist.GetScdPath(option);
+                    if (string.IsNullOrEmpty(scdPath)) continue;
+
+                    int? bpm = BPMDetector.TryGetCachedBpm(scdPath);
+                    string? key = KeyDetector.TryGetCachedKey(scdPath);
+                    TimeSpan? duration = BPMDetector.TryGetCachedDuration(scdPath);
+                    if (!bpm.HasValue && string.IsNullOrEmpty(key) && !duration.HasValue) continue;
+
+                    OptionStatsNaming.UpdateName(option, bpm, key, duration);
+                    touchedPlaylists.Add(playlist);
+                }
+            }
+
+            foreach (var playlist in touchedPlaylists)
+                playlist.Save();
+        }
+
         private Task RecomputePlaylistDurationsAsync()
         {
             var playlistScdPaths = new List<List<string>>();
@@ -247,21 +280,6 @@ namespace Pickles_Playlist_Editor
                     });
                 }
             });
-        }
-
-        private string GetBPMString(Option song)
-        {
-            string scdPath = Playlist.GetScdPath(song);
-            if (string.IsNullOrEmpty(scdPath)) return string.Empty;
-            return " (" + BPMDetector.GetBPMFromSCD(scdPath) + " BPM)";
-        }
-
-        private string GetKeyString(Option song)
-        {
-            string scdPath = Playlist.GetScdPath(song);
-            if (string.IsNullOrEmpty(scdPath)) return string.Empty;
-            string key = KeyDetector.TryGetCachedKey(scdPath);
-            return string.IsNullOrEmpty(key) ? string.Empty : " [" + key + "]";
         }
 
         private static string GetTimeString(TimeSpan time)

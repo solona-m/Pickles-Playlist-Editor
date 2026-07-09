@@ -206,5 +206,31 @@ namespace Pickles_Playlist_Editor.Utils
                 return 0;
             }
         }
+
+        internal static int? TryGetCachedBpm(string scdFile)
+        {
+            try
+            {
+                string path = Path.Combine(Settings.PenumbraLocation, Settings.ModName, scdFile);
+                return bpmCache.ContainsKey(path) ? bpmCache[path] : (int?)null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        internal static TimeSpan? TryGetCachedDuration(string scdFile)
+        {
+            try
+            {
+                string path = Path.Combine(Settings.PenumbraLocation, Settings.ModName, scdFile);
+                return durationCache.ContainsKey(path) ? new TimeSpan(0, 0, durationCache[path]) : (TimeSpan?)null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }

@@ -24,6 +24,7 @@ namespace Pickles_Playlist_Editor
         private PlaylistNodeContent? _selectedNode;
 
         private readonly MenuFlyout _treeContextMenu;
+        private readonly MenuFlyout _rootContextMenu;
         private readonly DispatcherQueue _uiDispatcherQueue;
 
         [DllImport("dwmapi.dll")]
@@ -54,6 +55,7 @@ namespace Pickles_Playlist_Editor
             this.Title = "Pickles Playlist Editor";
 
             _treeContextMenu = BuildContextMenu();
+            _rootContextMenu = BuildRootContextMenu();
 
             // Restore last window size
             var (w, h) = Settings.WindowSize;
@@ -429,6 +431,14 @@ namespace Pickles_Playlist_Editor
                 if (content == null) return;
 
                 int level = content.Level;
+
+                if (level == 0)
+                {
+                    _contextMenuNode = content;
+                    _rootContextMenu.ShowAt(PlaylistTreeView, e.GetPosition(PlaylistTreeView));
+                    return;
+                }
+
                 _contextMenuNode = level >= 1 ? content : null;
 
                 bool valid = level == 1 || level == 2;
