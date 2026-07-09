@@ -36,6 +36,7 @@ namespace Pickles_Playlist_Editor
         {
             this.InitializeComponent();
             _uiDispatcherQueue = DispatcherQueue;
+            InitializePlaybackTimer();
 
             // Apply system dark/light theme — WinUI 3 doesn't do this automatically
             var uiSettings = new Windows.UI.ViewManagement.UISettings();
@@ -290,7 +291,25 @@ namespace Pickles_Playlist_Editor
                 return;
 
             var node = FindNodeContentFromElement(fe);
-            if (node == null || node.Level != 2)
+            if (node == null)
+                return;
+
+            if (node.Level == 1)
+            {
+                // Options[0]/Children[0] is the "Off" placeholder entry, not a real song.
+                if (!Playlists.TryGetValue(node.Name, out var playlistToStart) || playlistToStart.Options.Count <= 1)
+                    return;
+
+                var firstOption = playlistToStart.Options[1];
+                var playlistContent = FindPlaylistNode(node.Name);
+                if (playlistContent != null && playlistContent.Children.Count > 1)
+                    _selectedNode = playlistContent.Children[1];
+
+                PlayOption(firstOption);
+                return;
+            }
+
+            if (node.Level != 2)
                 return;
 
             _selectedNode = node;

@@ -10,6 +10,7 @@ namespace Pickles_Playlist_Editor
     internal static class Player
     {
         static ZPlay player = new ZPlay();
+        private static readonly object _playerLock = new object();
         private static readonly int[] EqualizerBands = [64, 250, 1000, 4000, 12000];
 
         enum PauseState
@@ -21,6 +22,9 @@ namespace Pickles_Playlist_Editor
 
         private static PauseState currentState = PauseState.STOPPED;
         public static bool IsPlaying => currentState == PauseState.PLAYING || currentState == PauseState.PAUSED;
+        public static bool IsPaused => currentState == PauseState.PAUSED;
+
+        private static int _volume = 100;
 
         private static CancellationTokenSource monitorCts;
         private static string? extractedTempOggPath;
@@ -67,9 +71,12 @@ namespace Pickles_Playlist_Editor
             }
 
             currentState = PauseState.PLAYING;
-            player.OpenFile(oggPath, TStreamFormat.sfOgg);
-            player.SetPlayerVolume(100, 100);
-            player.StartPlayback();
+            lock (_playerLock)
+            {
+                player.OpenFile(oggPath, TStreamFormat.sfOgg);
+                player.SetPlayerVolume(_volume, _volume);
+                player.StartPlayback();
+            }
 
             StartPlaybackMonitor(onEnded);
         }
@@ -90,7 +97,10 @@ namespace Pickles_Playlist_Editor
                         {
                             // Check playback status; break when playback is no longer active
                             var status = new TStreamStatus();
-                            player.GetStatus(ref status);
+                            lock (_playerLock)
+                            {
+                                player.GetStatus(ref status);
+                            }
                             if (!status.fPlay)
                             {
                                 break;
@@ -123,14 +133,14 @@ namespace Pickles_Playlist_Editor
             if (currentState == PauseState.PLAYING)
             {
                 currentState = PauseState.PAUSED;
-                player.PausePlayback();
+                lock (_playerLock) player.PausePlayback();
                 return;
             }
 
             if (currentState == PauseState.PAUSED)
             {
                 currentState = PauseState.PLAYING;
-                player.ResumePlayback();
+                lock (_playerLock) player.ResumePlayback();
             }
         }
 
@@ -138,8 +148,11 @@ namespace Pickles_Playlist_Editor
         {
             currentState = PauseState.STOPPED;
             monitorCts?.Cancel();
-            player.StopPlayback();
-            player.Close();
+            lock (_playerLock)
+            {
+                player.StopPlayback();
+                player.Close();
+            }
             CleanupExtractedTempFile();
         }
 
@@ -165,26 +178,64 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        public static TimeSpan GetPosition()
+        {
+            if (!IsPlaying) return TimeSpan.Zero;
+            var time = new TStreamTime();
+            lock (_playerLock) player.GetPosition(ref time);
+            return TimeSpan.FromMilliseconds(time.ms);
+        }
+
+        public static TimeSpan GetDuration()
+        {
+            if (!IsPlaying) return TimeSpan.Zero;
+            var info = new TStreamInfo();
+            lock (_playerLock) player.GetStreamInfo(ref info);
+            return TimeSpan.FromMilliseconds(info.Length.ms);
+        }
+
+        public static void Seek(TimeSpan position)
+        {
+            if (!IsPlaying) return;
+            var time = new TStreamTime { ms = (uint)Math.Max(0, position.TotalMilliseconds) };
+            lock (_playerLock)
+            {
+                player.Seek(TTimeFormat.tfMillisecond, ref time, TSeekMethod.smFromBeginning);
+            }
+        }
+
+        public static int GetVolume() => _volume;
+
+        public static void SetVolume(int percent)
+        {
+            _volume = Math.Clamp(percent, 0, 100);
+            if (IsPlaying)
+                lock (_playerLock) player.SetPlayerVolume(_volume, _volume);
+        }
+
         public static void ApplyRealtimeEqualizer(EqualizerSettings settings)
         {
             if (!IsPlaying)
                 return;
 
-            int[] points = (int[])EqualizerBands.Clone();
-            if (!player.SetEqualizerPoints(ref points, points.Length))
-                return;
+            lock (_playerLock)
+            {
+                int[] points = (int[])EqualizerBands.Clone();
+                if (!player.SetEqualizerPoints(ref points, points.Length))
+                    return;
 
-            int[] bandGains =
-            [
-                ConvertToBandGain(settings.BassGain),
-                ConvertToBandGain(settings.LowMidGain),
-                ConvertToBandGain(settings.MidGain),
-                ConvertToBandGain(settings.HighMidGain),
-                ConvertToBandGain(settings.TrebleGain)
-            ];
+                int[] bandGains =
+                [
+                    ConvertToBandGain(settings.BassGain),
+                    ConvertToBandGain(settings.LowMidGain),
+                    ConvertToBandGain(settings.MidGain),
+                    ConvertToBandGain(settings.HighMidGain),
+                    ConvertToBandGain(settings.TrebleGain)
+                ];
 
-            player.EnableEqualizer(true);
-            player.SetEqualizerParam(0, ref bandGains, bandGains.Length);
+                player.EnableEqualizer(true);
+                player.SetEqualizerParam(0, ref bandGains, bandGains.Length);
+            }
         }
 
         public static void DisableRealtimeEqualizer()
@@ -192,7 +243,7 @@ namespace Pickles_Playlist_Editor
             if (!IsPlaying)
                 return;
 
-            player.EnableEqualizer(false);
+            lock (_playerLock) player.EnableEqualizer(false);
         }
 
         private static int ConvertToBandGain(float gain)

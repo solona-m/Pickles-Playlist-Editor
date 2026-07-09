@@ -15,6 +15,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Toolbar -->
@@ -45,22 +46,6 @@
                         <MenuFlyoutItem x:Name="SortByNameMenuItem" x:Uid="SortByNameMenuItem" Text="Sort by Name" Click="SortByName_Click"/>
                     </MenuFlyout>
                 </AppBarButton.Flyout>
-            </AppBarButton>
-            <AppBarSeparator/>
-            <AppBarButton x:Name="PreviousButton" x:Uid="PreviousButton" Label="Previous" Click="PreviousButton_Click">
-                <AppBarButton.Icon><FontIcon Glyph="&#xE892;"/></AppBarButton.Icon>
-            </AppBarButton>
-            <AppBarButton x:Name="PlayButton" x:Uid="PlayButton" Label="Play" Click="PlayButton_Click">
-                <AppBarButton.Icon><FontIcon Glyph="&#xE768;"/></AppBarButton.Icon>
-            </AppBarButton>
-            <AppBarButton x:Name="PauseButton" x:Uid="PauseButton" Label="Pause" Click="PauseButton_Click">
-                <AppBarButton.Icon><FontIcon Glyph="&#xE769;"/></AppBarButton.Icon>
-            </AppBarButton>
-            <AppBarButton x:Name="StopButton" x:Uid="StopButton" Label="Stop" Click="StopIcon_Click">
-                <AppBarButton.Icon><FontIcon Glyph="&#xE71A;"/></AppBarButton.Icon>
-            </AppBarButton>
-            <AppBarButton x:Name="NextButton" x:Uid="NextButton" Label="Next" Click="NextButton_Click">
-                <AppBarButton.Icon><FontIcon Glyph="&#xE893;"/></AppBarButton.Icon>
             </AppBarButton>
             <CommandBar.SecondaryCommands>
                 <AppBarButton x:Name="SettingsButton" x:Uid="SettingsButton" Label="Settings" Click="SettingsButton_Click">
@@ -121,6 +106,59 @@
         <Grid Grid.Row="3" Margin="4,2,4,4">
             <ProgressBar x:Name="ProgressBar1" Minimum="0" Maximum="100" Value="0" Height="16"/>
             <TextBlock x:Name="ProgressLabel" Text="" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11"/>
+        </Grid>
+
+        <!-- Playback bar -->
+        <Grid Grid.Row="4" Margin="4,0,4,4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Slider x:Name="SeekSlider" Grid.Row="0"
+                    Minimum="0" Maximum="1000" Value="0"
+                    IsThumbToolTipEnabled="False"/>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Now playing / elapsed / duration -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="4,0,0,0">
+                    <TextBlock x:Name="NowPlayingLabel" Text="" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock x:Name="ElapsedLabel" Text="0:00" FontSize="11" Opacity="0.7"/>
+                        <TextBlock Text="/" FontSize="11" Opacity="0.7"/>
+                        <TextBlock x:Name="DurationLabel" Text="0:00" FontSize="11" Opacity="0.7"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Transport controls -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button x:Name="PrevButton" Click="PrevButton_Click" Background="Transparent" BorderThickness="0">
+                        <FontIcon Glyph="&#xE892;"/>
+                    </Button>
+                    <Button x:Name="PlayPauseButton" Click="PlayPauseButton_Click" Background="Transparent" BorderThickness="0">
+                        <FontIcon x:Name="PlayPauseIcon" Glyph="&#xE768;"/>
+                    </Button>
+                    <Button x:Name="NextButton" Click="NextButton_Click" Background="Transparent" BorderThickness="0">
+                        <FontIcon Glyph="&#xE893;"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Volume -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0">
+                    <Button x:Name="MuteButton" Click="MuteButton_Click" Background="Transparent" BorderThickness="0">
+                        <FontIcon x:Name="MuteIcon" Glyph="&#xE767;"/>
+                    </Button>
+                    <Slider x:Name="VolumeSlider" Width="100" Minimum="0" Maximum="100" Value="100"
+                            IsThumbToolTipEnabled="False"
+                            ValueChanged="VolumeSlider_ValueChanged"/>
+                </StackPanel>
+            </Grid>
         </Grid>
 
         </Grid>
