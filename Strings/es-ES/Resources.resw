@@ -74,8 +74,6 @@
   <data name="Dlg_NoPlaylist_Title" xml:space="preserve"><value>Sin lista</value></data>
   <data name="Dlg_NoPlaylist_Content" xml:space="preserve"><value>Por favor, seleccione primero una lista o canción.</value></data>
   <data name="Dlg_ErrorAddingSongs" xml:space="preserve"><value>Error al añadir canciones: {0}</value></data>
-  <data name="Dlg_BPMDetection_Title" xml:space="preserve"><value>Detección de BPM</value></data>
-  <data name="Dlg_BPMDetection_Content" xml:space="preserve"><value>La detección de BPM y duración puede tardar según el número de pistas. Los valores se guardan en caché para futuras sesiones.</value></data>
   <data name="Dlg_ConfirmDelete_Title" xml:space="preserve"><value>Confirmar eliminación</value></data>
   <data name="Dlg_ConfirmDelete_Content" xml:space="preserve"><value>¿Está seguro de que desea eliminar las listas/canciones seleccionadas? Esta acción no se puede deshacer.</value></data>
   <data name="Dlg_NonEmptyPlaylist_Title" xml:space="preserve"><value>No se puede eliminar la lista</value></data>
@@ -98,7 +96,6 @@
   <data name="Summary_ApplyEQ" xml:space="preserve"><value>Aplicación de ecualizador finalizada</value></data>
   <data name="Prog_ApplyingEQ" xml:space="preserve"><value>Aplicando ecualizador ({0}/{1})</value></data>
   <data name="Prog_ImportingSongs" xml:space="preserve"><value>Importando canciones...</value></data>
-  <data name="Prog_ComputingDurations" xml:space="preserve"><value>Calculando duraciones y BPM...</value></data>
   <data name="Dlg_FileNotFound_Title" xml:space="preserve"><value>Archivo no encontrado</value></data>
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>Archivo de canción no encontrado: {0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>Error al soltar el archivo: {0}</value></data>

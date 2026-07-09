@@ -74,8 +74,6 @@
   <data name="Dlg_NoPlaylist_Title" xml:space="preserve"><value>Geen afspeellijst</value></data>
   <data name="Dlg_NoPlaylist_Content" xml:space="preserve"><value>Selecteer eerst een afspeellijst of nummer.</value></data>
   <data name="Dlg_ErrorAddingSongs" xml:space="preserve"><value>Fout bij toevoegen van nummers: {0}</value></data>
-  <data name="Dlg_BPMDetection_Title" xml:space="preserve"><value>BPM-detectie</value></data>
-  <data name="Dlg_BPMDetection_Content" xml:space="preserve"><value>BPM- en lengtedetectie kan enige tijd duren afhankelijk van het aantal nummers. Waarden worden gecached voor snellere toegang in toekomstige sessies.</value></data>
   <data name="Dlg_ConfirmDelete_Title" xml:space="preserve"><value>Verwijdering bevestigen</value></data>
   <data name="Dlg_ConfirmDelete_Content" xml:space="preserve"><value>Weet u zeker dat u de geselecteerde afspeellijsten/nummers wilt verwijderen? Dit kan niet ongedaan worden gemaakt.</value></data>
   <data name="Dlg_NonEmptyPlaylist_Title" xml:space="preserve"><value>Afspeellijst kan niet worden verwijderd</value></data>
@@ -98,7 +96,6 @@
   <data name="Summary_ApplyEQ" xml:space="preserve"><value>EQ-instellingen toepassen voltooid</value></data>
   <data name="Prog_ApplyingEQ" xml:space="preserve"><value>EQ toepassen ({0}/{1})</value></data>
   <data name="Prog_ImportingSongs" xml:space="preserve"><value>Nummers importeren...</value></data>
-  <data name="Prog_ComputingDurations" xml:space="preserve"><value>Duur en BPM van nummers berekenen...</value></data>
   <data name="Dlg_FileNotFound_Title" xml:space="preserve"><value>Bestand niet gevonden</value></data>
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>Nummerbestand niet gevonden: {0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>Fout bij slepen van bestanden: {0}</value></data>

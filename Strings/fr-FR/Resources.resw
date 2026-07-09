@@ -74,8 +74,6 @@
   <data name="Dlg_NoPlaylist_Title" xml:space="preserve"><value>Pas de liste</value></data>
   <data name="Dlg_NoPlaylist_Content" xml:space="preserve"><value>Veuillez d'abord sélectionner une liste de lecture ou une chanson.</value></data>
   <data name="Dlg_ErrorAddingSongs" xml:space="preserve"><value>Erreur lors de l'ajout de chansons : {0}</value></data>
-  <data name="Dlg_BPMDetection_Title" xml:space="preserve"><value>Détection BPM</value></data>
-  <data name="Dlg_BPMDetection_Content" xml:space="preserve"><value>La détection du BPM et de la durée peut prendre du temps selon le nombre de pistes. Les valeurs sont mises en cache pour les prochaines sessions.</value></data>
   <data name="Dlg_ConfirmDelete_Title" xml:space="preserve"><value>Confirmer la suppression</value></data>
   <data name="Dlg_ConfirmDelete_Content" xml:space="preserve"><value>Voulez-vous vraiment supprimer les listes/chansons sélectionnées ? Cette action est irréversible.</value></data>
   <data name="Dlg_NonEmptyPlaylist_Title" xml:space="preserve"><value>Impossible de supprimer la liste</value></data>
@@ -98,7 +96,6 @@
   <data name="Summary_ApplyEQ" xml:space="preserve"><value>Paramètres EQ appliqués</value></data>
   <data name="Prog_ApplyingEQ" xml:space="preserve"><value>Application EQ ({0}/{1})</value></data>
   <data name="Prog_ImportingSongs" xml:space="preserve"><value>Importation des chansons...</value></data>
-  <data name="Prog_ComputingDurations" xml:space="preserve"><value>Calcul des durées et BPM...</value></data>
   <data name="Dlg_FileNotFound_Title" xml:space="preserve"><value>Fichier introuvable</value></data>
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>Fichier de chanson introuvable : {0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>Erreur lors du dépôt de fichier : {0}</value></data>

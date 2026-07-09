@@ -13,8 +13,6 @@ namespace Pickles_Playlist_Editor
         public static string Dlg_Error => _r.GetString("Dlg_Error");
         public static string Dlg_NoPlaylist_Title => _r.GetString("Dlg_NoPlaylist_Title");
         public static string Dlg_NoPlaylist_Content => _r.GetString("Dlg_NoPlaylist_Content");
-        public static string Dlg_BPMDetection_Title => _r.GetString("Dlg_BPMDetection_Title");
-        public static string Dlg_BPMDetection_Content => _r.GetString("Dlg_BPMDetection_Content");
         public static string Dlg_ConfirmDelete_Title => _r.GetString("Dlg_ConfirmDelete_Title");
         public static string Dlg_ConfirmDelete_Content => _r.GetString("Dlg_ConfirmDelete_Content");
         public static string Dlg_NonEmptyPlaylist_Title => _r.GetString("Dlg_NonEmptyPlaylist_Title");
@@ -32,7 +30,6 @@ namespace Pickles_Playlist_Editor
         public static string Dlg_ApplyEQ_Title => _r.GetString("Dlg_ApplyEQ_Title");
         public static string Summary_ApplyEQ => _r.GetString("Summary_ApplyEQ");
         public static string Prog_ImportingSongs => _r.GetString("Prog_ImportingSongs");
-        public static string Prog_ComputingDurations => _r.GetString("Prog_ComputingDurations");
         public static string Dlg_FileNotFound_Title => _r.GetString("Dlg_FileNotFound_Title");
         public static string Dlg_EnterYouTubeUrl => _r.GetString("Dlg_EnterYouTubeUrl");
         public static string Prog_PreparingDownload => _r.GetString("Prog_PreparingDownload");

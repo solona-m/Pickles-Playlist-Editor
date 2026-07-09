@@ -43,24 +43,6 @@ namespace Pickles_Playlist_Editor.Utils
             return s_dataDir;
         }
 
-        internal static bool IsFirstTimeMessage()
-        {
-            try
-            {
-                return bpmCache["FIRST_TIME_MESSAGE_SHOWN"] != 7;
-            }
-            catch
-            {
-                return true;
-            }
-        }
-
-        internal static void MarkFirstTimeMessageShown()
-        {
-            if (bpmCache != null)
-                bpmCache["FIRST_TIME_MESSAGE_SHOWN"] = 7;
-        }
-
         private struct SongAttributes
         {
             public int BPM;

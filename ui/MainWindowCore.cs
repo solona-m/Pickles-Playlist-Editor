@@ -51,15 +51,6 @@ namespace Pickles_Playlist_Editor
                 Playlists = Playlist.GetAll();
                 BackfillStatsFromCacheIfNeeded();
 
-                bool skipDurationComputation = false;
-                if (BPMDetector.IsFirstTimeMessage())
-                {
-                    BPMDetector.MarkFirstTimeMessageShown();
-                    skipDurationComputation = true;
-                    _ = ShowDialogAsync(AppStrings.Dlg_BPMDetection_Title, AppStrings.Dlg_BPMDetection_Content);
-                    _ = RecomputePlaylistDurationsAsync();
-                }
-
                 RootPlaylistItems.Clear();
 
                 var rootContent = new PlaylistNodeContent
@@ -99,11 +90,10 @@ namespace Pickles_Playlist_Editor
                         if (song == null) continue;
                         try
                         {
-                            TimeSpan time = TimeSpan.Zero;
-                            if (!skipDurationComputation && !string.IsNullOrEmpty(Playlist.GetScdPath(song)))
+                            if (!string.IsNullOrEmpty(Playlist.GetScdPath(song)))
                             {
-                                time = BPMDetector.GetDuration(Playlist.GetScdPath(song));
-                                playlistTime = playlistTime.Add(time);
+                                TimeSpan cachedTime = BPMDetector.TryGetCachedDuration(Playlist.GetScdPath(song)) ?? TimeSpan.Zero;
+                                playlistTime = playlistTime.Add(cachedTime);
                             }
 
                             string displayText = song.Name;
@@ -181,7 +171,7 @@ namespace Pickles_Playlist_Editor
                     try
                     {
                         if (!string.IsNullOrEmpty(Playlist.GetScdPath(song)))
-                            playlistTime = playlistTime.Add(BPMDetector.GetDuration(Playlist.GetScdPath(song)));
+                            playlistTime = playlistTime.Add(BPMDetector.TryGetCachedDuration(Playlist.GetScdPath(song)) ?? TimeSpan.Zero);
                     }
                     catch (Exception ex)
                     {
@@ -228,58 +218,6 @@ namespace Pickles_Playlist_Editor
 
             foreach (var playlist in touchedPlaylists)
                 playlist.Save();
-        }
-
-        private Task RecomputePlaylistDurationsAsync()
-        {
-            var playlistScdPaths = new List<List<string>>();
-            var playlists = Playlist.GetAll();
-            foreach (var playlist in playlists.Values)
-            {
-                var files = new List<string>();
-                if (playlist.Options != null)
-                {
-                    foreach (var opt in playlist.Options)
-                    {
-                        var scdPath = Playlist.GetScdPath(opt);
-                        if (!string.IsNullOrEmpty(scdPath))
-                            files.Add(Path.Combine(Settings.PenumbraLocation, Settings.ModName, scdPath));
-                    }
-                }
-                playlistScdPaths.Add(files);
-            }
-
-            return Task.Run(() =>
-            {
-                try
-                {
-                    SetProgressBarText(AppStrings.Prog_ComputingDurations);
-                    int totalFiles = playlistScdPaths.Sum(l => l.Count);
-                    int filesProcessed = 0;
-
-                    foreach (var fileList in playlistScdPaths)
-                    {
-                        foreach (var scd in fileList)
-                        {
-                            try
-                            {
-                                BPMDetector.GetDuration(scd);
-                                filesProcessed++;
-                                SetProgressBarPercent((int)(filesProcessed / (double)totalFiles * 100));
-                            }
-                            catch { }
-                        }
-                    }
-                }
-                finally
-                {
-                    _uiDispatcherQueue.TryEnqueue(() =>
-                    {
-                        RecomputePlaylistDurations(false);
-                        ClearProgressDisplay();
-                    });
-                }
-            });
         }
 
         private static string GetTimeString(TimeSpan time)

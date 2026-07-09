@@ -75,8 +75,6 @@
   <data name="Dlg_NoPlaylist_Title" xml:space="preserve"><value>没有播放列表</value></data>
   <data name="Dlg_NoPlaylist_Content" xml:space="preserve"><value>请先选择一个播放列表或歌曲。</value></data>
   <data name="Dlg_ErrorAddingSongs" xml:space="preserve"><value>添加歌曲时出错：{0}</value></data>
-  <data name="Dlg_BPMDetection_Title" xml:space="preserve"><value>BPM 检测</value></data>
-  <data name="Dlg_BPMDetection_Content" xml:space="preserve"><value>BPM 和时长检测可能需要一些时间，具体取决于曲目数量。检测结果会被缓存，以便日后更快访问。</value></data>
   <data name="Dlg_ConfirmDelete_Title" xml:space="preserve"><value>确认删除</value></data>
   <data name="Dlg_ConfirmDelete_Content" xml:space="preserve"><value>确定要删除所选的播放列表/歌曲吗？此操作无法撤销。</value></data>
   <data name="Dlg_NonEmptyPlaylist_Title" xml:space="preserve"><value>无法删除播放列表</value></data>
@@ -99,7 +97,6 @@
   <data name="Summary_ApplyEQ" xml:space="preserve"><value>应用均衡器设置完成</value></data>
   <data name="Prog_ApplyingEQ" xml:space="preserve"><value>正在应用均衡器（{0}/{1}）</value></data>
   <data name="Prog_ImportingSongs" xml:space="preserve"><value>正在导入歌曲…</value></data>
-  <data name="Prog_ComputingDurations" xml:space="preserve"><value>正在计算歌曲时长和 BPM…</value></data>
   <data name="Dlg_FileNotFound_Title" xml:space="preserve"><value>未找到文件</value></data>
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>未找到歌曲文件：{0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>拖放文件时出错：{0}</value></data>
