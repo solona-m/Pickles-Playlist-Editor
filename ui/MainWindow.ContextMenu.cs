@@ -30,6 +30,10 @@ namespace Pickles_Playlist_Editor
             var eq = new MenuFlyoutItem { Text = AppStrings.Menu_ManageEQ };
             eq.Click += ApplyEqSettingsMenuItem_Click;
             flyout.Items.Add(eq);
+            flyout.Items.Add(new MenuFlyoutSeparator());
+            var detectKeys = new MenuFlyoutItem { Text = AppStrings.Menu_DetectKeys };
+            detectKeys.Click += DetectKeysMenuItem_Click;
+            flyout.Items.Add(detectKeys);
             return flyout;
         }
 
@@ -109,6 +113,30 @@ namespace Pickles_Playlist_Editor
             var node = _contextMenuNode;
             if (node == null) return;
             await OpenEqualizerWorkflowAsync(node);
+        }
+
+        private async void DetectKeysMenuItem_Click(object sender, object e)
+        {
+            var node = _contextMenuNode;
+            if (node == null) return;
+            var targetSongs = GetSongTargetsForNode(node);
+            if (targetSongs.Count == 0) { await ShowDialogAsync(AppStrings.Dlg_DetectKeys_Title, AppStrings.Dlg_NoSongs); return; }
+            SetProgressBarText(AppStrings.Prog_DetectingKeys);
+            SetProgressBarPercent(0);
+            int detected = 0;
+            var errors = new List<string>();
+            await Task.Run(() =>
+            {
+                foreach (var (playlist, option) in targetSongs)
+                {
+                    try { KeyDetector.GetKeyFromSCD(Playlist.GetScdPath(option)); detected++; }
+                    catch (Exception ex) { errors.Add($"{playlist.Name}/{option.Name}: {ex.Message}"); }
+                    finally { SetProgressBarPercent((int)((detected + errors.Count) / (double)targetSongs.Count * 100)); }
+                }
+            });
+            SetProgressBarPercent(100);
+            LoadPlaylists();
+            ShowOperationSummary(AppStrings.Summary_DetectKeys, detected, targetSongs.Count, errors);
         }
 
         private List<(Playlist playlist, Option option)> GetSongTargetsForNode(PlaylistNodeContent node)

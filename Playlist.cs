@@ -222,6 +222,7 @@ namespace Pickles_Playlist_Editor
 
                         File.Move(oldPath, newPath);
                         BPMDetector.UpdateCacheForSCD(oldPath, newPath);
+                        KeyDetector.UpdateCacheForSCD(oldPath, newPath);
                         song.Files[song.Files.Keys.First()] = Path.Combine(playlistScdDirectory, Path.GetFileName(newPath));
                     }
                 }
@@ -511,6 +512,38 @@ namespace Pickles_Playlist_Editor
                     otherOptions = otherOptions.OrderBy(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
                 else
                     otherOptions = otherOptions.OrderByDescending(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
+                Options = new List<Option>();
+                if (offOption != null)
+                    Options.Add(offOption);
+                Options.AddRange(otherOptions);
+                Save();
+            }
+            catch (Exception ex)
+            {
+                if (backupPath != null && File.Exists(backupPath) && jsonFiles.Length > 0)
+                    File.Copy(backupPath, jsonFiles[0], true);
+                MessageBoxW(IntPtr.Zero, ex.ToString(), "Sort Error", 0x00000010); // MB_OK | MB_ICONERROR
+                throw;
+            }
+        }
+
+        internal void SortByKey(SortDirection direction)
+        {
+            var jsonFiles = GetJsonFiles(Name);
+            string? backupPath = null;
+            if (jsonFiles.Length > 0 && File.Exists(jsonFiles[0]))
+            {
+                backupPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(jsonFiles[0]));
+                File.Copy(jsonFiles[0], backupPath, true);
+            }
+            try
+            {
+                Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
+                List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (direction == SortDirection.Ascending)
+                    otherOptions = otherOptions.OrderBy(o => KeyDetector.GetKeyFromSCD(GetScdPath(o))).ToList();
+                else
+                    otherOptions = otherOptions.OrderByDescending(o => KeyDetector.GetKeyFromSCD(GetScdPath(o))).ToList();
                 Options = new List<Option>();
                 if (offOption != null)
                     Options.Add(offOption);

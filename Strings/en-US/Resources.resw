@@ -10,6 +10,7 @@
   <data name="ShuffleButton.Label" xml:space="preserve"><value>Shuffle</value></data>
   <data name="SortByBPMButton.Label" xml:space="preserve"><value>Sort</value></data>
   <data name="SortByBPMMenuItem.Text" xml:space="preserve"><value>Sort by BPM</value></data>
+  <data name="SortByKeyMenuItem.Text" xml:space="preserve"><value>Sort by Key</value></data>
   <data name="SortByNameMenuItem.Text" xml:space="preserve"><value>Sort by Name</value></data>
   <data name="PreviousButton.Label" xml:space="preserve"><value>Previous</value></data>
   <data name="PlayButton.Label" xml:space="preserve"><value>Play</value></data>
@@ -138,4 +139,8 @@
   <data name="Dlg_RestartRequired_Content" xml:space="preserve"><value>The language change will take full effect after restarting. Restart now?</value></data>
   <data name="Tree_PlaylistsRoot" xml:space="preserve"><value>Playlists</value></data>
   <data name="Dlg_YTNoCookies" xml:space="preserve"><value>This video requires YouTube sign-in. To download age-restricted videos, install the VRCVideoCacher Cookies Exporter extension for Chrome: https://chromewebstore.google.com/detail/vrcvideocacher-cookies-ex/kfgelknbegappcajiflgfbjbdpbpokge</value></data>
+  <data name="Menu_DetectKeys" xml:space="preserve"><value>Detect Keys</value></data>
+  <data name="Dlg_DetectKeys_Title" xml:space="preserve"><value>Detect Keys</value></data>
+  <data name="Prog_DetectingKeys" xml:space="preserve"><value>Detecting musical keys...</value></data>
+  <data name="Summary_DetectKeys" xml:space="preserve"><value>Key detection finished</value></data>
 </root>

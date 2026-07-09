@@ -560,6 +560,27 @@ namespace Pickles_Playlist_Editor
             LoadPlaylists();
         }
 
+        private void SortByKey_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var item in PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>())
+            {
+                if (item.Level == 1 && Playlists.TryGetValue(item.Name, out var pl))
+                {
+                    if (_currentSortDirection == SortDirection.Ascending)
+                    {
+                        pl.SortByKey(SortDirection.Descending);
+                        _currentSortDirection = SortDirection.Descending;
+                    }
+                    else
+                    {
+                        pl.SortByKey(SortDirection.Ascending);
+                        _currentSortDirection = SortDirection.Ascending;
+                    }
+                }
+            }
+            LoadPlaylists();
+        }
+
         private void ShowOperationSummary(string title, int successCount, int totalCount, System.Collections.Generic.List<string> errors)
         {
             string content = errors.Count == 0

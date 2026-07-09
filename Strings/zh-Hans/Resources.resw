@@ -10,6 +10,7 @@
   <data name="ShuffleButton.Label" xml:space="preserve"><value>随机播放</value></data>
   <data name="SortByBPMButton.Label" xml:space="preserve"><value>排序</value></data>
   <data name="SortByBPMMenuItem.Text" xml:space="preserve"><value>按 BPM 排序</value></data>
+  <data name="SortByKeyMenuItem.Text" xml:space="preserve"><value>按调式排序</value></data>
   <data name="SortByNameMenuItem.Text" xml:space="preserve"><value>按名称排序</value></data>
   <data name="PreviousButton.Label" xml:space="preserve"><value>上一首</value></data>
   <data name="PlayButton.Label" xml:space="preserve"><value>播放</value></data>
@@ -138,4 +139,8 @@
   <data name="Dlg_RestartRequired_Content" xml:space="preserve"><value>语言更改将在重启后完全生效。现在重启吗？</value></data>
   <data name="Tree_PlaylistsRoot" xml:space="preserve"><value>播放列表</value></data>
   <data name="Dlg_YTNoCookies" xml:space="preserve"><value>此视频需要 YouTube 登录。如需下载年龄限制视频，请为 Chrome 安装 VRCVideoCacher Cookies Exporter 扩展程序：https://chromewebstore.google.com/detail/vrcvideocacher-cookies-ex/kfgelknbegappcajiflgfbjbdpbpokge</value></data>
+  <data name="Menu_DetectKeys" xml:space="preserve"><value>检测调式</value></data>
+  <data name="Dlg_DetectKeys_Title" xml:space="preserve"><value>检测调式</value></data>
+  <data name="Prog_DetectingKeys" xml:space="preserve"><value>正在检测调式...</value></data>
+  <data name="Summary_DetectKeys" xml:space="preserve"><value>调式检测完成</value></data>
 </root>

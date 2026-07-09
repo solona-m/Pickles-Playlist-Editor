@@ -53,6 +53,10 @@ namespace Pickles_Playlist_Editor
         public static string Dlg_RepairLibrary_Title => _r.GetString("Dlg_RepairLibrary_Title");
         public static string Dlg_RepairLibrary_Content => _r.GetString("Dlg_RepairLibrary_Content");
         public static string Menu_ManageEQ => _r.GetString("Menu_ManageEQ");
+        public static string Menu_DetectKeys => _r.GetString("Menu_DetectKeys");
+        public static string Dlg_DetectKeys_Title => _r.GetString("Dlg_DetectKeys_Title");
+        public static string Prog_DetectingKeys => _r.GetString("Prog_DetectingKeys");
+        public static string Summary_DetectKeys => _r.GetString("Summary_DetectKeys");
         public static string Prog_ConvertingToStereo => _r.GetString("Prog_ConvertingToStereo");
         public static string Tree_PlaylistsRoot => _r.GetString("Tree_PlaylistsRoot");
         public static string Dlg_RestartRequired_Title => _r.GetString("Dlg_RestartRequired_Title");

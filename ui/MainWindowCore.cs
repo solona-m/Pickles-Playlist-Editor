@@ -106,6 +106,7 @@ namespace Pickles_Playlist_Editor
 
                             string displayText = song.Name
                                 + (skipDurationComputation ? "" : GetBPMString(song))
+                                + (skipDurationComputation ? "" : GetKeyString(song))
                                 + GetTimeString(time);
 
                             var songContent = new PlaylistNodeContent
@@ -253,6 +254,14 @@ namespace Pickles_Playlist_Editor
             string scdPath = Playlist.GetScdPath(song);
             if (string.IsNullOrEmpty(scdPath)) return string.Empty;
             return " (" + BPMDetector.GetBPMFromSCD(scdPath) + " BPM)";
+        }
+
+        private string GetKeyString(Option song)
+        {
+            string scdPath = Playlist.GetScdPath(song);
+            if (string.IsNullOrEmpty(scdPath)) return string.Empty;
+            string key = KeyDetector.TryGetCachedKey(scdPath);
+            return string.IsNullOrEmpty(key) ? string.Empty : " [" + key + "]";
         }
 
         private static string GetTimeString(TimeSpan time)
