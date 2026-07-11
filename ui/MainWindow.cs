@@ -53,7 +53,10 @@ namespace Pickles_Playlist_Editor
             DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
 
             this.AppWindow.SetIcon("pickle.ico");
-            this.Title = "Pickles Playlist Editor";
+            var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            this.Title = ver != null
+                ? $"Pickles Playlist Editor {ver.Major}.{ver.Minor}.{ver.Build}"
+                : "Pickles Playlist Editor";
 
             _treeContextMenu = BuildContextMenu();
             _rootContextMenu = BuildRootContextMenu();
