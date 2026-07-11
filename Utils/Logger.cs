@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,9 +10,35 @@ namespace Pickles_Playlist_Editor.Utils
 {
     internal class Logger : IDisposable
     {
-        private static readonly string logFilePath = "picklesPlaylistEditor.log";
-        private static StreamWriter logFileWriter = new StreamWriter(logFilePath, append: true);
+        private static readonly string logFilePath = ResolveLogFilePath();
+        private static StreamWriter logFileWriter = CreateLogFileWriter(logFilePath);
         private static ILoggerFactory? _loggerFactory;
+
+        // Store the log next to crash.log in %LOCALAPPDATA%\PicklesPlaylistEditor so it
+        // lives in a predictable, per-user, writable location regardless of how the app
+        // was launched (Velopack stub, shortcut, direct exe, etc.).
+        private static string ResolveLogFilePath()
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "PicklesPlaylistEditor");
+            Directory.CreateDirectory(dir);
+            return Path.Combine(dir, "picklesPlaylistEditor.log");
+        }
+
+        // Never let a locked or unwritable log file take down app startup. Fall back to a
+        // no-op writer (Stream.Null) so logging silently degrades instead of crashing.
+        private static StreamWriter CreateLogFileWriter(string path)
+        {
+            try
+            {
+                return new StreamWriter(path, append: true) { AutoFlush = true };
+            }
+            catch
+            {
+                return StreamWriter.Null;
+            }
+        }
         public static ILogger<T> CreateLogger<T>()
         {
             if (_loggerFactory == null)
