@@ -59,6 +59,12 @@ namespace Pickles_Playlist_Editor.Utils
             logger.LogInformation(message, args);
         }
 
+        public static void LogWarn(string message, params object[] args)
+        {
+            var logger = CreateLogger<Logger>();
+            logger.LogWarning(message, args);
+        }
+
         public static void LogError(string message, params object[] args)
         {
             var logger = CreateLogger<Logger>();
@@ -126,9 +132,12 @@ namespace Pickles_Playlist_Editor.Utils
 
             // Get the formatted log message
             var message = formatter(state, exception);
+            if (exception != null)
+                message += " | " + exception;
 
-            //Write log messages to text file
-            _logFileWriter.WriteLine($"[{logLevel}] [{_categoryName}] {message}");
+            // Timestamp every line so the sequence of operations before a failure is reconstructable.
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            _logFileWriter.WriteLine($"{timestamp} [{logLevel}] [{_categoryName}] {message}");
             _logFileWriter.Flush();
         }
     }

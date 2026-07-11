@@ -58,6 +58,9 @@ namespace Pickles_Playlist_Editor
                 ? $"Pickles Playlist Editor {ver.Major}.{ver.Minor}.{ver.Build}"
                 : "Pickles Playlist Editor";
 
+            Utils.Logger.LogInfo("Startup: v{Version} | Penumbra='{Penumbra}' Mod='{Mod}' AutoReload={AutoReload}",
+                ver?.ToString() ?? "?", Settings.PenumbraLocation ?? "(unset)", Settings.ModName ?? "(unset)", Settings.AutoReloadMod);
+
             _treeContextMenu = BuildContextMenu();
             _rootContextMenu = BuildRootContextMenu();
 

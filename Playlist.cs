@@ -140,6 +140,8 @@ namespace Pickles_Playlist_Editor
                     Settings.BaselineScdKey,
                     Path.Combine(playlistScdDirectory, Path.GetFileName(targetPath)));
                 group.Options.Add(opt);
+                Logger.LogInfo("Imported '{Source}' -> {Target} (playlist '{Playlist}')",
+                    Path.GetFileName(file), Path.GetFileName(targetPath), playlistName);
 
                 try
                 {
@@ -156,6 +158,7 @@ namespace Pickles_Playlist_Editor
             }
             catch (Exception ex)
             {
+                Logger.LogError("Failed importing '{File}' into '{Playlist}': {Error}", file, playlistName, ex);
                 throw new InvalidOperationException("Error adding file " + file + ": " + ex.Message, ex);
             }
             return opt;
@@ -351,6 +354,8 @@ namespace Pickles_Playlist_Editor
 
         public void Add(string[] fileNames, Action<int>? callback = null)
         {
+            Logger.LogInfo("Add: {Count} file(s) into '{Name}' (currently {Existing} options)",
+                fileNames?.Length ?? 0, Name, Options?.Count ?? 0);
             int count = 0;
             foreach (string file in fileNames)
             {
@@ -364,6 +369,8 @@ namespace Pickles_Playlist_Editor
 
         public void Insert(string[] fileNames, int index, Action<int>? callback = null)
         {
+            Logger.LogInfo("Insert: {Count} file(s) into '{Name}' at index {Index} (currently {Existing} options)",
+                fileNames?.Length ?? 0, Name, index, Options?.Count ?? 0);
             int offIndex = Options.FindIndex(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
             if (offIndex >= 0)
                 index = Math.Max(index, offIndex + 1);
@@ -457,13 +464,24 @@ namespace Pickles_Playlist_Editor
             // Write to the renamed file directly: the on-disk content still says oldName until this
             // save, so the content-Name lookup in Save() would not find it yet.
             Save(newJsonPath);
+            Logger.LogInfo("Renamed playlist '{Old}' -> '{New}' (scd folder '{OldDir}' -> '{NewDir}', changed={Changed})",
+                oldName, newName, oldScdDir, newScdDir, scdDirChanged);
             return true;
         }
 
         public void Save()
         {
             var fileNames = GetJsonFiles(Name);
-            if (fileNames.Length == 0) return;
+            if (fileNames.Length == 0)
+            {
+                // The whole "adding deleted my playlist" class of bug lives here: if no group JSON
+                // matches this playlist's content Name, the edit is silently dropped. Log it loudly.
+                Logger.LogWarn("Save('{Name}'): no matching group JSON found — changes NOT persisted.", Name);
+                return;
+            }
+            if (fileNames.Length > 1)
+                Logger.LogWarn("Save('{Name}'): {Count} files share this name ({Files}); writing the first.",
+                    Name, fileNames.Length, string.Join(", ", fileNames.Select(Path.GetFileName)));
             Save(fileNames[0]);
         }
 
@@ -472,8 +490,18 @@ namespace Pickles_Playlist_Editor
         // in-memory Name no longer matches the on-disk content, so a content-Name lookup would miss.
         internal void Save(string targetPath)
         {
-            string json = JsonConvert.SerializeObject(this, Formatting.Indented);
-            WriteJsonAtomic(targetPath, json);
+            try
+            {
+                string json = JsonConvert.SerializeObject(this, Formatting.Indented);
+                WriteJsonAtomic(targetPath, json);
+                Logger.LogInfo("Saved playlist '{Name}' ({Count} options) -> {File}",
+                    Name, Options?.Count ?? 0, Path.GetFileName(targetPath));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Save('{Name}') failed writing {File}: {Error}", Name, targetPath, ex);
+                throw;
+            }
 
             // Notify Penumbra (if present) that the mod directory changed so it can refresh.
             RefreshPenumbraMod();
@@ -497,6 +525,7 @@ namespace Pickles_Playlist_Editor
         {
             if (string.IsNullOrEmpty(Name))
                 return;
+            Logger.LogInfo("Deleting playlist '{Name}' ({Count} options)", Name, Options?.Count ?? 0);
             if (GetJsonFiles(Name).Length > 0)
                 File.Delete(GetJsonFiles(Name)[0]);
 

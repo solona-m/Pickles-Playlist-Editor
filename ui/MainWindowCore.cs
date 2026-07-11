@@ -513,6 +513,7 @@ namespace Pickles_Playlist_Editor
                             var song = parentPl.Options.Find(x => x.Name == item.Name);
                             if (song != null && !song.Name.Equals("Off", StringComparison.InvariantCultureIgnoreCase))
                             {
+                                Utils.Logger.LogInfo("Deleting song '{Song}' from playlist '{Playlist}'", song.Name, parentPl.Name);
                                 parentPl.Options.Remove(song);
 
                                 // Delete the actual audio file this song referenced. Songs are stored
