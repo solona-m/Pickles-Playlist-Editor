@@ -514,10 +514,24 @@ namespace Pickles_Playlist_Editor
                             if (song != null && !song.Name.Equals("Off", StringComparison.InvariantCultureIgnoreCase))
                             {
                                 parentPl.Options.Remove(song);
+
+                                // Delete the actual audio file this song referenced. Songs are stored
+                                // as single .scd files inside the playlist's SCD folder — there is no
+                                // per-song "<mod>/<PlaylistName>/<SongName>" directory, so the old
+                                // directory delete never matched and left the .scd orphaned on disk.
+                                string rel = Playlist.GetScdPath(song);
+                                if (!string.IsNullOrEmpty(rel))
+                                {
+                                    try
+                                    {
+                                        string scdFull = Path.Combine(Settings.PenumbraLocation, Settings.ModName,
+                                            Playlist.NormalizeRelativeModPath(rel));
+                                        if (File.Exists(scdFull)) File.Delete(scdFull);
+                                    }
+                                    catch { /* best-effort; a leftover file is harmless and Cleanup reclaims it */ }
+                                }
+
                                 parentPl.Save();
-                                string songDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName, parentPl.Name, song.Name);
-                                if (Directory.Exists(songDirectory))
-                                    Directory.Delete(songDirectory, true);
                                 if (!IsFilterActive) RemoveSongNode(parentPl, item.Name);
                             }
                         }

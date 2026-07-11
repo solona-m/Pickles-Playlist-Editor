@@ -409,14 +409,24 @@ namespace Pickles_Playlist_Editor
             if (string.IsNullOrEmpty(oldJsonPath) || !File.Exists(oldJsonPath))
                 throw new FileNotFoundException("Playlist JSON file not found.", oldJsonPath);
 
-            string oldFolder = Path.Combine(modDirectory, oldName);
-            string newFolder = Path.Combine(modDirectory, newName);
+            // Derive the SCD folder from the songs themselves rather than assuming it equals the old
+            // playlist name — post-merge/repair playlists can store their audio in a differently
+            // named folder, and the old name-guess would move the wrong (or no) folder and repoint
+            // paths that never matched, orphaning every song.
+            string oldScdDir = GetScdDirectoryForNewFiles();
+            string newScdDir = GetDefaultPlaylistDirectoryName(newName);
+            bool scdDirChanged = !string.Equals(oldScdDir, newScdDir, StringComparison.OrdinalIgnoreCase);
 
-            if (Directory.Exists(oldFolder) && !string.Equals(oldFolder, newFolder, StringComparison.OrdinalIgnoreCase))
+            if (scdDirChanged)
             {
-                if (Directory.Exists(newFolder))
-                    throw new InvalidOperationException($"A playlist folder named '{newName}' already exists.");
-                Directory.Move(oldFolder, newFolder);
+                string oldFolder = Path.Combine(modDirectory, NormalizeRelativeModPath(oldScdDir));
+                string newFolder = Path.Combine(modDirectory, NormalizeRelativeModPath(newScdDir));
+                if (Directory.Exists(oldFolder))
+                {
+                    if (Directory.Exists(newFolder))
+                        throw new InvalidOperationException($"A playlist folder named '{newScdDir}' already exists.");
+                    Directory.Move(oldFolder, newFolder);
+                }
             }
 
             string newJsonPath = Path.Combine(modDirectory, Path.GetFileName(oldJsonPath).Replace(oldName.Replace("/", "_"), newName.Replace("/", "_")));
@@ -425,24 +435,28 @@ namespace Pickles_Playlist_Editor
 
             Name = newName;
 
-            if (Options != null)
+            if (scdDirChanged && Options != null)
             {
+                string oldPrefix = NormalizeRelativeModPath(oldScdDir) + Path.DirectorySeparatorChar;
                 foreach (var song in Options)
                 {
                     if (song?.Files == null) continue;
-                    var keys = song.Files.Keys.ToList();
-                    foreach (var key in keys)
+                    foreach (var key in song.Files.Keys.ToList())
                     {
                         var rel = song.Files[key];
                         if (string.IsNullOrWhiteSpace(rel)) continue;
-                        var updated = rel.Replace(oldName.Replace("/", "_") + Path.DirectorySeparatorChar, newName.Replace("/", "_") + Path.DirectorySeparatorChar)
-                                         .Replace(oldName.Replace("/", "_") + '/', newName.Replace("/", "_") + '/');
-                        song.Files[key] = updated;
+                        var norm = NormalizeRelativeModPath(rel);
+                        // Only repoint paths that actually lived in the moved folder; leave songs
+                        // stored elsewhere untouched.
+                        if (norm.StartsWith(oldPrefix, StringComparison.OrdinalIgnoreCase))
+                            song.Files[key] = Path.Combine(newScdDir, norm.Substring(oldPrefix.Length));
                     }
                 }
             }
 
-            Save();
+            // Write to the renamed file directly: the on-disk content still says oldName until this
+            // save, so the content-Name lookup in Save() would not find it yet.
+            Save(newJsonPath);
             return true;
         }
 
@@ -450,12 +464,33 @@ namespace Pickles_Playlist_Editor
         {
             var fileNames = GetJsonFiles(Name);
             if (fileNames.Length == 0) return;
-            string fileName = fileNames[0];
+            Save(fileNames[0]);
+        }
+
+        // Writes this playlist to an explicit file. Used by Save() (which resolves the file by
+        // content Name) and by Rename(), which already knows the destination path and whose
+        // in-memory Name no longer matches the on-disk content, so a content-Name lookup would miss.
+        internal void Save(string targetPath)
+        {
             string json = JsonConvert.SerializeObject(this, Formatting.Indented);
-            File.WriteAllText(fileName, json);
+            WriteJsonAtomic(targetPath, json);
 
             // Notify Penumbra (if present) that the mod directory changed so it can refresh.
             RefreshPenumbraMod();
+        }
+
+        // Crash-/clobber-safe write: serialize to a temp file, then atomically swap it into place,
+        // keeping the previous file as a .bak. If a write is interrupted or overwrites the wrong
+        // file, the .bak preserves the last-good copy (the Repair button restores from these).
+        private static void WriteJsonAtomic(string targetPath, string json)
+        {
+            string dir = Path.GetDirectoryName(targetPath)!;
+            string tmp = Path.Combine(dir, Path.GetFileName(targetPath) + ".tmp");
+            File.WriteAllText(tmp, json);
+            if (File.Exists(targetPath))
+                File.Replace(tmp, targetPath, targetPath + ".bak");
+            else
+                File.Move(tmp, targetPath);
         }
 
         public void Delete()
@@ -480,15 +515,32 @@ namespace Pickles_Playlist_Editor
             if (!Directory.Exists(modDirectory))
                 return Array.Empty<string>();
 
-            // The "group_*_<name>.json" wildcard would also match longer names that end in
-            // "_<name>" (e.g. "Rock" matching group_003_Punk_Rock.json), which caused Save()
-            // to overwrite the wrong playlist's file. Match the group number + exact name only.
-            string cleanName = name.Replace("/", "_");
-            var exact = new Regex(@"^group_\d+_" + Regex.Escape(cleanName) + @"\.json$", RegexOptions.IgnoreCase);
+            // Penumbra rewrites the group_NNN_<name>.json *filenames* (renumbering, re-sanitizing)
+            // on every mod change, so the filename is not a stable identity — matching on it made
+            // Save() miss the file and silently no-op, so edits vanished and playlists looked
+            // deleted. Match instead on the "Name" *inside* each JSON, the one field Penumbra never
+            // touches, exactly as GetAll() keys playlists. Ordered by group number so callers that
+            // take [0] get a deterministic file.
             return Directory.GetFiles(modDirectory, "group_*.json")
-                .Where(f => exact.IsMatch(Path.GetFileName(f)))
+                .Where(f => string.Equals(TryReadContentName(f), name, StringComparison.Ordinal))
                 .OrderBy(GroupNumberOf)
                 .ToArray();
+        }
+
+        // Reads just the "Name" field from a group JSON, tolerating parse/IO errors (returns null).
+        private static string? TryReadContentName(string path)
+        {
+            try
+            {
+                using var reader = new StreamReader(path);
+                using var jsonReader = new JsonTextReader(reader);
+                var obj = Newtonsoft.Json.Linq.JToken.ReadFrom(jsonReader) as Newtonsoft.Json.Linq.JObject;
+                return obj?["Name"]?.ToString();
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private static readonly Regex GroupNumberPattern = new(@"^group_(\d+)_", RegexOptions.IgnoreCase);
