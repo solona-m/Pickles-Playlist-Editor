@@ -365,8 +365,12 @@ namespace Pickles_Playlist_Editor
             try
             {
                 playlist.Rename(newName);
-                LoadPlaylistsAndExpand(newName);
-                var renamed = FindPlaylistNode(newName);
+                var renamed = IsFilterActive ? null : RenamePlaylistNode(currentName, newName, playlist);
+                if (renamed == null)
+                {
+                    LoadPlaylistsAndExpand(newName);
+                    renamed = FindPlaylistNode(newName);
+                }
                 if (renamed != null)
                 {
                     PlaylistTreeView.SelectedItems.Clear();
@@ -416,11 +420,16 @@ namespace Pickles_Playlist_Editor
             if (string.IsNullOrWhiteSpace(newName) || string.Equals(newName, currentName, StringComparison.Ordinal))
                 return;
 
+            var oldName = currentName;
             song.Name = newName;
             playlist.Save();
-            LoadPlaylistsAndExpand(playlist.Name);
-            var parentNode = FindPlaylistNode(playlist.Name);
-            var renamedSong = parentNode == null ? null : FindSongNode(parentNode, newName);
+            var renamedSong = IsFilterActive ? null : RenameSongNode(playlist, oldName, newName);
+            if (renamedSong == null)
+            {
+                LoadPlaylistsAndExpand(playlist.Name);
+                var parentNode = FindPlaylistNode(playlist.Name);
+                renamedSong = parentNode == null ? null : FindSongNode(parentNode, newName);
+            }
             if (renamedSong != null)
             {
                 PlaylistTreeView.SelectedItems.Clear();
@@ -543,7 +552,7 @@ namespace Pickles_Playlist_Editor
         {
             var dialog = new NewPlaylistDialog { XamlRoot = this.Content.XamlRoot };
             await dialog.ShowAsync();
-            LoadPlaylists();
+            // The dialog adds the new playlist's node itself (AddCreatedPlaylist) after Create finishes.
         }
 
         private void ShuffleButton_Click(object sender, RoutedEventArgs e)
@@ -551,9 +560,11 @@ namespace Pickles_Playlist_Editor
             foreach (var item in PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>())
             {
                 if (item.Level == 1 && Playlists.TryGetValue(item.Name, out var pl))
+                {
                     pl.Shuffle();
+                    SyncPlaylistNode(pl);
+                }
             }
-            LoadPlaylists();
         }
 
         private SortDirection _currentSortDirection = SortDirection.Ascending;
@@ -574,9 +585,9 @@ namespace Pickles_Playlist_Editor
                         pl.Sort(SortDirection.Ascending);
                         _currentSortDirection = SortDirection.Ascending;
                     }
+                    SyncPlaylistNode(pl);
                 }
             }
-            LoadPlaylists();
         }
 
         private void SortByName_Click(object sender, RoutedEventArgs e)
@@ -584,9 +595,11 @@ namespace Pickles_Playlist_Editor
             foreach (var item in PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>())
             {
                 if (item.Level == 1 && Playlists.TryGetValue(item.Name, out var pl))
+                {
                     pl.SortByName();
+                    SyncPlaylistNode(pl);
+                }
             }
-            LoadPlaylists();
         }
 
         private void SortByKey_Click(object sender, RoutedEventArgs e)
@@ -605,9 +618,9 @@ namespace Pickles_Playlist_Editor
                         pl.SortByKey(SortDirection.Ascending);
                         _currentSortDirection = SortDirection.Ascending;
                     }
+                    SyncPlaylistNode(pl);
                 }
             }
-            LoadPlaylists();
         }
 
         private void ShowOperationSummary(string title, int successCount, int totalCount, System.Collections.Generic.List<string> errors)

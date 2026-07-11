@@ -21,6 +21,7 @@ namespace Pickles_Playlist_Editor
 
             try
             {
+                string affectedName;
                 if (result.IsPlaylist)
                 {
                     string playlistName = GetUniquePlaylistName(result.Title);
@@ -28,6 +29,7 @@ namespace Pickles_Playlist_Editor
                     var playlists = Playlist.GetAll();
                     if (playlists.TryGetValue(playlistName, out var pl))
                         await Task.Run(() => pl.Add(result.DownloadedFiles.ToArray()));
+                    affectedName = playlistName;
                 }
                 else
                 {
@@ -43,9 +45,20 @@ namespace Pickles_Playlist_Editor
                     }
                     if (playlists.TryGetValue(targetPlaylist, out var pl))
                         await Task.Run(() => pl.Add(result.DownloadedFiles.ToArray()));
+                    affectedName = targetPlaylist;
                 }
 
-                LoadPlaylists();
+                // Reflect just the affected playlist instead of rebuilding the whole tree.
+                Playlists = Playlist.GetAll();
+                if (Playlists.TryGetValue(affectedName, out var affected) && !affected.IsVFXGroup())
+                {
+                    if (FindPlaylistNode(affectedName) == null) AddNewPlaylistNode(affected);
+                    else SyncPlaylistNode(affected);
+                }
+                else
+                {
+                    LoadPlaylists();
+                }
                 SetProgressBarPercent(100);
             }
             catch (Exception ex)

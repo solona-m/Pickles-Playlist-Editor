@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
@@ -46,6 +48,27 @@ namespace Pickles_Playlist_Editor
         {
             child.Parent = this;
             Children.Add(child);
+        }
+
+        public void InsertChild(int index, PlaylistNodeContent child)
+        {
+            child.Parent = this;
+            Children.Insert(Math.Clamp(index, 0, Children.Count), child);
+        }
+
+        public void RemoveChild(PlaylistNodeContent child)
+        {
+            if (Children.Remove(child))
+                child.Parent = null;
+        }
+
+        public void ReplaceChildren(IEnumerable<PlaylistNodeContent> newChildren)
+        {
+            foreach (var existing in Children)
+                existing.Parent = null;
+            Children.Clear();
+            foreach (var child in newChildren)
+                AddChild(child);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

@@ -96,15 +96,7 @@ namespace Pickles_Playlist_Editor
                                 playlistTime = playlistTime.Add(cachedTime);
                             }
 
-                            string displayText = song.Name;
-
-                            var songContent = new PlaylistNodeContent
-                            {
-                                Name = song.Name,
-                                DisplayText = displayText,
-                                Level = 2,
-                                IconGlyph = PlaylistNodeContent.SongGlyph
-                            };
+                            var songContent = CreateSongNode(song);
 
                             if (!string.IsNullOrEmpty(filter))
                             {
@@ -184,6 +176,186 @@ namespace Pickles_Playlist_Editor
 
             if (!checkUI)
                 LoadPlaylists();
+        }
+
+        // ─── Incremental tree update helpers ─────────────────────────────────────
+        // These mutate only the affected node(s) so the whole tree isn't torn down and
+        // rebuilt (RootPlaylistItems.Clear()) on every insert/reorder/etc. When a search
+        // filter is active the tree is a filtered subset, so incremental paths fall back
+        // to a filtered rebuild instead.
+        private bool IsFilterActive => !string.IsNullOrWhiteSpace(SearchTextBox?.Text);
+
+        private static PlaylistNodeContent CreateSongNode(Option song) => new PlaylistNodeContent
+        {
+            Name = song.Name,
+            DisplayText = song.Name,
+            Level = 2,
+            IconGlyph = PlaylistNodeContent.SongGlyph
+        };
+
+        private static TimeSpan SumPlaylistDuration(Playlist playlist)
+        {
+            TimeSpan total = TimeSpan.Zero;
+            if (playlist.Options == null) return total;
+            foreach (var song in playlist.Options)
+            {
+                if (song == null) continue;
+                var scd = Playlist.GetScdPath(song);
+                if (!string.IsNullOrEmpty(scd))
+                    total = total.Add(BPMDetector.TryGetCachedDuration(scd) ?? TimeSpan.Zero);
+            }
+            return total;
+        }
+
+        private PlaylistNodeContent CreatePlaylistNode(Playlist playlist, bool expanded)
+        {
+            var node = new PlaylistNodeContent
+            {
+                Name = playlist.Name ?? "",
+                DisplayText = (playlist.Name ?? "") + GetTimeString(SumPlaylistDuration(playlist)),
+                Level = 1,
+                IconGlyph = PlaylistNodeContent.PlaylistGlyph,
+                IsExpanded = expanded
+            };
+            if (playlist.Options != null)
+                foreach (var song in playlist.Options)
+                    if (song != null)
+                        node.AddChild(CreateSongNode(song));
+            return node;
+        }
+
+        // Repopulate a single playlist's song nodes and refresh its label, in place.
+        private void SyncPlaylistNode(Playlist playlist)
+        {
+            if (IsFilterActive) { LoadPlaylists(SearchTextBox.Text); return; }
+            var node = FindPlaylistNode(playlist.Name);
+            if (node == null) { LoadPlaylists(); return; }
+
+            var songNodes = new List<PlaylistNodeContent>();
+            if (playlist.Options != null)
+                foreach (var song in playlist.Options)
+                    if (song != null)
+                        songNodes.Add(CreateSongNode(song));
+            node.ReplaceChildren(songNodes);
+            SetNodeDisplayText(node, (playlist.Name ?? "") + GetTimeString(SumPlaylistDuration(playlist)));
+        }
+
+        // Reorder the existing Level-1 playlist nodes to match the given name order,
+        // re-inserting the dragged node if WinUI removed it from ItemsSource during the drag.
+        // Preserves each playlist's song subtree and expansion (no node recreation).
+        private void ReorderRootChildrenToMatch(List<string> orderedNames, PlaylistNodeContent draggedNode)
+        {
+            if (IsFilterActive) { LoadPlaylists(SearchTextBox.Text); return; }
+            if (RootPlaylistItems.Count == 0) { LoadPlaylists(); return; }
+            var root = RootPlaylistItems[0];
+
+            if (!root.Children.Contains(draggedNode))
+                root.InsertChild(0, draggedNode);
+
+            for (int target = 0; target < orderedNames.Count && target < root.Children.Count; target++)
+            {
+                PlaylistNodeContent? node = null;
+                for (int i = target; i < root.Children.Count; i++)
+                    if (root.Children[i].Name == orderedNames[target]) { node = root.Children[i]; break; }
+                if (node == null) continue;
+                int cur = root.Children.IndexOf(node);
+                if (cur != target)
+                    root.Children.Move(cur, target);
+            }
+        }
+
+        // Append a newly created playlist's node (new playlists sort last by Priority).
+        private void AddNewPlaylistNode(Playlist playlist)
+        {
+            if (IsFilterActive) { LoadPlaylists(SearchTextBox.Text); return; }
+            if (RootPlaylistItems.Count == 0 || playlist.IsVFXGroup()) { LoadPlaylistsAndExpand(playlist.Name); return; }
+            var node = CreatePlaylistNode(playlist, expanded: true);
+            RootPlaylistItems[0].AddChild(node);
+            _playlistExpandedStates[node.Name] = true;
+        }
+
+        private void RemovePlaylistNode(string name)
+        {
+            if (RootPlaylistItems.Count > 0)
+            {
+                var node = FindPlaylistNode(name);
+                if (node != null) RootPlaylistItems[0].RemoveChild(node);
+            }
+            _playlistExpandedStates.Remove(name);
+        }
+
+        private void RemoveSongNode(Playlist playlist, string songName)
+        {
+            var playlistNode = FindPlaylistNode(playlist.Name);
+            if (playlistNode == null) return;
+            var songNode = FindSongNode(playlistNode, songName);
+            if (songNode != null) playlistNode.RemoveChild(songNode);
+            SetNodeDisplayText(playlistNode, (playlist.Name ?? "") + GetTimeString(SumPlaylistDuration(playlist)));
+        }
+
+        // After a cancelled or no-op drag, restore the dragged node only if WinUI actually removed it
+        // from ItemsSource. A no-op when the node is still present, so normal cancels don't flicker.
+        private void RepairDraggedNode(PlaylistNodeContent? dragged)
+        {
+            if (dragged == null || RootPlaylistItems.Count == 0) return;
+            if (dragged.Level == 2 && dragged.Parent != null)
+            {
+                if (!dragged.Parent.Children.Contains(dragged) &&
+                    Playlists.TryGetValue(dragged.Parent.Name, out var pl))
+                    SyncPlaylistNode(pl);
+            }
+            else if (dragged.Level == 1 && !RootPlaylistItems[0].Children.Contains(dragged))
+            {
+                LoadPlaylists();
+            }
+        }
+
+        // Update a renamed song's node in place; returns the node, or null if not found.
+        private PlaylistNodeContent? RenameSongNode(Playlist playlist, string oldName, string newName)
+        {
+            var playlistNode = FindPlaylistNode(playlist.Name);
+            var songNode = playlistNode == null ? null : FindSongNode(playlistNode, oldName);
+            if (songNode == null) return null;
+            songNode.Name = newName;
+            SetNodeDisplayText(songNode, newName);
+            return songNode;
+        }
+
+        // Update a renamed playlist's node in place and re-key the model dict + expansion map to the
+        // new name; returns the node, or null if not found.
+        private PlaylistNodeContent? RenamePlaylistNode(string oldName, string newName, Playlist playlist)
+        {
+            if (Playlists.Remove(oldName)) Playlists[newName] = playlist;
+            if (_playlistExpandedStates.Remove(oldName, out var wasExpanded))
+                _playlistExpandedStates[newName] = wasExpanded;
+            var node = FindPlaylistNode(oldName);
+            if (node == null) return null;
+            node.Name = newName;
+            SetNodeDisplayText(node, newName + GetTimeString(SumPlaylistDuration(playlist)));
+            return node;
+        }
+
+        // Adds a just-created playlist's node without rebuilding the tree. Public so the
+        // New Playlist dialog can call it after Playlist.Create.
+        public void AddCreatedPlaylist(string playlistName)
+        {
+            if (IsFilterActive) { LoadPlaylistsAndExpand(playlistName); return; }
+            // Refresh the model so the new playlist and its imported songs are present.
+            Playlists = Playlist.GetAll();
+            if (!Playlists.TryGetValue(playlistName, out var pl))
+            {
+                LoadPlaylistsAndExpand(playlistName);
+                return;
+            }
+            AddNewPlaylistNode(pl);
+            var node = FindPlaylistNode(playlistName);
+            if (node != null)
+            {
+                node.IsExpanded = true;
+                PlaylistTreeView.SelectedItems.Clear();
+                PlaylistTreeView.SelectedItems.Add(node);
+                _selectedNode = node;
+            }
         }
 
         // One-time, cache-only backfill: songs whose Name has never had stats baked in
@@ -331,6 +503,8 @@ namespace Pickles_Playlist_Editor
                     if (item.Level == 1 && Playlists.TryGetValue(item.Name, out var pl))
                     {
                         pl.Delete();
+                        Playlists.Remove(item.Name);
+                        if (!IsFilterActive) RemovePlaylistNode(item.Name);
                     }
                     else if (item.Level == 2 && item.Parent != null)
                     {
@@ -344,6 +518,7 @@ namespace Pickles_Playlist_Editor
                                 string songDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName, parentPl.Name, song.Name);
                                 if (Directory.Exists(songDirectory))
                                     Directory.Delete(songDirectory, true);
+                                if (!IsFilterActive) RemoveSongNode(parentPl, item.Name);
                             }
                         }
                     }
@@ -352,7 +527,7 @@ namespace Pickles_Playlist_Editor
                 DeleteButton.IsEnabled = false;
                 ShuffleButton.IsEnabled = false;
                 SortByBPMButton.IsEnabled = false;
-                LoadPlaylists();
+                if (IsFilterActive) LoadPlaylists(SearchTextBox.Text);
             }
             catch (Exception ex)
             {

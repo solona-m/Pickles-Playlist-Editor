@@ -159,7 +159,9 @@ namespace Pickles_Playlist_Editor
                     playlist.Save();
             });
             SetProgressBarPercent(100);
-            LoadPlaylists();
+            // Song names changed (stats baked in) — refresh only the touched playlists' songs.
+            foreach (var playlist in touchedPlaylists)
+                SyncPlaylistNode(playlist);
             ShowOperationSummary(AppStrings.Summary_ComputeStats, processed, targetSongs.Count, errors);
         }
 

@@ -52,7 +52,7 @@ namespace Pickles_Playlist_Editor
                     await Task.Run(() => Playlist.Create(playlistName, directory,
                         App.MainWindow.SetProgressBarPercent));
                     App.MainWindow.ClearProgressDisplay();
-                    App.MainWindow.LoadPlaylistsAndExpand(playlistName);
+                    App.MainWindow.AddCreatedPlaylist(playlistName);
                 }
                 catch (Exception ex)
                 {

@@ -13,6 +13,10 @@ namespace Pickles_Playlist_Editor
         private PlaylistNodeContent? _draggedContent;
         private PlaylistNodeContent? _pendingDropTarget;
         private bool _dragInProgress;
+        // Set by the reorder handlers to the targeted, incremental tree update to run after WinUI
+        // finishes its own post-drag cleanup (applied in the deferred DragItemsCompleted callback),
+        // instead of tearing down and rebuilding the whole tree via LoadPlaylists().
+        private Action? _pendingTreeUpdate;
 
         private void PlaylistTreeView_DragItemsStarting(TreeView sender, TreeViewDragItemsStartingEventArgs e)
         {
@@ -48,14 +52,16 @@ namespace Pickles_Playlist_Editor
             var dropContent = _pendingDropTarget;
             _draggedContent = null;
             _pendingDropTarget = null;
+            _pendingTreeUpdate = null;
 
             if (args.DropResult == DataPackageOperation.None)
             {
-                // Cancelled — WinUI reverts its internal reorder; defer so WinUI finishes first.
+                // Cancelled — WinUI reverts its own visual reorder. Only repair if the dragged node
+                // actually went missing, so a normal cancel doesn't flicker the whole tree.
                 DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
                 {
                     _dragInProgress = false;
-                    LoadPlaylists();
+                    RepairDraggedNode(draggedContent);
                 });
                 return;
             }
@@ -63,12 +69,15 @@ namespace Pickles_Playlist_Editor
             if (draggedContent != null && dropContent != null && dropContent != draggedContent)
                 await HandleInternalReorderAsync(draggedContent, dropContent);
 
-            // Defer tree rebuild to after WinUI completes its own post-drag cleanup,
-            // which otherwise resets IsExpanded on freshly created containers.
+            // Apply the targeted tree update after WinUI finishes its own post-drag cleanup (which
+            // is why this is deferred to Low priority). Only touches the affected node(s); no rebuild.
+            var pending = _pendingTreeUpdate;
+            _pendingTreeUpdate = null;
             DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
             {
                 _dragInProgress = false;
-                LoadPlaylists();
+                if (pending != null) pending();
+                else RepairDraggedNode(draggedContent);
             });
         }
 
@@ -149,8 +158,9 @@ namespace Pickles_Playlist_Editor
                     }
                     oldPlaylist.Options.Insert(Math.Min(idx, oldPlaylist.Options.Count), song);
                     oldPlaylist.Save();
-                    RecomputePlaylistDurations();
                     _playlistExpandedStates[oldPlaylist.Name] = true;
+                    // Repopulate just this playlist's songs after WinUI's post-drag cleanup.
+                    _pendingTreeUpdate = () => SyncPlaylistNode(oldPlaylist);
                     return;
                 }
 
@@ -172,8 +182,18 @@ namespace Pickles_Playlist_Editor
                 targetPlaylist.Save();
 
                 File.Move(Path.Combine(oldDir, oldSongFile), newPath);
-                RecomputePlaylistDurations();
                 _playlistExpandedStates[targetPlaylist.Name] = true;
+                // Repopulate both affected playlists after WinUI's post-drag cleanup, and reveal the
+                // moved song by expanding the target.
+                var movedTo = targetPlaylist;
+                var movedFrom = oldPlaylist;
+                _pendingTreeUpdate = () =>
+                {
+                    SyncPlaylistNode(movedFrom);
+                    SyncPlaylistNode(movedTo);
+                    var targetNode = FindPlaylistNode(movedTo.Name);
+                    if (targetNode != null) targetNode.IsExpanded = true;
+                };
             }
             catch (Exception ex)
             {
@@ -219,6 +239,10 @@ namespace Pickles_Playlist_Editor
                 names.Insert(insertIndex, draggedContent.Name);
 
                 await Task.Run(() => Playlist.ReorderAll(names));
+
+                // Reorder the existing playlist nodes to match — preserves each playlist's song
+                // subtree and expansion instead of rebuilding the whole tree.
+                _pendingTreeUpdate = () => ReorderRootChildrenToMatch(names, draggedContent);
             }
             catch (Exception ex)
             {
@@ -269,14 +293,10 @@ namespace Pickles_Playlist_Editor
                     targetPlaylist.Add(files, ReportProgress);
             });
 
-            LoadPlaylists();
-            if (targetContent != null)
-            {
-                string expandName = targetContent.Level == 2 && targetContent.Parent != null
-                    ? targetContent.Parent.Name : targetContent.Name;
-                var expandNode = FindPlaylistNode(expandName);
-                if (expandNode != null) expandNode.IsExpanded = true;
-            }
+            // Repopulate just the target playlist's songs instead of rebuilding the whole tree.
+            SyncPlaylistNode(targetPlaylist);
+            var expandNode = FindPlaylistNode(targetPlaylist.Name);
+            if (expandNode != null) expandNode.IsExpanded = true;
             ClearProgressDisplay();
         }
     }
