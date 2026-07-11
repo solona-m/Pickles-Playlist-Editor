@@ -115,6 +115,7 @@ namespace Pickles_Playlist_Editor
             }
 
             log.AddRange(FixNameMismatches(base_));
+            log.AddRange(StripRedundantScdSuffixes(base_));
 
             // Find existing group JSON files
             var existing = Directory.GetFiles(base_, "group_*.json")
@@ -225,9 +226,9 @@ namespace Pickles_Playlist_Editor
             _nameMismatchHealAttempted = true;
             try
             {
-                foreach (var line in FixNameMismatches(base_))
+                foreach (var line in ReclaimReorderTempFiles(base_).Concat(FixNameMismatches(base_)))
                 {
-                    if (line.StartsWith("RENAMED") || line.StartsWith("WARNING"))
+                    if (line.StartsWith("RENAMED") || line.StartsWith("WARNING") || line.StartsWith("RECLAIMED"))
                         Utils.Logger.LogInfo("Auto-heal: {Line}", line);
                 }
             }
@@ -235,6 +236,31 @@ namespace Pickles_Playlist_Editor
             {
                 Utils.Logger.LogError("Auto-heal failed: {Error}", ex);
             }
+        }
+
+        // Recovers playlists stranded by a ReorderAll that crashed mid-run before its crash-safety
+        // was added: their JSON was renamed to "group_NNN_Name.json.reorder_tmp" and left there,
+        // which GetAll()'s "group_*.json" glob never matches — so the playlist silently disappears.
+        // Rename each such leftover back to its real name (unless a live file already claims it).
+        private static List<string> ReclaimReorderTempFiles(string base_)
+        {
+            var log = new List<string>();
+            foreach (var path in Directory.GetFiles(base_, "group_*.json.reorder_tmp"))
+            {
+                string restored = path.Substring(0, path.Length - ".reorder_tmp".Length);
+                if (File.Exists(restored))
+                    continue; // a current file already owns this name — leave the orphan for manual review
+                try
+                {
+                    File.Move(path, restored);
+                    log.Add($"RECLAIMED (reorder crash): {Path.GetFileName(path)} -> {Path.GetFileName(restored)}");
+                }
+                catch (Exception ex)
+                {
+                    log.Add($"WARNING (could not reclaim {Path.GetFileName(path)}): {ex.Message}");
+                }
+            }
+            return log;
         }
 
         // Repairs the fallout of the old GetJsonFiles wildcard bug: because "group_*_<name>.json"
@@ -297,6 +323,82 @@ namespace Pickles_Playlist_Editor
                 log.Add($"WARNING (duplicate playlist '{g.Key}'): {string.Join(", ", g.Select(mm => mm.Value))}");
 
             log.Add(renamed > 0 ? $"Fixed {renamed} name mismatch(es).\n" : "No name mismatches found.\n");
+            return log;
+        }
+
+        // Reverses the leftover "_1" (or "_2", …) suffixes the old same-playlist song-reorder bug
+        // appended to .scd filenames (Creep.scd -> Creep_1.scd) via GetNonCollidingPath. That bug
+        // renamed base -> base_1, so the base name is now free and we can safely rename each file
+        // back and repoint the playlist JSON at it. Only strips when the shorter name is actually
+        // free on disk, so distinct files never collide and genuinely-suffixed names are left alone.
+        private static List<string> StripRedundantScdSuffixes(string base_)
+        {
+            var log = new List<string>();
+            var suffix = new Regex(@"^(.*)_\d+$");
+            int renamed = 0, playlistsTouched = 0;
+
+            foreach (var playlist in Playlist.GetAll().Values)
+            {
+                if (playlist.Options == null) continue;
+                bool changed = false;
+
+                foreach (var option in playlist.Options)
+                {
+                    if (option?.Files == null) continue;
+                    foreach (var key in option.Files.Keys.ToList())
+                    {
+                        string rel = option.Files[key];
+                        if (string.IsNullOrEmpty(rel) || !rel.EndsWith(".scd", StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        // Peel off one numeric suffix at a time while the shorter name is free.
+                        string currentRel = rel;
+                        while (true)
+                        {
+                            var m = suffix.Match(Path.GetFileNameWithoutExtension(currentRel));
+                            if (!m.Success || m.Groups[1].Value.Length == 0) break;
+
+                            string dirPrefix = currentRel.Substring(0, currentRel.Length - Path.GetFileName(currentRel).Length);
+                            string candidateRel = dirPrefix + m.Groups[1].Value + Path.GetExtension(currentRel);
+
+                            string currentFull = Path.Combine(base_, Playlist.NormalizeRelativeModPath(currentRel));
+                            string candidateFull = Path.Combine(base_, Playlist.NormalizeRelativeModPath(candidateRel));
+
+                            if (!File.Exists(currentFull)) break;   // referenced file missing
+                            if (File.Exists(candidateFull)) break;  // shorter name taken — keep suffix
+
+                            try { File.Move(currentFull, candidateFull); }
+                            catch (Exception ex)
+                            {
+                                log.Add($"SKIP (rename failed {Path.GetFileName(currentFull)}): {ex.Message}");
+                                break;
+                            }
+
+                            Utils.BPMDetector.UpdateCacheForSCD(currentFull, candidateFull);
+                            Utils.KeyDetector.UpdateCacheForSCD(currentFull, candidateFull);
+                            currentRel = candidateRel;
+                        }
+
+                        if (currentRel != rel)
+                        {
+                            option.Files[key] = currentRel;
+                            changed = true;
+                            renamed++;
+                            log.Add($"UNSUFFIXED: {rel} -> {currentRel}");
+                        }
+                    }
+                }
+
+                if (changed)
+                {
+                    playlist.Save();
+                    playlistsTouched++;
+                }
+            }
+
+            log.Add(renamed > 0
+                ? $"Removed {renamed} redundant _N suffix(es) across {playlistsTouched} playlist(s).\n"
+                : "No redundant _N .scd suffixes found.\n");
             return log;
         }
 

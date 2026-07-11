@@ -320,26 +320,31 @@ namespace Pickles_Playlist_Editor
             // the old wildcard bug scrambled become visible again. Runs at most once per session.
             Library.HealNameMismatchesOnce();
 
-            var fileNames = Directory.GetFiles(modDirectory, "group_*.json");
-            foreach (string file in fileNames)
+            var loaded = new List<(int number, Playlist playlist)>();
+            foreach (string file in Directory.GetFiles(modDirectory, "group_*.json"))
             {
                 try
                 {
                     Playlist playlist = JsonConvert.DeserializeObject<Playlist>(File.ReadAllText(file));
-
                     if (playlist == null)
-                    {
                         Console.Error.WriteLine("Error loading playlist from file " + file);
-                    }
                     else
-                    {
-                        playlists[playlist.Name] = playlist;
-                    }
+                        loaded.Add((GroupNumberOf(file), playlist));
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine("Error loading playlist from file " + file + ": " + ex);
                 }
+            }
+
+            foreach (var entry in loaded
+                .OrderBy(e => e.playlist.Priority)
+                .ThenBy(e => e.number)
+                .ThenBy(e => e.playlist.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                // On a duplicate Name (leftover corruption), keep the first in this order.
+                if (!playlists.ContainsKey(entry.playlist.Name))
+                    playlists[entry.playlist.Name] = entry.playlist;
             }
             return playlists;
         }
@@ -482,7 +487,19 @@ namespace Pickles_Playlist_Editor
             var exact = new Regex(@"^group_\d+_" + Regex.Escape(cleanName) + @"\.json$", RegexOptions.IgnoreCase);
             return Directory.GetFiles(modDirectory, "group_*.json")
                 .Where(f => exact.IsMatch(Path.GetFileName(f)))
+                .OrderBy(GroupNumberOf)
                 .ToArray();
+        }
+
+        private static readonly Regex GroupNumberPattern = new(@"^group_(\d+)_", RegexOptions.IgnoreCase);
+
+        // Parses the NNN group index out of a "group_NNN_Name.json" path so playlists can be ordered
+        // deterministically by number rather than by filesystem enumeration order. Unparseable names
+        // sort last, keeping them out of the meaningful range.
+        private static int GroupNumberOf(string path)
+        {
+            var m = GroupNumberPattern.Match(Path.GetFileName(path));
+            return m.Success && int.TryParse(m.Groups[1].Value, out int n) ? n : int.MaxValue;
         }
 
         internal void Shuffle()
@@ -669,28 +686,25 @@ namespace Pickles_Playlist_Editor
             var allNames = new List<string>(orderedNames);
             allNames.AddRange(vfxNames);
 
-            // Phase 1: rename each playlist's JSON to a temp file to avoid collisions
-            var entries = new List<(string name, string tempPath)>();
-            foreach (string name in allNames)
+            // Display order is driven by Priority, not the filename. Penumbra owns the group_NNN
+            // filenames and renumbers them on every mod reload, so renaming files here would just be
+            // clobbered. Instead, only rewrite each playlist's Priority to match the requested order
+            // and leave the filenames to Penumbra. Each write touches a single file in place, so
+            // there is no cross-file temp dance to leave half-finished.
+            for (int i = 0; i < allNames.Count; i++)
             {
-                var files = GetJsonFiles(name);
+                var files = GetJsonFiles(allNames[i]);
                 if (files.Length == 0) continue;
-                string tempPath = files[0] + ".reorder_tmp";
-                File.Move(files[0], tempPath);
-                entries.Add((name, tempPath));
-            }
-
-            // Phase 2: write back with sequential numbering and updated Priority
-            for (int i = 0; i < entries.Count; i++)
-            {
-                string cleanName = entries[i].name.Replace("/", "_");
-                string newPath = Path.Combine(modDir, $"group_{i + 1:D3}_{cleanName}.json");
-
-                string content = File.ReadAllText(entries[i].tempPath, Encoding.UTF8);
-                var jobj = Newtonsoft.Json.Linq.JObject.Parse(content);
-                jobj["Priority"] = i + 1;
-                File.WriteAllText(newPath, jobj.ToString(Newtonsoft.Json.Formatting.Indented), Encoding.UTF8);
-                File.Delete(entries[i].tempPath);
+                try
+                {
+                    var jobj = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(files[0], Encoding.UTF8));
+                    jobj["Priority"] = i + 1;
+                    File.WriteAllText(files[0], jobj.ToString(Newtonsoft.Json.Formatting.Indented), Encoding.UTF8);
+                }
+                catch
+                {
+                    // Skip a locked/unreadable file; the new order still applies to the rest.
+                }
             }
 
             RefreshPenumbraMod();

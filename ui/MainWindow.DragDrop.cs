@@ -129,6 +129,31 @@ namespace Pickles_Playlist_Editor
                 }
                 else return;
 
+                // Same-playlist reorder: only the option order changes. Don't touch the audio file —
+                // the old code renamed it to a non-colliding name every time (e.g. bpmloop -> bpmloop_1),
+                // which was both ugly and what made Penumbra try to compact a freshly-created .scd.
+                // Still Save() so the reorder is written and Penumbra picks up the new order.
+                if (ReferenceEquals(oldPlaylist, targetPlaylist))
+                {
+                    oldPlaylist.Options.Remove(song);
+                    // Recompute the insert position after removal so indices don't shift under us.
+                    int idx;
+                    if (dropContent.Level == 2 && dropContent.Parent != null)
+                    {
+                        var ts = oldPlaylist.Options.Find(x => x.Name == dropContent.Name);
+                        idx = ts != null ? oldPlaylist.Options.IndexOf(ts) + 1 : oldPlaylist.Options.Count;
+                    }
+                    else
+                    {
+                        idx = oldPlaylist.Options.Count; // dropped on the playlist header -> end
+                    }
+                    oldPlaylist.Options.Insert(Math.Min(idx, oldPlaylist.Options.Count), song);
+                    oldPlaylist.Save();
+                    RecomputePlaylistDurations();
+                    _playlistExpandedStates[oldPlaylist.Name] = true;
+                    return;
+                }
+
                 oldPlaylist.Options.Remove(song);
                 oldPlaylist.Save();
 
