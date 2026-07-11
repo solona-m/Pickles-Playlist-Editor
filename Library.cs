@@ -114,6 +114,8 @@ namespace Pickles_Playlist_Editor
                 return log;
             }
 
+            log.AddRange(FixNameMismatches(base_));
+
             // Find existing group JSON files
             var existing = Directory.GetFiles(base_, "group_*.json")
                 .Select(Path.GetFileName)
@@ -199,6 +201,102 @@ namespace Pickles_Playlist_Editor
             }
             Pickles_Playlist_Editor.Playlist.RefreshPenumbraMod();
             log.Add($"\nDone. {copied.Count} files copied.");
+            return log;
+        }
+
+        private static bool _nameMismatchHealAttempted;
+
+        // Auto-heals filename/content name mismatches once per session, the first time the library is
+        // loaded against a real mod directory. Only the safe rename pass runs here — never the .bak
+        // restore, which stays behind the manual "Repair Library" button. Idempotent: a healthy
+        // library moves nothing. Failures never block loading.
+        internal static void HealNameMismatchesOnce()
+        {
+            if (_nameMismatchHealAttempted)
+                return;
+            if (Settings.PenumbraLocation == null || Settings.ModName == null)
+                return;
+            string base_ = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
+            if (!Directory.Exists(base_))
+                return;
+
+            // Only mark done once we actually have a directory to heal, so a session that starts
+            // before Penumbra is configured still heals after the user sets it up.
+            _nameMismatchHealAttempted = true;
+            try
+            {
+                foreach (var line in FixNameMismatches(base_))
+                {
+                    if (line.StartsWith("RENAMED") || line.StartsWith("WARNING"))
+                        Utils.Logger.LogInfo("Auto-heal: {Line}", line);
+                }
+            }
+            catch (Exception ex)
+            {
+                Utils.Logger.LogError("Auto-heal failed: {Error}", ex);
+            }
+        }
+
+        // Repairs the fallout of the old GetJsonFiles wildcard bug: because "group_*_<name>.json"
+        // also matched longer names ending in "_<name>", Save() could write one playlist's data into
+        // another playlist's file. That leaves files whose on-disk name no longer matches the "Name"
+        // stored inside them, so GetAll() (keyed by content Name) silently drops or merges playlists.
+        // This pass renames each such file so its filename matches its content again, which both makes
+        // the playlist visible and lets the now-exact GetJsonFiles find it. Duplicate names (the true
+        // symptom of an overwrite) are surfaced in the log so the .bak restore phase / the user can
+        // recover the clobbered playlist.
+        private static List<string> FixNameMismatches(string base_)
+        {
+            var log = new List<string>();
+
+            // Track every group_*.json filename so renames never collide with an existing file.
+            var used = new HashSet<string>(
+                Directory.GetFiles(base_, "group_*.json").Select(Path.GetFileName),
+                StringComparer.OrdinalIgnoreCase);
+
+            int renamed = 0;
+            foreach (var path in Directory.GetFiles(base_, "group_*.json").OrderBy(f => f))
+            {
+                string file = Path.GetFileName(path);
+                var m = GroupJsonPattern.Match(file);
+                if (!m.Success) continue;
+
+                JObject data = TryLoadJson(path);
+                string contentName = data?["Name"]?.ToString();
+                if (string.IsNullOrEmpty(contentName)) continue;
+
+                string cleanName = contentName.Replace("/", "_");
+                if (string.Equals(m.Groups[2].Value, cleanName, StringComparison.OrdinalIgnoreCase))
+                    continue; // filename already matches content — nothing to fix
+
+                // Find a free group number for the corrected filename. Bump the number (never a
+                // filename suffix) so the result still parses as group_<digits>_<name>.json.
+                int num = int.Parse(m.Groups[1].Value);
+                string target;
+                do
+                {
+                    target = $"group_{num:D3}_{cleanName}.json";
+                    num++;
+                } while (used.Contains(target));
+
+                File.Move(path, Path.Combine(base_, target));
+                used.Remove(file);
+                used.Add(target);
+                log.Add($"RENAMED (name mismatch): {file} -> {target}");
+                renamed++;
+            }
+
+            // Warn about playlists that now have more than one file — the hallmark of an overwrite,
+            // where one file holds legitimate data and the other(s) are a clobbered copy.
+            var dupes = used
+                .Select(f => GroupJsonPattern.Match(f))
+                .Where(mm => mm.Success)
+                .GroupBy(mm => mm.Groups[2].Value, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1);
+            foreach (var g in dupes)
+                log.Add($"WARNING (duplicate playlist '{g.Key}'): {string.Join(", ", g.Select(mm => mm.Value))}");
+
+            log.Add(renamed > 0 ? $"Fixed {renamed} name mismatch(es).\n" : "No name mismatches found.\n");
             return log;
         }
 

@@ -187,14 +187,17 @@ namespace Pickles_Playlist_Editor
         }
 
         // One-time, cache-only backfill: songs whose Name has never had stats baked in
-        // (e.g. imported before this feature existed) get whatever's already cached
-        // written into their Name. Never triggers new BPM/key/duration detection.
+        // (e.g. imported before this feature existed) get whatever's already cached folded
+        // into their in-memory Name for display. Never triggers new BPM/key/duration detection.
+        //
+        // This deliberately does NOT persist to disk. Writing the whole library on load is what let
+        // the old GetJsonFiles wildcard bug fan out into mass corruption; the display-only names here
+        // get saved naturally the next time the user actually edits that playlist.
         private void BackfillStatsFromCacheIfNeeded()
         {
             if (_didBackfillStatsFromCache) return;
             _didBackfillStatsFromCache = true;
 
-            var touchedPlaylists = new HashSet<Playlist>();
             foreach (var playlist in Playlists.Values)
             {
                 if (playlist.Options == null) continue;
@@ -212,12 +215,8 @@ namespace Pickles_Playlist_Editor
                     if (!bpm.HasValue && string.IsNullOrEmpty(key) && !duration.HasValue) continue;
 
                     OptionStatsNaming.UpdateName(option, bpm, key, duration);
-                    touchedPlaylists.Add(playlist);
                 }
             }
-
-            foreach (var playlist in touchedPlaylists)
-                playlist.Save();
         }
 
         private static string GetTimeString(TimeSpan time)

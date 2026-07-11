@@ -316,6 +316,10 @@ namespace Pickles_Playlist_Editor
             if (!Directory.Exists(modDirectory))
                 return playlists;
 
+            // Heal any leftover filename/content name mismatches before reading, so playlists that
+            // the old wildcard bug scrambled become visible again. Runs at most once per session.
+            Library.HealNameMismatchesOnce();
+
             var fileNames = Directory.GetFiles(modDirectory, "group_*.json");
             foreach (string file in fileNames)
             {
@@ -471,7 +475,14 @@ namespace Pickles_Playlist_Editor
             if (!Directory.Exists(modDirectory))
                 return Array.Empty<string>();
 
-            return Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*_" + name.Replace("/","_") + ".json");
+            // The "group_*_<name>.json" wildcard would also match longer names that end in
+            // "_<name>" (e.g. "Rock" matching group_003_Punk_Rock.json), which caused Save()
+            // to overwrite the wrong playlist's file. Match the group number + exact name only.
+            string cleanName = name.Replace("/", "_");
+            var exact = new Regex(@"^group_\d+_" + Regex.Escape(cleanName) + @"\.json$", RegexOptions.IgnoreCase);
+            return Directory.GetFiles(modDirectory, "group_*.json")
+                .Where(f => exact.IsMatch(Path.GetFileName(f)))
+                .ToArray();
         }
 
         internal void Shuffle()
