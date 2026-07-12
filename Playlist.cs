@@ -340,9 +340,11 @@ namespace Pickles_Playlist_Editor
                 }
             }
 
+            // Order by the group_NNN filename index to mirror Penumbra exactly — Penumbra orders
+            // groups by that number and ignores the "Priority" field for display. Name is only a
+            // tie-breaker for the rare unparseable/duplicate-number case.
             foreach (var entry in loaded
-                .OrderBy(e => e.playlist.Priority)
-                .ThenBy(e => e.number)
+                .OrderBy(e => e.number)
                 .ThenBy(e => e.playlist.Name, StringComparer.OrdinalIgnoreCase))
             {
                 // On a duplicate Name (leftover corruption), keep the first in this order.
@@ -767,27 +769,63 @@ namespace Pickles_Playlist_Editor
             var allNames = new List<string>(orderedNames);
             allNames.AddRange(vfxNames);
 
-            // Display order is driven by Priority, not the filename. Penumbra owns the group_NNN
-            // filenames and renumbers them on every mod reload, so renaming files here would just be
-            // clobbered. Instead, only rewrite each playlist's Priority to match the requested order
-            // and leave the filenames to Penumbra. Each write touches a single file in place, so
-            // there is no cross-file temp dance to leave half-finished.
-            for (int i = 0; i < allNames.Count; i++)
+            // Penumbra orders groups solely by the NNN index in each "group_NNN_<name>.json"
+            // filename (it ignores the "Priority" field for display — that only affects conflict
+            // resolution). So reordering means renumbering the files, not rewriting Priority.
+            //
+            // Rename in two phases so intermediate collisions can't clobber a file: first move every
+            // participating file to a ".reorder_tmp" sidecar, then write each back at its new number.
+            // A crash between phases leaves ".reorder_tmp" files, which ReclaimReorderTempFiles
+            // restores on next load.
+            Logger.LogInfo("ReorderAll: renumbering {Count} group(s): {Order}",
+                allNames.Count, string.Join(" > ", allNames));
+
+            var staged = new List<(string name, string tempPath)>();
+            foreach (string name in allNames)
             {
-                var files = GetJsonFiles(allNames[i]);
-                if (files.Length == 0) continue;
+                var files = GetJsonFiles(name);
+                if (files.Length == 0)
+                {
+                    Logger.LogWarn("ReorderAll: no file found for '{Name}' — it will keep its old position.", name);
+                    continue;
+                }
                 try
                 {
-                    var jobj = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(files[0], Encoding.UTF8));
-                    jobj["Priority"] = i + 1;
-                    File.WriteAllText(files[0], jobj.ToString(Newtonsoft.Json.Formatting.Indented), Encoding.UTF8);
+                    string tempPath = files[0] + ".reorder_tmp";
+                    if (File.Exists(tempPath)) File.Delete(tempPath);
+                    File.Move(files[0], tempPath);
+                    staged.Add((name, tempPath));
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Skip a locked/unreadable file; the new order still applies to the rest.
+                    Logger.LogError("ReorderAll: failed staging '{Name}' ({File}): {Error}",
+                        name, Path.GetFileName(files[0]), ex);
                 }
             }
 
+            for (int i = 0; i < staged.Count; i++)
+            {
+                string cleanName = staged[i].name.Replace("/", "_");
+                string newPath = Path.Combine(modDir, $"group_{i + 1:D3}_{cleanName}.json");
+                try
+                {
+                    // Keep Priority in step with the number so anything that still reads Priority
+                    // (and the app's own tie-breaking) agrees with Penumbra's filename order.
+                    var jobj = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(staged[i].tempPath, Encoding.UTF8));
+                    jobj["Priority"] = i + 1;
+                    File.WriteAllText(newPath, jobj.ToString(Newtonsoft.Json.Formatting.Indented), Encoding.UTF8);
+                    File.Delete(staged[i].tempPath);
+                }
+                catch (Exception ex)
+                {
+                    // Leave the .reorder_tmp in place; ReclaimReorderTempFiles recovers it on next load.
+                    Logger.LogError("ReorderAll: failed writing '{Name}' -> {File}: {Error}",
+                        staged[i].name, Path.GetFileName(newPath), ex);
+                }
+            }
+
+            // Reload Penumbra once, after all renames are done, to minimise the window where it sees
+            // a half-renumbered folder.
             RefreshPenumbraMod();
         }
 

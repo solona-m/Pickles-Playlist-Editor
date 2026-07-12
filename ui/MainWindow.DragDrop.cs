@@ -54,6 +54,10 @@ namespace Pickles_Playlist_Editor
             _pendingDropTarget = null;
             _pendingTreeUpdate = null;
 
+            Utils.Logger.LogInfo("DragCompleted: result={Result} dragged='{Dragged}'(L{DL}) drop='{Drop}'(L{TL})",
+                args.DropResult, draggedContent?.Name ?? "(null)", draggedContent?.Level ?? -1,
+                dropContent?.Name ?? "(null)", dropContent?.Level ?? -1);
+
             if (args.DropResult == DataPackageOperation.None)
             {
                 // Cancelled — WinUI reverts its own visual reorder. Only repair if the dragged node
@@ -237,12 +241,17 @@ namespace Pickles_Playlist_Editor
                 else return;
 
                 names.Insert(insertIndex, draggedContent.Name);
+                Utils.Logger.LogInfo("PlaylistReorder: '{Dragged}' to index {Index}; new order: {Order}",
+                    draggedContent.Name, insertIndex, string.Join(" > ", names));
 
                 await Task.Run(() => Playlist.ReorderAll(names));
 
-                // Reorder the existing playlist nodes to match — preserves each playlist's song
-                // subtree and expansion instead of rebuilding the whole tree.
-                _pendingTreeUpdate = () => ReorderRootChildrenToMatch(names, draggedContent);
+                // Rebuild the tree from disk: WinUI's TreeView leaves the dragged node's visual out of
+                // sync after a drag (it mishandles ObservableCollection.Move), so surgically moving
+                // nodes rendered wrong even though the model was correct. GetAll now orders by the
+                // group number ReorderAll just wrote, and expansion is restored from state, so a clean
+                // reload shows the right order reliably.
+                _pendingTreeUpdate = () => LoadPlaylists();
             }
             catch (Exception ex)
             {

@@ -243,27 +243,6 @@ namespace Pickles_Playlist_Editor
         // Reorder the existing Level-1 playlist nodes to match the given name order,
         // re-inserting the dragged node if WinUI removed it from ItemsSource during the drag.
         // Preserves each playlist's song subtree and expansion (no node recreation).
-        private void ReorderRootChildrenToMatch(List<string> orderedNames, PlaylistNodeContent draggedNode)
-        {
-            if (IsFilterActive) { LoadPlaylists(SearchTextBox.Text); return; }
-            if (RootPlaylistItems.Count == 0) { LoadPlaylists(); return; }
-            var root = RootPlaylistItems[0];
-
-            if (!root.Children.Contains(draggedNode))
-                root.InsertChild(0, draggedNode);
-
-            for (int target = 0; target < orderedNames.Count && target < root.Children.Count; target++)
-            {
-                PlaylistNodeContent? node = null;
-                for (int i = target; i < root.Children.Count; i++)
-                    if (root.Children[i].Name == orderedNames[target]) { node = root.Children[i]; break; }
-                if (node == null) continue;
-                int cur = root.Children.IndexOf(node);
-                if (cur != target)
-                    root.Children.Move(cur, target);
-            }
-        }
-
         // Append a newly created playlist's node (new playlists sort last by Priority).
         private void AddNewPlaylistNode(Playlist playlist)
         {
