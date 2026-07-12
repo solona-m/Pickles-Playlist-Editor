@@ -185,7 +185,13 @@ namespace Pickles_Playlist_Editor
                 targetPlaylist.Options.Insert(Math.Min(insertIndex, targetPlaylist.Options.Count), song);
                 targetPlaylist.Save();
 
-                File.Move(Path.Combine(oldDir, oldSongFile), newPath);
+                string oldFullPath = Path.Combine(oldDir, oldSongFile);
+                File.Move(oldFullPath, newPath);
+                // BPM/key/duration caches are keyed by full file path, so the move orphans this
+                // song's entries. Migrate them (as Cleanup()/Rename() do) or the moved song reads
+                // as 0:00 and the target playlist's displayed duration comes up short.
+                Utils.BPMDetector.UpdateCacheForSCD(oldFullPath, newPath);
+                Utils.KeyDetector.UpdateCacheForSCD(oldFullPath, newPath);
                 _playlistExpandedStates[targetPlaylist.Name] = true;
                 // Repopulate both affected playlists after WinUI's post-drag cleanup, and reveal the
                 // moved song by expanding the target.

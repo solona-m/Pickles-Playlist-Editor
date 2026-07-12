@@ -458,7 +458,18 @@ namespace Pickles_Playlist_Editor
                         // Only repoint paths that actually lived in the moved folder; leave songs
                         // stored elsewhere untouched.
                         if (norm.StartsWith(oldPrefix, StringComparison.OrdinalIgnoreCase))
-                            song.Files[key] = Path.Combine(newScdDir, norm.Substring(oldPrefix.Length));
+                        {
+                            var newRel = Path.Combine(newScdDir, norm.Substring(oldPrefix.Length));
+                            // The BPM/key/duration caches are keyed by full file path, so the folder
+                            // move invalidates their keys. Migrate them (as Cleanup() does on a song
+                            // rename) or every moved song reads as 0:00 and the renamed playlist's
+                            // displayed duration collapses to 00:00:00.
+                            string oldFull = Path.Combine(Settings.PenumbraLocation, Settings.ModName, rel);
+                            string newFull = Path.Combine(Settings.PenumbraLocation, Settings.ModName, newRel);
+                            BPMDetector.UpdateCacheForSCD(oldFull, newFull);
+                            KeyDetector.UpdateCacheForSCD(oldFull, newFull);
+                            song.Files[key] = newRel;
+                        }
                     }
                 }
             }
