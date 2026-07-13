@@ -493,13 +493,19 @@ namespace Pickles_Playlist_Editor
                             if (song != null && !song.Name.Equals("Off", StringComparison.InvariantCultureIgnoreCase))
                             {
                                 Utils.Logger.LogInfo("Deleting song '{Song}' from playlist '{Playlist}'", song.Name, parentPl.Name);
-                                parentPl.Options.Remove(song);
 
-                                // Delete the actual audio file this song referenced. Songs are stored
-                                // as single .scd files inside the playlist's SCD folder — there is no
-                                // per-song "<mod>/<PlaylistName>/<SongName>" directory, so the old
-                                // directory delete never matched and left the .scd orphaned on disk.
+                                // Commit the JSON removal BEFORE touching the audio. If the save can't
+                                // land, this throws and the .scd is still on disk, so the song survives
+                                // intact. Deleting the file first meant a failed save left the audio
+                                // destroyed but the song still listed — unrecoverable.
                                 string rel = Playlist.GetScdPath(song);
+                                parentPl.Options.Remove(song);
+                                parentPl.Save();
+
+                                // Now the removal is durable, drop the audio file this song referenced.
+                                // Songs are stored as single .scd files inside the playlist's SCD folder —
+                                // there is no per-song "<mod>/<PlaylistName>/<SongName>" directory, so the
+                                // old directory delete never matched and left the .scd orphaned on disk.
                                 if (!string.IsNullOrEmpty(rel))
                                 {
                                     try
@@ -511,7 +517,6 @@ namespace Pickles_Playlist_Editor
                                     catch { /* best-effort; a leftover file is harmless and Cleanup reclaims it */ }
                                 }
 
-                                parentPl.Save();
                                 if (!IsFilterActive) RemoveSongNode(parentPl, item.Name);
                             }
                         }

@@ -16,8 +16,21 @@ namespace Pickles_Playlist_Editor
 
         public static void Cleanup()
         {
+            var failed = new List<string>();
             foreach (var playlist in MainWindow.Playlists.Values)
-                playlist.Cleanup();
+            {
+                // One unsaveable playlist must not abort the organize pass for every other one,
+                // nor escape into the void event handler that invokes this and crash the app.
+                try { playlist.Cleanup(); }
+                catch (Exception ex)
+                {
+                    failed.Add(playlist.Name);
+                    Utils.Logger.LogError("Cleanup skipped '{Name}': {Error}", playlist.Name, ex);
+                }
+            }
+            if (failed.Count > 0)
+                Utils.Logger.LogWarn("Cleanup: skipped {Count} playlist(s) that could not be saved: {Names}",
+                    failed.Count, string.Join(", ", failed));
         }
 
         // Rebuilds every library SCD's headers from the canonical default.scd plus the app's
@@ -134,19 +147,22 @@ namespace Pickles_Playlist_Editor
             int nextNum = nums.Count > 0 ? nums.Max() + 1 : 1;
             log.Add($"Highest existing group JSON: {nums.Max():D3}, starting at {nextNum:D3}");
 
-            // Get all bak files
-            var baks = Directory.GetFiles(base_, "group_*.json.bak")
-                .Select(Path.GetFileName)
-                .Where(f => GroupBakPattern.IsMatch(f))
-                .OrderBy(f => f)
+            // Get all bak files. New backups are written outside the mod folder (Penumbra scans that
+            // directory, and a File.Replace there was renumbering the groups), but older builds left
+            // them beside the group JSONs — scan both so a repair can still reach legacy backups.
+            var baks = new[] { base_, Playlist.BackupDir }
+                .Where(Directory.Exists)
+                .SelectMany(d => Directory.GetFiles(d, "group_*.json.bak"))
+                .Where(p => GroupBakPattern.IsMatch(Path.GetFileName(p)))
+                .OrderBy(Path.GetFileName)
                 .ToList();
 
             log.Add($"Found {baks.Count} .bak files\n");
 
             var copied = new List<string>();
-            foreach (var bak in baks)
+            foreach (var bakPath in baks)
             {
-                string bakPath = Path.Combine(base_, bak);
+                string bak = Path.GetFileName(bakPath);
 
                 JObject data = TryLoadJson(bakPath);
                 if (data == null)
@@ -391,8 +407,17 @@ namespace Pickles_Playlist_Editor
 
                 if (changed)
                 {
-                    playlist.Save();
-                    playlistsTouched++;
+                    // A playlist whose group JSON can't be resolved must not abort the whole heal
+                    // pass — this runs on the load path, so throwing here would break startup.
+                    try
+                    {
+                        playlist.Save();
+                        playlistsTouched++;
+                    }
+                    catch (Exception ex)
+                    {
+                        log.Add($"SKIPPED (could not save): {playlist.Name} — {ex.Message}");
+                    }
                 }
             }
 

@@ -8,6 +8,7 @@ using VfxEditor.ScdFormat;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace Pickles_Playlist_Editor
 {
@@ -15,6 +16,21 @@ namespace Pickles_Playlist_Editor
     {
         Ascending,
         Descending
+    }
+
+    // Thrown when a playlist's group JSON cannot be located in the mod folder, so a write has
+    // nowhere to land. Callers should treat this as "the edit did not happen" and roll back.
+    public class PlaylistSaveException : InvalidOperationException
+    {
+        public string PlaylistName { get; }
+
+        public PlaylistSaveException(string playlistName)
+            : base($"Could not save playlist '{playlistName}': its group JSON is missing from the mod " +
+                   "folder. The change was not applied. (If Penumbra is running, it may have renamed or " +
+                   "rewritten the file — reload the mod list and try again.)")
+        {
+            PlaylistName = playlistName;
+        }
     }
 
     public class Playlist
@@ -197,6 +213,14 @@ namespace Pickles_Playlist_Editor
         public void Cleanup()
         {
             Playlist playlist = this;
+
+            // Bail before renaming anything if the save can't land. Cleanup renames .scd files on
+            // disk and only then writes the JSON that points at the new names — if that write were
+            // dropped, every song in this playlist would end up pointing at a file that no longer
+            // exists under that name.
+            if (!HasGroupJson())
+                throw new PlaylistSaveException(Name);
+
             string playlistScdDirectory = playlist.GetScdDirectoryForNewFiles();
             string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistScdDirectory);
             Directory.CreateDirectory(outDir);
@@ -322,6 +346,10 @@ namespace Pickles_Playlist_Editor
             // Heal any leftover filename/content name mismatches before reading, so playlists that
             // the old wildcard bug scrambled become visible again. Runs at most once per session.
             Library.HealNameMismatchesOnce();
+
+            // Clear the .bak/.tmp litter older builds left in the mod folder Penumbra scans. Backups
+            // are moved, not deleted — Repair still finds them. Runs at most once per session.
+            MigrateStrayBackupsOnce();
 
             var loaded = new List<(int number, Playlist playlist)>();
             foreach (string file in Directory.GetFiles(modDirectory, "group_*.json"))
@@ -482,15 +510,25 @@ namespace Pickles_Playlist_Editor
             return true;
         }
 
+        // True when this playlist's group JSON can actually be located on disk, i.e. Save() will
+        // have somewhere to write. Callers that are about to do something destructive (move a song
+        // out of another playlist, delete an audio file) should pre-flight with this so they never
+        // commit half an edit against a playlist that cannot be saved.
+        internal bool HasGroupJson() => GetJsonFiles(Name).Length > 0;
+
         public void Save()
         {
             var fileNames = GetJsonFiles(Name);
             if (fileNames.Length == 0)
             {
                 // The whole "adding deleted my playlist" class of bug lives here: if no group JSON
-                // matches this playlist's content Name, the edit is silently dropped. Log it loudly.
-                Logger.LogWarn("Save('{Name}'): no matching group JSON found — changes NOT persisted.", Name);
-                return;
+                // matches this playlist's content Name, the edit has nowhere to go. This used to log
+                // and return, which let callers commit the destructive half of an edit and quietly
+                // drop the other half — a cross-playlist drag removed the song from the source,
+                // saved that, then no-opped the target write and lost the song. Throw so callers can
+                // roll back and the user sees an error instead of silent data loss.
+                Logger.LogError("Save('{Name}'): no matching group JSON found — aborting, nothing written.", Name);
+                throw new PlaylistSaveException(Name);
             }
             if (fileNames.Length > 1)
                 Logger.LogWarn("Save('{Name}'): {Count} files share this name ({Files}); writing the first.",
@@ -520,18 +558,110 @@ namespace Pickles_Playlist_Editor
             RefreshPenumbraMod();
         }
 
-        // Crash-/clobber-safe write: serialize to a temp file, then atomically swap it into place,
-        // keeping the previous file as a .bak. If a write is interrupted or overwrites the wrong
-        // file, the .bak preserves the last-good copy (the Repair button restores from these).
+        // Where group-JSON backups live. Deliberately OUTSIDE the Penumbra mod folder: Penumbra
+        // scans that directory, and we were leaving hundreds of .bak/.tmp files in it.
+        internal static string BackupDir
+        {
+            get
+            {
+                string dir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "PicklesPlaylistEditor", "backups");
+                Directory.CreateDirectory(dir);
+                return dir;
+            }
+        }
+
+        // Crash-safe write that Penumbra sees as a MODIFY, never a delete+create.
+        //
+        // This used to stage a .tmp beside the target and File.Replace() it into place. Replace
+        // unlinks the target's directory entry and swaps a different file in — to Penumbra's folder
+        // watcher that reads as "the group file disappeared, then a new one appeared", so Penumbra
+        // compacted and renumbered the remaining group_NNN_*.json files. Since playlist order is
+        // derived from that number, our own save was shuffling the user's playlist order (observed:
+        // 'Beach' bouncing 001 -> 002 -> 001 across three consecutive song moves). It also raced
+        // GetJsonFiles, which is how a save could report "no matching group JSON found" and silently
+        // drop an edit.
+        //
+        // Writing the bytes in place keeps the directory entry — and therefore the group number —
+        // untouched, so Penumbra just re-reads the file and leaves the ordering alone.
         private static void WriteJsonAtomic(string targetPath, string json)
         {
-            string dir = Path.GetDirectoryName(targetPath)!;
-            string tmp = Path.Combine(dir, Path.GetFileName(targetPath) + ".tmp");
-            File.WriteAllText(tmp, json);
+            // Back up the previous contents outside the mod folder before overwriting.
             if (File.Exists(targetPath))
-                File.Replace(tmp, targetPath, targetPath + ".bak");
-            else
-                File.Move(tmp, targetPath);
+            {
+                try
+                {
+                    File.Copy(targetPath, Path.Combine(BackupDir, Path.GetFileName(targetPath) + ".bak"), true);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarn("Backup of {File} failed (continuing): {Error}", Path.GetFileName(targetPath), ex.Message);
+                }
+            }
+
+            // Stage in the temp dir (outside the mod folder) so a half-written file is never visible
+            // to Penumbra, then overwrite the target in place. File.Copy(overwrite: true) truncates
+            // and rewrites the existing file rather than replacing the directory entry.
+            string tmp = Path.Combine(Path.GetTempPath(), Path.GetFileName(targetPath) + ".tmp");
+            try
+            {
+                File.WriteAllText(tmp, json);
+                File.Copy(tmp, targetPath, true);
+            }
+            finally
+            {
+                try { File.Delete(tmp); } catch { }
+            }
+        }
+
+        private static bool _strayBackupsMigrated;
+
+        // Older builds wrote .bak/.tmp files directly into the Penumbra mod folder — hundreds of them
+        // accumulated, because every renumbering minted a new .bak name. Move (never delete) them out
+        // to the backup dir: it declutters the directory Penumbra scans while keeping every backup
+        // available to the Repair button, which searches both locations.
+        internal static void MigrateStrayBackupsOnce()
+        {
+            if (_strayBackupsMigrated) return;
+            if (Settings.PenumbraLocation == null || Settings.ModName == null) return;
+
+            string modDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
+            if (!Directory.Exists(modDirectory)) return;
+
+            _strayBackupsMigrated = true;
+            int moved = 0;
+            try
+            {
+                string backupDir = BackupDir;
+                foreach (var file in Directory.EnumerateFiles(modDirectory, "group_*.json.*").ToList())
+                {
+                    string ext = Path.GetExtension(file);
+                    bool isBak = ext.Equals(".bak", StringComparison.OrdinalIgnoreCase);
+                    bool isTmp = ext.Equals(".tmp", StringComparison.OrdinalIgnoreCase);
+                    if (!isBak && !isTmp) continue;
+
+                    try
+                    {
+                        // A stale .tmp is a half-written file from an interrupted save — no value.
+                        if (isTmp) { File.Delete(file); moved++; continue; }
+
+                        string dest = Path.Combine(backupDir, Path.GetFileName(file));
+                        File.Move(file, dest, overwrite: true);
+                        moved++;
+                    }
+                    catch { /* locked or already gone; skip */ }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarn("Stray-backup migration failed (harmless): {Error}", ex.Message);
+                return;
+            }
+
+            if (moved > 0)
+                Logger.LogInfo("Moved {Count} stray .bak/.tmp file(s) out of the mod folder into {Dir}.",
+                    moved, BackupDir);
         }
 
         public void Delete()
@@ -869,12 +999,50 @@ namespace Pickles_Playlist_Editor
             return true;
         }
 
+        // Penumbra renumbers and rewrites every group_NNN_*.json in the mod folder when it reloads.
+        // Firing a reload after each individual Save() meant a burst of edits (e.g. dragging songs
+        // one by one) had Penumbra rewriting the whole folder every couple of seconds, racing our
+        // own reads and writes. Debounce instead: each change restarts a 20s countdown, so Penumbra
+        // is only asked to reload once the user has actually stopped editing.
+        private const int PenumbraReloadDebounceMs = 20_000;
+        private static readonly object s_reloadLock = new();
+        private static Timer? s_reloadTimer;
+
         internal static void RefreshPenumbraMod()
+        {
+            if (!Settings.AutoReloadMod)
+                return;
+
+            lock (s_reloadLock)
+            {
+                s_reloadTimer ??= new Timer(_ => FirePenumbraReload(), null, Timeout.Infinite, Timeout.Infinite);
+                // Restart the countdown — only the last change in a burst triggers the reload.
+                s_reloadTimer.Change(PenumbraReloadDebounceMs, Timeout.Infinite);
+            }
+        }
+
+        // Fire any reload still waiting out its debounce, right now. Call on shutdown so a pending
+        // reload isn't dropped when the app closes seconds after the last edit.
+        internal static void FlushPenumbraMod()
+        {
+            lock (s_reloadLock)
+            {
+                if (s_reloadTimer == null)
+                    return;
+                s_reloadTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            }
+            FirePenumbraReload();
+        }
+
+        private static void FirePenumbraReload()
         {
             try
             {
                 if (Settings.AutoReloadMod)
+                {
+                    Logger.LogInfo("Penumbra: reloading mod '{Mod}' (debounced).", Settings.ModName);
                     PenumbraApi.ReloadMod(Settings.ModName, Settings.ModName);
+                }
             }
             catch
             {

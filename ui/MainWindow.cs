@@ -72,6 +72,8 @@ namespace Pickles_Playlist_Editor
             {
                 var size = this.AppWindow.Size;
                 Settings.WindowSize = (size.Width, size.Height);
+                // Don't let a debounced Penumbra reload get dropped by closing mid-countdown.
+                Playlist.FlushPenumbraMod();
             };
         }
 
@@ -428,7 +430,17 @@ namespace Pickles_Playlist_Editor
 
             var oldName = currentName;
             song.Name = newName;
-            playlist.Save();
+            try
+            {
+                playlist.Save();
+            }
+            catch (Exception ex)
+            {
+                // Put the in-memory name back so the model doesn't drift from what's on disk.
+                song.Name = oldName;
+                await ShowDialogAsync(AppStrings.Dlg_Error, FormatExceptionMessage(ex));
+                return;
+            }
             var renamedSong = IsFilterActive ? null : RenameSongNode(playlist, oldName, newName);
             if (renamedSong == null)
             {
@@ -561,72 +573,58 @@ namespace Pickles_Playlist_Editor
             // The dialog adds the new playlist's node itself (AddCreatedPlaylist) after Create finishes.
         }
 
-        private void ShuffleButton_Click(object sender, RoutedEventArgs e)
+        // Shuffle/Sort surface their own error dialog and then rethrow. These are void event
+        // handlers, so an escaping exception is an unhandled crash — swallow it here (already
+        // reported, and nothing was written) and reload so the in-memory order can't drift from
+        // what's actually on disk.
+        private void RunPlaylistReorder(Action<Playlist> reorder)
         {
-            foreach (var item in PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>())
+            foreach (var item in PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>().ToList())
             {
-                if (item.Level == 1 && Playlists.TryGetValue(item.Name, out var pl))
+                if (item.Level != 1 || !Playlists.TryGetValue(item.Name, out var pl)) continue;
+                try
                 {
-                    pl.Shuffle();
+                    reorder(pl);
                     SyncPlaylistNode(pl);
                 }
+                catch (Exception ex)
+                {
+                    Utils.Logger.LogError("Reorder of '{Name}' failed: {Error}", pl.Name, ex);
+                    Playlists = Playlist.GetAll();
+                    LoadPlaylists();
+                    return;
+                }
             }
+        }
+
+        private void ShuffleButton_Click(object sender, RoutedEventArgs e)
+        {
+            RunPlaylistReorder(pl => pl.Shuffle());
         }
 
         private SortDirection _currentSortDirection = SortDirection.Ascending;
 
         private void SortByBPM_Click(object sender, RoutedEventArgs e)
         {
-            foreach (var item in PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>())
-            {
-                if (item.Level == 1 && Playlists.TryGetValue(item.Name, out var pl))
-                {
-                    if (_currentSortDirection == SortDirection.Ascending)
-                    {
-                        pl.Sort(SortDirection.Descending);
-                        _currentSortDirection = SortDirection.Descending;
-                    }
-                    else
-                    {
-                        pl.Sort(SortDirection.Ascending);
-                        _currentSortDirection = SortDirection.Ascending;
-                    }
-                    SyncPlaylistNode(pl);
-                }
-            }
+            var direction = _currentSortDirection == SortDirection.Ascending
+                ? SortDirection.Descending
+                : SortDirection.Ascending;
+            RunPlaylistReorder(pl => pl.Sort(direction));
+            _currentSortDirection = direction;
         }
 
         private void SortByName_Click(object sender, RoutedEventArgs e)
         {
-            foreach (var item in PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>())
-            {
-                if (item.Level == 1 && Playlists.TryGetValue(item.Name, out var pl))
-                {
-                    pl.SortByName();
-                    SyncPlaylistNode(pl);
-                }
-            }
+            RunPlaylistReorder(pl => pl.SortByName());
         }
 
         private void SortByKey_Click(object sender, RoutedEventArgs e)
         {
-            foreach (var item in PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>())
-            {
-                if (item.Level == 1 && Playlists.TryGetValue(item.Name, out var pl))
-                {
-                    if (_currentSortDirection == SortDirection.Ascending)
-                    {
-                        pl.SortByKey(SortDirection.Descending);
-                        _currentSortDirection = SortDirection.Descending;
-                    }
-                    else
-                    {
-                        pl.SortByKey(SortDirection.Ascending);
-                        _currentSortDirection = SortDirection.Ascending;
-                    }
-                    SyncPlaylistNode(pl);
-                }
-            }
+            var direction = _currentSortDirection == SortDirection.Ascending
+                ? SortDirection.Descending
+                : SortDirection.Ascending;
+            RunPlaylistReorder(pl => pl.SortByKey(direction));
+            _currentSortDirection = direction;
         }
 
         private void ShowOperationSummary(string title, int successCount, int totalCount, System.Collections.Generic.List<string> errors)

@@ -156,7 +156,13 @@ namespace Pickles_Playlist_Editor
                     finally { SetProgressBarPercent((int)((processed + errors.Count) / (double)targetSongs.Count * 100)); }
                 }
                 foreach (var playlist in touchedPlaylists)
-                    playlist.Save();
+                {
+                    // One unsaveable playlist must not abort the whole batch (or escape this
+                    // Task.Run into an async void handler and kill the app) — report it and
+                    // carry on with the rest.
+                    try { playlist.Save(); }
+                    catch (Exception ex) { errors.Add($"{playlist.Name}: {ex.Message}"); }
+                }
             });
             SetProgressBarPercent(100);
             // Song names changed (stats baked in) — refresh only the touched playlists' songs.

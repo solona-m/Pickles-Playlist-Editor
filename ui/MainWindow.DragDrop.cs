@@ -168,30 +168,71 @@ namespace Pickles_Playlist_Editor
                     return;
                 }
 
-                oldPlaylist.Options.Remove(song);
-                oldPlaylist.Save();
+                // Cross-playlist move. This is ordered so that no single failure can make a song
+                // disappear. Previously it removed the song from the source and saved that FIRST,
+                // then saved the target — and because Save() silently no-opped when the target's
+                // group JSON couldn't be resolved, songs were erased from the source, never written
+                // to the target, and their .scd moved anyway. 25 songs were lost that way.
+                //
+                // Now: pre-flight both playlists, do the ADDITIVE half first, and only then the
+                // DESTRUCTIVE half. Worst case on a mid-way failure is a duplicate, never a loss.
+                if (!targetPlaylist.HasGroupJson())
+                    throw new PlaylistSaveException(targetPlaylist.Name);
+                if (!oldPlaylist.HasGroupJson())
+                    throw new PlaylistSaveException(oldPlaylist.Name);
 
-                string oldPath = Playlist.NormalizeRelativeModPath(Playlist.GetScdPath(song));
-                string oldDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, Path.GetDirectoryName(oldPath) ?? string.Empty);
-                string oldSongFile = Path.GetFileName(oldPath);
+                string oldRel = Playlist.NormalizeRelativeModPath(Playlist.GetScdPath(song));
+                string oldFullPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, oldRel);
+                string oldSongFile = Path.GetFileName(oldRel);
                 string targetScdDirectory = targetPlaylist.GetScdDirectoryForNewFiles();
                 string newDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetScdDirectory);
                 Directory.CreateDirectory(newDir);
                 string newPath = Playlist.GetNonCollidingPath(Path.Combine(newDir, oldSongFile));
 
                 var scdKey = Playlist.GetScdKey(song) ?? Settings.BaselineScdKey;
-                song.Files[scdKey] = Path.Combine(targetScdDirectory, Path.GetFileName(newPath));
+                string previousStoredPath = song.Files[scdKey];
 
-                targetPlaylist.Options.Insert(Math.Min(insertIndex, targetPlaylist.Options.Count), song);
-                targetPlaylist.Save();
-
-                string oldFullPath = Path.Combine(oldDir, oldSongFile);
+                // Physical move first: if it throws, nothing has been mutated yet.
                 File.Move(oldFullPath, newPath);
                 // BPM/key/duration caches are keyed by full file path, so the move orphans this
                 // song's entries. Migrate them (as Cleanup()/Rename() do) or the moved song reads
                 // as 0:00 and the target playlist's displayed duration comes up short.
                 Utils.BPMDetector.UpdateCacheForSCD(oldFullPath, newPath);
                 Utils.KeyDetector.UpdateCacheForSCD(oldFullPath, newPath);
+                song.Files[scdKey] = Path.Combine(targetScdDirectory, Path.GetFileName(newPath));
+
+                int targetIndex = Math.Min(insertIndex, targetPlaylist.Options.Count);
+                targetPlaylist.Options.Insert(targetIndex, song);
+                try
+                {
+                    targetPlaylist.Save();
+                }
+                catch
+                {
+                    // Target write failed. Undo everything — the song is still in the source
+                    // playlist because we haven't touched it yet, so this leaves the user exactly
+                    // where they started rather than one song poorer.
+                    targetPlaylist.Options.RemoveAt(targetIndex);
+                    try
+                    {
+                        File.Move(newPath, oldFullPath);
+                        Utils.BPMDetector.UpdateCacheForSCD(newPath, oldFullPath);
+                        Utils.KeyDetector.UpdateCacheForSCD(newPath, oldFullPath);
+                    }
+                    catch (Exception moveBack)
+                    {
+                        Utils.Logger.LogError("Move rollback: could not restore '{File}' to '{Dest}': {Error}",
+                            newPath, oldFullPath, moveBack);
+                    }
+                    song.Files[scdKey] = previousStoredPath;
+                    throw;
+                }
+
+                // Destructive half last. The song is already committed to the target, so if this
+                // throws the song exists in both playlists — recoverable, unlike losing it.
+                oldPlaylist.Options.Remove(song);
+                oldPlaylist.Save();
+
                 _playlistExpandedStates[targetPlaylist.Name] = true;
                 // Repopulate both affected playlists after WinUI's post-drag cleanup, and reveal the
                 // moved song by expanding the target.
