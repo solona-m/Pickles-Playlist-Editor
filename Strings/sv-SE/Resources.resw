@@ -128,8 +128,20 @@
   <data name="ConvertToStereoButton.Content" xml:space="preserve"><value>Konvertera till stereo</value></data>
   <data name="Prog_ConvertingToStereo" xml:space="preserve"><value>Konverterar till stereo...</value></data>
   <data name="Dlg_RepairLibrary_Title" xml:space="preserve"><value>Varning</value></data>
-  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Detta försöker återställa saknade spellistor från säkerhetskopior. Använd med försiktighet. Vill du fortsätta?</value></data>
+  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Detta kommer att:
+
+- Återställa Penumbras modfil från den senaste säkerhetskopian, om den är skadad eller saknas.
+- Byta tillbaka namnet på låtfiler som fått ändelsen ”_1” till deras ursprungliga namn.
+- TA BORT låtar vars ljudfil inte längre finns på disken.
+
+De två sista ändrar ditt bibliotek, och borttagning av låtar kan inte ångras härifrån. Vill du fortsätta?</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Målspellista:</value></data>
+  <data name="Dlg_LegacyFormat_Title" xml:space="preserve"><value>Gammalt Penumbra-modformat</value></data>
+  <data name="Dlg_LegacyFormat_Content" xml:space="preserve"><value>Modmappen ”{0}” använder fortfarande Penumbras gamla modformat, så inga spellistor kunde läsas in.
+
+Penumbra konverterar mods till det nya formatet automatiskt. Uppdatera Penumbra vid behov, läs in den här modden där en gång och öppna sedan appen igen.
+
+Ingenting har ändrats på disken.</value></data>
   <data name="LanguageLabel.Text" xml:space="preserve"><value>Språk</value></data>
   <data name="LanguageItem_System.Content" xml:space="preserve"><value>Systemstandard</value></data>
   <data name="Dlg_RestartRequired_Title" xml:space="preserve"><value>Omstart krävs</value></data>

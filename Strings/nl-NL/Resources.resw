@@ -128,8 +128,20 @@
   <data name="ConvertToStereoButton.Content" xml:space="preserve"><value>Converteren naar stereo</value></data>
   <data name="Prog_ConvertingToStereo" xml:space="preserve"><value>Converteren naar stereo...</value></data>
   <data name="Dlg_RepairLibrary_Title" xml:space="preserve"><value>Waarschuwing</value></data>
-  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Dit probeert ontbrekende afspeellijsten te herstellen vanuit back-ups. Gebruik met voorzichtigheid. Wil je doorgaan?</value></data>
+  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Dit doet het volgende:
+
+- Het modbestand van Penumbra herstellen vanuit de meest recente back-up, als het beschadigd is of ontbreekt.
+- Nummerbestanden die een "_1"-achtervoegsel hebben gekregen weer hun oorspronkelijke naam geven.
+- Nummers VERWIJDEREN waarvan het audiobestand niet meer op de schijf staat.
+
+De laatste twee wijzigen je bibliotheek, en het verwijderen van nummers kan hier niet ongedaan worden gemaakt. Wil je doorgaan?</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Doelplaylist:</value></data>
+  <data name="Dlg_LegacyFormat_Title" xml:space="preserve"><value>Oud Penumbra-modformaat</value></data>
+  <data name="Dlg_LegacyFormat_Content" xml:space="preserve"><value>De modmap "{0}" gebruikt nog het oude modformaat van Penumbra, dus er konden geen afspeellijsten worden geladen.
+
+Penumbra zet mods automatisch om naar het nieuwe formaat. Werk Penumbra zo nodig bij, laad deze mod er één keer in en open daarna deze app opnieuw.
+
+Er is niets op de schijf gewijzigd.</value></data>
   <data name="LanguageLabel.Text" xml:space="preserve"><value>Taal</value></data>
   <data name="LanguageItem_System.Content" xml:space="preserve"><value>Systeemstandaard</value></data>
   <data name="Dlg_RestartRequired_Title" xml:space="preserve"><value>Opnieuw opstarten vereist</value></data>

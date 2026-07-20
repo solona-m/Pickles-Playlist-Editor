@@ -1,4 +1,4 @@
-using Newtonsoft.Json.Linq;
+using Pickles_Playlist_Editor.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,9 +11,6 @@ namespace Pickles_Playlist_Editor
 {
     public static partial class Library
     {
-        private static readonly Regex GroupJsonPattern = new(@"^group_(\d+)_(.+)\.json$", RegexOptions.IgnoreCase);
-        private static readonly Regex GroupBakPattern  = new(@"^group_\d+_(.+)\.json\.bak$", RegexOptions.IgnoreCase);
-
         public static void Cleanup()
         {
             var failed = new List<string>();
@@ -24,8 +21,8 @@ namespace Pickles_Playlist_Editor
                 try { playlist.Cleanup(); }
                 catch (Exception ex)
                 {
-                    failed.Add(playlist.Name);
                     Utils.Logger.LogError("Cleanup skipped '{Name}': {Error}", playlist.Name, ex);
+                    failed.Add(playlist.Name);
                 }
             }
             if (failed.Count > 0)
@@ -116,6 +113,11 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        // In Penumbra's v4 format the whole library lives in one meta.json, so most of the old repair
+        // passes are gone along with the thing they repaired: there are no group_NNN_*.json filenames
+        // left to renumber, to drift out of sync with their contents, or to strand as .reorder_tmp
+        // sidecars. What remains is the damage that is still possible - a broken manifest, playlists
+        // pointing at renamed audio, and playlists pointing at audio that is gone.
         private static List<string> RepairCore()
         {
             var log = new List<string>();
@@ -127,226 +129,116 @@ namespace Pickles_Playlist_Editor
                 return log;
             }
 
-            log.AddRange(FixNameMismatches(base_));
+            // 1. meta.json is the whole library now, so a broken one is the catastrophic case. Check
+            //    it before touching anything else.
+            log.AddRange(VerifyOrRestoreManifest());
+
+            // 2. Repoint playlists at .scd files whose names drifted.
             log.AddRange(StripRedundantScdSuffixes(base_));
 
-            // Find existing group JSON files
-            var existing = Directory.GetFiles(base_, "group_*.json")
-                .Select(Path.GetFileName)
-                .Where(f => GroupJsonPattern.IsMatch(f))
-                .ToList();
+            // 3. Drop songs whose audio no longer exists on disk.
+            log.AddRange(DropMissingSongs(base_));
 
-            var nums = existing
-                .Select(f => int.Parse(GroupJsonPattern.Match(f).Groups[1].Value))
-                .ToList();
-
-            var existingNames = existing
-                .Select(f => GroupJsonPattern.Match(f).Groups[2].Value.ToLowerInvariant())
-                .ToHashSet();
-
-            int nextNum = nums.Count > 0 ? nums.Max() + 1 : 1;
-            log.Add($"Highest existing group JSON: {nums.Max():D3}, starting at {nextNum:D3}");
-
-            // Get all bak files. New backups are written outside the mod folder (Penumbra scans that
-            // directory, and a File.Replace there was renumbering the groups), but older builds left
-            // them beside the group JSONs — scan both so a repair can still reach legacy backups.
-            var baks = new[] { base_, Playlist.BackupDir }
-                .Where(Directory.Exists)
-                .SelectMany(d => Directory.GetFiles(d, "group_*.json.bak"))
-                .Where(p => GroupBakPattern.IsMatch(Path.GetFileName(p)))
-                .OrderBy(Path.GetFileName)
-                .ToList();
-
-            log.Add($"Found {baks.Count} .bak files\n");
-
-            var copied = new List<string>();
-            foreach (var bakPath in baks)
-            {
-                string bak = Path.GetFileName(bakPath);
-
-                JObject data = TryLoadJson(bakPath);
-                if (data == null)
-                {
-                    log.Add($"SKIP (parse error): {bak}");
-                    continue;
-                }
-
-                string playlistName = GroupBakPattern.Match(bak).Groups[1].Value;
-                if (existingNames.Contains(playlistName.ToLowerInvariant()))
-                {
-                    log.Add($"SKIP (exists):    {bak}");
-                    continue;
-                }
-
-                if (data["Options"] is not JArray options)
-                {
-                    log.Add($"SKIP (no songs):  {bak}");
-                    continue;
-                }
-
-                // Remove options whose song file is missing
-                int omitted = 0;
-                foreach (var opt in options.OfType<JObject>().ToList())
-                {
-                    if (opt["Files"] is not JObject files) continue;
-                    var songProp = files.Properties().FirstOrDefault(p => p.Name.Contains("bpmloop.scd"));
-                    if (songProp == null) continue;
-                    string songPath = songProp.Value.ToString().Replace('\\', '/');
-                    if (!File.Exists(Path.Combine(base_, songPath)))
-                    {
-                        opt.Remove();
-                        omitted++;
-                    }
-                }
-
-                int songCount = options.OfType<JObject>()
-                    .Count(o => (o["Files"] as JObject)?.Properties()
-                        .Any(p => p.Name.Contains("bpmloop.scd")) == true);
-
-                if (songCount == 0)
-                {
-                    log.Add($"SKIP (no songs):  {bak}");
-                    continue;
-                }
-
-                string newName = $"group_{nextNum:D3}_{playlistName}.json";
-                File.WriteAllText(Path.Combine(base_, newName), data.ToString(), System.Text.Encoding.UTF8);
-                string omittedNote = omitted > 0 ? $", {omitted} omitted" : "";
-                log.Add($"COPIED ({songCount,3} songs{omittedNote}): {bak} -> {newName}");
-                copied.Add(newName);
-                nextNum++;
-            }
-            Pickles_Playlist_Editor.Playlist.RefreshPenumbraMod();
-            log.Add($"\nDone. {copied.Count} files copied.");
+            PenumbraMeta.CleanLegacyFiles();
+            Playlist.RefreshPenumbraMod();
+            log.Add("\nDone.");
             return log;
         }
 
-        private static bool _nameMismatchHealAttempted;
-
-        // Auto-heals filename/content name mismatches once per session, the first time the library is
-        // loaded against a real mod directory. Only the safe rename pass runs here — never the .bak
-        // restore, which stays behind the manual "Repair Library" button. Idempotent: a healthy
-        // library moves nothing. Failures never block loading.
-        internal static void HealNameMismatchesOnce()
+        // meta.json holds every playlist now. If it is unreadable or has lost its Groups array, the
+        // library is gone - fall back to the newest pre-write snapshot that still has groups in it.
+        private static List<string> VerifyOrRestoreManifest()
         {
-            if (_nameMismatchHealAttempted)
-                return;
-            if (Settings.PenumbraLocation == null || Settings.ModName == null)
-                return;
-            string base_ = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
-            if (!Directory.Exists(base_))
-                return;
+            var log = new List<string>();
 
-            // Only mark done once we actually have a directory to heal, so a session that starts
-            // before Penumbra is configured still heals after the user sets it up.
-            _nameMismatchHealAttempted = true;
+            var groups = PenumbraMeta.TryReadGroups();
+            if (groups != null && groups.Count > 0)
+            {
+                log.Add($"meta.json OK: {groups.Count} playlist(s).\n");
+                return log;
+            }
+
+            log.Add(groups == null
+                ? "PROBLEM: meta.json is missing, unreadable, or has no Groups array."
+                : "PROBLEM: meta.json parses but contains no playlists.");
+
+            string snapshot = PenumbraMeta.NewestUsableSnapshot();
+            if (snapshot == null)
+            {
+                log.Add("No usable backup found - nothing to restore from.\n");
+                return log;
+            }
+
             try
             {
-                foreach (var line in ReclaimReorderTempFiles(base_).Concat(FixNameMismatches(base_)))
-                {
-                    if (line.StartsWith("RENAMED") || line.StartsWith("WARNING") || line.StartsWith("RECLAIMED"))
-                        Utils.Logger.LogInfo("Auto-heal: {Line}", line);
-                }
+                // Snapshot the broken file first: if restoring turns out to be the wrong call, the
+                // current state is still recoverable.
+                PenumbraMeta.TrySnapshot();
+                PenumbraMeta.AtomicWrite(PenumbraMeta.MetaPath,
+                    File.ReadAllText(snapshot, System.Text.Encoding.UTF8));
+                int restored = PenumbraMeta.TryReadGroups()?.Count ?? 0;
+                log.Add($"RESTORED meta.json from {Path.GetFileName(snapshot)} ({restored} playlist(s)).\n");
             }
             catch (Exception ex)
             {
-                Utils.Logger.LogError("Auto-heal failed: {Error}", ex);
+                log.Add($"ERROR: restore from {Path.GetFileName(snapshot)} failed: {ex.Message}\n");
             }
+
+            return log;
         }
 
-        // Recovers playlists stranded by a ReorderAll that crashed mid-run before its crash-safety
-        // was added: their JSON was renamed to "group_NNN_Name.json.reorder_tmp" and left there,
-        // which GetAll()'s "group_*.json" glob never matches — so the playlist silently disappears.
-        // Rename each such leftover back to its real name (unless a live file already claims it).
-        private static List<string> ReclaimReorderTempFiles(string base_)
+        // Removes options whose referenced audio file is gone. These are dead entries: selecting one
+        // in Penumbra silently does nothing.
+        private static List<string> DropMissingSongs(string base_)
         {
             var log = new List<string>();
-            foreach (var path in Directory.GetFiles(base_, "group_*.json.reorder_tmp"))
+            int removed = 0, touched = 0;
+
+            foreach (var playlist in Playlist.GetAll().Values)
             {
-                string restored = path.Substring(0, path.Length - ".reorder_tmp".Length);
-                if (File.Exists(restored))
-                    continue; // a current file already owns this name — leave the orphan for manual review
+                if (playlist.Options == null) continue;
+
+                var dead = playlist.Options
+                    .Where(o => o?.Files != null && o.Files.Count > 0)
+                    .Where(o =>
+                    {
+                        string rel = Playlist.GetScdPath(o);
+                        if (string.IsNullOrEmpty(rel)) return false;
+                        return !File.Exists(Path.Combine(base_, Playlist.NormalizeRelativeModPath(rel)));
+                    })
+                    .ToList();
+
+                if (dead.Count == 0) continue;
+
+                foreach (var o in dead)
+                {
+                    playlist.Options.Remove(o);
+                    log.Add($"REMOVED (audio missing): {playlist.Name} / {o.Name}");
+                }
+
                 try
                 {
-                    File.Move(path, restored);
-                    log.Add($"RECLAIMED (reorder crash): {Path.GetFileName(path)} -> {Path.GetFileName(restored)}");
+                    playlist.Save();
+                    removed += dead.Count;
+                    touched++;
                 }
                 catch (Exception ex)
                 {
-                    log.Add($"WARNING (could not reclaim {Path.GetFileName(path)}): {ex.Message}");
+                    log.Add($"SKIPPED (could not save): {playlist.Name} - {ex.Message}");
                 }
             }
+
+            log.Add(removed > 0
+                ? $"Removed {removed} dead song entr(ies) across {touched} playlist(s).\n"
+                : "No dead song entries found.\n");
             return log;
         }
 
-        // Repairs the fallout of the old GetJsonFiles wildcard bug: because "group_*_<name>.json"
-        // also matched longer names ending in "_<name>", Save() could write one playlist's data into
-        // another playlist's file. That leaves files whose on-disk name no longer matches the "Name"
-        // stored inside them, so GetAll() (keyed by content Name) silently drops or merges playlists.
-        // This pass renames each such file so its filename matches its content again, which both makes
-        // the playlist visible and lets the now-exact GetJsonFiles find it. Duplicate names (the true
-        // symptom of an overwrite) are surfaced in the log so the .bak restore phase / the user can
-        // recover the clobbered playlist.
-        private static List<string> FixNameMismatches(string base_)
-        {
-            var log = new List<string>();
-
-            // Track every group_*.json filename so renames never collide with an existing file.
-            var used = new HashSet<string>(
-                Directory.GetFiles(base_, "group_*.json").Select(Path.GetFileName),
-                StringComparer.OrdinalIgnoreCase);
-
-            int renamed = 0;
-            foreach (var path in Directory.GetFiles(base_, "group_*.json").OrderBy(f => f))
-            {
-                string file = Path.GetFileName(path);
-                var m = GroupJsonPattern.Match(file);
-                if (!m.Success) continue;
-
-                JObject data = TryLoadJson(path);
-                string contentName = data?["Name"]?.ToString();
-                if (string.IsNullOrEmpty(contentName)) continue;
-
-                string cleanName = contentName.Replace("/", "_");
-                if (string.Equals(m.Groups[2].Value, cleanName, StringComparison.OrdinalIgnoreCase))
-                    continue; // filename already matches content — nothing to fix
-
-                // Find a free group number for the corrected filename. Bump the number (never a
-                // filename suffix) so the result still parses as group_<digits>_<name>.json.
-                int num = int.Parse(m.Groups[1].Value);
-                string target;
-                do
-                {
-                    target = $"group_{num:D3}_{cleanName}.json";
-                    num++;
-                } while (used.Contains(target));
-
-                File.Move(path, Path.Combine(base_, target));
-                used.Remove(file);
-                used.Add(target);
-                log.Add($"RENAMED (name mismatch): {file} -> {target}");
-                renamed++;
-            }
-
-            // Warn about playlists that now have more than one file — the hallmark of an overwrite,
-            // where one file holds legitimate data and the other(s) are a clobbered copy.
-            var dupes = used
-                .Select(f => GroupJsonPattern.Match(f))
-                .Where(mm => mm.Success)
-                .GroupBy(mm => mm.Groups[2].Value, StringComparer.OrdinalIgnoreCase)
-                .Where(g => g.Count() > 1);
-            foreach (var g in dupes)
-                log.Add($"WARNING (duplicate playlist '{g.Key}'): {string.Join(", ", g.Select(mm => mm.Value))}");
-
-            log.Add(renamed > 0 ? $"Fixed {renamed} name mismatch(es).\n" : "No name mismatches found.\n");
-            return log;
-        }
-
-        // Reverses the leftover "_1" (or "_2", …) suffixes the old same-playlist song-reorder bug
+        // Reverses the leftover "_1" (or "_2", ...) suffixes the old same-playlist song-reorder bug
         // appended to .scd filenames (Creep.scd -> Creep_1.scd) via GetNonCollidingPath. That bug
         // renamed base -> base_1, so the base name is now free and we can safely rename each file
-        // back and repoint the playlist JSON at it. Only strips when the shorter name is actually
-        // free on disk, so distinct files never collide and genuinely-suffixed names are left alone.
+        // back and repoint the playlist at it. Only strips when the shorter name is actually free on
+        // disk, so distinct files never collide and genuinely-suffixed names are left alone.
         private static List<string> StripRedundantScdSuffixes(string base_)
         {
             var log = new List<string>();
@@ -381,7 +273,7 @@ namespace Pickles_Playlist_Editor
                             string candidateFull = Path.Combine(base_, Playlist.NormalizeRelativeModPath(candidateRel));
 
                             if (!File.Exists(currentFull)) break;   // referenced file missing
-                            if (File.Exists(candidateFull)) break;  // shorter name taken — keep suffix
+                            if (File.Exists(candidateFull)) break;  // shorter name taken - keep suffix
 
                             try { File.Move(currentFull, candidateFull); }
                             catch (Exception ex)
@@ -407,8 +299,8 @@ namespace Pickles_Playlist_Editor
 
                 if (changed)
                 {
-                    // A playlist whose group JSON can't be resolved must not abort the whole heal
-                    // pass — this runs on the load path, so throwing here would break startup.
+                    // A playlist whose group can't be resolved must not abort the whole heal pass -
+                    // this runs on the load path, so throwing here would break startup.
                     try
                     {
                         playlist.Save();
@@ -416,7 +308,7 @@ namespace Pickles_Playlist_Editor
                     }
                     catch (Exception ex)
                     {
-                        log.Add($"SKIPPED (could not save): {playlist.Name} — {ex.Message}");
+                        log.Add($"SKIPPED (could not save): {playlist.Name} - {ex.Message}");
                     }
                 }
             }
@@ -425,20 +317,6 @@ namespace Pickles_Playlist_Editor
                 ? $"Removed {renamed} redundant _N suffix(es) across {playlistsTouched} playlist(s).\n"
                 : "No redundant _N .scd suffixes found.\n");
             return log;
-        }
-
-        private static JObject TryLoadJson(string path)
-        {
-            foreach (var enc in new[] { System.Text.Encoding.UTF8, System.Text.Encoding.Default })
-            {
-                try
-                {
-                    string text = File.ReadAllText(path, enc);
-                    return JObject.Parse(text);
-                }
-                catch { }
-            }
-            return null;
         }
     }
 }

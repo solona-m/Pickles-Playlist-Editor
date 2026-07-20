@@ -129,7 +129,19 @@
   <data name="ConvertToStereoButton.Content" xml:space="preserve"><value>转换为立体声</value></data>
   <data name="Prog_ConvertingToStereo" xml:space="preserve"><value>正在转换为立体声…</value></data>
   <data name="Dlg_RepairLibrary_Title" xml:space="preserve"><value>警告</value></data>
-  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>这将尽力从备份中恢复丢失的播放列表。请谨慎使用。是否继续？</value></data>
+  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>此操作将：
+
+- 如果 Penumbra 的模组文件已损坏或丢失，则从最新备份中恢复该文件。
+- 将带有“_1”后缀的歌曲文件重命名回原始名称。
+- 删除音频文件已不在磁盘上的歌曲。
+
+后两项会更改你的音乐库，且删除歌曲的操作无法在此撤销。是否继续？</value></data>
+  <data name="Dlg_LegacyFormat_Title" xml:space="preserve"><value>旧版 Penumbra 模组格式</value></data>
+  <data name="Dlg_LegacyFormat_Content" xml:space="preserve"><value>模组文件夹“{0}”仍在使用 Penumbra 的旧版模组格式，因此无法加载任何播放列表。
+
+Penumbra 会自动将模组转换为新格式。如有需要请更新 Penumbra，在其中加载一次此模组，然后重新打开本应用。
+
+磁盘上的内容未做任何更改。</value></data>
   <data name="LanguageLabel.Text" xml:space="preserve"><value>语言</value></data>
   <data name="LanguageItem_System.Content" xml:space="preserve"><value>跟随系统</value></data>
   <data name="Dlg_RestartRequired_Title" xml:space="preserve"><value>需要重启</value></data>

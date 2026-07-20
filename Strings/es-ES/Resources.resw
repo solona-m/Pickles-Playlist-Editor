@@ -128,8 +128,20 @@
   <data name="ConvertToStereoButton.Content" xml:space="preserve"><value>Convertir a estéreo</value></data>
   <data name="Prog_ConvertingToStereo" xml:space="preserve"><value>Convirtiendo a estéreo...</value></data>
   <data name="Dlg_RepairLibrary_Title" xml:space="preserve"><value>Advertencia</value></data>
-  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Esto intentará restaurar las listas de reproducción faltantes desde las copias de seguridad. Úsalo con precaución. ¿Deseas continuar?</value></data>
+  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Esto hará lo siguiente:
+
+- Restaurar el archivo de mod de Penumbra desde la copia de seguridad más reciente, si está dañado o falta.
+- Cambiar el nombre de los archivos de canciones que hayan adquirido el sufijo «_1» a sus nombres originales.
+- ELIMINAR las canciones cuyo archivo de audio ya no exista en el disco.
+
+Las dos últimas acciones modifican tu biblioteca, y la eliminación de canciones no se puede deshacer desde aquí. ¿Deseas continuar?</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Lista de reproducción de destino:</value></data>
+  <data name="Dlg_LegacyFormat_Title" xml:space="preserve"><value>Formato de mod de Penumbra antiguo</value></data>
+  <data name="Dlg_LegacyFormat_Content" xml:space="preserve"><value>La carpeta del mod «{0}» todavía usa el formato de mod antiguo de Penumbra, por lo que no se pudo cargar ninguna lista de reproducción.
+
+Penumbra convierte los mods al nuevo formato automáticamente. Actualiza Penumbra si es necesario, carga este mod en él una vez y vuelve a abrir esta aplicación.
+
+No se ha modificado nada en el disco.</value></data>
   <data name="LanguageLabel.Text" xml:space="preserve"><value>Idioma</value></data>
   <data name="LanguageItem_System.Content" xml:space="preserve"><value>Predeterminado del sistema</value></data>
   <data name="Dlg_RestartRequired_Title" xml:space="preserve"><value>Reinicio necesario</value></data>

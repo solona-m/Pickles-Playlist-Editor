@@ -171,14 +171,14 @@ namespace Pickles_Playlist_Editor
                 // Cross-playlist move. This is ordered so that no single failure can make a song
                 // disappear. Previously it removed the song from the source and saved that FIRST,
                 // then saved the target — and because Save() silently no-opped when the target's
-                // group JSON couldn't be resolved, songs were erased from the source, never written
+                // group couldn't be resolved, songs were erased from the source, never written
                 // to the target, and their .scd moved anyway. 25 songs were lost that way.
                 //
                 // Now: pre-flight both playlists, do the ADDITIVE half first, and only then the
                 // DESTRUCTIVE half. Worst case on a mid-way failure is a duplicate, never a loss.
-                if (!targetPlaylist.HasGroupJson())
+                if (!targetPlaylist.ExistsInManifest())
                     throw new PlaylistSaveException(targetPlaylist.Name);
-                if (!oldPlaylist.HasGroupJson())
+                if (!oldPlaylist.ExistsInManifest())
                     throw new PlaylistSaveException(oldPlaylist.Name);
 
                 string oldRel = Playlist.NormalizeRelativeModPath(Playlist.GetScdPath(song));
@@ -295,9 +295,9 @@ namespace Pickles_Playlist_Editor
 
                 // Rebuild the tree from disk: WinUI's TreeView leaves the dragged node's visual out of
                 // sync after a drag (it mishandles ObservableCollection.Move), so surgically moving
-                // nodes rendered wrong even though the model was correct. GetAll now orders by the
-                // group number ReorderAll just wrote, and expansion is restored from state, so a clean
-                // reload shows the right order reliably.
+                // nodes rendered wrong even though the model was correct. GetAll reads the Groups
+                // array in the order ReorderAll just wrote, and expansion is restored from state, so
+                // a clean reload shows the right order reliably.
                 _pendingTreeUpdate = () => LoadPlaylists();
             }
             catch (Exception ex)

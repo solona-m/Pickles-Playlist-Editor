@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Velopack;
 using Velopack.Sources;
@@ -49,6 +50,7 @@ namespace Pickles_Playlist_Editor
             try
             {
                 Playlists = Playlist.GetAll();
+                WarnOnceIfLegacyModFormat();
                 BackfillStatsFromCacheIfNeeded();
 
                 RootPlaylistItems.Clear();
@@ -396,6 +398,48 @@ namespace Pickles_Playlist_Editor
                 ClearProgressDisplay();
             }
         }
+
+        private static bool _legacyFormatWarningShown;
+
+        // An empty playlist tree is indistinguishable from a broken app, and the most likely cause
+        // right now is a mod folder Penumbra hasn't converted to its v4 format yet. Say so, once per
+        // session, instead of leaving the user staring at nothing.
+        //
+        // Temporary, for the v4 rollout — delete along with PenumbraMeta.IsLegacyModFormat.
+        private void WarnOnceIfLegacyModFormat()
+        {
+            if (_legacyFormatWarningShown || Playlists.Count > 0)
+                return;
+            if (!PenumbraMeta.IsLegacyModFormat())
+                return;
+
+            _legacyFormatWarningShown = true;
+
+            // Must not run inline: LoadPlaylists is called during window initialization, and pumping
+            // a blocking Win32 modal from inside that call stack re-enters the XAML dispatcher and
+            // kills the process (0xc000027b in Microsoft.UI.Xaml.dll). Post it instead, so it shows
+            // once the window is up and the current layout pass has finished.
+            _uiDispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+            {
+                try
+                {
+                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                    LegacyFormatMessageBox(hwnd,
+                        AppStrings.LegacyFormatMessage(Settings.ModName ?? string.Empty),
+                        AppStrings.Dlg_LegacyFormat_Title,
+                        0x00000030); // MB_ICONWARNING
+                }
+                catch (Exception ex)
+                {
+                    // The warning is a courtesy; never let it take the app down. The same message is
+                    // already in the log.
+                    Logger.LogWarn("Could not show the legacy-format warning: {Error}", ex.Message);
+                }
+            });
+        }
+
+        [DllImport("user32.dll", EntryPoint = "MessageBoxW", CharSet = CharSet.Unicode)]
+        private static extern int LegacyFormatMessageBox(IntPtr hWnd, string text, string caption, uint type);
 
         public void SetProgressBarText(string text)
         {

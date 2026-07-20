@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Pickles_Playlist_Editor.Utils;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,6 @@ using System.Text;
 using VfxEditor.ScdFormat;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Pickles_Playlist_Editor
@@ -18,39 +18,48 @@ namespace Pickles_Playlist_Editor
         Descending
     }
 
-    // Thrown when a playlist's group JSON cannot be located in the mod folder, so a write has
-    // nowhere to land. Callers should treat this as "the edit did not happen" and roll back.
+    // Thrown when a playlist's group cannot be located in Penumbra's manifest, so a write has nowhere
+    // to land. Callers should treat this as "the edit did not happen" and roll back.
     public class PlaylistSaveException : InvalidOperationException
     {
         public string PlaylistName { get; }
 
         public PlaylistSaveException(string playlistName)
-            : base($"Could not save playlist '{playlistName}': its group JSON is missing from the mod " +
-                   "folder. The change was not applied. (If Penumbra is running, it may have renamed or " +
-                   "rewritten the file — reload the mod list and try again.)")
+            : base($"Could not save playlist '{playlistName}': it is no longer in Penumbra's mod " +
+                   "manifest (meta.json). The change was not applied. (If Penumbra is running, it may " +
+                   "have rewritten the mod — reload the mod list and try again.)")
         {
             PlaylistName = playlistName;
         }
     }
 
+    /// <summary>
+    /// One Penumbra option group — for this app, one playlist of songs.
+    ///
+    /// In Penumbra's v4 format every group lives in the single root <c>meta.json</c>, identified by a
+    /// stable <c>Id</c> GUID rather than by a <c>group_NNN_name.json</c> filename. Display order is
+    /// the group's index in the manifest's <c>Groups</c> array.
+    ///
+    /// Because the whole library is now one file, this class never serializes itself wholesale: every
+    /// write goes through <see cref="PenumbraMeta.Mutate"/> and splices this one group into a
+    /// freshly-read manifest. See <see cref="Save"/>.
+    /// </summary>
     public class Playlist
     {
-        public int Version { get { return 0; } }
+        public Guid Id { get; set; }
         public string Name { get; set; }
-        public string Description { get { return string.Empty; } }
-        public string Image { get { return string.Empty; } }
-        public int Page { get { return 0; } }
-        public int Priority { get; set; }
-        public string Type { get { return "Single"; } }
-        public int DefaultSettings { get { return 0; } }
         public List<Option> Options { get; set; } = new List<Option>();
 
+        // The group object this playlist was read from. Kept so a save can clone it and preserve keys
+        // this app doesn't model — Description, Image, Page, DefaultSettings, Priority, and anything a
+        // future Penumbra adds. Null for a playlist that hasn't been persisted yet.
+        [JsonIgnore]
+        internal JObject Raw { get; set; }
+
+        [JsonIgnore]
+        public string Type => Raw?["Type"]?.ToString() ?? "Single";
+
         private bool? _isVFXGroup;
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
-
-        
 
         public static void Create(string playlistName, string dir, Action<int>? callback)
         {
@@ -58,70 +67,42 @@ namespace Pickles_Playlist_Editor
                 throw new ArgumentException("Playlist name cannot contain any of the following characters: "
                     + string.Join(" ", Path.GetInvalidFileNameChars()));
 
-            Playlist group = new Playlist();
-            group.Name = playlistName;
-            group.Options = new List<Option>();
-
-            Playlist mergedGroup = null;
-            var groupFileNames = GetJsonFiles(playlistName);
-            string fileName;
-            if (groupFileNames.Length == 1)
-            {
-                fileName = groupFileNames[0];
-                mergedGroup = JsonConvert.DeserializeObject<Playlist>(File.ReadAllText(fileName));
-            }
-            else
-            {
-                Option opt = new Option();
-                opt.Name = "Off";
-                opt.Files = new Dictionary<string, string>();
-                group.Options.Add(opt);
-                groupFileNames = Directory.GetFiles(Path.Combine(Settings.PenumbraLocation, Settings.ModName), "group_*");
-                List<string> groupfiles = new List<string>(groupFileNames);
-                groupfiles.Sort();
-                mergedGroup = group;
-
-                int groupNumber = 1;
-                if (groupfiles.Count > 0)
-                {
-                    string lastName = groupfiles[groupfiles.Count - 1];
-                    groupNumber = Int32.Parse(Path.GetFileNameWithoutExtension(lastName).Substring(6, 3)) + 1;
-                    mergedGroup.Priority = groupNumber;
-                }
-
-                fileName = string.Format("group_{0}_{1}.json", string.Format("{0:D3}", groupNumber), playlistName);
-            }
+            // Adding to an existing playlist of the same name must keep its Id (and its songs'), or
+            // Penumbra loses the user's current selection for it.
+            Playlist group = GetAll().TryGetValue(playlistName, out var existing)
+                ? existing
+                : NewPlaylist(playlistName);
 
             if (!string.IsNullOrEmpty(dir))
             {
                 int count = 0, totalCount = 0;
                 foreach (string ext in Settings.SupportedFileTypes)
-                {
-                    string[] fileNames = Directory.GetFiles(dir, "*" + ext, SearchOption.AllDirectories);
-                    totalCount += fileNames.Length;
-                }
+                    totalCount += Directory.GetFiles(dir, "*" + ext, SearchOption.AllDirectories).Length;
 
                 foreach (string ext in Settings.SupportedFileTypes)
                 {
-                    string[] fileNames = Directory.GetFiles(dir, "*"+ext, SearchOption.AllDirectories);
-
-                    foreach (string file in fileNames)
+                    foreach (string file in Directory.GetFiles(dir, "*" + ext, SearchOption.AllDirectories))
                     {
-                        AddFiles(playlistName, mergedGroup, file);
+                        AddFiles(playlistName, group, file);
                         if (callback != null)
                             callback((int)((float)(++count) / totalCount * 100));
                     }
                 }
             }
 
-            string json = JsonConvert.SerializeObject(mergedGroup, Formatting.Indented);
-
-
-            File.WriteAllText(Path.Combine(Settings.PenumbraLocation, Settings.ModName, fileName), json);
-            Directory.CreateDirectory(Path.Combine(Settings.PenumbraLocation, Settings.ModName, ResolvePlaylistScdDirectory(playlistName, mergedGroup)));
+            group.Upsert();
+            Directory.CreateDirectory(Path.Combine(Settings.PenumbraLocation, Settings.ModName,
+                ResolvePlaylistScdDirectory(playlistName, group)));
 
             // Notify Penumbra (if present) to refresh this mod because files/config changed.
             RefreshPenumbraMod();
+        }
+
+        private static Playlist NewPlaylist(string playlistName)
+        {
+            var group = new Playlist { Id = Guid.NewGuid(), Name = playlistName };
+            group.Options.Add(new Option { Id = Guid.NewGuid(), Name = "Off" });
+            return group;
         }
 
         static Option AddFiles(string playlistName, Playlist group, string file)
@@ -151,7 +132,6 @@ namespace Pickles_Playlist_Editor
                 }
                 opt = new Option();
                 opt.Name = filenameroot;
-                opt.Files = new Dictionary<string, string>();
                 opt.Files.Add(
                     Settings.BaselineScdKey,
                     Path.Combine(playlistScdDirectory, Path.GetFileName(targetPath)));
@@ -215,10 +195,10 @@ namespace Pickles_Playlist_Editor
             Playlist playlist = this;
 
             // Bail before renaming anything if the save can't land. Cleanup renames .scd files on
-            // disk and only then writes the JSON that points at the new names — if that write were
+            // disk and only then writes the manifest that points at the new names — if that write were
             // dropped, every song in this playlist would end up pointing at a file that no longer
             // exists under that name.
-            if (!HasGroupJson())
+            if (!ExistsInManifest())
                 throw new PlaylistSaveException(Name);
 
             string playlistScdDirectory = playlist.GetScdDirectoryForNewFiles();
@@ -232,7 +212,7 @@ namespace Pickles_Playlist_Editor
                 if (song.Name.Equals("Default", StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                if (song.Files != null)
+                if (song.Files != null && song.Files.Count > 0)
                 {
                     string oldPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, song.Files[song.Files.Keys.First()]);
                     if (!File.Exists(oldPath))
@@ -333,6 +313,27 @@ namespace Pickles_Playlist_Editor
             return fileName;
         }
 
+        /// <summary>Builds a playlist from a v4 manifest group object.</summary>
+        internal static Playlist FromJson(JObject g)
+        {
+            var playlist = new Playlist
+            {
+                Name = g["Name"]?.ToString() ?? string.Empty,
+                Raw = g,
+            };
+
+            if (Guid.TryParse(g["Id"]?.ToString(), out var id))
+                playlist.Id = id;
+
+            if (g["Options"] is JArray options)
+            {
+                foreach (var o in options.OfType<JObject>())
+                    playlist.Options.Add(Option.FromJson(o));
+            }
+
+            return playlist;
+        }
+
         public static Dictionary<string, Playlist> GetAll()
         {
             Dictionary<string, Playlist> playlists = new Dictionary<string, Playlist>();
@@ -343,41 +344,50 @@ namespace Pickles_Playlist_Editor
             if (!Directory.Exists(modDirectory))
                 return playlists;
 
-            // Heal any leftover filename/content name mismatches before reading, so playlists that
-            // the old wildcard bug scrambled become visible again. Runs at most once per session.
-            Library.HealNameMismatchesOnce();
-
             // Clear the .bak/.tmp litter older builds left in the mod folder Penumbra scans. Backups
-            // are moved, not deleted — Repair still finds them. Runs at most once per session.
+            // are moved, not deleted. Runs at most once per session.
             MigrateStrayBackupsOnce();
 
-            var loaded = new List<(int number, Playlist playlist)>();
-            foreach (string file in Directory.GetFiles(modDirectory, "group_*.json"))
+            var groups = PenumbraMeta.TryReadGroups();
+            if (groups == null)
             {
-                try
-                {
-                    Playlist playlist = JsonConvert.DeserializeObject<Playlist>(File.ReadAllText(file));
-                    if (playlist == null)
-                        Console.Error.WriteLine("Error loading playlist from file " + file);
-                    else
-                        loaded.Add((GroupNumberOf(file), playlist));
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine("Error loading playlist from file " + file + ": " + ex);
-                }
+                // No "Groups" key at all. Two very different causes, and telling them apart matters:
+                // a folder still in the pre-v4 layout (one file per option group) needs Penumbra to
+                // convert it, whereas a manifest with no group files beside it is damaged and needs
+                // Repair. Reporting the first for both sends the second case chasing the wrong fix.
+                // (An *empty* Groups array is a valid v4 mod with no groups and does not land here.)
+                if (PenumbraMeta.IsLegacyModFormat())
+                    Logger.LogWarn(
+                        "meta.json has no Groups array and group_*.json files are present — '{Mod}' is " +
+                        "still in Penumbra's old (pre-v4) mod format. Load the mod in Penumbra once to " +
+                        "convert it, then reopen this app.",
+                        Settings.ModName);
+                else
+                    Logger.LogError(
+                        "meta.json has no Groups array and no legacy group files — '{Mod}' looks " +
+                        "damaged, so no playlists could be loaded. Nothing has been written. Use " +
+                        "Repair Library to restore it from the most recent backup.",
+                        Settings.ModName);
+                return playlists;
             }
 
-            // Order by the group_NNN filename index to mirror Penumbra exactly — Penumbra orders
-            // groups by that number and ignores the "Priority" field for display. Name is only a
-            // tie-breaker for the rare unparseable/duplicate-number case.
-            foreach (var entry in loaded
-                .OrderBy(e => e.number)
-                .ThenBy(e => e.playlist.Name, StringComparer.OrdinalIgnoreCase))
+            // Array order IS the order — Penumbra displays groups by their index in this array. There
+            // is nothing left to sort by.
+            foreach (var g in groups.OfType<JObject>())
             {
-                // On a duplicate Name (leftover corruption), keep the first in this order.
-                if (!playlists.ContainsKey(entry.playlist.Name))
-                    playlists[entry.playlist.Name] = entry.playlist;
+                var playlist = FromJson(g);
+                if (string.IsNullOrEmpty(playlist.Name))
+                    continue;
+
+                // v4 permits duplicate group names, but this dictionary is keyed by name and the UI
+                // addresses playlists by name, so the second one would be unreachable anyway.
+                if (playlists.ContainsKey(playlist.Name))
+                {
+                    Logger.LogWarn("GetAll: duplicate playlist name '{Name}' in meta.json — keeping the first.",
+                        playlist.Name);
+                    continue;
+                }
+                playlists[playlist.Name] = playlist;
             }
             return playlists;
         }
@@ -438,13 +448,14 @@ namespace Pickles_Playlist_Editor
             if (string.Equals(oldName, newName, StringComparison.Ordinal))
                 return false;
 
-            if (GetJsonFiles(newName).Length > 0)
+            var root = PenumbraMeta.Read()
+                ?? throw new PenumbraMetaException("Penumbra's mod manifest could not be read; the rename was not applied.");
+            if (PenumbraMeta.FindGroupByName(root, newName) != null)
                 throw new InvalidOperationException($"A playlist named '{newName}' already exists.");
+            if (!ResolveTarget(root, out _, out _))
+                throw new PlaylistSaveException(oldName);
 
             string modDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
-            string? oldJsonPath = GetJsonFiles(oldName).FirstOrDefault();
-            if (string.IsNullOrEmpty(oldJsonPath) || !File.Exists(oldJsonPath))
-                throw new FileNotFoundException("Playlist JSON file not found.", oldJsonPath);
 
             // Derive the SCD folder from the songs themselves rather than assuming it equals the old
             // playlist name — post-merge/repair playlists can store their audio in a differently
@@ -465,10 +476,6 @@ namespace Pickles_Playlist_Editor
                     Directory.Move(oldFolder, newFolder);
                 }
             }
-
-            string newJsonPath = Path.Combine(modDirectory, Path.GetFileName(oldJsonPath).Replace(oldName.Replace("/", "_"), newName.Replace("/", "_")));
-            if (!string.Equals(oldJsonPath, newJsonPath, StringComparison.OrdinalIgnoreCase))
-                File.Move(oldJsonPath, newJsonPath);
 
             Name = newName;
 
@@ -502,64 +509,149 @@ namespace Pickles_Playlist_Editor
                 }
             }
 
-            // Write to the renamed file directly: the on-disk content still says oldName until this
-            // save, so the content-Name lookup in Save() would not find it yet.
-            Save(newJsonPath);
+            // Resolution is by Id, so the manifest still saying oldName is irrelevant.
+            Save();
             Logger.LogInfo("Renamed playlist '{Old}' -> '{New}' (scd folder '{OldDir}' -> '{NewDir}', changed={Changed})",
                 oldName, newName, oldScdDir, newScdDir, scdDirChanged);
             return true;
         }
 
-        // True when this playlist's group JSON can actually be located on disk, i.e. Save() will
-        // have somewhere to write. Callers that are about to do something destructive (move a song
-        // out of another playlist, delete an audio file) should pre-flight with this so they never
-        // commit half an edit against a playlist that cannot be saved.
-        internal bool HasGroupJson() => GetJsonFiles(Name).Length > 0;
-
-        public void Save()
+        /// <summary>
+        /// Locates this playlist's group in a freshly-read manifest. Id first — that is the stable
+        /// identity Penumbra keys user selections against — falling back to an exact name match for a
+        /// group that has no Id yet (just created, or imported from v3). A successful name match
+        /// adopts the Id, so the fallback fires at most once per playlist.
+        /// </summary>
+        private bool ResolveTarget(JObject root, out JObject group, out int index)
         {
-            var fileNames = GetJsonFiles(Name);
-            if (fileNames.Length == 0)
-            {
-                // The whole "adding deleted my playlist" class of bug lives here: if no group JSON
-                // matches this playlist's content Name, the edit has nowhere to go. This used to log
-                // and return, which let callers commit the destructive half of an edit and quietly
-                // drop the other half — a cross-playlist drag removed the song from the source,
-                // saved that, then no-opped the target write and lost the song. Throw so callers can
-                // roll back and the user sees an error instead of silent data loss.
-                Logger.LogError("Save('{Name}'): no matching group JSON found — aborting, nothing written.", Name);
-                throw new PlaylistSaveException(Name);
-            }
-            if (fileNames.Length > 1)
-                Logger.LogWarn("Save('{Name}'): {Count} files share this name ({Files}); writing the first.",
-                    Name, fileNames.Length, string.Join(", ", fileNames.Select(Path.GetFileName)));
-            Save(fileNames[0]);
+            if (PenumbraMeta.TryGetGroupById(root, Id, out group, out index))
+                return true;
+
+            var byName = PenumbraMeta.FindGroupByName(root, Name, out index);
+            if (byName == null)
+                return false;
+
+            group = byName;
+            if (Guid.TryParse(byName["Id"]?.ToString(), out var found))
+                Id = found;
+            return true;
         }
 
-        // Writes this playlist to an explicit file. Used by Save() (which resolves the file by
-        // content Name) and by Rename(), which already knows the destination path and whose
-        // in-memory Name no longer matches the on-disk content, so a content-Name lookup would miss.
-        internal void Save(string targetPath)
+        /// <summary>
+        /// True when this playlist's group can actually be located in the manifest, i.e. Save() will
+        /// have somewhere to write. Callers that are about to do something destructive (move a song
+        /// out of another playlist, delete an audio file) should pre-flight with this so they never
+        /// commit half an edit against a playlist that cannot be saved.
+        /// </summary>
+        internal bool ExistsInManifest()
+        {
+            var root = PenumbraMeta.Read();
+            return root != null && ResolveTarget(root, out _, out _);
+        }
+
+        /// <summary>
+        /// This playlist as a v4 manifest group. Built by cloning <paramref name="existing"/> so keys
+        /// this app doesn't model — Description, Image, Page, DefaultSettings, Priority — survive the
+        /// round trip. Only Id, Name, Type and Options are ours to write.
+        /// </summary>
+        internal JObject ToJson(JObject existing)
+        {
+            var g = existing != null ? (JObject)existing.DeepClone() : new JObject();
+
+            if (Id == Guid.Empty)
+                Id = Guid.NewGuid();
+            g["Id"] = Id.ToString();
+            g["Name"] = Name ?? string.Empty;
+            if (g["Type"] == null)
+                g["Type"] = "Single";
+
+            var existingOptions = (existing?["Options"] as JArray)?.OfType<JObject>().ToList();
+            g["Options"] = new JArray(Options.Select(o => o.ToJson(FindExistingOption(existingOptions, o))));
+
+            return g;
+        }
+
+        // Match by Id so an option keeps whatever Penumbra stored on it even after being reordered or
+        // moved between playlists. Name is only a fallback for options this app just created.
+        private static JObject FindExistingOption(List<JObject> existingOptions, Option option)
+        {
+            if (existingOptions == null) return null;
+
+            if (option.Id != Guid.Empty)
+            {
+                var byId = existingOptions.FirstOrDefault(o =>
+                    Guid.TryParse(o["Id"]?.ToString(), out var id) && id == option.Id);
+                if (byId != null) return byId;
+            }
+
+            return existingOptions.FirstOrDefault(o =>
+                string.Equals(o["Name"]?.ToString(), option.Name, StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// Writes this playlist back to Penumbra's manifest.
+        ///
+        /// The whole library now lives in one file, so this deliberately does NOT serialize the app's
+        /// model of the mod. It re-reads the manifest, splices in this one group, and writes the rest
+        /// back verbatim — otherwise a stale in-memory Playlist would clobber every other playlist,
+        /// including any the user edited in Penumbra since this one was loaded.
+        /// </summary>
+        public void Save()
         {
             try
             {
-                string json = JsonConvert.SerializeObject(this, Formatting.Indented);
-                WriteJsonAtomic(targetPath, json);
-                Logger.LogInfo("Saved playlist '{Name}' ({Count} options) -> {File}",
-                    Name, Options?.Count ?? 0, Path.GetFileName(targetPath));
+                PenumbraMeta.Mutate(root =>
+                {
+                    if (!ResolveTarget(root, out var existing, out int index))
+                    {
+                        // The whole "adding deleted my playlist" class of bug lives here: if the group
+                        // is gone from the manifest, the edit has nowhere to go. Throw so callers can
+                        // roll back and the user sees an error instead of silent data loss.
+                        Logger.LogError("Save('{Name}'): group not found in meta.json — aborting, nothing written.", Name);
+                        throw new PlaylistSaveException(Name);
+                    }
+
+                    ((JArray)root["Groups"])[index] = ToJson(existing);
+                });
+
+                Logger.LogInfo("Saved playlist '{Name}' ({Count} options) to meta.json", Name, Options?.Count ?? 0);
             }
             catch (Exception ex)
             {
-                Logger.LogError("Save('{Name}') failed writing {File}: {Error}", Name, targetPath, ex);
+                Logger.LogError("Save('{Name}') failed: {Error}", Name, ex);
                 throw;
             }
 
-            // Notify Penumbra (if present) that the mod directory changed so it can refresh.
+            // Notify Penumbra (if present) that the mod changed so it can refresh.
             RefreshPenumbraMod();
         }
 
-        // Where group-JSON backups live. Deliberately OUTSIDE the Penumbra mod folder: Penumbra
-        // scans that directory, and we were leaving hundreds of .bak/.tmp files in it.
+        /// <summary>
+        /// Like <see cref="Save"/>, but appends the group when it isn't in the manifest yet instead of
+        /// throwing. Only for genuinely new playlists — everything else should fail loudly.
+        /// </summary>
+        internal void Upsert()
+        {
+            PenumbraMeta.Mutate(root =>
+            {
+                if (root["Groups"] is not JArray groups)
+                {
+                    groups = new JArray();
+                    root["Groups"] = groups;
+                }
+
+                if (ResolveTarget(root, out var existing, out int index))
+                    groups[index] = ToJson(existing);
+                else
+                    groups.Add(ToJson(null));
+            });
+
+            Logger.LogInfo("Upserted playlist '{Name}' ({Count} options) into meta.json", Name, Options?.Count ?? 0);
+            RefreshPenumbraMod();
+        }
+
+        // Where backups live. Deliberately OUTSIDE the Penumbra mod folder: Penumbra scans that
+        // directory, and in v4 the one file that matters there is meta.json.
         internal static string BackupDir
         {
             get
@@ -572,55 +664,13 @@ namespace Pickles_Playlist_Editor
             }
         }
 
-        // Crash-safe write that Penumbra sees as a MODIFY, never a delete+create.
-        //
-        // This used to stage a .tmp beside the target and File.Replace() it into place. Replace
-        // unlinks the target's directory entry and swaps a different file in — to Penumbra's folder
-        // watcher that reads as "the group file disappeared, then a new one appeared", so Penumbra
-        // compacted and renumbered the remaining group_NNN_*.json files. Since playlist order is
-        // derived from that number, our own save was shuffling the user's playlist order (observed:
-        // 'Beach' bouncing 001 -> 002 -> 001 across three consecutive song moves). It also raced
-        // GetJsonFiles, which is how a save could report "no matching group JSON found" and silently
-        // drop an edit.
-        //
-        // Writing the bytes in place keeps the directory entry — and therefore the group number —
-        // untouched, so Penumbra just re-reads the file and leaves the ordering alone.
-        private static void WriteJsonAtomic(string targetPath, string json)
-        {
-            // Back up the previous contents outside the mod folder before overwriting.
-            if (File.Exists(targetPath))
-            {
-                try
-                {
-                    File.Copy(targetPath, Path.Combine(BackupDir, Path.GetFileName(targetPath) + ".bak"), true);
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarn("Backup of {File} failed (continuing): {Error}", Path.GetFileName(targetPath), ex.Message);
-                }
-            }
-
-            // Stage in the temp dir (outside the mod folder) so a half-written file is never visible
-            // to Penumbra, then overwrite the target in place. File.Copy(overwrite: true) truncates
-            // and rewrites the existing file rather than replacing the directory entry.
-            string tmp = Path.Combine(Path.GetTempPath(), Path.GetFileName(targetPath) + ".tmp");
-            try
-            {
-                File.WriteAllText(tmp, json);
-                File.Copy(tmp, targetPath, true);
-            }
-            finally
-            {
-                try { File.Delete(tmp); } catch { }
-            }
-        }
-
         private static bool _strayBackupsMigrated;
 
         // Older builds wrote .bak/.tmp files directly into the Penumbra mod folder — hundreds of them
-        // accumulated, because every renumbering minted a new .bak name. Move (never delete) them out
-        // to the backup dir: it declutters the directory Penumbra scans while keeping every backup
-        // available to the Repair button, which searches both locations.
+        // accumulated, because every renumbering minted a new .bak name. Since v4 these are dead
+        // weight: the library lives in meta.json and nothing reads a group_*.json.bak any more. Move
+        // (never delete) them out to the backup dir so the folder Penumbra scans holds only live mod
+        // files, while the user's pre-migration copies stay on disk.
         internal static void MigrateStrayBackupsOnce()
         {
             if (_strayBackupsMigrated) return;
@@ -634,12 +684,18 @@ namespace Pickles_Playlist_Editor
             try
             {
                 string backupDir = BackupDir;
-                foreach (var file in Directory.EnumerateFiles(modDirectory, "group_*.json.*").ToList())
+                var stray = Directory.EnumerateFiles(modDirectory, "group_*.json.*")
+                    .Concat(Directory.EnumerateFiles(modDirectory, "default_mod.json.bak"))
+                    .Concat(Directory.EnumerateFiles(modDirectory, "meta.json.*.tmp"))
+                    .ToList();
+
+                foreach (var file in stray)
                 {
                     string ext = Path.GetExtension(file);
                     bool isBak = ext.Equals(".bak", StringComparison.OrdinalIgnoreCase);
                     bool isTmp = ext.Equals(".tmp", StringComparison.OrdinalIgnoreCase);
-                    if (!isBak && !isTmp) continue;
+                    bool isReorderTmp = file.EndsWith(".reorder_tmp", StringComparison.OrdinalIgnoreCase);
+                    if (!isBak && !isTmp && !isReorderTmp) continue;
 
                     try
                     {
@@ -660,8 +716,7 @@ namespace Pickles_Playlist_Editor
             }
 
             if (moved > 0)
-                Logger.LogInfo("Moved {Count} stray .bak/.tmp file(s) out of the mod folder into {Dir}.",
-                    moved, BackupDir);
+                Logger.LogInfo("Moved {Count} stray file(s) out of the mod folder into {Dir}.", moved, BackupDir);
         }
 
         public void Delete()
@@ -669,188 +724,126 @@ namespace Pickles_Playlist_Editor
             if (string.IsNullOrEmpty(Name))
                 return;
             Logger.LogInfo("Deleting playlist '{Name}' ({Count} options)", Name, Options?.Count ?? 0);
-            if (GetJsonFiles(Name).Length > 0)
-                File.Delete(GetJsonFiles(Name)[0]);
 
-            if (Directory.Exists(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name)))
-                Directory.Delete(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Name), true);
-            // Notify Penumbra after removing files
+            // Derive the audio folder from the songs rather than guessing it from the name — a
+            // post-merge playlist can store its audio in a differently named folder, and the old
+            // name-guess would either miss it or, worse, delete a folder belonging to someone else.
+            string scdDir = GetScdDirectoryForNewFiles();
+
+            PenumbraMeta.Mutate(root =>
+            {
+                if (root["Groups"] is not JArray groups) return;
+                if (ResolveTarget(root, out _, out int index))
+                    groups.RemoveAt(index);
+            });
+
+            // Only remove the audio once no surviving group points into that folder.
+            if (!string.IsNullOrWhiteSpace(scdDir) && !AnyGroupUsesDirectory(scdDir))
+            {
+                string folder = Path.Combine(Settings.PenumbraLocation, Settings.ModName,
+                    NormalizeRelativeModPath(scdDir));
+                if (Directory.Exists(folder))
+                {
+                    try { Directory.Delete(folder, true); }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarn("Deleted playlist '{Name}' but could not remove '{Folder}': {Error}",
+                            Name, folder, ex.Message);
+                    }
+                }
+            }
+
             RefreshPenumbraMod();
         }
 
-        private static string[] GetJsonFiles(string name)
+        private static bool AnyGroupUsesDirectory(string scdDir)
         {
-            if (Settings.PenumbraLocation == null || Settings.ModName == null)
-                return Array.Empty<string>();
-
-            string modDirectory = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
-            if (!Directory.Exists(modDirectory))
-                return Array.Empty<string>();
-
-            // Penumbra rewrites the group_NNN_<name>.json *filenames* (renumbering, re-sanitizing)
-            // on every mod change, so the filename is not a stable identity — matching on it made
-            // Save() miss the file and silently no-op, so edits vanished and playlists looked
-            // deleted. Match instead on the "Name" *inside* each JSON, the one field Penumbra never
-            // touches, exactly as GetAll() keys playlists. Ordered by group number so callers that
-            // take [0] get a deterministic file.
-            return Directory.GetFiles(modDirectory, "group_*.json")
-                .Where(f => string.Equals(TryReadContentName(f), name, StringComparison.Ordinal))
-                .OrderBy(GroupNumberOf)
-                .ToArray();
+            string prefix = NormalizeRelativeModPath(scdDir) + Path.DirectorySeparatorChar;
+            return GetAll().Values
+                .SelectMany(p => p.Options)
+                .Where(o => o?.Files != null)
+                .SelectMany(o => o.Files.Values)
+                .Select(NormalizeRelativeModPath)
+                .Any(rel => rel.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
         }
 
-        // Reads just the "Name" field from a group JSON, tolerating parse/IO errors (returns null).
-        private static string? TryReadContentName(string path)
+        /// <summary>
+        /// Applies a reordering of this playlist's songs and saves it.
+        ///
+        /// The permutation itself cannot fail, so the only failure is the save — and Save() is
+        /// all-or-nothing (it writes atomically or throws before writing anything). That makes
+        /// restoring the in-memory list a complete undo. Note the old per-file backup-and-restore is
+        /// gone deliberately: with every playlist in one manifest, restoring the whole file on a
+        /// failure would roll back any other playlist edited in between.
+        /// </summary>
+        private void ReorderOptions(Func<List<Option>, List<Option>> permute)
         {
+            var snapshot = new List<Option>(Options);
             try
             {
-                using var reader = new StreamReader(path);
-                using var jsonReader = new JsonTextReader(reader);
-                var obj = Newtonsoft.Json.Linq.JToken.ReadFrom(jsonReader) as Newtonsoft.Json.Linq.JObject;
-                return obj?["Name"]?.ToString();
+                Options = permute(new List<Option>(Options));
+                Save();
             }
             catch
             {
-                return null;
-            }
-        }
-
-        private static readonly Regex GroupNumberPattern = new(@"^group_(\d+)_", RegexOptions.IgnoreCase);
-
-        // Parses the NNN group index out of a "group_NNN_Name.json" path so playlists can be ordered
-        // deterministically by number rather than by filesystem enumeration order. Unparseable names
-        // sort last, keeping them out of the meaningful range.
-        private static int GroupNumberOf(string path)
-        {
-            var m = GroupNumberPattern.Match(Path.GetFileName(path));
-            return m.Success && int.TryParse(m.Groups[1].Value, out int n) ? n : int.MaxValue;
-        }
-
-        internal void Shuffle()
-        {
-            var jsonFiles = GetJsonFiles(Name);
-            string? backupPath = null;
-            if (jsonFiles.Length > 0 && File.Exists(jsonFiles[0]))
-            {
-                backupPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(jsonFiles[0]));
-                File.Copy(jsonFiles[0], backupPath, true);
-            }
-            try
-            {
-                int n = Options.Count;
-                List<Option> shuffledOptions = new List<Option>(n);
-                shuffledOptions.Add(Options[0]); // Keep the "Off" option in place
-                Options.RemoveAt(0);
-                Random rng = new Random();
-                while (Options.Count > 0)
-                {
-                    int k = rng.Next(Options.Count);
-                    shuffledOptions.Add(Options[k]);
-                    Options.RemoveAt(k);
-                }
-                Options = shuffledOptions;
-                Save();
-            }
-            catch (Exception ex)
-            {
-                if (backupPath != null && File.Exists(backupPath) && jsonFiles.Length > 0)
-                    File.Copy(backupPath, jsonFiles[0], true);
-                MessageBoxW(IntPtr.Zero, ex.ToString(), "Shuffle Error", 0x00000010); // MB_OK | MB_ICONERROR
+                Options = snapshot;
                 throw;
             }
         }
 
-        internal void Sort(SortDirection direction)
+        // "Off" is a fixed first entry, not a song — every reorder keeps it pinned at the top.
+        private static (Option off, List<Option> songs) SplitOff(List<Option> options)
         {
-            var jsonFiles = GetJsonFiles(Name);
-            string? backupPath = null;
-            if (jsonFiles.Length > 0 && File.Exists(jsonFiles[0]))
-            {
-                backupPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(jsonFiles[0]));
-                File.Copy(jsonFiles[0], backupPath, true);
-            }
-            try
-            {
-                Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
-                List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase)).ToList();
-                if (direction == SortDirection.Ascending)
-                    otherOptions = otherOptions.OrderBy(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
-                else
-                    otherOptions = otherOptions.OrderByDescending(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
-                Options = new List<Option>();
-                if (offOption != null)
-                    Options.Add(offOption);
-                Options.AddRange(otherOptions);
-                Save();
-            }
-            catch (Exception ex)
-            {
-                if (backupPath != null && File.Exists(backupPath) && jsonFiles.Length > 0)
-                    File.Copy(backupPath, jsonFiles[0], true);
-                MessageBoxW(IntPtr.Zero, ex.ToString(), "Sort Error", 0x00000010); // MB_OK | MB_ICONERROR
-                throw;
-            }
+            var off = options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
+            var songs = options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase)).ToList();
+            return (off, songs);
         }
 
-        internal void SortByKey(SortDirection direction)
+        private static List<Option> Rejoin(Option off, IEnumerable<Option> songs)
         {
-            var jsonFiles = GetJsonFiles(Name);
-            string? backupPath = null;
-            if (jsonFiles.Length > 0 && File.Exists(jsonFiles[0]))
-            {
-                backupPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(jsonFiles[0]));
-                File.Copy(jsonFiles[0], backupPath, true);
-            }
-            try
-            {
-                Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
-                List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase)).ToList();
-                if (direction == SortDirection.Ascending)
-                    otherOptions = otherOptions.OrderBy(o => KeyDetector.GetKeyFromSCD(GetScdPath(o))).ToList();
-                else
-                    otherOptions = otherOptions.OrderByDescending(o => KeyDetector.GetKeyFromSCD(GetScdPath(o))).ToList();
-                Options = new List<Option>();
-                if (offOption != null)
-                    Options.Add(offOption);
-                Options.AddRange(otherOptions);
-                Save();
-            }
-            catch (Exception ex)
-            {
-                if (backupPath != null && File.Exists(backupPath) && jsonFiles.Length > 0)
-                    File.Copy(backupPath, jsonFiles[0], true);
-                MessageBoxW(IntPtr.Zero, ex.ToString(), "Sort Error", 0x00000010); // MB_OK | MB_ICONERROR
-                throw;
-            }
+            var result = new List<Option>();
+            if (off != null) result.Add(off);
+            result.AddRange(songs);
+            return result;
         }
 
-        internal void SortByName()
+        internal void Shuffle() => ReorderOptions(options =>
         {
-            var jsonFiles = GetJsonFiles(Name);
-            string? backupPath = null;
-            if (jsonFiles.Length > 0 && File.Exists(jsonFiles[0]))
+            var (off, songs) = SplitOff(options);
+            var rng = new Random();
+            var shuffled = new List<Option>(songs.Count);
+            while (songs.Count > 0)
             {
-                backupPath = Path.Combine(Path.GetTempPath(), Path.GetFileName(jsonFiles[0]));
-                File.Copy(jsonFiles[0], backupPath, true);
+                int k = rng.Next(songs.Count);
+                shuffled.Add(songs[k]);
+                songs.RemoveAt(k);
             }
-            try
-            {
-                Option offOption = Options.FirstOrDefault(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
-                List<Option> otherOptions = Options.Where(o => !o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase).ToList();
-                Options = new List<Option>();
-                if (offOption != null) Options.Add(offOption);
-                Options.AddRange(otherOptions);
-                Save();
-            }
-            catch (Exception ex)
-            {
-                if (backupPath != null && File.Exists(backupPath) && jsonFiles.Length > 0)
-                    File.Copy(backupPath, jsonFiles[0], true);
-                MessageBoxW(IntPtr.Zero, ex.ToString(), "Sort Error", 0x00000010); // MB_OK | MB_ICONERROR
-                throw;
-            }
-        }
+            return Rejoin(off, shuffled);
+        });
+
+        internal void Sort(SortDirection direction) => ReorderOptions(options =>
+        {
+            var (off, songs) = SplitOff(options);
+            songs = direction == SortDirection.Ascending
+                ? songs.OrderBy(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList()
+                : songs.OrderByDescending(o => BPMDetector.GetBPMFromSCD(GetScdPath(o))).ToList();
+            return Rejoin(off, songs);
+        });
+
+        internal void SortByKey(SortDirection direction) => ReorderOptions(options =>
+        {
+            var (off, songs) = SplitOff(options);
+            songs = direction == SortDirection.Ascending
+                ? songs.OrderBy(o => KeyDetector.GetKeyFromSCD(GetScdPath(o))).ToList()
+                : songs.OrderByDescending(o => KeyDetector.GetKeyFromSCD(GetScdPath(o))).ToList();
+            return Rejoin(off, songs);
+        });
+
+        internal void SortByName() => ReorderOptions(options =>
+        {
+            var (off, songs) = SplitOff(options);
+            return Rejoin(off, songs.OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase));
+        });
 
         /// <summary>
         /// Replace invalid characters for Windows filenames, trim trailing dots/spaces and limit length.
@@ -887,86 +880,61 @@ namespace Pickles_Playlist_Editor
         }
 
         /// <summary>
-        /// Attempt to notify Penumbra (FFXIV Dalamud plugin) that the mod folder changed so Penumbra can refresh its cache.
-        /// This is a best-effort notification: Penumbra watches file changes; touching meta.json or creating a transient marker file
-        /// commonly triggers a refresh. This function does not interact with Dalamud directly.
+        /// Reorders the playlists to match <paramref name="orderedNames"/>.
+        ///
+        /// Penumbra orders groups by their index in the manifest's Groups array, so this is a single
+        /// permutation of that array — no more renumbering filenames, and no intermediate on-disk
+        /// state to recover from if it fails.
         /// </summary>
         internal static void ReorderAll(List<string> orderedNames)
         {
-            string modDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
-            if (!Directory.Exists(modDir)) return;
-
-            // Collect VFX group names that weren't in the treeview
+            // Collect VFX group names that weren't in the treeview so they keep their place rather
+            // than being dropped from the ordering.
             var orderedSet = new HashSet<string>(orderedNames);
-            var allPlaylists = GetAll();
-            var vfxNames = new List<string>();
-            foreach (var kvp in allPlaylists)
-            {
-                if (!orderedSet.Contains(kvp.Key) && kvp.Value.IsVFXGroup())
-                    vfxNames.Add(kvp.Key);
-            }
+            var vfxNames = GetAll()
+                .Where(kvp => !orderedSet.Contains(kvp.Key) && kvp.Value.IsVFXGroup())
+                .Select(kvp => kvp.Key)
+                .ToList();
 
-            // Combined list: treeview order first, then VFX groups
             var allNames = new List<string>(orderedNames);
             allNames.AddRange(vfxNames);
 
-            // Penumbra orders groups solely by the NNN index in each "group_NNN_<name>.json"
-            // filename (it ignores the "Priority" field for display — that only affects conflict
-            // resolution). So reordering means renumbering the files, not rewriting Priority.
-            //
-            // Rename in two phases so intermediate collisions can't clobber a file: first move every
-            // participating file to a ".reorder_tmp" sidecar, then write each back at its new number.
-            // A crash between phases leaves ".reorder_tmp" files, which ReclaimReorderTempFiles
-            // restores on next load.
-            Logger.LogInfo("ReorderAll: renumbering {Count} group(s): {Order}",
+            Logger.LogInfo("ReorderAll: reordering {Count} group(s): {Order}",
                 allNames.Count, string.Join(" > ", allNames));
 
-            var staged = new List<(string name, string tempPath)>();
-            foreach (string name in allNames)
+            PenumbraMeta.Mutate(root =>
             {
-                var files = GetJsonFiles(name);
-                if (files.Length == 0)
-                {
-                    Logger.LogWarn("ReorderAll: no file found for '{Name}' — it will keep its old position.", name);
-                    continue;
-                }
-                try
-                {
-                    string tempPath = files[0] + ".reorder_tmp";
-                    if (File.Exists(tempPath)) File.Delete(tempPath);
-                    File.Move(files[0], tempPath);
-                    staged.Add((name, tempPath));
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError("ReorderAll: failed staging '{Name}' ({File}): {Error}",
-                        name, Path.GetFileName(files[0]), ex);
-                }
-            }
+                if (root["Groups"] is not JArray groups)
+                    throw new PenumbraMetaException("meta.json has no Groups array; the reorder was not applied.");
 
-            for (int i = 0; i < staged.Count; i++)
-            {
-                string cleanName = staged[i].name.Replace("/", "_");
-                string newPath = Path.Combine(modDir, $"group_{i + 1:D3}_{cleanName}.json");
-                try
-                {
-                    // Keep Priority in step with the number so anything that still reads Priority
-                    // (and the app's own tie-breaking) agrees with Penumbra's filename order.
-                    var jobj = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(staged[i].tempPath, Encoding.UTF8));
-                    jobj["Priority"] = i + 1;
-                    File.WriteAllText(newPath, jobj.ToString(Newtonsoft.Json.Formatting.Indented), Encoding.UTF8);
-                    File.Delete(staged[i].tempPath);
-                }
-                catch (Exception ex)
-                {
-                    // Leave the .reorder_tmp in place; ReclaimReorderTempFiles recovers it on next load.
-                    Logger.LogError("ReorderAll: failed writing '{Name}' -> {File}: {Error}",
-                        staged[i].name, Path.GetFileName(newPath), ex);
-                }
-            }
+                var remaining = groups.OfType<JObject>().ToList();
+                var reordered = new JArray();
 
-            // Reload Penumbra once, after all renames are done, to minimise the window where it sees
-            // a half-renumbered folder.
+                foreach (string name in allNames)
+                {
+                    var match = remaining.FirstOrDefault(g =>
+                        string.Equals(g["Name"]?.ToString(), name, StringComparison.Ordinal));
+                    if (match == null)
+                    {
+                        Logger.LogWarn("ReorderAll: no group found for '{Name}' — it keeps its old position.", name);
+                        continue;
+                    }
+                    remaining.Remove(match);
+                    reordered.Add(match);
+                }
+
+                // Anything the app didn't model (or couldn't match) still has to land in the output.
+                foreach (var leftover in remaining)
+                    reordered.Add(leftover);
+
+                if (reordered.Count != groups.Count)
+                    throw new PenumbraMetaException(
+                        $"Reorder would have changed the group count ({groups.Count} -> {reordered.Count}); " +
+                        "refusing to write.");
+
+                root["Groups"] = reordered;
+            });
+
             RefreshPenumbraMod();
         }
 
@@ -999,11 +967,10 @@ namespace Pickles_Playlist_Editor
             return true;
         }
 
-        // Penumbra renumbers and rewrites every group_NNN_*.json in the mod folder when it reloads.
-        // Firing a reload after each individual Save() meant a burst of edits (e.g. dragging songs
-        // one by one) had Penumbra rewriting the whole folder every couple of seconds, racing our
-        // own reads and writes. Debounce instead: each change restarts a 20s countdown, so Penumbra
-        // is only asked to reload once the user has actually stopped editing.
+        // Penumbra rewrites the mod when it reloads. Firing a reload after each individual Save()
+        // meant a burst of edits (e.g. dragging songs one by one) had Penumbra rewriting meta.json
+        // every couple of seconds, racing our own reads and writes. Debounce instead: each change
+        // restarts a 20s countdown, so Penumbra is only asked to reload once the user has stopped.
         private const int PenumbraReloadDebounceMs = 20_000;
         private static readonly object s_reloadLock = new();
         private static Timer? s_reloadTimer;

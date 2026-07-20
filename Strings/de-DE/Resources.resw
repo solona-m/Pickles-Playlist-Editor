@@ -128,8 +128,20 @@
   <data name="ConvertToStereoButton.Content" xml:space="preserve"><value>In Stereo konvertieren</value></data>
   <data name="Prog_ConvertingToStereo" xml:space="preserve"><value>Konvertierung zu Stereo...</value></data>
   <data name="Dlg_RepairLibrary_Title" xml:space="preserve"><value>Warnung</value></data>
-  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Dies versucht, fehlende Playlists aus Sicherungen wiederherzustellen. Vorsicht geboten. Möchtest du fortfahren?</value></data>
+  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>Dies wird:
+
+- Penumbras Mod-Datei aus der neuesten Sicherung wiederherstellen, falls sie beschädigt ist oder fehlt.
+- Songdateien, die ein Suffix „_1“ erhalten haben, wieder auf ihre ursprünglichen Namen umbenennen.
+- Songs ENTFERNEN, deren Audiodatei nicht mehr auf der Festplatte vorhanden ist.
+
+Die letzten beiden Punkte verändern deine Bibliothek, und das Entfernen von Songs lässt sich hier nicht rückgängig machen. Möchtest du fortfahren?</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Ziel-Playlist:</value></data>
+  <data name="Dlg_LegacyFormat_Title" xml:space="preserve"><value>Altes Penumbra-Mod-Format</value></data>
+  <data name="Dlg_LegacyFormat_Content" xml:space="preserve"><value>Der Mod-Ordner „{0}“ verwendet noch das alte Mod-Format von Penumbra, daher konnten keine Playlists geladen werden.
+
+Penumbra konvertiert Mods automatisch in das neue Format. Aktualisiere Penumbra bei Bedarf, lade diesen Mod dort einmal, und öffne diese App danach erneut.
+
+Auf der Festplatte wurde nichts geändert.</value></data>
   <data name="LanguageLabel.Text" xml:space="preserve"><value>Sprache</value></data>
   <data name="LanguageItem_System.Content" xml:space="preserve"><value>Systemstandard</value></data>
   <data name="Dlg_RestartRequired_Title" xml:space="preserve"><value>Neustart erforderlich</value></data>

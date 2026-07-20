@@ -129,7 +129,19 @@
   <data name="ConvertToStereoButton.Content" xml:space="preserve"><value>Convert to Stereo</value></data>
   <data name="Prog_ConvertingToStereo" xml:space="preserve"><value>Converting to stereo...</value></data>
   <data name="Dlg_RepairLibrary_Title" xml:space="preserve"><value>Warning</value></data>
-  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>This will make a best effort to restore missing playlists from backup. Use with caution. Do you want to proceed?</value></data>
+  <data name="Dlg_RepairLibrary_Content" xml:space="preserve"><value>This will:
+
+- Restore Penumbra's mod file from the most recent backup, if it is damaged or missing.
+- Rename song files that picked up a "_1" suffix back to their original names.
+- REMOVE songs whose audio file no longer exists on disk.
+
+The last two change your library, and removing songs cannot be undone from here. Do you want to proceed?</value></data>
+  <data name="Dlg_LegacyFormat_Title" xml:space="preserve"><value>Old Penumbra Mod Format</value></data>
+  <data name="Dlg_LegacyFormat_Content" xml:space="preserve"><value>The mod folder "{0}" still uses Penumbra's old mod format, so no playlists could be loaded.
+
+Penumbra converts mods to the new format automatically. Update Penumbra if needed, load this mod in it once, then reopen this app.
+
+Nothing has been changed on disk.</value></data>
   <data name="LanguageLabel.Text" xml:space="preserve"><value>Language</value></data>
   <data name="LanguageItem_System.Content" xml:space="preserve"><value>System Default</value></data>
   <data name="Dlg_RestartRequired_Title" xml:space="preserve"><value>Restart Required</value></data>

@@ -120,48 +120,15 @@ namespace Pickles_Playlist_Editor
             _updatingBaselineScdOptions = false;
         }
 
-        private static List<string> FindScdKeysInMod(string? modDirectory)
-        {
-            var scdKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            if (string.IsNullOrWhiteSpace(modDirectory) || !Directory.Exists(modDirectory))
-                return [];
-
-            foreach (var jsonPath in Directory.EnumerateFiles(modDirectory, "*.json", SearchOption.TopDirectoryOnly))
-            {
-                try
-                {
-                    var root = JObject.Parse(File.ReadAllText(jsonPath));
-                    AddScdKeys(root["Files"] as JObject, scdKeys);
-                    if (root["Options"] is JArray options)
-                    {
-                        foreach (var option in options.OfType<JObject>())
-                            AddScdKeys(option["Files"] as JObject, scdKeys);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Skipping Penumbra JSON '{jsonPath}': {e.Message}");
-                }
-            }
-
-            return scdKeys.OrderBy(key => key, StringComparer.OrdinalIgnoreCase).ToList();
-        }
-
-        private static void AddScdKeys(JObject? files, HashSet<string> scdKeys)
-        {
-            if (files == null)
-                return;
-
-            foreach (var file in files.Properties())
-            {
-                var scdKey = NormalizeScdKey(file.Name);
-                if (scdKey.EndsWith(".scd", StringComparison.OrdinalIgnoreCase))
-                    scdKeys.Add(scdKey);
-            }
-        }
+        // Penumbra v4 keeps every option group inside the root meta.json, so scanning loose top-level
+        // *.json files for a "Files"/"Options" shape finds nothing at all. PenumbraMeta reads the
+        // manifest (DefaultData.Files plus every group's options) and falls back to the v3 layout for
+        // a folder Penumbra hasn't migrated yet.
+        private static List<string> FindScdKeysInMod(string? modDirectory) =>
+            Pickles_Playlist_Editor.Utils.PenumbraMeta.CollectScdKeys(modDirectory);
 
         private static string NormalizeScdKey(string? scdKey) =>
-            (scdKey ?? string.Empty).Trim().Replace('\\', '/').TrimStart('/');
+            Pickles_Playlist_Editor.Utils.PenumbraMeta.NormalizeScdKey(scdKey);
 
         private void BrowseBackgroundButton_Click(object sender, RoutedEventArgs e)
         {
