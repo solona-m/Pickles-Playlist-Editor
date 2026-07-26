@@ -610,9 +610,25 @@ namespace Pickles_Playlist_Editor
         {
             try
             {
-                var mgr = new UpdateManager(new GithubSource("https://github.com/solona-m/Pickles-Playlist-Editor", null, false));
+                // Follow the prerelease channel only when this build is itself a testing
+                // build. A stable build must never see testing releases; a testing build
+                // needs to, or a tester would have to reinstall by hand for every drop.
+                //
+                // This is not a one-way door: with prerelease search on, Velopack still
+                // considers stable releases and picks whichever is newest — and SemVer puts
+                // 2.5.1 above 2.5.1-testing.N — so a tester is pulled back onto the stable
+                // channel automatically as soon as that version ships.
+                bool followPrereleases = Utils.AppVersion.IsPrerelease;
+
+                var mgr = new UpdateManager(new GithubSource(
+                    "https://github.com/solona-m/Pickles-Playlist-Editor", null, followPrereleases));
+
                 var update = await mgr.CheckForUpdatesAsync();
                 if (update == null) return;
+
+                Utils.Logger.LogInfo("Update available: {Current} -> {Target} (prereleases {Mode})",
+                    Utils.AppVersion.Display, update.TargetFullRelease.Version.ToString(),
+                    followPrereleases ? "included" : "excluded");
 
                 var result = await ShowDialogAsync(
                     AppStrings.Dlg_UpdateAvailable_Title,
