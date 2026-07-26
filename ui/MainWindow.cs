@@ -7,6 +7,7 @@ using Microsoft.UI.Dispatching;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.IO;
@@ -54,12 +55,14 @@ namespace Pickles_Playlist_Editor
 
             this.AppWindow.SetIcon("pickle.ico");
             var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            this.Title = ver != null
-                ? $"Pickles Playlist Editor {ver.Major}.{ver.Minor}.{ver.Build}"
+            string displayVersion = ResolveDisplayVersion(ver);
+            this.Title = displayVersion.Length > 0
+                ? $"Pickles Playlist Editor {displayVersion}"
                 : "Pickles Playlist Editor";
 
             Utils.Logger.LogInfo("Startup: v{Version} | Penumbra='{Penumbra}' Mod='{Mod}' AutoReload={AutoReload}",
-                ver?.ToString() ?? "?", Settings.PenumbraLocation ?? "(unset)", Settings.ModName ?? "(unset)", Settings.AutoReloadMod);
+                displayVersion.Length > 0 ? displayVersion : "?",
+                Settings.PenumbraLocation ?? "(unset)", Settings.ModName ?? "(unset)", Settings.AutoReloadMod);
             Utils.Logger.LogInfo("Startup: log='{Log}' crashLog='{CrashLog}'",
                 Utils.Logger.LogFilePath, Utils.Logger.CrashLogPath);
 
@@ -80,6 +83,49 @@ namespace Pickles_Playlist_Editor
                 // Don't let a debounced Penumbra reload get dropped by closing mid-countdown.
                 Playlist.FlushPenumbraMod();
             };
+        }
+
+        /// <summary>
+        /// Version string for the title bar. Testing builds published by
+        /// .github/workflows/testing-release.yml carry a SemVer prerelease suffix
+        /// (e.g. "2.5.1-testing.42") that AssemblyVersion cannot represent — it is
+        /// restricted to four numeric parts — so the suffix only survives in
+        /// InformationalVersion.
+        ///
+        /// InformationalVersion is NOT used unconditionally: the csproj sets
+        /// AssemblyVersion but never &lt;Version&gt;, so a local or hand-packed build
+        /// reports the SDK default "1.0.0" there. Preferring it outright would show
+        /// "1.0.0" for every developer build. Only a prerelease suffix (which the
+        /// stable pipeline never produces) makes it the better source.
+        /// </summary>
+        private static string ResolveDisplayVersion(Version? assemblyVersion)
+        {
+            string numeric = assemblyVersion != null
+                ? $"{assemblyVersion.Major}.{assemblyVersion.Minor}.{assemblyVersion.Build}"
+                : "";
+
+            try
+            {
+                string? informational = System.Reflection.Assembly
+                    .GetExecutingAssembly()
+                    .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()
+                    ?.InformationalVersion;
+
+                if (string.IsNullOrWhiteSpace(informational)) return numeric;
+
+                // Strip the "+<commit sha>" build metadata the .NET SDK appends by default.
+                int plus = informational.IndexOf('+');
+                if (plus >= 0) informational = informational.Substring(0, plus);
+                informational = informational.Trim();
+
+                // A '-' means a SemVer prerelease suffix, i.e. a testing build.
+                return informational.Contains('-') ? informational : numeric;
+            }
+            catch
+            {
+                // Version display must never be the reason startup fails.
+                return numeric;
+            }
         }
 
         // ─── Dialog helper ───────────────────────────────────────────────────────

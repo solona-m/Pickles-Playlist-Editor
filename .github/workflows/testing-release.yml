@@ -1,0 +1,130 @@
+name: Testing Release
+
+# Cuts a hand-out test build. Mirrors release.yml's build and pack steps exactly, so a
+# testing build is byte-for-byte the same process as a stable one — it only differs in
+# how it is published:
+#
+#   * Published as a GitHub PRERELEASE (--pre). GitHub never resolves /releases/latest to
+#     a prerelease, so the README's stable download link keeps pointing at the last real
+#     release.
+#   * Existing users never see it. The shipped updater builds its source as
+#     `new GithubSource(..., null, false)` (ui/MainWindowCore.cs) where the third argument
+#     is prerelease:false, so clients ignore prereleases entirely. --pre is what stops a
+#     test build from prompting every stable user to install it.
+
+on:
+  push:
+    tags:
+      - 'testing-*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish Velopack testing release
+    runs-on: windows-latest
+
+    env:
+      PROJECT_FILE: Pickles Playlist Editor.csproj
+      APP_ID: PicklesPlaylistEditor
+      APP_TITLE: Pickles Playlist Editor
+      APP_AUTHORS: solona-m
+      MAIN_EXE: Pickles Playlist Editor.exe
+      RID: win-x86
+      VPK_VERSION: 1.2.0
+      REPO_URL: https://github.com/${{ github.repository }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Resolve testing version
+        id: version
+        shell: pwsh
+        run: |
+          # Tag carries the target stable version only (testing-2.5.1); the build counter
+          # is appended here so tags stay clean and never need hand-incrementing.
+          $core = '${{ github.ref_name }}' -replace '^testing-', ''
+
+          if ($core -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Tag '${{ github.ref_name }}' must look like testing-2.5.1 (got core '$core')."
+          }
+
+          # SemVer orders 2.5.1-testing.42 BELOW 2.5.1, so a tester cleanly upgrades to
+          # stable 2.5.1 when it ships.
+          $packageVersion = "$core-testing.${{ github.run_number }}"
+
+          # AssemblyVersion/FileVersion must stay 4-part numeric — MSBuild rejects a
+          # prerelease suffix there. Only Version/InformationalVersion carry the suffix.
+          $assemblyVersion = "$core.0"
+
+          "core=$core" >> $env:GITHUB_OUTPUT
+          "assemblyVersion=$assemblyVersion" >> $env:GITHUB_OUTPUT
+          "packageVersion=$packageVersion" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Testing build: $packageVersion (assembly $assemblyVersion)"
+
+      - name: Restore
+        run: dotnet restore "$env:PROJECT_FILE" -r $env:RID
+
+      - name: Publish application
+        shell: pwsh
+        run: |
+          dotnet publish "$env:PROJECT_FILE" `
+            -c Release `
+            -r $env:RID `
+            --self-contained true `
+            -o publish `
+            /p:Version=${{ steps.version.outputs.packageVersion }} `
+            /p:AssemblyVersion=${{ steps.version.outputs.assemblyVersion }} `
+            /p:FileVersion=${{ steps.version.outputs.assemblyVersion }} `
+            /p:InformationalVersion=${{ steps.version.outputs.packageVersion }}
+
+      - name: Install Velopack CLI
+        shell: pwsh
+        run: |
+          dotnet tool install --global vpk --version $env:VPK_VERSION
+          "$env:USERPROFILE\.dotnet\tools" >> $env:GITHUB_PATH
+
+      # No `vpk download github` here, unlike release.yml. Testing builds ship as a
+      # standalone full package: nothing this workflow does can touch the stable feed.
+      - name: Pack Velopack release
+        shell: pwsh
+        run: |
+          vpk pack `
+            --packId $env:APP_ID `
+            --packVersion ${{ steps.version.outputs.packageVersion }} `
+            --packDir publish `
+            --mainExe "$env:MAIN_EXE" `
+            --packTitle "$env:APP_TITLE" `
+            --packAuthors "$env:APP_AUTHORS" `
+            --runtime $env:RID `
+            --icon pickle.ico `
+            --outputDir Releases
+
+      - name: Upload Velopack testing release to GitHub
+        shell: pwsh
+        run: |
+          vpk upload github `
+            --repoUrl $env:REPO_URL `
+            --token '${{ secrets.GITHUB_TOKEN }}' `
+            --outputDir Releases `
+            --publish `
+            --pre `
+            --releaseName "$env:APP_TITLE v${{ steps.version.outputs.packageVersion }} (Testing)" `
+            --tag "testing-v${{ steps.version.outputs.packageVersion }}" `
+            --targetCommitish '${{ github.sha }}'
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: velopack-testing-${{ steps.version.outputs.packageVersion }}
+          path: Releases/*
