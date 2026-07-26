@@ -16,31 +16,41 @@ namespace Pickles_Playlist_Editor.Tools {
             if (string.IsNullOrWhiteSpace(outOggPath)) throw new ArgumentNullException(nameof(outOggPath));
             if (!File.Exists(scdPath)) throw new FileNotFoundException("SCD file not found", scdPath);
 
-            // Load SCD (uses existing import logic)
-            string temppath = Path.GetTempFileName()+".scd";
-            File.Copy(scdPath, temppath, true);
-            var scd = ScdFile.Import(temppath);
-            if (scd.Audio == null || scd.Audio.Count == 0) throw new InvalidOperationException("No audio entries in SCD.");
+            // Work from a copy so the SCD in the mod folder is never held open. The copy is
+            // always deleted afterwards: the previous version used Path.GetTempFileName()
+            // and leaked two files per playback, and GetTempFileName throws once 65535
+            // tmp files have accumulated — a "crash on play" that only hits heavy users.
+            string temppath = Path.Combine(Path.GetTempPath(),
+                $"pickles-scd-{Guid.NewGuid():N}.scd");
+            try {
+                File.Copy(scdPath, temppath, true);
 
-            if (audioIndex < 0 || audioIndex >= scd.Audio.Count) throw new ArgumentOutOfRangeException(nameof(audioIndex));
+                var scd = ScdFile.Import(temppath);
+                if (scd.Audio == null || scd.Audio.Count == 0) throw new InvalidOperationException("No audio entries in SCD.");
 
-            var entry = scd.Audio[audioIndex];
+                if (audioIndex < 0 || audioIndex >= scd.Audio.Count) throw new ArgumentOutOfRangeException(nameof(audioIndex));
 
-            // Ensure it's a Vorbis entry with data we can write
-            if (!(entry.Data is ScdVorbis vorbis) || vorbis == null) {
-                throw new InvalidOperationException("Selected audio entry is not Vorbis or has no data.");
+                var entry = scd.Audio[audioIndex];
+
+                // Ensure it's a Vorbis entry with data we can write
+                if (!(entry.Data is ScdVorbis vorbis) || vorbis == null) {
+                    throw new InvalidOperationException(
+                        $"This track isn't Vorbis audio (found {entry.Data?.GetType().Name ?? "no data"}) and can't be played or extracted.");
+                }
+
+                if (vorbis.Data == null || vorbis.Data.Length == 0) {
+                    throw new InvalidOperationException("Vorbis data is empty.");
+                }
+
+                // Ensure destination directory exists
+                var dir = Path.GetDirectoryName(outOggPath);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
+                File.WriteAllBytes(outOggPath, vorbis.Data);
             }
-
-            if (vorbis.Data == null || vorbis.Data.Length == 0) {
-                throw new InvalidOperationException("Vorbis data is empty.");
+            finally {
+                try { if (File.Exists(temppath)) File.Delete(temppath); } catch { }
             }
-
-            // Ensure destination directory exists
-            var dir = Path.GetDirectoryName(outOggPath);
-            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-
-            File.WriteAllBytes(outOggPath, vorbis.Data);
-            
         }
 
         /// <summary>

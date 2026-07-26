@@ -60,6 +60,11 @@ namespace Pickles_Playlist_Editor
 
             Utils.Logger.LogInfo("Startup: v{Version} | Penumbra='{Penumbra}' Mod='{Mod}' AutoReload={AutoReload}",
                 ver?.ToString() ?? "?", Settings.PenumbraLocation ?? "(unset)", Settings.ModName ?? "(unset)", Settings.AutoReloadMod);
+            Utils.Logger.LogInfo("Startup: log='{Log}' crashLog='{CrashLog}'",
+                Utils.Logger.LogFilePath, Utils.Logger.CrashLogPath);
+
+            // Clear decoded previews orphaned by a previous crash or hard kill.
+            Player.PurgeStalePlaybackFiles();
 
             _treeContextMenu = BuildContextMenu();
             _rootContextMenu = BuildRootContextMenu();
@@ -547,7 +552,7 @@ namespace Pickles_Playlist_Editor
         }
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e) => _ = OpenSettingsAsync();
-        private async void HelpButton_Click(object sender, RoutedEventArgs e) => await Windows.System.Launcher.LaunchUriAsync(new Uri("https://discord.gg/solona"));
+        private async void HelpButton_Click(object sender, RoutedEventArgs e) => await Windows.System.Launcher.LaunchUriAsync(new Uri("https://discord.gg/cY7eN5k7sc"));
         private void NewButton_Click(object sender, RoutedEventArgs e) => _ = OpenNewPlaylistAsync();
         private void DeleteButton_Click(object sender, RoutedEventArgs e) => _ = DoDeleteAsync();
 

@@ -7,15 +7,13 @@ namespace Pickles_Playlist_Editor
 {
     internal class Program
     {
-        static readonly string CrashLogPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "PicklesPlaylistEditor", "crash.log");
-
         [STAThread]
         static void Main(string[] args)
         {
-            AppDomain.CurrentDomain.UnhandledException += (_, e) =>
-                LogCrash("AppDomain: " + (e.ExceptionObject?.ToString() ?? "unknown"));
+            // Install before anything else so even a failure during Velopack/startup lands
+            // in the log. Covers AppDomain + unobserved task exceptions; the WinUI UI-thread
+            // channel is hooked separately in App (Application.UnhandledException).
+            Utils.Logger.InstallGlobalExceptionHandlers();
 
             try
             {
@@ -35,14 +33,14 @@ namespace Pickles_Playlist_Editor
                     }
                     catch (Exception ex)
                     {
-                        LogCrash("Application.Start callback: " + ex);
+                        LogCrash("Application.Start callback", ex);
                         global::System.Environment.Exit(1);
                     }
                 });
             }
             catch (Exception ex)
             {
-                LogCrash("Main: " + ex);
+                LogCrash("Main", ex);
                 global::System.Environment.Exit(1);
             }
         }
@@ -59,7 +57,7 @@ namespace Pickles_Playlist_Editor
             }
             catch (Exception ex)
             {
-                LogCrash("Language override: " + ex);
+                LogCrash("Language override", ex);
             }
         }
 
@@ -72,18 +70,10 @@ namespace Pickles_Playlist_Editor
             catch (Exception ex)
             {
                 // Update checks should never prevent the app from launching.
-                LogCrash("Velopack: " + ex);
+                LogCrash("Velopack", ex);
             }
         }
 
-        static void LogCrash(string message)
-        {
-            try
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(CrashLogPath)!);
-                File.WriteAllText(CrashLogPath, $"[{DateTime.Now}]\n{message}\n");
-            }
-            catch { }
-        }
+        static void LogCrash(string source, Exception ex) => Utils.Logger.LogCrash(source, ex);
     }
 }

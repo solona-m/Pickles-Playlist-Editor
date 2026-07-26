@@ -196,7 +196,16 @@ namespace Pickles_Playlist_Editor
         private void PlayOption(Option opt, string playlistName, bool isShuffleNav = false)
         {
             string songPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, Playlist.GetScdPath(opt));
-            if (File.Exists(songPath))
+            if (!File.Exists(songPath))
+            {
+                _ = ShowDialogAsync(AppStrings.Dlg_FileNotFound_Title, AppStrings.FileNotFoundContent(songPath));
+                return;
+            }
+
+            // A track that can't be decoded (unsupported/corrupt SCD, unwritable temp
+            // location, decoder refusing the stream) used to throw straight out of this
+            // click handler and take the whole app down with it. Report it instead.
+            try
             {
                 _nowPlayingPlaylistName = playlistName;
                 _nowPlayingSongName = opt.Name;
@@ -218,10 +227,28 @@ namespace Pickles_Playlist_Editor
                         BuildShuffleOrder(playlist, playlistName, keepFirst: idx);
                 }
             }
-            else
+            catch (Exception ex)
             {
-                _ = ShowDialogAsync(AppStrings.Dlg_FileNotFound_Title, AppStrings.FileNotFoundContent(songPath));
+                Utils.Logger.LogError("Playback of '{Song}' in '{Playlist}' failed ({Path}): {Error}",
+                    opt.Name, playlistName, songPath, ex);
+
+                TryStopPlayerQuietly();
+                _nowPlayingPlaylistName = null;
+                _nowPlayingSongName = null;
+                NowPlayingLabel.Text = "";
+                ResetPlaybackUI();
+
+                _ = ShowDialogAsync(AppStrings.Dlg_Error,
+                    AppStrings.ErrorLoadingSong(opt.Name, playlistName, FormatExceptionMessage(ex)));
             }
+        }
+
+        // Best-effort teardown after a failed start: the player may hold a half-open
+        // stream, and a second failure here would defeat the point of the catch above.
+        private static void TryStopPlayerQuietly()
+        {
+            try { Player.Stop(); }
+            catch (Exception ex) { Utils.Logger.LogWarn("Stop after failed playback start failed: {Error}", ex.Message); }
         }
 
         private void UpdatePlaybackProgress()

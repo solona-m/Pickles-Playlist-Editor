@@ -69,4 +69,4 @@ Sort by BPM (Beats per minute) will shift all the songs between either highest t
 
 Thanks to 0ceal0t for VFXEditor: https://github.com/0ceal0t/Dalamud-VFXEditor. Thanks to Meo for finding the fixed_position flag which was the missing piece to enable stereo and for the new baseline scd settings.
 
-If you need help, please join https://discord.gg/solona and post in the #help channel. If you get an error with a callstack a screenshot would be very helpful.
+If you need help, please join https://discord.gg/cY7eN5k7sc and post in the #help channel. If you get an error with a callstack a screenshot would be very helpful.
