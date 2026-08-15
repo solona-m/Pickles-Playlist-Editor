@@ -1,4 +1,5 @@
 using Newtonsoft.Json.Linq;
+using Pickles_Playlist_Editor.Utils;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
@@ -200,7 +201,7 @@ public static class YtDlpService
 
         if (!File.Exists(LocalYtDlpPath))
         {
-            var bytes = await client.GetByteArrayAsync("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe");
+            var bytes = await client.GetByteArrayAsync("https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp.exe");
             await File.WriteAllBytesAsync(LocalYtDlpPath, bytes);
         }
 
@@ -212,7 +213,20 @@ public static class YtDlpService
             try { File.Delete(DenoZipPath); } catch { }
         }
 
-        await RunYtDlpAsync("-U");
+        // --update-to (not -U) so installs that already have a stable-channel binary
+        // switch over to nightly instead of staying pinned to their original channel.
+        //
+        // A failed update must not abort the download: the binary already on disk still
+        // works, and nightly checks run before every single download, so a transient
+        // network error would otherwise make the feature unusable while offline.
+        try
+        {
+            await RunYtDlpAsync("--update-to nightly");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarn("yt-dlp update check failed (harmless, continuing on the installed version): {Error}", ex.Message);
+        }
     }
 
     public static async Task<YtDlpDownloadResult> DownloadAudioAsync(string url, string outputDirectory, YtDownloadMode mode, Action<YtDlpProgressInfo>? onProgress = null)
