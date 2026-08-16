@@ -40,6 +40,7 @@ namespace Pickles_Playlist_Editor
                 BusNumberComboBox.SelectedIndex = BusNumberToIndex(Settings.BusNumber);
                 SelectCurrentLanguage();
                 UpdateCookieStatus();
+                UpdateSoundCloudStatus();
             }
             catch (Exception e) {
                 Console.WriteLine(e.ToString());
@@ -236,6 +237,60 @@ namespace Pickles_Playlist_Editor
         {
             Pickles_Playlist_Editor.Tools.YtDlpService.ClearCookies();
             UpdateCookieStatus();
+        }
+
+        private void UpdateSoundCloudStatus()
+        {
+            bool signedIn = Pickles_Playlist_Editor.Tools.YtDlpService.HasSoundCloudSignIn;
+            SoundCloudStatusText.Text = signedIn
+                ? "Signed in. Tracks the artist marked as downloadable will come through at original quality instead of a 128kbps copy. Note that Go+ tracks protected with DRM still cannot be downloaded."
+                : "Not signed in. Public tracks still download normally; signing in adds original-quality downloads and private tracks you have access to.";
+            SoundCloudSignInButton.IsEnabled = !signedIn;
+            SoundCloudSignOutButton.IsEnabled = signedIn;
+        }
+
+        private async void SoundCloudSignInButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            if (!SoundCloudLoginDialog.IsWebViewRuntimeAvailable())
+            {
+                SoundCloudStatusText.Text = "Signing in needs the Microsoft Edge WebView2 runtime, which isn't installed. Get it from https://developer.microsoft.com/microsoft-edge/webview2/ and then try again.";
+                return;
+            }
+
+            // WinUI only allows one ContentDialog open at a time, so Settings has to step
+            // aside for the login window and come back afterwards. Without the reopen the
+            // user is dumped back to the main window with no confirmation that signing in
+            // worked. Capture XamlRoot first — it isn't reliable to read after Hide().
+            var xamlRoot = this.XamlRoot;
+            Hide();
+
+            try
+            {
+                var login = new SoundCloudLoginDialog { XamlRoot = xamlRoot };
+                await login.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                Utils.Logger.LogError("SoundCloud sign-in window failed: {Error}", ex.Message);
+            }
+
+            UpdateSoundCloudStatus();
+
+            try
+            {
+                await this.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                // Reopening is a convenience; the sign-in itself already took effect.
+                Utils.Logger.LogWarn("Could not reopen Settings after sign-in: {Error}", ex.Message);
+            }
+        }
+
+        private void SoundCloudSignOutButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            Pickles_Playlist_Editor.Tools.YtDlpService.ClearSoundCloudSignIn();
+            UpdateSoundCloudStatus();
         }
 
         private void OkButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)

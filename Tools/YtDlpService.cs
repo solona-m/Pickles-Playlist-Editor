@@ -212,6 +212,92 @@ public static class YtDlpService
     }
 
     private static string CookiesArg => HasCookies ? $"--cookies \"{_cookiesPath}\"" : string.Empty;
+
+    /// <summary>
+    /// True when the user has signed in to SoundCloud from Settings.
+    /// </summary>
+    public static bool HasSoundCloudSignIn => Settings.HasSoundCloudToken;
+
+    /// <summary>
+    /// Private browser profile for the sign-in window. Lives beside the tools so it
+    /// survives app updates for the same reason the cookie jar does.
+    /// </summary>
+    public static string WebViewDataDirectory
+    {
+        get
+        {
+            string dir = Path.Combine(ToolDirectory, "webview2");
+            Directory.CreateDirectory(dir);
+            return dir;
+        }
+    }
+
+    /// <summary>
+    /// Signs out: drops the stored token and deletes the browser profile, so a later
+    /// sign-in starts from a real login page instead of silently resuming the old session.
+    /// The profile is locked while the sign-in window is open, so failing to remove it is
+    /// reported but not fatal — the token is gone either way, which is what authenticates.
+    /// </summary>
+    public static void ClearSoundCloudSignIn()
+    {
+        Settings.SoundCloudToken = "";
+
+        try
+        {
+            string dir = Path.Combine(ToolDirectory, "webview2");
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, recursive: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarn("Signed out, but the cached browser profile could not be deleted: {Error}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// A cookie jar holding the saved SoundCloud session, or null when signed out.
+    ///
+    /// The token is stored DPAPI-encrypted, but yt-dlp can only read a plaintext jar, so
+    /// it has to be written out for the duration of the download. The caller owns the
+    /// returned path and must delete it — see <see cref="DeleteTempJar"/>.
+    /// </summary>
+    private static string? CreateSoundCloudCookieJar()
+    {
+        string token = Settings.SoundCloudToken;
+        if (string.IsNullOrEmpty(token))
+            return null;
+
+        try
+        {
+            string path = Path.Combine(Path.GetTempPath(), $"pickles-sc-{Guid.NewGuid():N}.txt");
+
+            // Netscape format: domain, includeSubdomains, path, secure, expiry, name, value
+            // — seven tab-separated fields. A leading dot plus TRUE covers api-v2 and the
+            // other soundcloud.com subdomains the extractor talks to. The expiry is a far
+            // future placeholder because the cookie store doesn't hand one back reliably;
+            // SoundCloud invalidating the token server-side is what actually ends it.
+            long expiry = DateTimeOffset.UtcNow.AddYears(1).ToUnixTimeSeconds();
+            var sb = new StringBuilder();
+            sb.AppendLine("# Netscape HTTP Cookie File");
+            sb.AppendLine($".soundcloud.com\tTRUE\t/\tTRUE\t{expiry}\toauth_token\t{token}");
+            File.WriteAllText(path, sb.ToString());
+            return path;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarn("Could not prepare the SoundCloud sign-in for this download, continuing signed out: {Error}", ex.Message);
+            return null;
+        }
+    }
+
+    private static void DeleteTempJar(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+            return;
+        try { File.Delete(path); }
+        catch (Exception ex) { Logger.LogWarn("Could not delete the temporary SoundCloud cookie file '{Path}': {Error}", path, ex.Message); }
+    }
+
     private static string DenoArg => File.Exists(DenoExePath)
         ? $"--js-runtimes \"deno:{DenoExePath}\""
         : string.Empty;
@@ -286,17 +372,36 @@ public static class YtDlpService
         Directory.CreateDirectory(outputDirectory);
         string denoArg = DenoArg;
         string ffmpegArg = FfmpegArg;
+        var service = MediaUrlInfo.Classify(url);
+
+        // The two services treat sign-in differently on purpose. A YouTube jar is a
+        // fallback, attached only after an auth-shaped failure, because most videos don't
+        // need it. SoundCloud sign-in is opt-in — the user deliberately signed in — so it
+        // goes on the first attempt; withholding it would just buy a guaranteed-failing
+        // pass before the retry.
+        string? scJar = service == MediaService.SoundCloud ? CreateSoundCloudCookieJar() : null;
+        if (scJar != null)
+            Logger.LogInfo("Using the saved SoundCloud sign-in for this download.");
 
         try
         {
-            return await DownloadAudioAttemptAsync(url, outputDirectory, mode, denoArg, ffmpegArg, useCookies: false, onProgress).ConfigureAwait(false);
+            return await DownloadAudioAttemptAsync(url, outputDirectory, mode, denoArg, ffmpegArg, cookiesArg: CookiesArgFor(scJar), onProgress).ConfigureAwait(false);
         }
         catch (Exception ex) when (ShouldRetryWithCookies(url, ex))
         {
             Logger.LogInfo("Retrying the download with saved YouTube cookies after a sign-in error.");
-            return await DownloadAudioAttemptAsync(url, outputDirectory, mode, denoArg, ffmpegArg, useCookies: true, onProgress).ConfigureAwait(false);
+            return await DownloadAudioAttemptAsync(url, outputDirectory, mode, denoArg, ffmpegArg, cookiesArg: CookiesArg, onProgress).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Covers the success path, the retry path and any hard failure, so the
+            // decrypted token never outlives the download that needed it.
+            DeleteTempJar(scJar);
         }
     }
+
+    private static string CookiesArgFor(string? jarPath) =>
+        string.IsNullOrEmpty(jarPath) ? string.Empty : $"--cookies \"{jarPath}\"";
 
     /// <summary>
     /// The saved jar is a YouTube jar, so replaying a download with it only ever helps a
@@ -346,28 +451,76 @@ public static class YtDlpService
         }
 
         if (service == MediaService.SoundCloud)
+            return ClassifySoundCloudFailure(message);
+
+        return DownloadFailureKind.Unknown;
+    }
+
+    /// <summary>
+    /// Picks the cause that actually dominates a SoundCloud failure.
+    ///
+    /// A set download reports one error line per failed track, and these used to be tested
+    /// against the whole concatenated buffer with the first match winning. That meant one
+    /// DRM-protected track in a set of twenty geo-blocked ones made the app announce the
+    /// whole set was copy-protected, hiding the cause that a VPN would have fixed. Counting
+    /// the lines instead means the reported reason is the one most tracks actually hit.
+    /// </summary>
+    private static DownloadFailureKind ClassifySoundCloudFailure(string message)
+    {
+        var counts = new Dictionary<DownloadFailureKind, int>();
+
+        foreach (var line in message.Split('\n'))
         {
-            if (Has("rate limit") || Has("HTTP Error 429") || Has("Unable to extract client id"))
-                return DownloadFailureKind.SoundCloudRateLimited;
-
-            if (Has("DRM") || Has("only available for registered users") || Has("not available for this client"))
-                return DownloadFailureKind.SoundCloudPaidOrProtected;
-
-            if (Has("not available from your location") || Has("geo restricted") || Has("geo-restricted"))
-                return DownloadFailureKind.SoundCloudGeoBlocked;
-
-            if (Has("HTTP Error 404") || Has("HTTP Error 403"))
-                return DownloadFailureKind.SoundCloudNotFound;
+            var kind = ClassifySoundCloudLine(line);
+            if (kind != DownloadFailureKind.Unknown)
+                counts[kind] = counts.GetValueOrDefault(kind) + 1;
         }
+
+        if (counts.Count == 0)
+            return DownloadFailureKind.Unknown;
+
+        // Ties go to whatever the user can act on — a transient rate limit is worth
+        // retrying, whereas a DRM track never becomes downloadable however long they wait.
+        // Ordering explicitly also keeps the result deterministic; dictionary order is not.
+        return counts
+            .OrderByDescending(pair => pair.Value)
+            .ThenBy(pair => ActionabilityRank(pair.Key))
+            .First().Key;
+    }
+
+    private static DownloadFailureKind ClassifySoundCloudLine(string line)
+    {
+        if (Has("rate limit") || Has("HTTP Error 429") || Has("Unable to extract client id"))
+            return DownloadFailureKind.SoundCloudRateLimited;
+
+        if (Has("not available from your location") || Has("geo restricted") || Has("geo-restricted"))
+            return DownloadFailureKind.SoundCloudGeoBlocked;
+
+        // Match yt-dlp's actual wording ("This video is DRM protected") rather than a bare
+        // "DRM": the error line carries the track title, and a three-letter substring test
+        // would misfire on any title that happened to contain those letters.
+        if (Has("DRM protected") || Has("only available for registered users") || Has("not available for this client"))
+            return DownloadFailureKind.SoundCloudPaidOrProtected;
+
+        if (Has("HTTP Error 404") || Has("HTTP Error 403"))
+            return DownloadFailureKind.SoundCloudNotFound;
 
         return DownloadFailureKind.Unknown;
 
-        bool Has(string needle) => message.Contains(needle, StringComparison.OrdinalIgnoreCase);
+        bool Has(string needle) => line.Contains(needle, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static async Task<YtDlpDownloadResult> DownloadAudioAttemptAsync(string url, string outputDirectory, YtDownloadMode mode, string denoArg, string ffmpegArg, bool useCookies, Action<YtDlpProgressInfo>? onProgress)
+    private static int ActionabilityRank(DownloadFailureKind kind) => kind switch
     {
-        string cookiesArg = useCookies ? CookiesArg : string.Empty;
+        DownloadFailureKind.SoundCloudRateLimited => 0,
+        DownloadFailureKind.SoundCloudGeoBlocked => 1,
+        DownloadFailureKind.SoundCloudNotFound => 2,
+        DownloadFailureKind.SoundCloudPaidOrProtected => 3,
+        _ => 4,
+    };
+
+    private static async Task<YtDlpDownloadResult> DownloadAudioAttemptAsync(string url, string outputDirectory, YtDownloadMode mode, string denoArg, string ffmpegArg, string cookiesArg, Action<YtDlpProgressInfo>? onProgress)
+    {
         string playlistFlag = mode == YtDownloadMode.Playlist ? "--yes-playlist" : "--no-playlist";
 
         // Two things going on in the arguments below:

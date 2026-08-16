@@ -400,6 +400,63 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        private const string SoundCloudTokenValueName = "SoundCloudToken";
+
+        /// <summary>
+        /// True when a SoundCloud token is on file. Lets the settings UI show sign-in
+        /// state without decrypting, and without the token ever entering memory.
+        /// </summary>
+        public static bool HasSoundCloudToken =>
+            !string.IsNullOrEmpty(Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue(SoundCloudTokenValueName, "") as string);
+
+        /// <summary>
+        /// The SoundCloud `oauth_token` cookie value, encrypted at rest with Windows DPAPI
+        /// under the current user. Empty string means signed out.
+        ///
+        /// Getting this returns the plaintext token, so treat the result as a credential:
+        /// don't log it, and don't put it on a command line where other processes can read
+        /// it. A DPAPI blob can't be decrypted after a Windows profile change, so a failure
+        /// to unprotect is treated as "signed out" and the stale value is discarded rather
+        /// than thrown to the caller.
+        /// </summary>
+        public static string SoundCloudToken
+        {
+            get
+            {
+                var stored = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue(SoundCloudTokenValueName, "") as string;
+                if (string.IsNullOrEmpty(stored))
+                    return "";
+
+                try
+                {
+                    byte[] plain = System.Security.Cryptography.ProtectedData.Unprotect(
+                        Convert.FromBase64String(stored), null,
+                        System.Security.Cryptography.DataProtectionScope.CurrentUser);
+                    return System.Text.Encoding.UTF8.GetString(plain);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarn("Stored SoundCloud sign-in could not be read and has been discarded; sign in again. {Error}", ex.Message);
+                    try { SoundCloudToken = ""; } catch { }
+                    return "";
+                }
+            }
+            set
+            {
+                using var key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    key?.DeleteValue(SoundCloudTokenValueName, throwOnMissingValue: false);
+                    return;
+                }
+
+                byte[] blob = System.Security.Cryptography.ProtectedData.Protect(
+                    System.Text.Encoding.UTF8.GetBytes(value.Trim()), null,
+                    System.Security.Cryptography.DataProtectionScope.CurrentUser);
+                key?.SetValue(SoundCloudTokenValueName, Convert.ToBase64String(blob));
+            }
+        }
+
         /// <summary>
         /// BCP-47 language tag overriding the UI language (e.g. "en-US", "zh-Hans").
         /// Empty string means follow the system language. Default: "".

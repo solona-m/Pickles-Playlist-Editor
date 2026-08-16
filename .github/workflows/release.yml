@@ -102,6 +102,7 @@ jobs:
             --packTitle "$env:APP_TITLE" `
             --packAuthors "$env:APP_AUTHORS" `
             --runtime $env:RID `
+            --framework webview2 `
             --icon pickle.ico `
             --outputDir Releases
 

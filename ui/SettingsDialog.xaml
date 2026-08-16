@@ -84,6 +84,19 @@
         <TextBlock x:Name="CookieStatusText" Text="No cookies found. Use the VRCVideoCacher browser extension to send cookies." TextWrapping="Wrap"/>
         <Button x:Uid="ClearCookiesButton" x:Name="ClearCookiesButton" Content="Clear Cookies" Click="ClearCookiesButton_Click" HorizontalAlignment="Stretch"/>
 
+        <TextBlock x:Uid="SoundCloudAccountLabel" Text="SoundCloud Account" FontWeight="SemiBold"/>
+        <TextBlock x:Name="SoundCloudStatusText" Text="Not signed in." TextWrapping="Wrap"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button x:Uid="SoundCloudSignInButton" x:Name="SoundCloudSignInButton" Grid.Column="0" Margin="0,0,4,0"
+                    Content="Sign In" Click="SoundCloudSignInButton_Click" HorizontalAlignment="Stretch"/>
+            <Button x:Uid="SoundCloudSignOutButton" x:Name="SoundCloudSignOutButton" Grid.Column="1" Margin="4,0,0,0"
+                    Content="Sign Out" Click="SoundCloudSignOutButton_Click" HorizontalAlignment="Stretch"/>
+        </Grid>
+
         <Button x:Uid="OrganizeLibraryButton" Content="Organize Library" Click="OrganizeLibraryButton_Click" HorizontalAlignment="Stretch"/>
         <Button x:Uid="RepairLibraryButton" Content="Repair Library" Click="RepairLibraryButton_Click" HorizontalAlignment="Stretch"/>
         <Button x:Uid="ConvertToStereoButton" Content="Convert to Stereo" Click="ConvertToStereoButton_Click" HorizontalAlignment="Stretch"/>
