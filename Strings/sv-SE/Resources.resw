@@ -4,7 +4,7 @@
   <resheader name="version"><value>2.0</value></resheader>
   <data name="AddSongsButton.Label" xml:space="preserve"><value>Lägg till låtar</value></data>
   <data name="FromMyComputerMenuItem.Text" xml:space="preserve"><value>Från min dator</value></data>
-  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>Från YouTube</value></data>
+  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>Från en länk</value></data>
   <data name="NewButton.Label" xml:space="preserve"><value>Ny spellista</value></data>
   <data name="DeleteButton.Label" xml:space="preserve"><value>Ta bort</value></data>
   <data name="ShuffleButton.Label" xml:space="preserve"><value>Blanda</value></data>
@@ -59,10 +59,10 @@
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>System</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Omgivning</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organisera bibliotek</value></data>
-  <data name="YouTubeDlg.Title" xml:space="preserve"><value>Lägg till låtar från YouTube</value></data>
+  <data name="YouTubeDlg.Title" xml:space="preserve"><value>Lägg till låtar från en länk</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Ladda ner</value></data>
   <data name="YouTubeDlg.CloseButtonText" xml:space="preserve"><value>Stäng</value></data>
-  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>YouTube-URL:</value></data>
+  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>URL till låt, spellista eller set:</value></data>
   <data name="ModeLabel.Text" xml:space="preserve"><value>Läge:</value></data>
   <data name="SingleTrackItem.Content" xml:space="preserve"><value>Enstaka spår</value></data>
   <data name="PlaylistItem.Content" xml:space="preserve"><value>Spellista</value></data>
@@ -100,14 +100,21 @@
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>Låtfil hittades inte: {0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>Fel vid filsläppning: {0}</value></data>
   <data name="Dlg_ErrorDragDrop" xml:space="preserve"><value>Fel vid dra och släpp: {0}</value></data>
-  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Ange en YouTube-URL.</value></data>
+  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Ange en YouTube- eller SoundCloud-URL.</value></data>
+  <data name="Dlg_UnsupportedUrl" xml:space="preserve"><value>Det där ser inte ut som en webbadress. Klistra in en fullständig länk som börjar med https://</value></data>
   <data name="Prog_PreparingDownload" xml:space="preserve"><value>Förbereder nedladdning...</value></data>
   <data name="Prog_PostProcessingAudio" xml:space="preserve"><value>Efterbearbetar ljud...</value></data>
   <data name="Prog_PostProcessingFile" xml:space="preserve"><value>Efterbearbetar {0}</value></data>
   <data name="Prog_Done" xml:space="preserve"><value>Klart</value></data>
-  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>YouTube-nedladdning misslyckades: {0}</value></data>
+  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>Nedladdning misslyckades: {0}</value></data>
   <data name="Dlg_YTAddFailed" xml:space="preserve"><value>Det gick inte att lägga till nedladdade filer: {0}</value></data>
   <data name="YT_DefaultPlaylist" xml:space="preserve"><value>YouTube-spellista</value></data>
+  <data name="SC_DefaultPlaylist" xml:space="preserve"><value>SoundCloud-spellista</value></data>
+  <data name="URL_DefaultPlaylist" xml:space="preserve"><value>Nedladdad musik</value></data>
+  <data name="Dlg_SCGeoBlocked" xml:space="preserve"><value>Det här SoundCloud-spåret är inte tillgängligt i din region.</value></data>
+  <data name="Dlg_SCPaidTrack" xml:space="preserve"><value>Det här SoundCloud-spåret är kopieringsskyddat eller endast för Go+ och kan inte laddas ner.</value></data>
+  <data name="Dlg_SCNotFound" xml:space="preserve"><value>Det här SoundCloud-spåret eller settet är privat eller har tagits bort. Om det är olistat, använd hela delningslänken inklusive dess hemliga token.</value></data>
+  <data name="Dlg_SCRateLimited" xml:space="preserve"><value>SoundCloud begränsar nedladdningar just nu. Vänta cirka 10 minuter och försök igen.</value></data>
   <data name="Menu_ExtractAudio" xml:space="preserve"><value>Extrahera ljud</value></data>
   <data name="Menu_NormalizeAudio" xml:space="preserve"><value>Normalisera ljud</value></data>
   <data name="Menu_IncreaseVolume" xml:space="preserve"><value>Öka volym</value></data>

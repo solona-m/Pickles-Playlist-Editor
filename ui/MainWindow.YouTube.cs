@@ -19,23 +19,40 @@ namespace Pickles_Playlist_Editor
             if (result == null || result.DownloadedFiles == null || result.DownloadedFiles.Count == 0)
                 return;
 
+            // Held until after the overlay comes down: the error dialog is useless to a
+            // user who is still staring at a "Please Wait" spinner behind it.
+            string? errorMessage = null;
+
             try
             {
+                string fallbackName = DefaultPlaylistNameFor(result.Service);
+
+                // Importing a downloaded set is minutes of work — encoding each track to
+                // SCD plus BPM detection. Report it the same way the drag-and-drop import
+                // does, or the window just sits there looking dead.
+                SetProgressBarText(AppStrings.Prog_ImportingSongs);
+                SetProgressBarPercent(0);
+
+                var dispatcherQueue = _uiDispatcherQueue;
+                void ReportProgress(int percent) => dispatcherQueue.TryEnqueue(() => SetProgressBarPercent(percent));
+
+                var toImport = result.DownloadedFiles.ToArray();
+
                 string affectedName;
                 if (result.IsPlaylist)
                 {
-                    string playlistName = GetUniquePlaylistName(result.Title);
+                    string playlistName = GetUniquePlaylistName(result.Title, fallbackName);
                     await Task.Run(() => Playlist.Create(playlistName, string.Empty, null));
                     var playlists = Playlist.GetAll();
                     if (playlists.TryGetValue(playlistName, out var pl))
-                        await Task.Run(() => pl.Add(result.DownloadedFiles.ToArray()));
+                        await Task.Run(() => pl.Add(toImport, ReportProgress));
                     affectedName = playlistName;
                 }
                 else
                 {
                     string targetPlaylist = result.TargetPlaylistName ?? ResolveTargetPlaylistForSingle();
                     if (string.IsNullOrWhiteSpace(targetPlaylist))
-                        targetPlaylist = AppStrings.YT_DefaultPlaylist;
+                        targetPlaylist = fallbackName;
 
                     var playlists = Playlist.GetAll();
                     if (!playlists.ContainsKey(targetPlaylist))
@@ -44,7 +61,7 @@ namespace Pickles_Playlist_Editor
                         playlists = Playlist.GetAll();
                     }
                     if (playlists.TryGetValue(targetPlaylist, out var pl))
-                        await Task.Run(() => pl.Add(result.DownloadedFiles.ToArray()));
+                        await Task.Run(() => pl.Add(toImport, ReportProgress));
                     affectedName = targetPlaylist;
                 }
 
@@ -63,12 +80,21 @@ namespace Pickles_Playlist_Editor
             }
             catch (Exception ex)
             {
-                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.YTAddFailed(ex.Message));
+                Logger.LogError("Importing downloaded songs failed: {Error}", ex.Message);
+                errorMessage = AppStrings.YTAddFailed(ex.Message);
             }
             finally
             {
+                // The busy overlay sets MainContentGrid.IsHitTestVisible = false, so it has
+                // to come down on every path. Only the success path used to clear it (via
+                // SetProgressBarPercent(100)), which left a failed import with the whole
+                // window permanently unclickable behind a spinner.
+                ClearProgressDisplay();
                 CleanupYtTempFiles(result.DownloadedFiles);
             }
+
+            if (errorMessage != null)
+                await ShowDialogAsync(AppStrings.Dlg_Error, errorMessage);
         }
 
         private static void CleanupYtTempFiles(List<string> files)
@@ -83,11 +109,22 @@ namespace Pickles_Playlist_Editor
             catch { }
         }
 
-        private string GetUniquePlaylistName(string baseName)
+        /// <summary>
+        /// Name for an auto-created playlist when the download itself didn't supply a usable
+        /// title. Keeps a YouTube import reading "YouTube Playlist" as it always has.
+        /// </summary>
+        private static string DefaultPlaylistNameFor(MediaService service) => service switch
+        {
+            MediaService.YouTube => AppStrings.YT_DefaultPlaylist,
+            MediaService.SoundCloud => AppStrings.SC_DefaultPlaylist,
+            _ => AppStrings.URL_DefaultPlaylist,
+        };
+
+        private string GetUniquePlaylistName(string baseName, string fallbackName)
         {
             string candidate = SanitizeFileName(baseName);
             if (string.IsNullOrWhiteSpace(candidate))
-                candidate = AppStrings.YT_DefaultPlaylist;
+                candidate = fallbackName;
 
             var existing = Playlist.GetAll();
             if (!existing.ContainsKey(candidate))

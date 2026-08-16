@@ -15,6 +15,8 @@ namespace Pickles_Playlist_Editor
         public bool IsPlaylist { get; init; }
         public string Title { get; init; } = string.Empty;
         public string? TargetPlaylistName { get; init; }
+        /// <summary>Which site the links came from, used to name an auto-created playlist.</summary>
+        public MediaService Service { get; init; }
     }
 
     public sealed partial class YouTubeDownloadDialog : ContentDialog
@@ -59,13 +61,16 @@ namespace Pickles_Playlist_Editor
 
         private async void DownloadButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
-            var url = UrlTextBox.Text?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(url))
+            if (!MediaUrlInfo.TryValidate(UrlTextBox.Text, out var url))
             {
                 args.Cancel = true;
-                StatusLabel.Text = AppStrings.Dlg_EnterYouTubeUrl;
+                StatusLabel.Text = string.IsNullOrWhiteSpace(UrlTextBox.Text)
+                    ? AppStrings.Dlg_EnterYouTubeUrl
+                    : AppStrings.Dlg_UnsupportedUrl;
                 return;
             }
+
+            var service = MediaUrlInfo.Classify(url);
 
             var deferral = args.GetDeferral();
             IsPrimaryButtonEnabled = false;
@@ -101,6 +106,7 @@ namespace Pickles_Playlist_Editor
                     IsPlaylist = dlResult.IsPlaylist,
                     Title = dlResult.Title ?? string.Empty,
                     TargetPlaylistName = mode == YtDownloadMode.Single ? TargetPlaylistComboBox.SelectedItem as string : null,
+                    Service = service,
                 };
 
                 ProgressBar1.Value = 60;
@@ -124,14 +130,17 @@ namespace Pickles_Playlist_Editor
             }
             catch (Exception ex)
             {
-                bool needsCookies = ex.Message.Contains("Sign in to confirm your age", StringComparison.OrdinalIgnoreCase)
-                    || ex.Message.Contains("age-restricted", StringComparison.OrdinalIgnoreCase)
-                    || (ex.Message.Contains("cookies", StringComparison.OrdinalIgnoreCase) && ex.Message.Contains("authentication", StringComparison.OrdinalIgnoreCase));
-
-                if (needsCookies && YtDlpService.GetCookieStatus() == CookieStatus.Expired)
-                    StatusLabel.Text = "This video requires YouTube sign-in, but the saved cookies have expired. Re-export cookies using the VRCVideoCacher browser extension.";
-                else
-                    StatusLabel.Text = needsCookies ? AppStrings.Dlg_YTNoCookies : AppStrings.YTDownloadFailed(ex.Message);
+                StatusLabel.Text = YtDlpService.ClassifyFailure(ex.Message, service) switch
+                {
+                    DownloadFailureKind.YouTubeCookiesExpired =>
+                        "This video requires YouTube sign-in, but the saved cookies have expired. Re-export cookies using the VRCVideoCacher browser extension.",
+                    DownloadFailureKind.YouTubeNeedsCookies => AppStrings.Dlg_YTNoCookies,
+                    DownloadFailureKind.SoundCloudGeoBlocked => AppStrings.Dlg_SCGeoBlocked,
+                    DownloadFailureKind.SoundCloudPaidOrProtected => AppStrings.Dlg_SCPaidTrack,
+                    DownloadFailureKind.SoundCloudNotFound => AppStrings.Dlg_SCNotFound,
+                    DownloadFailureKind.SoundCloudRateLimited => AppStrings.Dlg_SCRateLimited,
+                    _ => AppStrings.YTDownloadFailed(ex.Message),
+                };
                 IsPrimaryButtonEnabled = true;
                 args.Cancel = true;
             }

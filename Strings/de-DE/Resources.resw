@@ -4,7 +4,7 @@
   <resheader name="version"><value>2.0</value></resheader>
   <data name="AddSongsButton.Label" xml:space="preserve"><value>Songs hinzufügen</value></data>
   <data name="FromMyComputerMenuItem.Text" xml:space="preserve"><value>Von meinem Computer</value></data>
-  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>Von YouTube</value></data>
+  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>Von einem Link</value></data>
   <data name="NewButton.Label" xml:space="preserve"><value>Neue Wiedergabeliste</value></data>
   <data name="DeleteButton.Label" xml:space="preserve"><value>Löschen</value></data>
   <data name="ShuffleButton.Label" xml:space="preserve"><value>Zufällige Wiedergabe</value></data>
@@ -59,10 +59,10 @@
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>System</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Umgebung</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Bibliothek organisieren</value></data>
-  <data name="YouTubeDlg.Title" xml:space="preserve"><value>Songs von YouTube hinzufügen</value></data>
+  <data name="YouTubeDlg.Title" xml:space="preserve"><value>Songs von einem Link hinzufügen</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Herunterladen</value></data>
   <data name="YouTubeDlg.CloseButtonText" xml:space="preserve"><value>Schließen</value></data>
-  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>YouTube-URL:</value></data>
+  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>URL eines Titels, einer Playlist oder eines Sets:</value></data>
   <data name="ModeLabel.Text" xml:space="preserve"><value>Modus:</value></data>
   <data name="SingleTrackItem.Content" xml:space="preserve"><value>Einzelner Track</value></data>
   <data name="PlaylistItem.Content" xml:space="preserve"><value>Wiedergabeliste</value></data>
@@ -100,14 +100,21 @@
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>Songdatei nicht gefunden: {0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>Fehler beim Ablegen der Datei: {0}</value></data>
   <data name="Dlg_ErrorDragDrop" xml:space="preserve"><value>Fehler beim Drag &amp; Drop: {0}</value></data>
-  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Bitte geben Sie eine YouTube-URL ein.</value></data>
+  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Bitte geben Sie eine YouTube- oder SoundCloud-URL ein.</value></data>
+  <data name="Dlg_UnsupportedUrl" xml:space="preserve"><value>Das sieht nicht nach einer Webadresse aus. Fügen Sie einen vollständigen Link ein, der mit https:// beginnt.</value></data>
   <data name="Prog_PreparingDownload" xml:space="preserve"><value>Download wird vorbereitet...</value></data>
   <data name="Prog_PostProcessingAudio" xml:space="preserve"><value>Audio wird nachbearbeitet...</value></data>
   <data name="Prog_PostProcessingFile" xml:space="preserve"><value>{0} wird nachbearbeitet</value></data>
   <data name="Prog_Done" xml:space="preserve"><value>Fertig</value></data>
-  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>YouTube-Download fehlgeschlagen: {0}</value></data>
+  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>Download fehlgeschlagen: {0}</value></data>
   <data name="Dlg_YTAddFailed" xml:space="preserve"><value>Fehler beim Hinzufügen heruntergeladener Dateien: {0}</value></data>
   <data name="YT_DefaultPlaylist" xml:space="preserve"><value>YouTube-Wiedergabeliste</value></data>
+  <data name="SC_DefaultPlaylist" xml:space="preserve"><value>SoundCloud-Wiedergabeliste</value></data>
+  <data name="URL_DefaultPlaylist" xml:space="preserve"><value>Heruntergeladene Musik</value></data>
+  <data name="Dlg_SCGeoBlocked" xml:space="preserve"><value>Dieser SoundCloud-Titel ist in Ihrer Region nicht verfügbar.</value></data>
+  <data name="Dlg_SCPaidTrack" xml:space="preserve"><value>Dieser SoundCloud-Titel ist kopiergeschützt oder nur mit Go+ verfügbar und kann nicht heruntergeladen werden.</value></data>
+  <data name="Dlg_SCNotFound" xml:space="preserve"><value>Dieser SoundCloud-Titel oder dieses Set ist privat oder wurde gelöscht. Bei nicht gelisteten Inhalten verwenden Sie den vollständigen Freigabelink samt Secret-Token.</value></data>
+  <data name="Dlg_SCRateLimited" xml:space="preserve"><value>SoundCloud begrenzt derzeit die Anzahl der Downloads. Warten Sie etwa 10 Minuten und versuchen Sie es erneut.</value></data>
   <data name="Menu_ExtractAudio" xml:space="preserve"><value>Audio extrahieren</value></data>
   <data name="Menu_NormalizeAudio" xml:space="preserve"><value>Audio normalisieren</value></data>
   <data name="Menu_IncreaseVolume" xml:space="preserve"><value>Lautstärke erhöhen</value></data>

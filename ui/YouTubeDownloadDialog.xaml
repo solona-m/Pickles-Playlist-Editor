@@ -3,7 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     x:Uid="YouTubeDlg"
-    Title="Add Songs From YouTube"
+    Title="Add Songs From a Link"
     PrimaryButtonText="Download"
     CloseButtonText="Close"
     PrimaryButtonClick="DownloadButton_Click"
@@ -11,8 +11,8 @@
 
     <StackPanel Spacing="8" MinWidth="480">
 
-        <TextBlock x:Uid="YouTubeUrlLabel" Text="YouTube URL:"/>
-        <TextBox x:Name="UrlTextBox"/>
+        <TextBlock x:Uid="YouTubeUrlLabel" Text="Track, playlist or set URL:"/>
+        <TextBox x:Name="UrlTextBox" PlaceholderText="https://soundcloud.com/... or https://youtube.com/..."/>
 
         <TextBlock x:Uid="ModeLabel" Text="Mode:"/>
         <ComboBox x:Name="ModeComboBox" SelectedIndex="0" HorizontalAlignment="Stretch" SelectionChanged="ModeComboBox_SelectionChanged">

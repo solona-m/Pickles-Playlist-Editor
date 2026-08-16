@@ -4,7 +4,7 @@
   <resheader name="version"><value>2.0</value></resheader>
   <data name="AddSongsButton.Label" xml:space="preserve"><value>Add Songs</value></data>
   <data name="FromMyComputerMenuItem.Text" xml:space="preserve"><value>From My Computer</value></data>
-  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>From YouTube</value></data>
+  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>From a Link</value></data>
   <data name="NewButton.Label" xml:space="preserve"><value>New Playlist</value></data>
   <data name="DeleteButton.Label" xml:space="preserve"><value>Delete</value></data>
   <data name="ShuffleButton.Label" xml:space="preserve"><value>Shuffle</value></data>
@@ -59,10 +59,10 @@
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>System</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Ambient</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organize Library</value></data>
-  <data name="YouTubeDlg.Title" xml:space="preserve"><value>Add Songs From YouTube</value></data>
+  <data name="YouTubeDlg.Title" xml:space="preserve"><value>Add Songs From a Link</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Download</value></data>
   <data name="YouTubeDlg.CloseButtonText" xml:space="preserve"><value>Close</value></data>
-  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>YouTube URL:</value></data>
+  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>Track, playlist or set URL:</value></data>
   <data name="ModeLabel.Text" xml:space="preserve"><value>Mode:</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Target Playlist:</value></data>
   <data name="SingleTrackItem.Content" xml:space="preserve"><value>Single Track</value></data>
@@ -101,14 +101,21 @@
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>Song file not found: {0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>Error during file drop: {0}</value></data>
   <data name="Dlg_ErrorDragDrop" xml:space="preserve"><value>Error during drag and drop: {0}</value></data>
-  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Please enter a YouTube URL.</value></data>
+  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Please enter a YouTube or SoundCloud URL.</value></data>
+  <data name="Dlg_UnsupportedUrl" xml:space="preserve"><value>That doesn't look like a web address. Paste a full link starting with https://</value></data>
   <data name="Prog_PreparingDownload" xml:space="preserve"><value>Preparing download...</value></data>
   <data name="Prog_PostProcessingAudio" xml:space="preserve"><value>Post-processing audio...</value></data>
   <data name="Prog_PostProcessingFile" xml:space="preserve"><value>Post-processing {0}</value></data>
   <data name="Prog_Done" xml:space="preserve"><value>Done</value></data>
-  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>YouTube download failed: {0}</value></data>
+  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>Download failed: {0}</value></data>
   <data name="Dlg_YTAddFailed" xml:space="preserve"><value>Failed to add downloaded files: {0}</value></data>
   <data name="YT_DefaultPlaylist" xml:space="preserve"><value>YouTube Playlist</value></data>
+  <data name="SC_DefaultPlaylist" xml:space="preserve"><value>SoundCloud Playlist</value></data>
+  <data name="URL_DefaultPlaylist" xml:space="preserve"><value>Downloaded Music</value></data>
+  <data name="Dlg_SCGeoBlocked" xml:space="preserve"><value>This SoundCloud track isn't available in your region.</value></data>
+  <data name="Dlg_SCPaidTrack" xml:space="preserve"><value>This SoundCloud track is copy-protected or Go+ only, so it can't be downloaded.</value></data>
+  <data name="Dlg_SCNotFound" xml:space="preserve"><value>This SoundCloud track or set is private or has been deleted. If it's unlisted, use the full share link including its secret token.</value></data>
+  <data name="Dlg_SCRateLimited" xml:space="preserve"><value>SoundCloud is rate-limiting downloads right now. Wait about 10 minutes and try again.</value></data>
   <data name="Menu_ExtractAudio" xml:space="preserve"><value>Extract Audio</value></data>
   <data name="Menu_NormalizeAudio" xml:space="preserve"><value>Normalize Audio</value></data>
   <data name="Menu_IncreaseVolume" xml:space="preserve"><value>Increase Volume</value></data>

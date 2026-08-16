@@ -4,7 +4,7 @@
   <resheader name="version"><value>2.0</value></resheader>
   <data name="AddSongsButton.Label" xml:space="preserve"><value>Nummers toevoegen</value></data>
   <data name="FromMyComputerMenuItem.Text" xml:space="preserve"><value>Van mijn computer</value></data>
-  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>Van YouTube</value></data>
+  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>Van een link</value></data>
   <data name="NewButton.Label" xml:space="preserve"><value>Nieuwe afspeellijst</value></data>
   <data name="DeleteButton.Label" xml:space="preserve"><value>Verwijderen</value></data>
   <data name="ShuffleButton.Label" xml:space="preserve"><value>Willekeurig</value></data>
@@ -59,10 +59,10 @@
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>Systeem</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Omgeving</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Bibliotheek ordenen</value></data>
-  <data name="YouTubeDlg.Title" xml:space="preserve"><value>Nummers toevoegen van YouTube</value></data>
+  <data name="YouTubeDlg.Title" xml:space="preserve"><value>Nummers toevoegen van een link</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Downloaden</value></data>
   <data name="YouTubeDlg.CloseButtonText" xml:space="preserve"><value>Sluiten</value></data>
-  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>YouTube-URL:</value></data>
+  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>URL van nummer, afspeellijst of set:</value></data>
   <data name="ModeLabel.Text" xml:space="preserve"><value>Modus:</value></data>
   <data name="SingleTrackItem.Content" xml:space="preserve"><value>Enkel nummer</value></data>
   <data name="PlaylistItem.Content" xml:space="preserve"><value>Afspeellijst</value></data>
@@ -100,14 +100,21 @@
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>Nummerbestand niet gevonden: {0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>Fout bij slepen van bestanden: {0}</value></data>
   <data name="Dlg_ErrorDragDrop" xml:space="preserve"><value>Fout bij slepen en neerzetten: {0}</value></data>
-  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Voer een YouTube-URL in.</value></data>
+  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Voer een YouTube- of SoundCloud-URL in.</value></data>
+  <data name="Dlg_UnsupportedUrl" xml:space="preserve"><value>Dat lijkt geen webadres. Plak een volledige link die begint met https://</value></data>
   <data name="Prog_PreparingDownload" xml:space="preserve"><value>Download voorbereiden...</value></data>
   <data name="Prog_PostProcessingAudio" xml:space="preserve"><value>Audio nabewerken...</value></data>
   <data name="Prog_PostProcessingFile" xml:space="preserve"><value>{0} nabewerken</value></data>
   <data name="Prog_Done" xml:space="preserve"><value>Klaar</value></data>
-  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>YouTube-download mislukt: {0}</value></data>
+  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>Download mislukt: {0}</value></data>
   <data name="Dlg_YTAddFailed" xml:space="preserve"><value>Toevoegen van gedownloade bestanden mislukt: {0}</value></data>
   <data name="YT_DefaultPlaylist" xml:space="preserve"><value>YouTube-afspeellijst</value></data>
+  <data name="SC_DefaultPlaylist" xml:space="preserve"><value>SoundCloud-afspeellijst</value></data>
+  <data name="URL_DefaultPlaylist" xml:space="preserve"><value>Gedownloade muziek</value></data>
+  <data name="Dlg_SCGeoBlocked" xml:space="preserve"><value>Dit SoundCloud-nummer is niet beschikbaar in jouw regio.</value></data>
+  <data name="Dlg_SCPaidTrack" xml:space="preserve"><value>Dit SoundCloud-nummer is kopieerbeveiligd of alleen voor Go+, dus het kan niet worden gedownload.</value></data>
+  <data name="Dlg_SCNotFound" xml:space="preserve"><value>Dit SoundCloud-nummer of deze set is privé of verwijderd. Gebruik bij een verborgen link de volledige deellink inclusief het geheime token.</value></data>
+  <data name="Dlg_SCRateLimited" xml:space="preserve"><value>SoundCloud beperkt momenteel het aantal downloads. Wacht ongeveer 10 minuten en probeer het opnieuw.</value></data>
   <data name="Menu_ExtractAudio" xml:space="preserve"><value>Audio extraheren</value></data>
   <data name="Menu_NormalizeAudio" xml:space="preserve"><value>Audio normaliseren</value></data>
   <data name="Menu_IncreaseVolume" xml:space="preserve"><value>Volume verhogen</value></data>

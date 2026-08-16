@@ -21,6 +21,22 @@ public enum YtDownloadMode
     Playlist
 }
 
+/// <summary>
+/// A recognized download failure, so the UI can explain it in plain language instead of
+/// echoing a raw yt-dlp error.
+/// </summary>
+public enum DownloadFailureKind
+{
+    /// <summary>Not recognized — show the underlying yt-dlp message.</summary>
+    Unknown,
+    YouTubeNeedsCookies,
+    YouTubeCookiesExpired,
+    SoundCloudGeoBlocked,
+    SoundCloudPaidOrProtected,
+    SoundCloudNotFound,
+    SoundCloudRateLimited
+}
+
 public enum CookieStatus
 {
     NotFound,
@@ -40,7 +56,14 @@ public sealed class YtDlpProgressInfo
 public static class YtDlpService
 {
     private const string YtDlpExeName = "yt-dlp.exe";
-    private static readonly string ToolDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PicklesPlaylistEditor", "current", "tools");
+    private static readonly string LocalAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+    // Deliberately a sibling of Velopack's "current" install folder, not inside it.
+    // Velopack replaces "current" wholesale on every app self-update, which used to
+    // delete yt-dlp.exe, deno.exe and the saved cookie jar along with it. This matches
+    // where Playlist.BackupDir and Logger already put their data.
+    private static readonly string ToolDirectory = Path.Combine(LocalAppData, "PicklesPlaylistEditor", "tools");
+    private static readonly string LegacyToolDirectory = Path.Combine(LocalAppData, "PicklesPlaylistEditor", "current", "tools");
     private static readonly string LocalYtDlpPath = Path.Combine(ToolDirectory, YtDlpExeName);
     private static readonly string CookiesSavePath = Path.Combine(ToolDirectory, "cookies.txt");
     private static readonly string DenoExePath = Path.Combine(ToolDirectory, "deno.exe");
@@ -106,6 +129,9 @@ public static class YtDlpService
 
     public static void StartCookieListener()
     {
+        // Runs at app launch, well before EnsureUpToDateAsync, so the migration has to
+        // happen here too or the first cookie lookup of the session misses the old jar.
+        MigrateLegacyToolDirectory();
         _cookiesPath = FindCookiesFile();
         try
         {
@@ -194,22 +220,48 @@ public static class YtDlpService
         ? $"--ffmpeg-location \"{AppDirectory}\""
         : string.Empty;
 
+    /// <summary>
+    /// Carries a cookie jar left in the pre-move location over to the durable one.
+    /// The binaries aren't worth migrating — they re-download in seconds — but the
+    /// cookies came from a manual browser-extension export the user would have to redo.
+    /// </summary>
+    private static void MigrateLegacyToolDirectory()
+    {
+        try
+        {
+            string legacyCookies = Path.Combine(LegacyToolDirectory, "cookies.txt");
+            if (File.Exists(legacyCookies) && !File.Exists(CookiesSavePath))
+            {
+                Directory.CreateDirectory(ToolDirectory);
+                File.Copy(legacyCookies, CookiesSavePath);
+                Logger.LogInfo("Migrated saved cookies out of the Velopack 'current' folder so app updates stop wiping them.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarn("Could not migrate the old cookie file (harmless): {Error}", ex.Message);
+        }
+    }
+
     public static async Task EnsureUpToDateAsync()
     {
         Directory.CreateDirectory(ToolDirectory);
+        MigrateLegacyToolDirectory();
         using var client = new HttpClient();
 
         if (!File.Exists(LocalYtDlpPath))
         {
-            var bytes = await client.GetByteArrayAsync("https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp.exe");
-            await File.WriteAllBytesAsync(LocalYtDlpPath, bytes);
+            var bytes = await client.GetByteArrayAsync("https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp.exe").ConfigureAwait(false);
+            await File.WriteAllBytesAsync(LocalYtDlpPath, bytes).ConfigureAwait(false);
         }
 
         if (!File.Exists(DenoExePath))
         {
-            var denoBytes = await client.GetByteArrayAsync("https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip");
-            await File.WriteAllBytesAsync(DenoZipPath, denoBytes);
-            ZipFile.ExtractToDirectory(DenoZipPath, ToolDirectory, overwriteFiles: true);
+            var denoBytes = await client.GetByteArrayAsync("https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip").ConfigureAwait(false);
+            await File.WriteAllBytesAsync(DenoZipPath, denoBytes).ConfigureAwait(false);
+            // Unpacking deno writes ~93 MB and has no async overload, so it has to be
+            // pushed off the caller's thread explicitly or it stalls the window.
+            await Task.Run(() => ZipFile.ExtractToDirectory(DenoZipPath, ToolDirectory, overwriteFiles: true)).ConfigureAwait(false);
             try { File.Delete(DenoZipPath); } catch { }
         }
 
@@ -221,7 +273,7 @@ public static class YtDlpService
         // network error would otherwise make the feature unusable while offline.
         try
         {
-            await RunYtDlpAsync("--update-to nightly");
+            await RunYtDlpAsync("--update-to nightly").ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -232,40 +284,161 @@ public static class YtDlpService
     public static async Task<YtDlpDownloadResult> DownloadAudioAsync(string url, string outputDirectory, YtDownloadMode mode, Action<YtDlpProgressInfo>? onProgress = null)
     {
         Directory.CreateDirectory(outputDirectory);
-        string playlistFlag = mode == YtDownloadMode.Playlist ? "--yes-playlist" : "--no-playlist";
         string denoArg = DenoArg;
         string ffmpegArg = FfmpegArg;
 
         try
         {
-            return await DownloadAudioAttemptAsync(url, outputDirectory, playlistFlag, denoArg, ffmpegArg, useCookies: false, onProgress);
+            return await DownloadAudioAttemptAsync(url, outputDirectory, mode, denoArg, ffmpegArg, useCookies: false, onProgress).ConfigureAwait(false);
         }
-        catch (Exception) when (GetCookieStatus() == CookieStatus.Valid)
+        catch (Exception ex) when (ShouldRetryWithCookies(url, ex))
         {
-            return await DownloadAudioAttemptAsync(url, outputDirectory, playlistFlag, denoArg, ffmpegArg, useCookies: true, onProgress);
+            Logger.LogInfo("Retrying the download with saved YouTube cookies after a sign-in error.");
+            return await DownloadAudioAttemptAsync(url, outputDirectory, mode, denoArg, ffmpegArg, useCookies: true, onProgress).ConfigureAwait(false);
         }
     }
 
-    private static async Task<YtDlpDownloadResult> DownloadAudioAttemptAsync(string url, string outputDirectory, string playlistFlag, string denoArg, string ffmpegArg, bool useCookies, Action<YtDlpProgressInfo>? onProgress)
+    /// <summary>
+    /// The saved jar is a YouTube jar, so replaying a download with it only ever helps a
+    /// YouTube sign-in failure. This used to catch every exception, which meant an
+    /// unrelated failure (a SoundCloud 404, a full disk, bad JSON) silently ran the whole
+    /// download a second time with irrelevant cookies attached.
+    /// </summary>
+    private static bool ShouldRetryWithCookies(string url, Exception ex) =>
+        MediaUrlInfo.Classify(url) == MediaService.YouTube
+        && GetCookieStatus() == CookieStatus.Valid
+        && LooksLikeAuthFailure(ex.Message);
+
+    /// <summary>
+    /// Recognizes the yt-dlp errors that a signed-in session would actually fix. Feeds
+    /// both the cookie retry and <see cref="ClassifyFailure"/>, so the decision to retry
+    /// and the hint the user is shown can't drift apart.
+    /// </summary>
+    private static bool LooksLikeAuthFailure(string? message)
+    {
+        if (string.IsNullOrEmpty(message))
+            return false;
+
+        return message.Contains("Sign in to confirm your age", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("age-restricted", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Sign in to confirm you're not a bot", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("members-only", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("private video", StringComparison.OrdinalIgnoreCase)
+            || (message.Contains("cookies", StringComparison.OrdinalIgnoreCase)
+                && message.Contains("authentication", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Sorts a raw yt-dlp error into something worth showing a user. Anything unrecognized
+    /// stays <see cref="DownloadFailureKind.Unknown"/> so the original text is surfaced
+    /// rather than replaced by a guess.
+    /// </summary>
+    public static DownloadFailureKind ClassifyFailure(string? message, MediaService service)
+    {
+        if (string.IsNullOrEmpty(message))
+            return DownloadFailureKind.Unknown;
+
+        if (service == MediaService.YouTube && LooksLikeAuthFailure(message))
+        {
+            return GetCookieStatus() == CookieStatus.Expired
+                ? DownloadFailureKind.YouTubeCookiesExpired
+                : DownloadFailureKind.YouTubeNeedsCookies;
+        }
+
+        if (service == MediaService.SoundCloud)
+        {
+            if (Has("rate limit") || Has("HTTP Error 429") || Has("Unable to extract client id"))
+                return DownloadFailureKind.SoundCloudRateLimited;
+
+            if (Has("DRM") || Has("only available for registered users") || Has("not available for this client"))
+                return DownloadFailureKind.SoundCloudPaidOrProtected;
+
+            if (Has("not available from your location") || Has("geo restricted") || Has("geo-restricted"))
+                return DownloadFailureKind.SoundCloudGeoBlocked;
+
+            if (Has("HTTP Error 404") || Has("HTTP Error 403"))
+                return DownloadFailureKind.SoundCloudNotFound;
+        }
+
+        return DownloadFailureKind.Unknown;
+
+        bool Has(string needle) => message.Contains(needle, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static async Task<YtDlpDownloadResult> DownloadAudioAttemptAsync(string url, string outputDirectory, YtDownloadMode mode, string denoArg, string ffmpegArg, bool useCookies, Action<YtDlpProgressInfo>? onProgress)
     {
         string cookiesArg = useCookies ? CookiesArg : string.Empty;
+        string playlistFlag = mode == YtDownloadMode.Playlist ? "--yes-playlist" : "--no-playlist";
 
-        var infoJson = await RunYtDlpAsync($"--dump-single-json --no-warnings --skip-download {denoArg} {playlistFlag} {cookiesArg} \"{url}\"");
+        // Two things going on in the arguments below:
+        //  - "--" terminates option parsing, so a URL beginning with "-" can't be read as
+        //    a flag. The URL itself is quoted, and MediaUrlInfo.TryValidate rejects both
+        //    '"' and '\' — the only two characters that can end a quoted argument early
+        //    under CommandLineToArgvW — so it can't break out of that quoting either.
+        //  - --flat-playlist keeps the probe cheap. Without it yt-dlp fully resolves every
+        //    entry before the download even starts; on a SoundCloud user page or a large
+        //    YouTube playlist that's hundreds of API calls against a rate-limited endpoint.
+        //    _type, title and a countable entries array are all still present under it.
+        var infoJson = await RunYtDlpAsync($"--dump-single-json --flat-playlist --no-warnings --skip-download {denoArg} {playlistFlag} {cookiesArg} -- \"{url}\"").ConfigureAwait(false);
         var parsed = JObject.Parse(infoJson);
-        var title = parsed.Value<string>("title") ?? "YouTube Download";
+        var title = parsed.Value<string>("title") ?? "Download";
         bool isPlaylist = string.Equals(parsed.Value<string>("_type"), "playlist", StringComparison.OrdinalIgnoreCase);
         int totalItems = Math.Max(1, parsed["entries"]?.Count() ?? (isPlaylist ? 0 : 1));
 
-        string template = "%(title)s.%(ext)s";
+        // --no-playlist only works on URLs that are simultaneously one item and a list
+        // (YouTube's watch?v=..&list=..). SoundCloud's /sets/, user and /likes URLs carry
+        // no single-track id, so their extractors ignore it entirely and hand back the
+        // whole set — meaning "Single Track" on a SoundCloud set used to dump every track
+        // into the target playlist. Cap explicitly when the probe contradicts the mode.
+        bool capToFirstItem = isPlaylist && mode == YtDownloadMode.Single;
+        string itemsArg = capToFirstItem ? "--playlist-items 1" : string.Empty;
+        if (capToFirstItem)
+        {
+            Logger.LogInfo("URL resolved to a playlist but Single Track was requested; limiting to the first item.");
+            totalItems = 1;
+        }
+
+        // Numbering the files does two jobs on a multi-track download: it keeps the
+        // playlist's own order (the glob below is alphabetical, which otherwise scrambles
+        // an album), and it stops two tracks with the same title from resolving to one
+        // filename, where yt-dlp would skip the second as "already downloaded".
+        //
+        // Pad to 5 digits, not 3: the sort is a plain ordinal string compare, so as soon
+        // as the index gains a digit the padding stops equalising the width and ordering
+        // breaks ("1000 - " sorts before "999 - "). A SoundCloud user page or /likes feed
+        // can easily run past a thousand tracks; 5 digits covers anything realistic.
+        bool numbered = isPlaylist && !capToFirstItem;
+        string template = numbered ? "%(playlist_index)05d - %(title)s.%(ext)s" : "%(title)s.%(ext)s";
         string outputArg = $"-o \"{Path.Combine(outputDirectory, template)}\"";
-        await RunYtDlpWithProgressAsync($"-f bestaudio/best -x --audio-format vorbis --audio-quality 5 --newline --no-warnings {denoArg} {ffmpegArg} {playlistFlag} {cookiesArg} {outputArg} \"{url}\"", totalItems, onProgress);
+        var run = await RunYtDlpWithProgressAsync($"-f bestaudio/best -x --audio-format vorbis --audio-quality 5 --newline --no-warnings {denoArg} {ffmpegArg} {playlistFlag} {itemsArg} {cookiesArg} {outputArg} -- \"{url}\"", totalItems, onProgress).ConfigureAwait(false);
 
-        var files = Directory.GetFiles(outputDirectory, "*.ogg", SearchOption.TopDirectoryOnly)
-            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        // Enumerating and renaming a whole set's worth of files is blocking disk work, so
+        // keep it off the caller's thread along with everything else here.
+        var files = await Task.Run(() =>
+        {
+            var found = Directory.GetFiles(outputDirectory, "*.ogg", SearchOption.TopDirectoryOnly)
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
+            // Song names come from the file name (Playlist.AddFiles uses
+            // Path.GetFileNameWithoutExtension), so drop the ordering prefix now that the
+            // sort has served its purpose — otherwise every track shows up as "00001 - Name".
+            return numbered ? StripOrderingPrefixes(found) : found;
+        }).ConfigureAwait(false);
+
+        // Only treat a non-zero exit as fatal when nothing survived it. Individual tracks
+        // failing mid-set is normal on SoundCloud — DRM-protected tracks are common, and
+        // yt-dlp still exits non-zero after downloading every other track in the set.
+        // Throwing there would have thrown away a whole album over one bad track.
         if (files.Count == 0)
-            throw new InvalidOperationException("yt-dlp completed but no OGG files were created.");
+        {
+            throw new InvalidOperationException(run.ExitCode != 0
+                ? $"yt-dlp failed ({run.ExitCode}): {run.Error}"
+                : "yt-dlp completed but no OGG files were created.");
+        }
+
+        if (run.ExitCode != 0)
+            Logger.LogWarn("Some tracks in this download could not be fetched, keeping the {Count} that succeeded: {Error}", files.Count, run.Error);
 
         return new YtDlpDownloadResult
         {
@@ -273,6 +446,55 @@ public static class YtDlpService
             Title = title,
             DownloadedFiles = files
         };
+    }
+
+    /// <summary>
+    /// Renames "00001 - Track.ogg" back to "Track.ogg", preserving the order the files were
+    /// passed in. Where two tracks in the same set really do share a title, the later one
+    /// keeps a " (2)" suffix so it can't overwrite the first. Any single rename that fails
+    /// leaves that file under its prefixed name rather than losing it.
+    /// </summary>
+    private static List<string> StripOrderingPrefixes(List<string> files)
+    {
+        var result = new List<string>(files.Count);
+
+        foreach (var file in files)
+        {
+            string dir = Path.GetDirectoryName(file) ?? string.Empty;
+            string name = Path.GetFileNameWithoutExtension(file);
+            string ext = Path.GetExtension(file);
+
+            int sep = name.IndexOf(" - ", StringComparison.Ordinal);
+            if (sep <= 0 || !name.Substring(0, sep).All(char.IsDigit))
+            {
+                result.Add(file);
+                continue;
+            }
+
+            string stripped = name.Substring(sep + 3).Trim();
+            if (stripped.Length == 0)
+            {
+                result.Add(file);
+                continue;
+            }
+
+            string target = Path.Combine(dir, stripped + ext);
+            for (int i = 2; File.Exists(target); i++)
+                target = Path.Combine(dir, $"{stripped} ({i}){ext}");
+
+            try
+            {
+                File.Move(file, target);
+                result.Add(target);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarn("Could not rename '{File}' (keeping the numbered name): {Error}", Path.GetFileName(file), ex.Message);
+                result.Add(file);
+            }
+        }
+
+        return result;
     }
 
     private static async Task<string> RunYtDlpAsync(string arguments)
@@ -288,9 +510,9 @@ public static class YtDlpService
         process.Start();
         Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
         Task<string> stderrTask = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        string stdout = await stdoutTask;
-        string stderr = await stderrTask;
+        await process.WaitForExitAsync().ConfigureAwait(false);
+        string stdout = await stdoutTask.ConfigureAwait(false);
+        string stderr = await stderrTask.ConfigureAwait(false);
 
         if (process.ExitCode != 0)
             throw new InvalidOperationException($"yt-dlp failed ({process.ExitCode}): {stderr}");
@@ -298,7 +520,14 @@ public static class YtDlpService
         return stdout;
     }
 
-    private static async Task RunYtDlpWithProgressAsync(string arguments, int totalItems, Action<YtDlpProgressInfo>? onProgress)
+    /// <summary>
+    /// Outcome of a download run. Reported rather than thrown, so the caller can decide
+    /// whether a non-zero exit actually cost anything — a part-failed set still leaves
+    /// usable files behind.
+    /// </summary>
+    private sealed record YtDlpRunResult(int ExitCode, string Error);
+
+    private static async Task<YtDlpRunResult> RunYtDlpWithProgressAsync(string arguments, int totalItems, Action<YtDlpProgressInfo>? onProgress)
     {
         using var process = new Process();
         process.StartInfo.FileName = LocalYtDlpPath;
@@ -315,17 +544,22 @@ public static class YtDlpService
         process.Start();
         Task stderrTask = Task.Run(async () =>
         {
-            while (!process.StandardError.EndOfStream)
+            string? errLine;
+            while ((errLine = await process.StandardError.ReadLineAsync().ConfigureAwait(false)) != null)
             {
-                string? errLine = await process.StandardError.ReadLineAsync();
                 if (!string.IsNullOrWhiteSpace(errLine))
                     stderrBuffer.Add(errLine.Trim());
             }
         });
 
-        while (!process.StandardOutput.EndOfStream)
+        // Loop on ReadLineAsync returning null rather than testing EndOfStream: that
+        // property does a *synchronous* Peek on the pipe, so it blocks whichever thread
+        // asks — and this runs from an async void click handler, i.e. the UI thread.
+        // Combined with the missing ConfigureAwait below it froze the whole window for
+        // the length of the download.
+        string? line;
+        while ((line = await process.StandardOutput.ReadLineAsync().ConfigureAwait(false)) != null)
         {
-            string? line = await process.StandardOutput.ReadLineAsync();
             if (string.IsNullOrWhiteSpace(line))
                 continue;
 
@@ -349,13 +583,11 @@ public static class YtDlpService
             }
         }
 
-        await process.WaitForExitAsync();
-        await stderrTask;
-        if (process.ExitCode != 0)
-        {
-            string err = string.Join(Environment.NewLine, stderrBuffer.Where(x => !string.IsNullOrWhiteSpace(x)));
-            throw new InvalidOperationException($"yt-dlp failed ({process.ExitCode}): {err}");
-        }
+        await process.WaitForExitAsync().ConfigureAwait(false);
+        await stderrTask.ConfigureAwait(false);
+
+        string err = string.Join(Environment.NewLine, stderrBuffer.Where(x => !string.IsNullOrWhiteSpace(x)));
+        return new YtDlpRunResult(process.ExitCode, err);
     }
 
     private static double? TryParsePercent(string line)

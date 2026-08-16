@@ -4,7 +4,7 @@
   <resheader name="version"><value>2.0</value></resheader>
   <data name="AddSongsButton.Label" xml:space="preserve"><value>添加歌曲</value></data>
   <data name="FromMyComputerMenuItem.Text" xml:space="preserve"><value>从我的电脑</value></data>
-  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>从 YouTube</value></data>
+  <data name="FromYouTubeMenuItem.Text" xml:space="preserve"><value>从链接</value></data>
   <data name="NewButton.Label" xml:space="preserve"><value>新建播放列表</value></data>
   <data name="DeleteButton.Label" xml:space="preserve"><value>删除</value></data>
   <data name="ShuffleButton.Label" xml:space="preserve"><value>随机播放</value></data>
@@ -59,10 +59,10 @@
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>系统音</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>环境音</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>整理音乐库</value></data>
-  <data name="YouTubeDlg.Title" xml:space="preserve"><value>从 YouTube 添加歌曲</value></data>
+  <data name="YouTubeDlg.Title" xml:space="preserve"><value>从链接添加歌曲</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>下载</value></data>
   <data name="YouTubeDlg.CloseButtonText" xml:space="preserve"><value>关闭</value></data>
-  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>YouTube 链接：</value></data>
+  <data name="YouTubeUrlLabel.Text" xml:space="preserve"><value>单曲、播放列表或合集链接：</value></data>
   <data name="ModeLabel.Text" xml:space="preserve"><value>模式：</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>目标播放列表：</value></data>
   <data name="SingleTrackItem.Content" xml:space="preserve"><value>单曲</value></data>
@@ -101,14 +101,21 @@
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>未找到歌曲文件：{0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>拖放文件时出错：{0}</value></data>
   <data name="Dlg_ErrorDragDrop" xml:space="preserve"><value>拖放时出错：{0}</value></data>
-  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>请输入 YouTube 链接。</value></data>
+  <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>请输入 YouTube 或 SoundCloud 链接。</value></data>
+  <data name="Dlg_UnsupportedUrl" xml:space="preserve"><value>这不像是网址。请粘贴以 https:// 开头的完整链接。</value></data>
   <data name="Prog_PreparingDownload" xml:space="preserve"><value>正在准备下载…</value></data>
   <data name="Prog_PostProcessingAudio" xml:space="preserve"><value>正在后期处理音频…</value></data>
   <data name="Prog_PostProcessingFile" xml:space="preserve"><value>正在后期处理 {0}</value></data>
   <data name="Prog_Done" xml:space="preserve"><value>完成</value></data>
-  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>YouTube 下载失败：{0}</value></data>
+  <data name="Dlg_YTDownloadFailed" xml:space="preserve"><value>下载失败：{0}</value></data>
   <data name="Dlg_YTAddFailed" xml:space="preserve"><value>添加下载的文件失败：{0}</value></data>
   <data name="YT_DefaultPlaylist" xml:space="preserve"><value>YouTube 播放列表</value></data>
+  <data name="SC_DefaultPlaylist" xml:space="preserve"><value>SoundCloud 播放列表</value></data>
+  <data name="URL_DefaultPlaylist" xml:space="preserve"><value>已下载的音乐</value></data>
+  <data name="Dlg_SCGeoBlocked" xml:space="preserve"><value>此 SoundCloud 音轨在您所在的地区不可用。</value></data>
+  <data name="Dlg_SCPaidTrack" xml:space="preserve"><value>此 SoundCloud 音轨受版权保护或仅限 Go+ 用户，无法下载。</value></data>
+  <data name="Dlg_SCNotFound" xml:space="preserve"><value>此 SoundCloud 音轨或合集为私有或已被删除。如果是不公开链接，请使用包含密钥的完整分享链接。</value></data>
+  <data name="Dlg_SCRateLimited" xml:space="preserve"><value>SoundCloud 目前正在限制下载速率。请等待约 10 分钟后重试。</value></data>
   <data name="Menu_ExtractAudio" xml:space="preserve"><value>提取音频</value></data>
   <data name="Menu_NormalizeAudio" xml:space="preserve"><value>标准化音频</value></data>
   <data name="Menu_IncreaseVolume" xml:space="preserve"><value>提高音量</value></data>

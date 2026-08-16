@@ -24,7 +24,7 @@
                 <AppBarButton.Flyout>
                     <MenuFlyout>
                         <MenuFlyoutItem x:Name="FromMyComputerMenuItem" x:Uid="FromMyComputerMenuItem" Text="From My Computer" Click="fromMyComputerToolStripMenuItem_Click"/>
-                        <MenuFlyoutItem x:Name="FromYouTubeMenuItem" x:Uid="FromYouTubeMenuItem" Text="From YouTube" Click="YtDownloadButton_Click"/>
+                        <MenuFlyoutItem x:Name="FromYouTubeMenuItem" x:Uid="FromYouTubeMenuItem" Text="From a Link" Click="YtDownloadButton_Click"/>
                     </MenuFlyout>
                 </AppBarButton.Flyout>
             </AppBarButton>
