@@ -143,10 +143,10 @@
 
 Las dos últimas acciones modifican tu biblioteca, y la eliminación de canciones no se puede deshacer desde aquí. ¿Deseas continuar?</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Lista de reproducción de destino:</value></data>
-  <data name="Dlg_LegacyFormat_Title" xml:space="preserve"><value>Formato de mod de Penumbra antiguo</value></data>
-  <data name="Dlg_LegacyFormat_Content" xml:space="preserve"><value>La carpeta del mod «{0}» todavía usa el formato de mod antiguo de Penumbra, por lo que no se pudo cargar ninguna lista de reproducción.
+  <data name="Dlg_ModFolderUnreadable_Title" xml:space="preserve"><value>No se puede leer la carpeta del mod</value></data>
+  <data name="Dlg_ModFolderUnreadable_Content" xml:space="preserve"><value>No se pudo leer la carpeta del mod «{0}» como un mod de Penumbra, por lo que no se pudo cargar ninguna lista de reproducción.
 
-Penumbra convierte los mods al nuevo formato automáticamente. Actualiza Penumbra si es necesario, carga este mod en él una vez y vuelve a abrir esta aplicación.
+Comprueba en Ajustes que la carpeta de Penumbra y el nombre del mod sean correctos. Si lo son, usa Reparar biblioteca para restaurar el mod desde la copia de seguridad más reciente.
 
 No se ha modificado nada en el disco.</value></data>
   <data name="LanguageLabel.Text" xml:space="preserve"><value>Idioma</value></data>

@@ -143,10 +143,10 @@
 - REMOVE songs whose audio file no longer exists on disk.
 
 The last two change your library, and removing songs cannot be undone from here. Do you want to proceed?</value></data>
-  <data name="Dlg_LegacyFormat_Title" xml:space="preserve"><value>Old Penumbra Mod Format</value></data>
-  <data name="Dlg_LegacyFormat_Content" xml:space="preserve"><value>The mod folder "{0}" still uses Penumbra's old mod format, so no playlists could be loaded.
+  <data name="Dlg_ModFolderUnreadable_Title" xml:space="preserve"><value>Mod Folder Not Readable</value></data>
+  <data name="Dlg_ModFolderUnreadable_Content" xml:space="preserve"><value>The mod folder "{0}" could not be read as a Penumbra mod, so no playlists could be loaded.
 
-Penumbra converts mods to the new format automatically. Update Penumbra if needed, load this mod in it once, then reopen this app.
+Check that the Penumbra folder and mod name are correct in Settings. If they are, use Repair Library to restore the mod from the most recent backup.
 
 Nothing has been changed on disk.</value></data>
   <data name="LanguageLabel.Text" xml:space="preserve"><value>Language</value></data>

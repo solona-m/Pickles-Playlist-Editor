@@ -122,9 +122,9 @@ namespace Pickles_Playlist_Editor
         }
 
         // Penumbra v4 keeps every option group inside the root meta.json, so scanning loose top-level
-        // *.json files for a "Files"/"Options" shape finds nothing at all. PenumbraMeta reads the
-        // manifest (DefaultData.Files plus every group's options) and falls back to the v3 layout for
-        // a folder Penumbra hasn't migrated yet.
+        // *.json files for a "Files"/"Options" shape finds nothing at all. PenumbraMeta detects which
+        // layout the folder is in and reads the right one: the manifest (DefaultData.Files plus every
+        // group's options) for v4, or default_mod.json plus the group files for v3.
         private static List<string> FindScdKeysInMod(string? modDirectory) =>
             Pickles_Playlist_Editor.Utils.PenumbraMeta.CollectScdKeys(modDirectory);
 

@@ -50,7 +50,7 @@ namespace Pickles_Playlist_Editor
             try
             {
                 Playlists = Playlist.GetAll();
-                WarnOnceIfLegacyModFormat();
+                WarnOnceIfModFolderUnreadable();
                 BackfillStatsFromCacheIfNeeded();
 
                 RootPlaylistItems.Clear();
@@ -399,21 +399,22 @@ namespace Pickles_Playlist_Editor
             }
         }
 
-        private static bool _legacyFormatWarningShown;
+        private static bool _modFolderWarningShown;
 
-        // An empty playlist tree is indistinguishable from a broken app, and the most likely cause
-        // right now is a mod folder Penumbra hasn't converted to its v4 format yet. Say so, once per
-        // session, instead of leaving the user staring at nothing.
+        // An empty playlist tree is indistinguishable from a broken app, so say which one it is, once
+        // per session, instead of leaving the user staring at nothing.
         //
-        // Temporary, for the v4 rollout — delete along with PenumbraMeta.IsLegacyModFormat.
-        private void WarnOnceIfLegacyModFormat()
+        // This fires only when the folder isn't a recognizable Penumbra mod at all. A v3 folder is NOT
+        // a problem — both layouts are supported and read/written in place — and an empty v4 mod is
+        // just a mod with no playlists yet; warning about either would be crying wolf.
+        private void WarnOnceIfModFolderUnreadable()
         {
-            if (_legacyFormatWarningShown || Playlists.Count > 0)
+            if (_modFolderWarningShown || Playlists.Count > 0)
                 return;
-            if (!PenumbraMeta.IsLegacyModFormat())
+            if (PenumbraMeta.DetectFormat() != ModFormat.Unknown)
                 return;
 
-            _legacyFormatWarningShown = true;
+            _modFolderWarningShown = true;
 
             // Must not run inline: LoadPlaylists is called during window initialization, and pumping
             // a blocking Win32 modal from inside that call stack re-enters the XAML dispatcher and
@@ -424,22 +425,22 @@ namespace Pickles_Playlist_Editor
                 try
                 {
                     var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
-                    LegacyFormatMessageBox(hwnd,
-                        AppStrings.LegacyFormatMessage(Settings.ModName ?? string.Empty),
-                        AppStrings.Dlg_LegacyFormat_Title,
+                    ModFolderMessageBox(hwnd,
+                        AppStrings.ModFolderUnreadableMessage(Settings.ModName ?? string.Empty),
+                        AppStrings.Dlg_ModFolderUnreadable_Title,
                         0x00000030); // MB_ICONWARNING
                 }
                 catch (Exception ex)
                 {
                     // The warning is a courtesy; never let it take the app down. The same message is
                     // already in the log.
-                    Logger.LogWarn("Could not show the legacy-format warning: {Error}", ex.Message);
+                    Logger.LogWarn("Could not show the mod-folder warning: {Error}", ex.Message);
                 }
             });
         }
 
         [DllImport("user32.dll", EntryPoint = "MessageBoxW", CharSet = CharSet.Unicode)]
-        private static extern int LegacyFormatMessageBox(IntPtr hWnd, string text, string caption, uint type);
+        private static extern int ModFolderMessageBox(IntPtr hWnd, string text, string caption, uint type);
 
         public void SetProgressBarText(string text)
         {

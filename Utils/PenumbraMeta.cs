@@ -19,17 +19,19 @@ namespace Pickles_Playlist_Editor.Utils
     }
 
     /// <summary>
-    /// Reads and writes Penumbra's root <c>meta.json</c> mod manifest (FileVersion 4).
+    /// Reads and writes Penumbra's root <c>meta.json</c> mod manifest, and detects which layout the
+    /// mod folder is in (see <see cref="DetectFormat()"/>).
     ///
     /// Penumbra's v4 folded the whole mod layout into this one file: option groups moved out of
     /// per-group <c>group_NNN_name.json</c> files into a <c>Groups</c> array, and
     /// <c>default_mod.json</c> became the <c>DefaultData</c> object. Group ORDER is now the array
     /// index — the old filename number is gone — but the meaning is unchanged: lower = higher
-    /// priority.
+    /// priority. Penumbra then reversed course, so v3 folders are still out there and
+    /// <see cref="V3GroupFileStore"/> handles those; everything here is the v4 half.
     ///
-    /// Everything the app owns now lives in ONE ~360KB file, so a careless write costs the entire
-    /// library rather than one playlist. Two rules make that safe, and both are enforced here rather
-    /// than left to callers:
+    /// Under v4 everything the app owns lives in ONE ~360KB file, so a careless write costs the
+    /// entire library rather than one playlist. Two rules make that safe, and both are enforced here
+    /// rather than left to callers:
     ///   1. Every write goes through <see cref="Mutate"/>, which re-reads the manifest under a lock
     ///      immediately before writing. Callers splice only the sub-object they own into that fresh
     ///      copy, so a stale in-memory model can never clobber a group it doesn't represent.
@@ -41,12 +43,6 @@ namespace Pickles_Playlist_Editor.Utils
         public const string MetaFile = "meta.json";
         public const string LegacyDefaultMod = "default_mod.json";
         public const int FileVersion = 4;
-
-        // Serializes every read-modify-write in this process. Reorders run on a background thread
-        // (MainWindow.DragDrop) and downloads save from their own tasks, so concurrent writes are
-        // real. Penumbra is a separate process and can't be locked out — AtomicWrite's retry loop is
-        // the mitigation there.
-        private static readonly object s_gate = new();
 
         public static string ModRoot =>
             Path.Combine(Settings.PenumbraLocation ?? string.Empty, Settings.ModName ?? string.Empty);
@@ -71,34 +67,98 @@ namespace Pickles_Playlist_Editor.Utils
         }
 
         /// <summary>
-        /// The mod's option groups in <c>Groups</c> array order. Null — not an empty array — when
-        /// there is no v4 <c>Groups</c> array, which is the caller's signal to fall back to the v3
-        /// <c>group_*.json</c> layout. An empty array means "v4, and it genuinely has no groups".
-        /// Conflating the two makes the v3 fallback unreachable.
+        /// The mod's option groups in <c>Groups</c> array order, or null when the manifest has no
+        /// <c>Groups</c> key.
+        ///
+        /// Null does NOT mean "not v4". Penumbra OMITS the key entirely for a mod with no option
+        /// groups and never writes <c>"Groups": []</c> — verified against a real Penumbra root, where
+        /// 209 of 847 v4 mods have no Groups key and not one has an empty array. So a null here is
+        /// equally consistent with a valid v3 mod, a valid v4 mod with zero groups, and a v4 manifest
+        /// that lost its groups. Use <see cref="DetectFormat()"/> to tell those apart; shape can't.
         /// </summary>
         public static JArray? TryReadGroups() => TryReadGroups(Read());
 
         public static JArray? TryReadGroups(JObject? root) => root?["Groups"] as JArray;
 
         /// <summary>
-        /// The one and only write path. Re-reads the manifest under the lock, snapshots it, hands the
-        /// fresh copy to <paramref name="edit"/> to splice, then writes it back atomically.
+        /// Which layout the mod folder is in right now.
+        ///
+        /// <c>FileVersion</c> is the discriminator, not shape. See <see cref="TryReadGroups()"/> for
+        /// why the presence of a <c>Groups</c> array cannot be used: Penumbra omits it for a groupless
+        /// v4 mod, which makes a healthy v4 mod indistinguishable from a v3 one by shape alone.
+        /// </summary>
+        public static ModFormat DetectFormat() => DetectFormat(Read(), ModRoot);
+
+        /// <param name="modDirectory">
+        /// The folder <paramref name="root"/> was read from. Only consulted when the manifest carries
+        /// no usable FileVersion, and it must match — passing the configured mod folder while
+        /// inspecting a different one would classify by the wrong folder's contents.
+        /// </param>
+        public static ModFormat DetectFormat(JObject? root, string? modDirectory)
+        {
+            // Missing folder, missing meta.json, or unparseable. Read() has already logged why.
+            if (root == null)
+                return ModFormat.Unknown;
+
+            if (root["FileVersion"] is JValue { Type: JTokenType.Integer } version)
+            {
+                int value = (int)version;
+                if (value >= FileVersion) return ModFormat.V4;
+                if (value >= 1) return ModFormat.V3;  // 1..3 all use the meta + group_*.json family
+            }
+
+            // No usable FileVersion. Positive v4 evidence first: DefaultData is a v4-only key and is
+            // present even on a groupless mod, so it identifies the case Groups cannot.
+            if (root["Groups"] is JArray || root["DefaultData"] is JObject)
+                return ModFormat.V4;
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(modDirectory) && Directory.Exists(modDirectory)
+                    && (Directory.EnumerateFiles(modDirectory, "group_*.json").Any()
+                        || File.Exists(Path.Combine(modDirectory, LegacyDefaultMod))))
+                    return ModFormat.V3;
+            }
+            catch
+            {
+                // Enumeration failure tells us nothing; fall through to Unknown.
+            }
+
+            return ModFormat.Unknown;
+        }
+
+        /// <summary>
+        /// The one and only v4 write path. Re-reads the manifest under the lock, snapshots it, hands
+        /// the fresh copy to <paramref name="edit"/> to splice, then writes it back atomically.
         /// </summary>
         public static void Mutate(Action<JObject> edit)
         {
-            lock (s_gate)
+            lock (PlaylistStore.ModFolderGate)
             {
                 var root = Read()
                     ?? throw new PenumbraMetaException(
                         $"Penumbra's mod manifest could not be read: {MetaPath}. Nothing was written. " +
                         "(If Penumbra is running it may be mid-write — try again in a moment.)");
 
+                // Penumbra may have converted the folder to v3 since the caller resolved its store.
+                // Refuse rather than write v4 structure into a v3 manifest: that would tell Penumbra
+                // the mod has zero option groups, so it would ignore every group_NNN_*.json on disk
+                // and orphan every playlist along with the user's current selection for each.
+                if (DetectFormat(root, ModRoot) == ModFormat.V3)
+                    throw new PenumbraMetaException(
+                        "The mod folder is in Penumbra's v3 layout; refusing to write it as v4. " +
+                        "Nothing was written.");
+
                 // Snapshot the pre-edit state. Cheap when nothing changed since the last one.
                 TrySnapshot();
 
                 edit(root);
 
-                root["FileVersion"] = FileVersion;
+                // Only ever ADD a missing version to a manifest that is unambiguously v4. Stamping it
+                // unconditionally is what made Delete() on a v3 folder rewrite meta.json as v4 with no
+                // Groups key at all, which reads to Penumbra as "this mod has no option groups".
+                if (root["FileVersion"] == null && (root["Groups"] is JArray || root["DefaultData"] is JObject))
+                    root["FileVersion"] = FileVersion;
 
                 // Penumbra keys the mod by Identifier; a manifest that lost it is a new mod as far as
                 // Penumbra is concerned, which silently orphans every user setting. Refuse rather
@@ -111,19 +171,28 @@ namespace Pickles_Playlist_Editor.Utils
             }
         }
 
-        // Penumbra writes tab-indented, LF-terminated JSON. Matching both keeps our writes from
-        // showing up as a whole-file reformat: without the explicit newline, Newtonsoft uses
-        // Environment.NewLine and every one of the ~11,000 lines gains a CR, so a one-song edit
-        // rewrites the entire 360KB manifest as far as any diff (or Penumbra's watcher) can tell.
-        internal static string Serialize(JObject root)
+        /// <summary>
+        /// Serializes exactly the way Penumbra does for the given layout, because matching its
+        /// whitespace is what keeps our writes from reading as a whole-file reformat. Get it wrong and
+        /// a one-song edit rewrites every line of the file as far as any diff — or Penumbra's own
+        /// file watcher — can tell.
+        ///
+        /// The two layouts are formatted differently, verified against files Penumbra wrote:
+        ///   v4  tab-indented, LF line endings   (e.g. a 360KB manifest of ~11,000 lines)
+        ///   v3  two-space indented, CRLF line endings
+        /// Neither carries a BOM. Note the default JsonTextWriter newline is Environment.NewLine,
+        /// which is CRLF here — so the v4 case is the one that must be set explicitly.
+        /// </summary>
+        internal static string Serialize(JObject root, ModFormat format = ModFormat.V4)
         {
+            bool v3 = format == ModFormat.V3;
             var sb = new StringBuilder();
-            using (var sw = new StringWriter(sb) { NewLine = "\n" })
+            using (var sw = new StringWriter(sb) { NewLine = v3 ? "\r\n" : "\n" })
             using (var jw = new JsonTextWriter(sw)
             {
                 Formatting = Formatting.Indented,
-                Indentation = 1,
-                IndentChar = '\t',
+                Indentation = v3 ? 2 : 1,
+                IndentChar = v3 ? ' ' : '\t',
             })
             {
                 root.WriteTo(jw);
@@ -176,39 +245,9 @@ namespace Pickles_Playlist_Editor.Utils
         public static JObject? FindGroupByName(JObject root, string name) => FindGroupByName(root, name, out _);
 
         /// <summary>
-        /// True when the configured mod folder is still in Penumbra's pre-v4 layout: a manifest with
-        /// no <c>Groups</c> array, alongside the old per-group <c>group_NNN_name.json</c> files.
-        ///
-        /// This app reads and writes v4 only. Penumbra converts such a folder itself, authoritatively,
-        /// the first time it loads it — so the only correct response is to tell the user to do that.
-        /// Temporary: delete this (and its one caller) once the v4 rollout has settled.
-        /// </summary>
-        public static bool IsLegacyModFormat()
-        {
-            try
-            {
-                string root = ModRoot;
-                if (!Directory.Exists(root) || !File.Exists(MetaPath))
-                    return false;
-
-                // A *present but empty* Groups array is a valid v4 mod with no groups, not a legacy
-                // folder — only a missing array counts.
-                if (TryReadGroups() != null)
-                    return false;
-
-                return Directory.EnumerateFiles(root, "group_*.json").Any()
-                    || File.Exists(Path.Combine(root, LegacyDefaultMod));
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
         /// Every <c>.scd</c> game-path key referenced anywhere in the mod: <c>DefaultData.Files</c>
-        /// (often absent) plus every option's <c>Files</c>. Falls back to the v3 layout for an
-        /// unmigrated folder. Used to populate the baseline-SCD picker.
+        /// (often absent) plus every option's <c>Files</c>. Reads the v3 layout instead for a v3
+        /// folder. Used to populate the baseline-SCD picker.
         /// </summary>
         public static List<string> CollectScdKeys(string? modDirectory)
         {
@@ -238,13 +277,20 @@ namespace Pickles_Playlist_Editor.Utils
                 }
             }
 
-            // v3 fallback: an unmigrated folder Penumbra hasn't loaded yet.
-            if (root?["Groups"] == null)
+            // v3 reads the per-group files instead. Branch on the detected FORMAT, not on whether a
+            // Groups array is present: Penumbra omits that key for any v4 mod with no option groups,
+            // so keying off it would send hundreds of healthy v4 mods down this path for nothing.
+            //
+            // Only Penumbra's own files are read. Widening this to every top-level *.json (as it once
+            // did) lets an unrelated file the user happened to drop in the mod folder inject bogus
+            // entries into the baseline-SCD picker.
+            if (DetectFormat(root, modDirectory) == ModFormat.V3)
             {
-                foreach (var jsonPath in Directory.EnumerateFiles(modDirectory, "*.json", SearchOption.TopDirectoryOnly))
+                var legacyPaths = Directory.EnumerateFiles(modDirectory, "group_*.json", SearchOption.TopDirectoryOnly)
+                    .Concat(Directory.EnumerateFiles(modDirectory, LegacyDefaultMod, SearchOption.TopDirectoryOnly));
+
+                foreach (var jsonPath in legacyPaths)
                 {
-                    if (Path.GetFileName(jsonPath).Equals(MetaFile, StringComparison.OrdinalIgnoreCase))
-                        continue;
                     try
                     {
                         var legacy = JObject.Parse(File.ReadAllText(jsonPath, Encoding.UTF8));
@@ -334,7 +380,7 @@ namespace Pickles_Playlist_Editor.Utils
             }
         }
 
-        private static string SnapshotFolderNameForMod()
+        internal static string SnapshotFolderNameForMod()
         {
             string name = Settings.ModName ?? "unknown";
             foreach (char c in Path.GetInvalidFileNameChars())
@@ -343,8 +389,8 @@ namespace Pickles_Playlist_Editor.Utils
             return string.IsNullOrEmpty(name) ? "unknown" : name;
         }
 
-        private const int KeepRecentSnapshots = 20;
-        private const int KeepDailyDays = 7;
+        internal const int KeepRecentSnapshots = 20;
+        internal const int KeepDailyDays = 7;
 
         /// <summary>
         /// Copies the current manifest into the snapshot dir, skipping the write when it is identical
@@ -399,29 +445,37 @@ namespace Pickles_Playlist_Editor.Utils
             }
         }
 
-        // Keep the last N snapshots plus the first of each of the last few days, so a mistake noticed
-        // tomorrow is still recoverable without keeping 360KB per save forever.
-        private static void PruneSnapshots()
-        {
-            var all = SnapshotFiles();
-            if (all.Count <= KeepRecentSnapshots) return;
+        private static void PruneSnapshots() => PruneByPolicy(SnapshotFiles(), f => { try { f.Delete(); } catch { } });
 
-            var keep = new HashSet<string>(all.Take(KeepRecentSnapshots).Select(f => f.FullName), StringComparer.OrdinalIgnoreCase);
+        /// <summary>
+        /// Keeps the last <see cref="KeepRecentSnapshots"/> entries plus the first of each of the last
+        /// <see cref="KeepDailyDays"/> days, so a mistake noticed tomorrow is still recoverable
+        /// without hoarding a full copy per save forever. <paramref name="entries"/> must be newest
+        /// first, named so an ordinal sort is chronological.
+        ///
+        /// Shared by the v4 manifest snapshots here and V3GroupFileStore's snapshot sets, which are
+        /// directories rather than files — hence the FileSystemInfo and the delete callback.
+        /// </summary>
+        internal static void PruneByPolicy<T>(IReadOnlyList<T> entries, Action<T> delete)
+            where T : FileSystemInfo
+        {
+            if (entries.Count <= KeepRecentSnapshots) return;
+
+            var keep = new HashSet<string>(
+                entries.Take(KeepRecentSnapshots).Select(f => f.FullName), StringComparer.OrdinalIgnoreCase);
             var cutoff = DateTime.Now.Date.AddDays(-KeepDailyDays);
-            foreach (var dayGroup in all.Where(f => f.LastWriteTime >= cutoff).GroupBy(f => f.LastWriteTime.Date))
+            foreach (var dayGroup in entries.Where(f => f.LastWriteTime >= cutoff).GroupBy(f => f.LastWriteTime.Date))
             {
                 var firstOfDay = dayGroup.OrderBy(f => f.Name, StringComparer.Ordinal).First();
                 keep.Add(firstOfDay.FullName);
             }
 
-            foreach (var f in all.Where(f => !keep.Contains(f.FullName)))
-            {
-                try { f.Delete(); } catch { }
-            }
+            foreach (var f in entries.Where(f => !keep.Contains(f.FullName)))
+                delete(f);
         }
 
         /// <summary>
-        /// The newest snapshot that parses and holds at least one group — i.e. the newest one worth
+        /// The newest v4 snapshot that parses and holds at least one group — i.e. the newest one worth
         /// restoring from. Null when there is nothing usable.
         /// </summary>
         public static string? NewestUsableSnapshot()
@@ -441,6 +495,14 @@ namespace Pickles_Playlist_Editor.Utils
                     if (root["Groups"] is not JArray g || g.Count == 0 || string.IsNullOrWhiteSpace(id))
                         continue;
 
+                    // Never graft a pre-v4 snapshot onto a v4 folder. A user who was converted to v4
+                    // and then reverted by Penumbra can have snapshots of both vintages side by side.
+                    if (DetectFormat(root, modDirectory: null) != ModFormat.V4)
+                    {
+                        Logger.LogWarn("Skipping snapshot {File}: it is not a v4 manifest.", f.Name);
+                        continue;
+                    }
+
                     if (!string.IsNullOrWhiteSpace(expectedId)
                         && !string.Equals(id, expectedId, StringComparison.OrdinalIgnoreCase))
                     {
@@ -457,8 +519,15 @@ namespace Pickles_Playlist_Editor.Utils
         }
 
         /// <summary>
-        /// Removes the v3 <c>default_mod.json</c> now superseded by <c>DefaultData</c>, plus any
-        /// orphaned <c>.tmp</c> siblings left by an interrupted <see cref="AtomicWrite"/>.
+        /// Clears orphaned <c>.tmp</c> siblings left by an interrupted <see cref="AtomicWrite"/>.
+        ///
+        /// Nothing else in the mod folder is touched. This used to also delete <c>default_mod.json</c>
+        /// once the manifest had a <c>Groups</c> array, on the reasoning that v4's <c>DefaultData</c>
+        /// superseded it. Both halves of that were wrong: a missing Groups array says nothing about
+        /// the layout (Penumbra omits it for any mod with no option groups), and Penumbra manages the
+        /// v3→v4 transition itself — it deletes <c>default_mod.json</c> and keeps its own
+        /// <c>default_mod.json.bak</c> to roll back from. Having already reversed course once, the
+        /// files it left behind are its business, not ours.
         /// </summary>
         public static void CleanLegacyFiles()
         {
@@ -467,16 +536,10 @@ namespace Pickles_Playlist_Editor.Utils
                 string root = ModRoot;
                 if (!Directory.Exists(root)) return;
 
+                // A meta.json.<guid>.tmp is unambiguously our own half-written file, in either layout.
                 foreach (var tmp in Directory.EnumerateFiles(root, MetaFile + ".*.tmp"))
                 {
                     try { File.Delete(tmp); } catch { }
-                }
-
-                // Only safe to drop default_mod.json once its contents live in the manifest.
-                string legacy = Path.Combine(root, LegacyDefaultMod);
-                if (File.Exists(legacy) && TryReadGroups() != null)
-                {
-                    try { File.Delete(legacy); } catch { }
                 }
             }
             catch (Exception ex)

@@ -57,12 +57,12 @@ namespace Pickles_Playlist_Editor
         public static string Dlg_RepairLibrary_Title => _r.GetString("Dlg_RepairLibrary_Title");
         public static string Dlg_RepairLibrary_Content => _r.GetString("Dlg_RepairLibrary_Content");
 
-        // Temporary, for the Penumbra v4 rollout. Delete along with PenumbraMeta.IsLegacyModFormat
-        // once the rollout has settled.
-        public static string Dlg_LegacyFormat_Title => _r.GetString("Dlg_LegacyFormat_Title");
+        // Shown when the configured folder isn't a readable Penumbra mod at all — not for a mod that
+        // simply has no playlists yet, and not for one in Penumbra's older layout, which is supported.
+        public static string Dlg_ModFolderUnreadable_Title => _r.GetString("Dlg_ModFolderUnreadable_Title");
 
-        public static string LegacyFormatMessage(string modName) =>
-            string.Format(_r.GetString("Dlg_LegacyFormat_Content"), modName);
+        public static string ModFolderUnreadableMessage(string modName) =>
+            string.Format(_r.GetString("Dlg_ModFolderUnreadable_Content"), modName);
         public static string Menu_ManageEQ => _r.GetString("Menu_ManageEQ");
         public static string Menu_ComputeStats => _r.GetString("Menu_ComputeStats");
         public static string Prog_ComputingStats => _r.GetString("Prog_ComputingStats");

@@ -143,10 +143,10 @@
 
 Die letzten beiden Punkte verändern deine Bibliothek, und das Entfernen von Songs lässt sich hier nicht rückgängig machen. Möchtest du fortfahren?</value></data>
   <data name="TargetPlaylistLabel.Text" xml:space="preserve"><value>Ziel-Playlist:</value></data>
-  <data name="Dlg_LegacyFormat_Title" xml:space="preserve"><value>Altes Penumbra-Mod-Format</value></data>
-  <data name="Dlg_LegacyFormat_Content" xml:space="preserve"><value>Der Mod-Ordner „{0}“ verwendet noch das alte Mod-Format von Penumbra, daher konnten keine Playlists geladen werden.
+  <data name="Dlg_ModFolderUnreadable_Title" xml:space="preserve"><value>Mod-Ordner nicht lesbar</value></data>
+  <data name="Dlg_ModFolderUnreadable_Content" xml:space="preserve"><value>Der Mod-Ordner „{0}“ konnte nicht als Penumbra-Mod gelesen werden, daher konnten keine Playlists geladen werden.
 
-Penumbra konvertiert Mods automatisch in das neue Format. Aktualisiere Penumbra bei Bedarf, lade diesen Mod dort einmal, und öffne diese App danach erneut.
+Prüfe in den Einstellungen, ob Penumbra-Ordner und Mod-Name korrekt sind. Falls ja, stelle den Mod mit „Bibliothek reparieren“ aus der letzten Sicherung wieder her.
 
 Auf der Festplatte wurde nichts geändert.</value></data>
   <data name="LanguageLabel.Text" xml:space="preserve"><value>Sprache</value></data>

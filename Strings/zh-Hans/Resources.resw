@@ -143,10 +143,10 @@
 - 删除音频文件已不在磁盘上的歌曲。
 
 后两项会更改你的音乐库，且删除歌曲的操作无法在此撤销。是否继续？</value></data>
-  <data name="Dlg_LegacyFormat_Title" xml:space="preserve"><value>旧版 Penumbra 模组格式</value></data>
-  <data name="Dlg_LegacyFormat_Content" xml:space="preserve"><value>模组文件夹“{0}”仍在使用 Penumbra 的旧版模组格式，因此无法加载任何播放列表。
+  <data name="Dlg_ModFolderUnreadable_Title" xml:space="preserve"><value>无法读取模组文件夹</value></data>
+  <data name="Dlg_ModFolderUnreadable_Content" xml:space="preserve"><value>无法将模组文件夹“{0}”作为 Penumbra 模组读取，因此无法加载任何播放列表。
 
-Penumbra 会自动将模组转换为新格式。如有需要请更新 Penumbra，在其中加载一次此模组，然后重新打开本应用。
+请在设置中确认 Penumbra 文件夹和模组名称是否正确。如果正确，请使用“修复媒体库”从最近的备份恢复该模组。
 
 磁盘上的内容未做任何更改。</value></data>
   <data name="LanguageLabel.Text" xml:space="preserve"><value>语言</value></data>

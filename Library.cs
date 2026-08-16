@@ -113,11 +113,11 @@ namespace Pickles_Playlist_Editor
             }
         }
 
-        // In Penumbra's v4 format the whole library lives in one meta.json, so most of the old repair
-        // passes are gone along with the thing they repaired: there are no group_NNN_*.json filenames
-        // left to renumber, to drift out of sync with their contents, or to strand as .reorder_tmp
-        // sidecars. What remains is the damage that is still possible - a broken manifest, playlists
-        // pointing at renamed audio, and playlists pointing at audio that is gone.
+        // Which passes make sense depends on the layout. Under v4 the whole library is one meta.json,
+        // so a broken manifest is the catastrophic case and there are no filenames left to go wrong.
+        // Under v3 the manifest holds no playlists at all, the group files do, and the reorder can
+        // strand them as .reorder_tmp sidecars. The last two passes are format-neutral: they go
+        // through Playlist.GetAll/Save and so follow whichever store is live.
         private static List<string> RepairCore()
         {
             var log = new List<string>();
@@ -129,9 +129,31 @@ namespace Pickles_Playlist_Editor
                 return log;
             }
 
-            // 1. meta.json is the whole library now, so a broken one is the catastrophic case. Check
-            //    it before touching anything else.
-            log.AddRange(VerifyOrRestoreManifest());
+            var format = PenumbraMeta.DetectFormat();
+            log.Add(format switch
+            {
+                ModFormat.V4 => "Mod format: Penumbra v4 (one meta.json).\n",
+                ModFormat.V3 => "Mod format: Penumbra v3 (one file per playlist).\n",
+                _ => "Mod format: not recognized.\n",
+            });
+
+            // 1. Verify (and if need be restore) whatever holds the playlists in this layout.
+            switch (format)
+            {
+                case ModFormat.V4:
+                    log.AddRange(VerifyOrRestoreManifest());
+                    break;
+                case ModFormat.V3:
+                    log.AddRange(VerifyOrRestoreGroupFiles(base_));
+                    break;
+                default:
+                    // Never run the destructive passes against a folder we can't identify - they
+                    // rewrite playlists and delete audio, and we don't know what we're looking at.
+                    log.Add("ERROR: this is not a recognizable Penumbra mod folder (meta.json is " +
+                            "missing or unreadable). Nothing was changed. Check the mod folder in " +
+                            "Settings.");
+                    return log;
+            }
 
             // 2. Repoint playlists at .scd files whose names drifted.
             log.AddRange(StripRedundantScdSuffixes(base_));
@@ -145,8 +167,13 @@ namespace Pickles_Playlist_Editor
             return log;
         }
 
-        // meta.json holds every playlist now. If it is unreadable or has lost its Groups array, the
-        // library is gone - fall back to the newest pre-write snapshot that still has groups in it.
+        // Under v4 meta.json holds every playlist. If it is unreadable or has lost its Groups array,
+        // the library is gone - fall back to the newest pre-write snapshot that still has groups.
+        //
+        // Note a missing Groups array is NOT proof of damage: Penumbra omits the key entirely for a
+        // mod with no option groups. A snapshot of this same mod that still has some is the only
+        // evidence that separates "damaged" from "empty", which is why the absence of one is reported
+        // as OK rather than as an unfixable problem.
         private static List<string> VerifyOrRestoreManifest()
         {
             var log = new List<string>();
@@ -158,16 +185,14 @@ namespace Pickles_Playlist_Editor
                 return log;
             }
 
-            log.Add(groups == null
-                ? "PROBLEM: meta.json is missing, unreadable, or has no Groups array."
-                : "PROBLEM: meta.json parses but contains no playlists.");
-
             string snapshot = PenumbraMeta.NewestUsableSnapshot();
             if (snapshot == null)
             {
-                log.Add("No usable backup found - nothing to restore from.\n");
+                log.Add("meta.json OK: this mod has no playlists yet, and no backup says otherwise.\n");
                 return log;
             }
+
+            log.Add("PROBLEM: meta.json has no playlists, but a backup of this mod does.");
 
             try
             {
@@ -182,6 +207,53 @@ namespace Pickles_Playlist_Editor
             catch (Exception ex)
             {
                 log.Add($"ERROR: restore from {Path.GetFileName(snapshot)} failed: {ex.Message}\n");
+            }
+
+            return log;
+        }
+
+        // Under v3 the playlists are the group_NNN_*.json files; meta.json holds none of them, so it
+        // is left strictly alone here - overwriting it from a backup would be all risk and no benefit.
+        private static List<string> VerifyOrRestoreGroupFiles(string base_)
+        {
+            var log = new List<string>();
+
+            // An interrupted reorder leaves playlists as .reorder_tmp sidecars. Recover those before
+            // counting, or a perfectly recoverable folder looks empty.
+            log.AddRange(V3GroupFileStore.ReclaimReorderTempFiles());
+
+            int found = Directory.GetFiles(base_, "group_*.json").Length;
+            if (found > 0)
+            {
+                log.Add($"Group files OK: {found} playlist(s).\n");
+                return log;
+            }
+
+            log.Add("PROBLEM: no group_*.json files - this mod's playlists are missing.");
+
+            var set = V3GroupFileStore.NewestUsableSnapshotSet();
+            if (set == null)
+            {
+                log.Add("No usable backup found - nothing to restore from.\n");
+                return log;
+            }
+
+            try
+            {
+                // Record the current state first, in case restoring turns out to be the wrong call.
+                V3GroupFileStore.TrySnapshotSet();
+
+                int restored = 0;
+                foreach (var file in set.GetFiles("group_*.json"))
+                {
+                    File.Copy(file.FullName, Path.Combine(base_, file.Name), overwrite: true);
+                    restored++;
+                }
+                log.Add($"RESTORED {restored} group file(s) from backup {set.Name}.\n");
+            }
+            catch (Exception ex)
+            {
+                log.Add($"ERROR: restore from backup {set.Name} failed: {ex.Message}\n");
             }
 
             return log;
