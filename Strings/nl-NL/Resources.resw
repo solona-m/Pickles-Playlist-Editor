@@ -10,6 +10,7 @@
   <data name="ShuffleButton.Label" xml:space="preserve"><value>Willekeurig</value></data>
   <data name="SortByBPMButton.Label" xml:space="preserve"><value>Sorteren</value></data>
   <data name="SortByBPMMenuItem.Text" xml:space="preserve"><value>Sorteren op BPM</value></data>
+  <data name="SortByBPMZigZagMenuItem.Text" xml:space="preserve"><value>Sorteren op BPM (hoog/laag)</value></data>
   <data name="SortByKeyMenuItem.Text" xml:space="preserve"><value>Sorteren op toonsoort</value></data>
   <data name="SortByNameMenuItem.Text" xml:space="preserve"><value>Sorteren op naam</value></data>
   <data name="PreviousButton.Label" xml:space="preserve"><value>Vorige</value></data>

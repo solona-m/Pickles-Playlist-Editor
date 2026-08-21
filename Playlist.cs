@@ -941,6 +941,37 @@ namespace Pickles_Playlist_Editor
             return Rejoin(off, songs);
         });
 
+        /// <summary>
+        /// Alternates fast and slow songs instead of running monotonically up or down: fastest,
+        /// slowest, second fastest, second slowest, and so on, so the set keeps swinging between
+        /// peaks and breathers rather than climbing once and staying there.
+        ///
+        /// <paramref name="direction"/> picks which end it opens on — Descending starts on the
+        /// fastest song, Ascending starts on the slowest.
+        /// </summary>
+        internal void SortByBpmZigZag(SortDirection direction) => ReorderOptions(options =>
+        {
+            var (off, songs) = SplitOff(options);
+
+            // Read each BPM exactly once. GetBPMFromSCD opens and parses the scd, so calling it
+            // from inside a comparer (as the plain sorts do) re-reads every song on every compare.
+            var byBpm = songs
+                .Select(o => (Option: o, Bpm: BPMDetector.GetBPMFromSCD(GetScdPath(o))))
+                .OrderBy(x => x.Bpm)
+                .ToList();
+
+            var zigzag = new List<Option>(byBpm.Count);
+            int low = 0, high = byBpm.Count - 1;
+            bool takeHigh = direction == SortDirection.Descending;
+            while (low <= high)
+            {
+                zigzag.Add(takeHigh ? byBpm[high--].Option : byBpm[low++].Option);
+                takeHigh = !takeHigh;
+            }
+
+            return Rejoin(off, zigzag);
+        });
+
         internal void SortByKey(SortDirection direction) => ReorderOptions(options =>
         {
             var (off, songs) = SplitOff(options);

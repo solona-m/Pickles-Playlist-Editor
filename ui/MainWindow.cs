@@ -620,6 +620,20 @@ namespace Pickles_Playlist_Editor
             _currentSortDirection = direction;
         }
 
+        // Kept separate from _currentSortDirection so toggling the zig-zag's starting end doesn't
+        // silently flip the direction of the next plain BPM/Key sort.
+        private SortDirection _zigZagSortDirection = SortDirection.Ascending;
+
+        private void SortByBPMZigZag_Click(object sender, RoutedEventArgs e)
+        {
+            // First click opens on the fastest song; clicking again opens on the slowest.
+            var direction = _zigZagSortDirection == SortDirection.Ascending
+                ? SortDirection.Descending
+                : SortDirection.Ascending;
+            RunPlaylistReorder(pl => pl.SortByBpmZigZag(direction));
+            _zigZagSortDirection = direction;
+        }
+
         private void SortByName_Click(object sender, RoutedEventArgs e)
         {
             RunPlaylistReorder(pl => pl.SortByName());
