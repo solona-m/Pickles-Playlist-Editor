@@ -58,6 +58,7 @@
   <data name="BusNumberItem_Voice.Content" xml:space="preserve"><value>Röst</value></data>
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>System</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Omgivning</value></data>
+  <data name="OpenBackupsButton.Content" xml:space="preserve"><value>Öppna säkerhetskopiemappen</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organisera bibliotek</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Lägg till låtar från en länk</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Ladda ner</value></data>
@@ -81,6 +82,10 @@
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Fel vid borttagning: {0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Uppdatering tillgänglig</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>Version {0} är tillgänglig. Installera nu?</value></data>
+  <data name="UpdateChannelLabel.Text" xml:space="preserve"><value>Uppdateringar</value></data>
+  <data name="UpdateChannelItem_Stable.Content" xml:space="preserve"><value>Huvudversioner (rekommenderas)</value></data>
+  <data name="UpdateChannelItem_Testing.Content" xml:space="preserve"><value>Testversioner (tidiga byggen)</value></data>
+  <data name="UpdateChannelHint.Text" xml:space="preserve"><value>Testversioner kommer tidigare och kan vara instabila. Att byta tillbaka till huvudversioner behåller versionen du redan har – bytet sker när en nyare huvudversion släpps.</value></data>
   <data name="Dlg_ExtractAudio_Title" xml:space="preserve"><value>Extrahera ljud</value></data>
   <data name="Dlg_ExtractAudio_NoSongs" xml:space="preserve"><value>Inga låtar hittades för extrahering.</value></data>
   <data name="Summary_ExtractAudio" xml:space="preserve"><value>Ljudextrahering slutförd</value></data>

@@ -1102,7 +1102,9 @@ namespace Pickles_Playlist_Editor.Utils
         }
 
         // Penumbra's own files only, in a stable order so the hash is reproducible.
-        private static List<string> SnapshotSources(string modDir) =>
+        // Internal rather than private because VersionBackup captures the same v3 file set;
+        // duplicating the three globs there would let the two drift apart silently.
+        internal static List<string> SnapshotSources(string modDir) =>
             Directory.EnumerateFiles(modDir, GroupGlob)
                 .Concat(Directory.EnumerateFiles(modDir, PenumbraMeta.LegacyDefaultMod))
                 .Concat(Directory.EnumerateFiles(modDir, PenumbraMeta.MetaFile))

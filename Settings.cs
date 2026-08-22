@@ -403,6 +403,94 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        /// <summary>Value of <see cref="UpdateChannel"/> meaning "only main releases".</summary>
+        public const string UpdateChannelStable = "stable";
+
+        /// <summary>Value of <see cref="UpdateChannel"/> meaning "prereleases too".</summary>
+        public const string UpdateChannelTesting = "testing";
+
+        /// <summary>
+        /// Which release feed the updater follows: <see cref="UpdateChannelStable"/> (GitHub
+        /// releases only) or <see cref="UpdateChannelTesting"/> (prereleases included).
+        ///
+        /// With nothing stored, this follows the running build — a build that came from the
+        /// testing pipeline keeps getting testing builds, a stable build never sees them.
+        /// That is the behaviour the updater had before the setting existed, so an existing
+        /// install's channel does not change underneath it the first time this ships.
+        /// Anything else stored is treated as stable rather than thrown away, so a hand-edited
+        /// registry value can never leave a user silently on prereleases.
+        /// </summary>
+        public static string UpdateChannel
+        {
+            get
+            {
+                try
+                {
+                    var stored = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("UpdateChannel") as string;
+                    if (!string.IsNullOrWhiteSpace(stored))
+                    {
+                        return string.Equals(stored.Trim(), UpdateChannelTesting, StringComparison.OrdinalIgnoreCase)
+                            ? UpdateChannelTesting
+                            : UpdateChannelStable;
+                    }
+                }
+                catch { }
+                return AppVersion.IsPrerelease ? UpdateChannelTesting : UpdateChannelStable;
+            }
+            set
+            {
+                string normalized = string.Equals(value?.Trim(), UpdateChannelTesting, StringComparison.OrdinalIgnoreCase)
+                    ? UpdateChannelTesting
+                    : UpdateChannelStable;
+                using var key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                key?.SetValue("UpdateChannel", normalized);
+            }
+        }
+
+        /// <summary>True when the updater should offer prereleases (testing builds).</summary>
+        public static bool FollowTestingReleases =>
+            UpdateChannel == UpdateChannelTesting;
+
+        /// <summary>
+        /// Registry values that must never leave the registry. <see cref="SoundCloudToken"/> is a
+        /// DPAPI-protected OAuth credential; copying it into a backup folder would put a credential
+        /// somewhere the user is likely to zip up and share when asking for help, and it could not be
+        /// decrypted after a Windows profile change anyway. Do not "fix" this omission.
+        /// </summary>
+        /// <remarks>
+        /// Case-insensitive on purpose: registry value names are, so an ordinal match here would let
+        /// a value stored as "soundcloudtoken" slip past the filter and serialize the credential.
+        /// </remarks>
+        private static readonly HashSet<string> NonExportableValueNames =
+            new(StringComparer.OrdinalIgnoreCase) { SoundCloudTokenValueName };
+
+        /// <summary>
+        /// Every registry value under this app's key except the credentials in
+        /// <see cref="NonExportableValueNames"/>, for <see cref="Utils.VersionBackup"/>'s settings
+        /// export. Reads the raw values rather than the typed properties above so a setting added
+        /// later is captured without touching this method.
+        /// </summary>
+        public static Dictionary<string, object?> ExportableValues()
+        {
+            var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(s_subKey);
+                if (key == null) return result;
+
+                foreach (string name in key.GetValueNames())
+                {
+                    if (NonExportableValueNames.Contains(name)) continue;
+                    result[name] = key.GetValue(name);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarn("Could not enumerate settings for the version backup: {Error}", ex.Message);
+            }
+            return result;
+        }
+
         public static readonly string DefaultBackgroundImagePath = System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "PicklesPlaylistEditor", "current", "ui", "picklebackground.png");

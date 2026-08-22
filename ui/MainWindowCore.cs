@@ -18,6 +18,7 @@ namespace Pickles_Playlist_Editor
     {
         private bool _busyOverlayVisible;
         private bool _didBackfillStatsFromCache;
+        private bool _updateCheckInFlight;
         private readonly Dictionary<string, bool> _playlistExpandedStates = new();
         private Storyboard? _spinnerStoryboard;
 
@@ -607,43 +608,70 @@ namespace Pickles_Playlist_Editor
             return messages.Count > 0 ? string.Join(Environment.NewLine, messages) : ex.ToString();
         }
 
-        private async Task CheckForUpdatesAsync()
+        public async Task CheckForUpdatesAsync()
         {
+            // Two checks can now be live at once: PlaylistTreeView_Loaded starts one at launch and
+            // immediately opens Settings when Penumbra is unconfigured, so a channel change there
+            // would start a second while the first is still on the network. Two in flight means two
+            // prompts racing WinUI's one-ContentDialog-at-a-time limit, and — if the user says yes
+            // twice — two ApplyUpdatesAndRestart calls against the same install folder. Both callers
+            // run on the UI thread, so a plain bool is enough; no interlock needed.
+            if (_updateCheckInFlight) return;
+            _updateCheckInFlight = true;
+
             try
             {
-                // Follow the prerelease channel only when this build is itself a testing
-                // build. A stable build must never see testing releases; a testing build
-                // needs to, or a tester would have to reinstall by hand for every drop.
+                // The channel is the user's choice (Settings), defaulting to whichever feed the
+                // running build came from. Prereleases are visible only on the testing channel;
+                // a stable user must never be prompted to install a test build.
                 //
-                // This is not a one-way door: with prerelease search on, Velopack still
-                // considers stable releases and picks whichever is newest — and SemVer puts
-                // 2.5.1 above 2.5.1-testing.N — so a tester is pulled back onto the stable
-                // channel automatically as soon as that version ships.
-                bool followPrereleases = Utils.AppVersion.IsPrerelease;
+                // Picking testing is not a one-way door even without touching the setting again:
+                // with prerelease search on, Velopack still considers stable releases and takes
+                // whichever is newest — and SemVer puts 2.5.1 above 2.5.1-testing.N — so a tester
+                // rejoins stable automatically as soon as that version ships.
+                bool followPrereleases = Settings.FollowTestingReleases;
 
+                // AllowVersionDowngrade is deliberately left off. Switching a testing build back
+                // to main means waiting for the next main release rather than rolling back to the
+                // older one: a test build can already have written playlist and SCD data in a
+                // shape the older build does not understand, and installing over it would corrupt
+                // the mod. Waiting is slower; rolling back is destructive.
                 var mgr = new UpdateManager(new GithubSource(
                     "https://github.com/solona-m/Pickles-Playlist-Editor", null, followPrereleases));
 
                 var update = await mgr.CheckForUpdatesAsync();
                 if (update == null) return;
 
-                Utils.Logger.LogInfo("Update available: {Current} -> {Target} (prereleases {Mode})",
-                    Utils.AppVersion.Display, update.TargetFullRelease.Version.ToString(),
-                    followPrereleases ? "included" : "excluded");
+                string targetVersion = update.TargetFullRelease.Version.ToString();
+                Utils.Logger.LogInfo("Update available: {Current} -> {Target} (channel {Channel})",
+                    Utils.AppVersion.Display, targetVersion, Settings.UpdateChannel);
 
                 var result = await ShowDialogAsync(
                     AppStrings.Dlg_UpdateAvailable_Title,
-                    AppStrings.UpdateAvailableContent(update.TargetFullRelease.Version.ToString()),
+                    AppStrings.UpdateAvailableContent(targetVersion),
                     AppStrings.Btn_Install, null, AppStrings.Btn_Later);
 
                 if (result != ContentDialogResult.Primary) return;
 
+                // Last reliable place to run anything: ApplyUpdatesAndRestart below never returns,
+                // and it bypasses AppWindow.Closing, so no shutdown handler fires on this path.
+                // Before the download rather than after, so a hung or failed download cannot strand
+                // the user with the new build staged and no backup of the schema this one wrote.
+                Utils.VersionBackup.TryCaptureBeforeUpdate(targetVersion);
+
                 await mgr.DownloadUpdatesAsync(update);
                 mgr.ApplyUpdatesAndRestart(update);
             }
-            catch
+            catch (Exception ex)
             {
-                // Silently ignore update failures (no network, GitHub down, etc.)
+                // An update failure (no network, GitHub down, rate limit) must never interrupt
+                // the app — but a silent swallow made "updates stopped arriving" unexplainable,
+                // so it goes to the log and nowhere else.
+                Utils.Logger.LogWarn("Update check failed: {Error}", ex.Message);
+            }
+            finally
+            {
+                _updateCheckInFlight = false;
             }
         }
     }

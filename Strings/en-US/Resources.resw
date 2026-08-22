@@ -58,6 +58,7 @@
   <data name="BusNumberItem_Voice.Content" xml:space="preserve"><value>Voice</value></data>
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>System</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Ambient</value></data>
+  <data name="OpenBackupsButton.Content" xml:space="preserve"><value>Open Backups Folder</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organize Library</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Add Songs From a Link</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Download</value></data>
@@ -82,6 +83,10 @@
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Error during deletion: {0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Update Available</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>Version {0} is available. Install now?</value></data>
+  <data name="UpdateChannelLabel.Text" xml:space="preserve"><value>Updates</value></data>
+  <data name="UpdateChannelItem_Stable.Content" xml:space="preserve"><value>Main releases (recommended)</value></data>
+  <data name="UpdateChannelItem_Testing.Content" xml:space="preserve"><value>Test releases (early builds)</value></data>
+  <data name="UpdateChannelHint.Text" xml:space="preserve"><value>Test releases arrive earlier and can be unstable. Switching back to main releases keeps the build you already have — the change takes effect once a main release newer than it comes out.</value></data>
   <data name="Dlg_ExtractAudio_Title" xml:space="preserve"><value>Extract Audio</value></data>
   <data name="Dlg_ExtractAudio_NoSongs" xml:space="preserve"><value>No songs were found for extraction.</value></data>
   <data name="Summary_ExtractAudio" xml:space="preserve"><value>Audio extraction finished</value></data>

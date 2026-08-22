@@ -58,6 +58,7 @@
   <data name="BusNumberItem_Voice.Content" xml:space="preserve"><value>Stimme</value></data>
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>System</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Umgebung</value></data>
+  <data name="OpenBackupsButton.Content" xml:space="preserve"><value>Sicherungsordner öffnen</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Bibliothek organisieren</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Songs von einem Link hinzufügen</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Herunterladen</value></data>
@@ -81,6 +82,10 @@
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Fehler beim Löschen: {0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Update verfügbar</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>Version {0} ist verfügbar. Jetzt installieren?</value></data>
+  <data name="UpdateChannelLabel.Text" xml:space="preserve"><value>Updates</value></data>
+  <data name="UpdateChannelItem_Stable.Content" xml:space="preserve"><value>Hauptversionen (empfohlen)</value></data>
+  <data name="UpdateChannelItem_Testing.Content" xml:space="preserve"><value>Testversionen (frühe Builds)</value></data>
+  <data name="UpdateChannelHint.Text" xml:space="preserve"><value>Testversionen erscheinen früher und können instabil sein. Beim Zurückwechseln zu den Hauptversionen bleibt die vorhandene Version installiert — die Umstellung erfolgt, sobald eine neuere Hauptversion erscheint.</value></data>
   <data name="Dlg_ExtractAudio_Title" xml:space="preserve"><value>Audio extrahieren</value></data>
   <data name="Dlg_ExtractAudio_NoSongs" xml:space="preserve"><value>Keine Songs zur Extraktion gefunden.</value></data>
   <data name="Summary_ExtractAudio" xml:space="preserve"><value>Audioextraktion abgeschlossen</value></data>

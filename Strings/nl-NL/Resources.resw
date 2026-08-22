@@ -58,6 +58,7 @@
   <data name="BusNumberItem_Voice.Content" xml:space="preserve"><value>Stem</value></data>
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>Systeem</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Omgeving</value></data>
+  <data name="OpenBackupsButton.Content" xml:space="preserve"><value>Back-upmap openen</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Bibliotheek ordenen</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Nummers toevoegen van een link</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Downloaden</value></data>
@@ -81,6 +82,10 @@
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Fout bij verwijderen: {0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Update beschikbaar</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>Versie {0} is beschikbaar. Nu installeren?</value></data>
+  <data name="UpdateChannelLabel.Text" xml:space="preserve"><value>Updates</value></data>
+  <data name="UpdateChannelItem_Stable.Content" xml:space="preserve"><value>Hoofdreleases (aanbevolen)</value></data>
+  <data name="UpdateChannelItem_Testing.Content" xml:space="preserve"><value>Testreleases (vroege builds)</value></data>
+  <data name="UpdateChannelHint.Text" xml:space="preserve"><value>Testreleases verschijnen eerder en kunnen instabiel zijn. Terugschakelen naar hoofdreleases behoudt de versie die je al hebt; de overstap gebeurt zodra er een nieuwere hoofdversie uitkomt.</value></data>
   <data name="Dlg_ExtractAudio_Title" xml:space="preserve"><value>Audio extraheren</value></data>
   <data name="Dlg_ExtractAudio_NoSongs" xml:space="preserve"><value>Geen nummers gevonden voor extractie.</value></data>
   <data name="Summary_ExtractAudio" xml:space="preserve"><value>Audio-extractie voltooid</value></data>

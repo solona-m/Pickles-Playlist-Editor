@@ -58,6 +58,7 @@
   <data name="BusNumberItem_Voice.Content" xml:space="preserve"><value>Voix</value></data>
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>Système</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Ambiance</value></data>
+  <data name="OpenBackupsButton.Content" xml:space="preserve"><value>Ouvrir le dossier des sauvegardes</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organiser la bibliothèque</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Ajouter des chansons depuis un lien</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Télécharger</value></data>
@@ -81,6 +82,10 @@
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Erreur lors de la suppression : {0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Mise à jour disponible</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>La version {0} est disponible. Installer maintenant ?</value></data>
+  <data name="UpdateChannelLabel.Text" xml:space="preserve"><value>Mises à jour</value></data>
+  <data name="UpdateChannelItem_Stable.Content" xml:space="preserve"><value>Versions principales (recommandé)</value></data>
+  <data name="UpdateChannelItem_Testing.Content" xml:space="preserve"><value>Versions de test (builds anticipées)</value></data>
+  <data name="UpdateChannelHint.Text" xml:space="preserve"><value>Les versions de test arrivent plus tôt et peuvent être instables. Revenir aux versions principales conserve la version déjà installée ; le changement prendra effet dès qu'une version principale plus récente sortira.</value></data>
   <data name="Dlg_ExtractAudio_Title" xml:space="preserve"><value>Extraire l'audio</value></data>
   <data name="Dlg_ExtractAudio_NoSongs" xml:space="preserve"><value>Aucune chanson trouvée pour l'extraction.</value></data>
   <data name="Summary_ExtractAudio" xml:space="preserve"><value>Extraction audio terminée</value></data>

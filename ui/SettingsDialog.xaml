@@ -97,9 +97,18 @@
                     Content="Sign Out" Click="SoundCloudSignOutButton_Click" HorizontalAlignment="Stretch"/>
         </Grid>
 
+        <Button x:Uid="OpenBackupsButton" Content="Open Backups Folder" Click="OpenBackupsButton_Click" HorizontalAlignment="Stretch"/>
         <Button x:Uid="OrganizeLibraryButton" Content="Organize Library" Click="OrganizeLibraryButton_Click" HorizontalAlignment="Stretch"/>
         <Button x:Uid="RepairLibraryButton" Content="Repair Library" Click="RepairLibraryButton_Click" HorizontalAlignment="Stretch"/>
         <Button x:Uid="ConvertToStereoButton" Content="Convert to Stereo" Click="ConvertToStereoButton_Click" HorizontalAlignment="Stretch"/>
+
+        <TextBlock x:Uid="UpdateChannelLabel" Text="Updates" FontWeight="SemiBold"/>
+        <ComboBox x:Name="UpdateChannelComboBox" HorizontalAlignment="Stretch">
+            <ComboBoxItem x:Uid="UpdateChannelItem_Stable"  Content="Main releases (recommended)" Tag="stable"/>
+            <ComboBoxItem x:Uid="UpdateChannelItem_Testing" Content="Test releases (early builds)" Tag="testing"/>
+        </ComboBox>
+        <TextBlock x:Uid="UpdateChannelHint" Opacity="0.7" TextWrapping="Wrap"
+                   Text="Test releases arrive earlier and can be unstable. Switching back to main releases keeps the build you already have &#8212; the change takes effect once a main release newer than it comes out."/>
 
     </StackPanel>
     </ScrollViewer>

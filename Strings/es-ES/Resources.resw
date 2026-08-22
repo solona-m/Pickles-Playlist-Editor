@@ -58,6 +58,7 @@
   <data name="BusNumberItem_Voice.Content" xml:space="preserve"><value>Voz</value></data>
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>Sistema</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>Ambiente</value></data>
+  <data name="OpenBackupsButton.Content" xml:space="preserve"><value>Abrir carpeta de copias de seguridad</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>Organizar biblioteca</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>Añadir canciones desde un enlace</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>Descargar</value></data>
@@ -81,6 +82,10 @@
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>Error durante la eliminación: {0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>Actualización disponible</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>La versión {0} está disponible. ¿Instalar ahora?</value></data>
+  <data name="UpdateChannelLabel.Text" xml:space="preserve"><value>Actualizaciones</value></data>
+  <data name="UpdateChannelItem_Stable.Content" xml:space="preserve"><value>Versiones principales (recomendado)</value></data>
+  <data name="UpdateChannelItem_Testing.Content" xml:space="preserve"><value>Versiones de prueba (compilaciones anticipadas)</value></data>
+  <data name="UpdateChannelHint.Text" xml:space="preserve"><value>Las versiones de prueba llegan antes y pueden ser inestables. Al volver a las versiones principales se conserva la versión instalada; el cambio se aplicará cuando salga una versión principal más reciente.</value></data>
   <data name="Dlg_ExtractAudio_Title" xml:space="preserve"><value>Extraer audio</value></data>
   <data name="Dlg_ExtractAudio_NoSongs" xml:space="preserve"><value>No se encontraron canciones para extraer.</value></data>
   <data name="Summary_ExtractAudio" xml:space="preserve"><value>Extracción de audio finalizada</value></data>

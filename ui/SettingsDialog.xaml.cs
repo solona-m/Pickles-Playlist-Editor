@@ -46,6 +46,20 @@ namespace Pickles_Playlist_Editor
                 Console.WriteLine(e.ToString());
             }
 
+            // Deliberately outside the block above. That block starts with Settings.ModName, which
+            // reaches Penumbra over IPC and can throw — and its catch would then skip every
+            // remaining initializer, leaving this dropdown blank. A blank dropdown that OK still
+            // acts on is how a tester gets silently moved off test builds, so it is initialized on
+            // its own and cannot be collateral damage from an unrelated failure.
+            try
+            {
+                SelectCurrentUpdateChannel();
+            }
+            catch (Exception e)
+            {
+                Utils.Logger.LogWarn("Could not preselect the update channel: {Error}", e.Message);
+            }
+
             _loading = false;
             RefreshBaselineScdOptions(updateTextFromMod: string.IsNullOrWhiteSpace(BaselineScdTextBox.Text));
             ValidateFields();
@@ -217,6 +231,37 @@ namespace Pickles_Playlist_Editor
         private string SelectedLanguageTag =>
             (LanguageComboBox.SelectedItem as ComboBoxItem)?.Tag as string ?? string.Empty;
 
+        // Selects the ComboBox item whose Tag matches the saved channel. Settings.UpdateChannel
+        // always answers "stable" or "testing" — never empty — so a miss can only mean the XAML
+        // tags and the setting have drifted apart. The fallback matches by tag, not by position:
+        // index 0 only happens to be the stable item today. If even that misses, the dropdown is
+        // left unselected on purpose — SelectedUpdateChannel then reads null and OK leaves the
+        // stored channel alone, which is safer than guessing on the user's behalf.
+        private void SelectCurrentUpdateChannel()
+        {
+            UpdateChannelComboBox.SelectedItem =
+                FindChannelItem(Settings.UpdateChannel) ?? FindChannelItem(Settings.UpdateChannelStable);
+        }
+
+        private ComboBoxItem? FindChannelItem(string channel) =>
+            UpdateChannelComboBox.Items
+                .OfType<ComboBoxItem>()
+                .FirstOrDefault(item => string.Equals(item.Tag as string, channel, StringComparison.OrdinalIgnoreCase));
+
+        // Null when the dropdown holds no selection — which means initialization failed, not that
+        // the user chose stable. Callers must treat null as "leave the stored channel alone";
+        // defaulting it to stable here would quietly unsubscribe a tester from test builds.
+        private string? SelectedUpdateChannel =>
+            (UpdateChannelComboBox.SelectedItem as ComboBoxItem)?.Tag as string;
+
+        /// <summary>
+        /// True when OK changed the update channel. The caller that owns this dialog
+        /// (<see cref="MainWindow.OpenSettingsAsync"/>) reads it once the dialog has actually
+        /// closed and re-checks for updates then — see the comment there for why it cannot be
+        /// done from inside the OK handler.
+        /// </summary>
+        internal bool UpdateChannelChanged { get; private set; }
+
         private void UpdateCookieStatus()
         {
             var status = Pickles_Playlist_Editor.Tools.YtDlpService.GetCookieStatus();
@@ -285,6 +330,13 @@ namespace Pickles_Playlist_Editor
                 // Reopening is a convenience; the sign-in itself already took effect.
                 Utils.Logger.LogWarn("Could not reopen Settings after sign-in: {Error}", ex.Message);
             }
+
+            // That reopen was a second ShowAsync, so OpenSettingsAsync already returned and read
+            // UpdateChannelChanged back when Hide() completed the first one. A channel change made
+            // in this second pass is ours to act on. The dialog is closed by now, so the update
+            // prompt has the field to itself.
+            if (UpdateChannelChanged)
+                await App.MainWindow.CheckForUpdatesAsync();
         }
 
         private void SoundCloudSignOutButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -313,6 +365,20 @@ namespace Pickles_Playlist_Editor
             Settings.AutoReloadMod = AutoReloadCheckBox.IsChecked == true;
             Settings.FadeBackgroundMusic = FadeBackgroundMusicCheckBox.IsChecked == true;
             Settings.BusNumber = IndexToBusNumber(BusNumberComboBox.SelectedIndex);
+
+            // Written only on a real change. With nothing stored, Settings.UpdateChannel derives
+            // the channel from the running build, and that derived state is worth preserving: a
+            // tester who opens Settings for some unrelated reason and clicks OK would otherwise be
+            // pinned to "testing" forever, instead of rejoining main releases on their own when the
+            // matching stable version ships.
+            string? newChannel = SelectedUpdateChannel;
+            if (newChannel != null
+                && !string.Equals(newChannel, Settings.UpdateChannel, StringComparison.OrdinalIgnoreCase))
+            {
+                Settings.UpdateChannel = newChannel;
+                UpdateChannelChanged = true;
+                Utils.Logger.LogInfo("Settings: update channel set to '{Channel}'.", Settings.UpdateChannel);
+            }
 
             string newLanguage = SelectedLanguageTag;
             bool languageChanged = !string.Equals(newLanguage, Settings.Language ?? string.Empty, StringComparison.OrdinalIgnoreCase);
@@ -390,6 +456,25 @@ namespace Pickles_Playlist_Editor
                     MessageBox(hwnd, msg, "Convert to Stereo — Errors", 0x00000030); // MB_ICONWARNING
                 }
             });
+        }
+
+        // Restoring an older version's config is a manual copy, so the folder has to be reachable —
+        // it lives under %LOCALAPPDATA% where nobody would find it unaided.
+        private void OpenBackupsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string path = Utils.VersionBackup.VersionsRoot;
+                Directory.CreateDirectory(path);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path)
+                {
+                    UseShellExecute = true,
+                });
+            }
+            catch (Exception ex)
+            {
+                Utils.Logger.LogWarn("Could not open the backups folder: {Error}", ex.Message);
+            }
         }
 
         private void OrganizeLibraryButton_Click(object sender, RoutedEventArgs e)

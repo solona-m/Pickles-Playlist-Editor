@@ -229,6 +229,12 @@ namespace Pickles_Playlist_Editor
             var picklePath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resources", "pickle.png");
             if (System.IO.File.Exists(picklePath))
                 BusyPickleImage.Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(picklePath));
+            // Before LoadPlaylists, not after: this is the earliest point where the Penumbra
+            // settings are resolved, and capturing before the new build reads or heals anything is
+            // what makes "the JSON as the previous version left it" true rather than approximate.
+            // No-ops when nothing is configured yet — see the second call site in OpenSettingsAsync.
+            Utils.VersionBackup.TryCaptureOnBoot();
+
             LoadPlaylists();
 
             _ = CheckForUpdatesAsync();
@@ -564,6 +570,19 @@ namespace Pickles_Playlist_Editor
             await dialog.ShowAsync();
             RefreshBackground();
             LoadPlaylists();
+
+            // On a first run the boot capture necessarily no-opped: there was no configured mod
+            // until the user filled this dialog in. This is the only point on that path where the
+            // mod folder is guaranteed valid. Idempotent, so it costs nothing on every other path.
+            Utils.VersionBackup.TryCaptureOnBoot();
+
+            // Only here is the Settings ContentDialog provably closed. WinUI permits one
+            // ContentDialog at a time, and a prompt raised from inside the OK handler — or from a
+            // dispatcher callback that handler posts — runs while the close is still animating and
+            // dies with "Only a single ContentDialog can be open at any time". CheckForUpdatesAsync
+            // swallows that into the log, so the update prompt would silently never appear.
+            if (dialog.UpdateChannelChanged)
+                await CheckForUpdatesAsync();
         }
 
         internal void RefreshBackground()

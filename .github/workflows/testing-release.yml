@@ -7,10 +7,11 @@ name: Testing Release
 #   * Published as a GitHub PRERELEASE (--pre). GitHub never resolves /releases/latest to
 #     a prerelease, so the README's stable download link keeps pointing at the last real
 #     release.
-#   * Existing users never see it. The shipped updater builds its source as
-#     `new GithubSource(..., null, false)` (ui/MainWindowCore.cs) where the third argument
-#     is prerelease:false, so clients ignore prereleases entirely. --pre is what stops a
-#     test build from prompting every stable user to install it.
+#   * Only users who opted in see it. The shipped updater passes prerelease:true to
+#     GithubSource (ui/MainWindowCore.cs) only when Settings.FollowTestingReleases is on —
+#     i.e. the user picked "Test releases" under Updates in Settings, or is already running
+#     a testing build. Everyone else ignores prereleases entirely, and --pre is what puts a
+#     test build in that ignored bucket.
 
 on:
   push:

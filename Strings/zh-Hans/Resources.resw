@@ -58,6 +58,7 @@
   <data name="BusNumberItem_Voice.Content" xml:space="preserve"><value>语音</value></data>
   <data name="BusNumberItem_System.Content" xml:space="preserve"><value>系统音</value></data>
   <data name="BusNumberItem_Ambient.Content" xml:space="preserve"><value>环境音</value></data>
+  <data name="OpenBackupsButton.Content" xml:space="preserve"><value>打开备份文件夹</value></data>
   <data name="OrganizeLibraryButton.Content" xml:space="preserve"><value>整理音乐库</value></data>
   <data name="YouTubeDlg.Title" xml:space="preserve"><value>从链接添加歌曲</value></data>
   <data name="YouTubeDlg.PrimaryButtonText" xml:space="preserve"><value>下载</value></data>
@@ -82,6 +83,10 @@
   <data name="Dlg_ErrorDeletion" xml:space="preserve"><value>删除时出错：{0}</value></data>
   <data name="Dlg_UpdateAvailable_Title" xml:space="preserve"><value>有可用更新</value></data>
   <data name="Dlg_UpdateAvailable_Content" xml:space="preserve"><value>版本 {0} 已可用。现在安装吗？</value></data>
+  <data name="UpdateChannelLabel.Text" xml:space="preserve"><value>更新</value></data>
+  <data name="UpdateChannelItem_Stable.Content" xml:space="preserve"><value>正式版（推荐）</value></data>
+  <data name="UpdateChannelItem_Testing.Content" xml:space="preserve"><value>测试版（抢先构建）</value></data>
+  <data name="UpdateChannelHint.Text" xml:space="preserve"><value>测试版发布更早，可能不稳定。切换回正式版会保留当前已安装的版本；当出现比它更新的正式版本时才会切换过去。</value></data>
   <data name="Dlg_ExtractAudio_Title" xml:space="preserve"><value>提取音频</value></data>
   <data name="Dlg_ExtractAudio_NoSongs" xml:space="preserve"><value>未找到可提取的歌曲。</value></data>
   <data name="Summary_ExtractAudio" xml:space="preserve"><value>音频提取完成</value></data>
