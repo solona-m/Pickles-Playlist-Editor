@@ -213,7 +213,10 @@ namespace Pickles_Playlist_Editor
                 throw new PlaylistSaveException(Name);
 
             string playlistScdDirectory = playlist.GetScdDirectoryForNewFiles();
-            string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistScdDirectory);
+            // Pinned here, before any renaming, so the save at the end can verify it is still writing
+            // to the mod those renames happened in.
+            string modAtStart = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
+            string outDir = Path.Combine(modAtStart, playlistScdDirectory);
             Directory.CreateDirectory(outDir);
             List<Option> optionsToRemove = new List<Option>();
 
@@ -295,6 +298,9 @@ namespace Pickles_Playlist_Editor
                     removed.Add((index, opt));
                 }
 
+                // Cleanup has already renamed .scd files on disk by this point, so the save must land
+                // in the mod those renames happened in and no other.
+                PenumbraMeta.AssertModRootUnchanged(modAtStart);
                 this.Save();
                 // Save() will refresh Penumbra; no need to call here.
             }
@@ -451,13 +457,90 @@ namespace Pickles_Playlist_Editor
                 }
                 playlists[playlist.Name] = playlist;
             }
+
+            LogLibrarySummary(playlists, modDirectory);
             return playlists;
         }
+
+        /// <summary>
+        /// One line describing what was loaded, plus a warning for the one group shape Penumbra will
+        /// take apart on its own.
+        ///
+        /// Penumbra caps grouped options per TYPE — IModGroup.MaxMultiOptions is 32 for Multi,
+        /// MaxCombiningOptions is 8 for Combining — and splits anything larger into
+        /// "&lt;name&gt;, Part 1"/"Part 2" the next time it adds the mod, renumbering the rest of the
+        /// folder as it goes. The playlist then no longer exists under the name this app resolves by.
+        /// Playlists are Single groups — which have no such cap, and are why 100+ song playlists work
+        /// at all — but the group type is one toggle away in Penumbra's own UI, so a report of "my
+        /// playlist split in two" should be answerable from the log rather than by guesswork.
+        /// </summary>
+        private static void LogLibrarySummary(Dictionary<string, Playlist> playlists, string modDirectory)
+        {
+            try
+            {
+                int songs = playlists.Values.Sum(p => p.Options?.Count ?? 0);
+                Logger.LogInfo("Loaded {Playlists} playlist(s), {Songs} song(s) from '{Dir}'.",
+                    playlists.Count, songs, modDirectory);
+
+                foreach (var p in playlists.Values)
+                {
+                    int limit = MaxOptionsForGroupType(p.Type);
+                    int count = p.Options?.Count ?? 0;
+                    if (count <= limit)
+                        continue;
+
+                    // Every placeholder must appear exactly once: Logger forwards to
+                    // Microsoft.Extensions.Logging, whose formatter maps named placeholders to
+                    // positional indices WITHOUT deduplicating repeats. Naming one twice produced a
+                    // {4} against a 4-element array, so this warning threw a FormatException and was
+                    // swallowed by the catch below — the diagnostic never once reached the log.
+                    Logger.LogWarn("Playlist '{Name}' is a {Type} group with {Count} songs, but " +
+                        "Penumbra allows at most {Limit} and will split it into numbered parts. " +
+                        "Change it to a Single group in Penumbra to keep it in one piece.",
+                        p.Name, p.Type, count, limit);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarn("Could not summarise the loaded library: {Error}", ex.Message);
+            }
+        }
+
+        // Penumbra's per-type option limits. Single is uncapped — its setting is an index, not the
+        // bitmask that constrains Multi — which is the only reason long playlists work.
+        //
+        // Matched case-insensitively on purpose. A switch on string compares ordinally, and the whole
+        // point of this check is to catch group files that came from somewhere other than Penumbra —
+        // hand edits, other tools — which are exactly the ones liable to write "multi". Falling to
+        // the uncapped arm on a casing difference would silently skip the warning.
+        private static int MaxOptionsForGroupType(string? type) =>
+            string.Equals(type, "Multi", StringComparison.OrdinalIgnoreCase) ? 32      // MaxMultiOptions
+            : string.Equals(type, "Combining", StringComparison.OrdinalIgnoreCase) ? 8 // MaxCombiningOptions
+            : int.MaxValue;                                     // Single, Imc, and anything newer
 
         public void Add(string[] fileNames, Action<int>? callback = null)
         {
             Logger.LogInfo("Add: {Count} file(s) into '{Name}' (currently {Existing} options)",
                 fileNames?.Length ?? 0, Name, Options?.Count ?? 0);
+
+            // Bail before importing anything if the save at the end can't land, exactly as Cleanup()
+            // does. Importing writes a .scd per track into the mod folder — tens of seconds each — and
+            // only the Save below records them in the group file. Without this, a failed save left
+            // every imported track orphaned on disk: the next attempt then imported them a second time
+            // under "_1" names, which is how users ended up with duplicate audio and a playlist that
+            // never gained the songs.
+            if (!ExistsInManifest())
+            {
+                Logger.LogError("Add into '{Name}': playlist has no group file to save into — " +
+                    "importing nothing.", Name);
+                throw new PlaylistSaveException(Name);
+            }
+
+            // Importing runs for tens of seconds per track, and the mod folder is changeable from the
+            // Settings dialog the whole time. Pin the one we started against so the save at the end
+            // can refuse rather than write this playlist into whichever mod is selected by then.
+            string modAtStart = PenumbraMeta.ModRoot;
+
             int count = 0;
             foreach (string file in fileNames)
             {
@@ -466,6 +549,8 @@ namespace Pickles_Playlist_Editor
                 if (callback != null)
                     callback((int)((float)(++count)/fileNames.Length*100));
             }
+
+            PenumbraMeta.AssertModRootUnchanged(modAtStart);
             Save();
         }
 
@@ -473,9 +558,20 @@ namespace Pickles_Playlist_Editor
         {
             Logger.LogInfo("Insert: {Count} file(s) into '{Name}' at index {Index} (currently {Existing} options)",
                 fileNames?.Length ?? 0, Name, index, Options?.Count ?? 0);
+            // Same two guards as Add: nothing goes on disk if the save has nowhere to land, and the
+            // mod we started against is the only one this may write to.
+            if (!ExistsInManifest())
+            {
+                Logger.LogError("Insert into '{Name}': playlist has no group file to save into — " +
+                    "importing nothing.", Name);
+                throw new PlaylistSaveException(Name);
+            }
+
             int offIndex = Options.FindIndex(o => o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase));
             if (offIndex >= 0)
                 index = Math.Max(index, offIndex + 1);
+
+            string modAtStart = PenumbraMeta.ModRoot;
 
             int count = 0;
             foreach (string file in fileNames)
@@ -487,6 +583,8 @@ namespace Pickles_Playlist_Editor
                 if (callback != null)
                     callback((int)((float)(++count) / fileNames.Length * 100));
             }
+
+            PenumbraMeta.AssertModRootUnchanged(modAtStart);
             Save();
         }
 
@@ -577,6 +675,7 @@ namespace Pickles_Playlist_Editor
 
                 // Resolution is by Id under v4 and by PersistedName (still the old name) under v3, so
                 // storage still saying oldName is fine — the save is what updates it.
+                PenumbraMeta.AssertModRootUnchanged(modDirectory);
                 Save();
             }
             catch
@@ -614,6 +713,9 @@ namespace Pickles_Playlist_Editor
         /// somewhere to write. Callers that are about to do something destructive (move a song out of
         /// another playlist, delete an audio file) should pre-flight with this so they never commit
         /// half an edit against a playlist that cannot be saved.
+        ///
+        /// Costs a folder scan, and on a miss it also attempts recovery, which MOVES FILES — see
+        /// V3GroupFileStore.ResolveWritableFile. Call it once per operation, not in a loop.
         /// </summary>
         internal bool ExistsInManifest() => PlaylistStore.Current.Exists(this);
 
@@ -1068,6 +1170,19 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        // The TOTAL the shutdown flush is willing to spend — waiting for the folder gate and waiting
+        // for Penumbra's answer come out of this one allowance, not one each. Deliberately short: this
+        // runs on the UI thread from AppWindow.Closing, so every millisecond here is a window that
+        // will not close. Missing the reload only means Penumbra serves the previous version until it
+        // next reloads; the edit itself is already on disk.
+        private static readonly TimeSpan ShutdownReloadBudget = TimeSpan.FromMilliseconds(1500);
+
+        // What the debounced reload will wait for the folder gate. Short, but not zero: reads hold the
+        // gate too now, so a zero wait would drop the reload whenever it happened to land during a
+        // library load. Waiting here costs nothing — it runs on a timer thread, and it waits for an
+        // edit to finish rather than making one wait.
+        private static readonly TimeSpan DebouncedGateWait = TimeSpan.FromMilliseconds(250);
+
         // Fire any reload still waiting out its debounce, right now. Call on shutdown so a pending
         // reload isn't dropped when the app closes seconds after the last edit.
         internal static void FlushPenumbraMod()
@@ -1078,17 +1193,109 @@ namespace Pickles_Playlist_Editor
                     return;
                 s_reloadTimer.Change(Timeout.Infinite, Timeout.Infinite);
             }
-            FirePenumbraReload();
+
+            // Unlike the timer path, this one waits for the gate. Skipping when an edit is in flight
+            // would silently drop the reload this method exists to guarantee — the rescheduled
+            // debounce never fires, because the process is exiting.
+            FirePenumbraReload(ShutdownReloadBudget, ShutdownReloadBudget);
         }
 
-        private static void FirePenumbraReload()
+        /// <param name="gateWait">
+        /// How long to wait for the mod-folder gate; null uses <see cref="DebouncedGateWait"/>.
+        /// Short but not zero on the debounced path: reads hold the gate too, so a zero wait would
+        /// drop the reload whenever it landed during a library load, and nothing reschedules it —
+        /// only Save does that. Waiting here never makes a save wait, because this acquires the gate
+        /// after the edit releases it. The shutdown flush passes a larger budget, since for it there
+        /// is no next time.
+        /// </param>
+        /// <param name="answerWait">
+        /// How long to wait for Penumbra's reply before giving up on it. Null on the debounced path
+        /// (a background timer thread has nothing better to do, and the HTTP client's own timeout
+        /// bounds it); bounded on shutdown so a wedged Penumbra cannot hold the window open.
+        /// </param>
+        private static void FirePenumbraReload(TimeSpan? gateWait = null, TimeSpan? answerWait = null)
         {
             try
             {
-                if (Settings.AutoReloadMod)
+                if (!Settings.AutoReloadMod)
+                    return;
+
+                string mod = Settings.ModName;
+
+                // Hold the folder gate across the whole reload, and wait for the answer.
+                //
+                // Reloading a v3 mod makes Penumbra read every group file and then, if any filename
+                // disagrees with the one it would have chosen, write the whole set back out from what
+                // it just read. A save landing inside that read-to-write window is silently discarded
+                // — which is how a playlist that logged a successful save came back with the songs
+                // missing. Serialising on the same gate every write takes closes that window.
+                //
+                // Penumbra answers only once the reload has completed, so the response IS the
+                // "safe to write again" signal; the call used to be fired and forgotten, which threw
+                // that signal away.
+                //
+                // TryEnter with the caller's budget — see the gateWait doc above for why it is short
+                // rather than zero.
+                // Timestamp rather than a Stopwatch instance, and only when there is a budget to spend
+                // it against: the debounced path fires on every save and would otherwise allocate a
+                // stopwatch nothing ever reads.
+                long startTicks = answerWait.HasValue ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+
+                if (!Monitor.TryEnter(PlaylistStore.ModFolderGate, gateWait ?? DebouncedGateWait))
                 {
-                    Logger.LogInfo("Penumbra: reloading mod '{Mod}' (debounced).", Settings.ModName);
-                    PenumbraApi.ReloadMod(Settings.ModName, Settings.ModName);
+                    // Not "it will reschedule": only Save does that. Losing the reload to a long read
+                    // just means Penumbra serves the previous version until something else reloads it.
+                    Logger.LogInfo("Penumbra: reload of '{Mod}' skipped, the mod folder was busy.", mod);
+                    return;
+                }
+
+                try
+                {
+                    Logger.LogInfo("Penumbra: reloading mod '{Mod}' (debounced).", mod);
+
+                    // Task.Run is load-bearing, not stylistic. FlushPenumbraMod is called from
+                    // AppWindow.Closing on the UI thread, and the awaits inside Request would capture
+                    // that SynchronizationContext and post their continuation back to the very thread
+                    // blocked here — hanging the app on exit, with the HTTP timeout unable to break it
+                    // because delivering the cancellation needs that same thread. Running the call on
+                    // the pool leaves no context to capture.
+                    var call = Task.Run(() => PenumbraApi.ReloadMod(mod, mod));
+
+                    // The budget covers the WHOLE flush, not each phase of it: waiting for the gate has
+                    // already spent some of it, so only the remainder is left for the reply. Spending
+                    // it twice over would let a close block for double what the constant says.
+                    if (answerWait is TimeSpan budget)
+                    {
+                        var remaining = budget - System.Diagnostics.Stopwatch.GetElapsedTime(startTicks);
+                        if (remaining <= TimeSpan.Zero || !call.Wait(remaining))
+                        {
+                            // Shutdown only. Abandon the wait, not the request — it completes on the
+                            // pool and Penumbra still reloads if it can. Blocking a closing window any
+                            // longer buys nothing the user can see.
+                            Logger.LogInfo("Penumbra: reload of '{Mod}' still running at shutdown — not " +
+                                "waiting for it.", mod);
+                            return;
+                        }
+                    }
+
+                    // Only warn when Penumbra actually answered and something went wrong. NoAnswer
+                    // means it is not running, or is busy mid-zone-load — both normal — and the API
+                    // layer already reports each once per session; warning here too would put a line
+                    // in the log for every single save.
+                    //
+                    // Note this cannot detect an unregistered mod: Penumbra's HTTP handler returns 200
+                    // whether or not it recognises the mod (verified against 1.7 — a reload for a name
+                    // that exists nowhere still answers 200 with an empty body), so the ModMissing code
+                    // its IPC returns never reaches us. Failed here means a non-2xx or a transport
+                    // error, not "the mod is unknown".
+                    if (call.GetAwaiter().GetResult() == PenumbraApi.ApiResult.Failed)
+                        Logger.LogWarn("Penumbra: reload of '{Mod}' did not complete — it answered but " +
+                            "the call failed (see the API error above). New songs will not appear in " +
+                            "game until it reloads.", mod);
+                }
+                finally
+                {
+                    Monitor.Exit(PlaylistStore.ModFolderGate);
                 }
             }
             catch

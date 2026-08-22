@@ -57,46 +57,67 @@ namespace Pickles_Playlist_Editor
                 }
             }
         }
+        // Remembered for the process only — see the getter for why this is never persisted.
+        private static string? s_guessedModName;
+
+        private static string GuessModName(string name, string how)
+        {
+            s_guessedModName = name;
+            Logger.LogWarn("Settings: no mod folder is configured — guessing '{Mod}' via {How}. " +
+                "If that is the wrong mod, set it in Settings; playlists will look missing until you do.",
+                name, how);
+            return name;
+        }
+
         public static string ModName
         {
             get
             {
                 string retval = (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("ModName");
-                if (string.IsNullOrWhiteSpace(retval))
-                {
-                    string penumbra = PenumbraLocation;
-                    if (!string.IsNullOrWhiteSpace(penumbra))
-                    {
-                        foreach (string defaultName in s_defaultModNames)
-                        {
-                            string potentialPath = System.IO.Path.Combine(penumbra, defaultName);
-                            if (System.IO.Directory.Exists(potentialPath))
-                            {
-                                ModName = defaultName; // save it for next time
-                                return defaultName;
-                            }
-                        }
+                if (!string.IsNullOrWhiteSpace(retval))
+                    return retval;
 
-                        // Fall back: search for any directory containing "[yue & lu's]"
-                        try
-                        {
-                            foreach (string dir in System.IO.Directory.EnumerateDirectories(penumbra))
-                            {
-                                string name = System.IO.Path.GetFileName(dir);
-                                if (name.Contains("[yue & lu's]", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    ModName = name; // save it for next time
-                                    return name;
-                                }
-                            }
-                        }
-                        catch { }
+                // No configured mod. Everything below is a GUESS, and it decides which folder every
+                // read, write, repair and delete in this app targets — so it is cached in memory and
+                // logged, never written to the registry. Persisting it used to make a guess
+                // indistinguishable from a deliberate choice on the next run, which is a bad state to
+                // be in when the wrong answer means editing (or repairing) somebody else's mod.
+                if (s_guessedModName != null)
+                    return s_guessedModName;
+
+                string penumbra = PenumbraLocation;
+                if (!string.IsNullOrWhiteSpace(penumbra))
+                {
+                    foreach (string defaultName in s_defaultModNames)
+                    {
+                        string potentialPath = System.IO.Path.Combine(penumbra, defaultName);
+                        if (System.IO.Directory.Exists(potentialPath))
+                            return GuessModName(defaultName, "a built-in default name");
                     }
+
+                    // Fall back: search for any directory containing "[yue & lu's]"
+                    try
+                    {
+                        foreach (string dir in System.IO.Directory.EnumerateDirectories(penumbra))
+                        {
+                            string name = System.IO.Path.GetFileName(dir);
+                            if (name.Contains("[yue & lu's]", StringComparison.OrdinalIgnoreCase))
+                                return GuessModName(name, "a folder-name search");
+                        }
+                    }
+                    catch { }
                 }
                 return retval;
             }
             set
             {
+                // The mod folder decides where every playlist read and write lands, so a change of it
+                // is worth a line in the log: a report of "my playlists vanished" is otherwise
+                // indistinguishable from "I am pointed at a different mod than I think".
+                Logger.LogInfo("Settings: mod folder set to '{Mod}' (was '{Old}').",
+                    value, s_guessedModName ?? (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("ModName") ?? "<unset>");
+                s_guessedModName = null;
+
                 // Open or create the registry key
                 using (RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey))
                 {

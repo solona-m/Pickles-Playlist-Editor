@@ -46,19 +46,26 @@ namespace Pickles_Playlist_Editor.Utils
         public List<Playlist> ReadAll()
         {
             var result = new List<Playlist>();
-            string modDirectory = ModRoot;
-            if (!Directory.Exists(modDirectory))
-                return result;
 
-            foreach (string file in GroupFilesOrdered())
+            // Under the gate for the same reason as ResolveFiles: a two-phase rename leaves the files
+            // it is moving as .reorder_tmp sidecars, and enumerating during that window would report a
+            // library that is missing every playlist currently being renamed.
+            lock (PlaylistStore.ModFolderGate)
             {
-                var group = TryLoadGroup(file);
-                if (group == null)
+                string modDirectory = ModRoot;
+                if (!Directory.Exists(modDirectory))
+                    return result;
+
+                foreach (string file in GroupFilesOrdered())
                 {
-                    Logger.LogWarn("Skipping unreadable group file '{File}'.", Path.GetFileName(file));
-                    continue;
+                    var group = TryLoadGroup(file);
+                    if (group == null)
+                    {
+                        Logger.LogWarn("Skipping unreadable group file '{File}'.", Path.GetFileName(file));
+                        continue;
+                    }
+                    result.Add(Playlist.FromJson(group));
                 }
-                result.Add(Playlist.FromJson(group));
             }
 
             return result;
@@ -89,10 +96,26 @@ namespace Pickles_Playlist_Editor.Utils
 
         private static JObject TryLoadGroup(string path)
         {
+            var group = TryLoadGroupQuiet(path, out string error);
+            if (group == null)
+                Logger.LogWarn("Could not parse group file '{File}': {Error}", Path.GetFileName(path), error);
+            return group;
+        }
+
+        /// <summary>
+        /// As <see cref="TryLoadGroup"/> but silent, for callers that retry.
+        ///
+        /// A failure here is usually transient — Penumbra holding the file open mid-rewrite — so a
+        /// caller that is about to back off and try again would otherwise emit one warning per
+        /// attempt, burying the single line that actually matters when it finally gives up.
+        /// </summary>
+        private static JObject TryLoadGroupQuiet(string path, out string error)
+        {
+            error = null;
             try { return JObject.Parse(File.ReadAllText(path, Encoding.UTF8)); }
             catch (Exception ex)
             {
-                Logger.LogWarn("Could not parse group file '{File}': {Error}", Path.GetFileName(path), ex.Message);
+                error = ex.Message;
                 return null;
             }
         }
@@ -132,7 +155,22 @@ namespace Pickles_Playlist_Editor.Utils
         /// Penumbra writes Name as the second key, so this normally reads a few dozen bytes.
         /// </summary>
         private static string TryReadContentName(string path)
+            => TryReadContentName(path, out string name, out _) ? name : null;
+
+        /// <summary>
+        /// As above, but keeps WHY a read failed instead of collapsing it into null.
+        ///
+        /// That distinction is the whole point. Penumbra holds these files open while it rewrites
+        /// them, so a read can fail transiently — and treating that identically to "no group carries
+        /// this name" is what turned a momentary lock into `no matching group file found` and a hard
+        /// PlaylistSaveException, after the audio had already been imported. Returning true with a
+        /// null <paramref name="name"/> is a real answer (the file parsed, it has no Name); returning
+        /// false means we simply could not look.
+        /// </summary>
+        private static bool TryReadContentName(string path, out string name, out string error)
         {
+            name = null;
+            error = null;
             try
             {
                 using var reader = new StreamReader(path);
@@ -154,14 +192,16 @@ namespace Pickles_Playlist_Editor.Utils
                         case JsonToken.PropertyName when depth == 1
                             && string.Equals((string)jsonReader.Value, "Name", StringComparison.Ordinal):
                             // Depth 1 is the group object itself, so this can't match an option's Name.
-                            return jsonReader.ReadAsString();
+                            name = jsonReader.ReadAsString();
+                            return true;
                     }
                 }
-                return null;
+                return true;
             }
-            catch
+            catch (Exception ex)
             {
-                return null;
+                error = ex.Message;
+                return false;
             }
         }
 
@@ -178,9 +218,73 @@ namespace Pickles_Playlist_Editor.Utils
             if (string.IsNullOrEmpty(name))
                 return Array.Empty<string>();
 
-            return GroupFilesOrdered()
-                .Where(f => string.Equals(TryReadContentName(f), name, StringComparison.Ordinal))
-                .ToArray();
+            // Each PASS holds the folder gate; the waits between them do not.
+            //
+            // The gate is needed because NormalizeGroupFileNames and ReorderAll rename in two phases,
+            // and between them the files they are moving exist only as .reorder_tmp sidecars —
+            // invisible to the group_*.json glob. A pass running unlocked in that window sees the
+            // playlist as absent, and the retry cannot rescue it: nothing was UNREADABLE, the file is
+            // simply not there, so it returns empty and callers like Add's pre-flight refuse a
+            // perfectly healthy playlist. Since a rename holds the gate for its whole duration, a
+            // gated pass sees either the before state or the after state, never the middle.
+            //
+            // But the backoff must NOT be inside that lock. It is waiting on Penumbra, a separate
+            // process the gate has no authority over, so holding it there buys nothing and blocks
+            // every other thread for up to 1.55s — long enough to freeze the window if the UI thread
+            // wants to save. Re-acquiring per pass is exactly as correct, for the reason above.
+            for (int attempt = 0; ; attempt++)
+            {
+                string[] files;
+                bool anyUnreadable;
+                lock (PlaylistStore.ModFolderGate)
+                {
+                    files = MatchByContentName(name, out anyUnreadable);
+                }
+
+                // Retry only while an unreadable file could still be hiding the match. A clean sweep
+                // that simply found no match is a real answer and returns immediately; retrying it
+                // would just add latency to the genuine-miss path.
+                if (files.Length > 0 || !anyUnreadable)
+                    return files;
+
+                if (attempt >= ResolveRetries)
+                {
+                    Logger.LogWarn("'{Name}': no group file matched after {Count} retries, and at least " +
+                        "one file could not be read — treating as missing.", name, ResolveRetries);
+                    return files;
+                }
+
+                // Save, Upsert and Delete call in while already holding the gate, so for them this
+                // sleep still happens under it — unavoidable, since they need the gate for the write
+                // that follows. ResolveWritableFile (and therefore Exists, the pre-flight on every
+                // import) deliberately does not hold it, which is the case that was freezing the UI.
+                Thread.Sleep(50 << attempt); // 50 100 200 400 800ms, as PenumbraMeta.AtomicWrite
+            }
+        }
+
+        private const int ResolveRetries = 5;
+
+        /// <summary>
+        /// One pass over the folder. <paramref name="anyUnreadable"/> reports whether any candidate
+        /// had to be skipped, which is what tells the caller a retry could still change the answer.
+        /// </summary>
+        private static string[] MatchByContentName(string name, out bool anyUnreadable)
+        {
+            anyUnreadable = false;
+            var matches = new List<string>();
+
+            foreach (string file in GroupFilesOrdered())
+            {
+                if (!TryReadContentName(file, out string contentName, out _))
+                {
+                    anyUnreadable = true;
+                    continue;
+                }
+                if (string.Equals(contentName, name, StringComparison.Ordinal))
+                    matches.Add(file);
+            }
+
+            return matches.ToArray();
         }
 
         internal static string ResolveFile(Playlist playlist)
@@ -193,7 +297,52 @@ namespace Pickles_Playlist_Editor.Utils
         }
 
         /// <summary>
+        /// Everything known about why a playlist could not be located, as one block.
+        ///
+        /// Written for the user reports this bug arrives as: the old error said only "no matching
+        /// group file found", which cannot distinguish a locked file from a renamed group from the app
+        /// pointing at the wrong mod entirely. Each of those needs a different fix, so the log has to
+        /// say which one it was.
+        /// </summary>
+        private static void LogResolutionFailure(string name)
+        {
+            try
+            {
+                string modDir = ModRoot;
+                if (!Directory.Exists(modDir))
+                {
+                    Logger.LogError("Resolve('{Name}'): mod folder does not exist: {Dir}", name, modDir);
+                    return;
+                }
+
+                var files = GroupFilesOrdered();
+                var sb = new StringBuilder();
+                sb.Append($"Resolve('{name}') found no match in {modDir} ({files.Length} group file(s)):");
+                foreach (string file in files)
+                {
+                    sb.Append(Environment.NewLine).Append("  ").Append(Path.GetFileName(file)).Append(" -> ");
+                    sb.Append(TryReadContentName(file, out string contentName, out string error)
+                        ? (contentName == null ? "(no Name property)" : $"'{contentName}'")
+                        : $"UNREADABLE: {error}");
+                }
+                Logger.LogError("{Report}", sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                // Diagnostics must never mask the error they are describing.
+                Logger.LogWarn("Could not build the resolution report: {Error}", ex.Message);
+            }
+        }
+
+        /// <summary>
         /// The file a write would target, or null when there is nothing this app can safely write.
+        ///
+        /// NOT a pure query: when nothing resolves, this runs the same non-destructive recovery the
+        /// write path does, which reclaims sidecars and renames group files to their canonical names.
+        /// That is deliberate — a pre-flight that answered "missing" for a folder Save could repair
+        /// would refuse imports that would have worked — but it means callers must not treat this as
+        /// a cheap predicate to poll. Never put it in a loop, and be aware that the cross-playlist
+        /// move in MainWindow.DragDrop calls it twice, once per playlist.
         ///
         /// Resolution only reads the <c>Name</c> field, so a file can resolve and still be unwritable —
         /// <see cref="LoadGroupForWrite"/> parses the whole document and rejects what
@@ -205,14 +354,94 @@ namespace Pickles_Playlist_Editor.Utils
         /// </summary>
         internal static string ResolveWritableFile(Playlist playlist)
         {
-            string target = ResolveFile(playlist);
-            return target != null && TryLoadGroup(target) != null ? target : null;
+            // Deliberately does NOT wrap ResolveFile in the gate.
+            //
+            // Resolving can back off for over a second waiting on Penumbra, and holding the folder
+            // gate across that blocks every other thread — including the UI thread trying to save,
+            // which is a visible freeze. ResolveFile already locks each of its own passes, so it is
+            // safe to call unlocked; only the confirmation below needs the gate, and it is one file
+            // read long.
+            //
+            // The confirmation still has to be atomic with respect to our renames, which is why it is
+            // gated at all: a two-phase rename landing between resolving and re-reading would stage
+            // the file out to a sidecar and make a perfectly writable group look unreadable. Catching
+            // that case by its absence and resolving once more is enough — the retry sees the settled
+            // folder, because the rename held the gate for its whole duration.
+            // Report the name resolution actually used, not the in-memory one: mid-rename they differ,
+            // and naming the new one would point at a playlist no group file carries yet.
+            string reportedName = playlist.PersistedName ?? playlist.Name;
+            bool recoveryTried = false;
+
+            for (int attempt = 0; attempt < 2; attempt++)
+            {
+                string target = ResolveFile(playlist);
+
+                // Try the same non-destructive recovery Save does before concluding the playlist is
+                // gone. Without this the pre-flight is STRICTER than the write it guards: Save would
+                // reclaim an interrupted reorder's sidecar and succeed, while Add — which checks here
+                // first — refuses outright and sends the user back to the Repair button, which is the
+                // situation this recovery exists to avoid.
+                if (target == null && !recoveryTried)
+                {
+                    recoveryTried = true;
+                    target = RecoverAndReresolve(playlist, "Pre-flight");
+                }
+
+                if (target == null)
+                    return null;
+
+                // Confirm under the gate, retrying a transient lock exactly as name-matching does.
+                // Penumbra holds these files open while it rewrites them, so a single failed parse
+                // here says nothing about writability — and collapsing it to "unwritable" would refuse
+                // a healthy playlist, which is the failure this whole change set is about.
+                for (int confirm = 0; ; confirm++)
+                {
+                    bool present;
+                    bool readable = false;
+                    string error = null;
+
+                    lock (PlaylistStore.ModFolderGate)
+                    {
+                        present = File.Exists(target);
+                        if (present)
+                            readable = TryLoadGroupQuiet(target, out error) != null;
+                    }
+
+                    if (!present)
+                        break;              // moved — fall out to the outer loop and resolve again
+                    if (readable)
+                        return target;
+
+                    if (confirm >= ResolveRetries)
+                    {
+                        Logger.LogWarn("'{Name}': {File} could not be read after {Count} retries " +
+                            "({Error}) — treating as unwritable.",
+                            reportedName, Path.GetFileName(target), ResolveRetries, error);
+                        return null;
+                    }
+
+                    Thread.Sleep(50 << confirm); // 50 100 200 400 800ms
+                }
+
+                // Gone between resolve and confirm: a rename moved it. Resolve again against the
+                // folder as it now stands.
+                Logger.LogInfo("'{Name}': {File} moved while being checked — resolving again.",
+                    reportedName, Path.GetFileName(target));
+            }
+
+            Logger.LogWarn("'{Name}': the group file moved twice while being checked — treating as " +
+                "missing rather than guessing.", reportedName);
+            return null;
         }
 
         public bool Exists(Playlist playlist) => ResolveWritableFile(playlist) != null;
 
-        public bool NameInUse(string name) =>
-            GroupFilesOrdered().Any(f => string.Equals(TryReadContentName(f), name, StringComparison.Ordinal));
+        public bool NameInUse(string name)
+        {
+            // Also gated: a rename in flight would hide an existing name and let a duplicate through.
+            lock (PlaylistStore.ModFolderGate)
+                return GroupFilesOrdered().Any(f => string.Equals(TryReadContentName(f), name, StringComparison.Ordinal));
+        }
 
         // ---- writing ---------------------------------------------------------------------------
 
@@ -222,13 +451,14 @@ namespace Pickles_Playlist_Editor.Utils
             {
                 AssertStillV3();
 
-                string target = ResolveFile(playlist);
+                string target = ResolveFile(playlist) ?? RecoverAndReresolve(playlist, "Save");
                 if (target == null)
                 {
                     // Same contract as the v4 store: a missing group means the edit has nowhere to go,
                     // so throw rather than let a caller commit the destructive half of a two-part edit.
-                    Logger.LogError("Save('{Name}'): no matching group file found — aborting, nothing written.",
-                        playlist.Name);
+                    LogResolutionFailure(playlist.PersistedName ?? playlist.Name);
+                    Logger.LogError("Save('{Name}') in mod '{Mod}': no matching group file found — " +
+                        "aborting, nothing written.", playlist.Name, Settings.ModName);
                     throw new PlaylistSaveException(playlist.Name);
                 }
 
@@ -236,9 +466,51 @@ namespace Pickles_Playlist_Editor.Utils
                 WriteGroupFile(target, playlist.ToJson(LoadGroupForWrite(target), ModFormat.V3));
                 playlist.PersistedName = playlist.Name;
 
-                Logger.LogInfo("Saved playlist '{Name}' ({Count} options) -> {File}",
-                    playlist.Name, playlist.Options?.Count ?? 0, Path.GetFileName(target));
+                Logger.LogInfo("Saved playlist '{Name}' ({Count} options) -> {File} in mod '{Mod}'",
+                    playlist.Name, playlist.Options?.Count ?? 0, Path.GetFileName(target), Settings.ModName);
             }
+        }
+
+        /// <summary>
+        /// The last non-destructive thing to try before concluding a playlist has no file, so a
+        /// recoverable folder never reaches the user as an error they have to know about the Repair
+        /// button to fix.
+        ///
+        /// Shared by the write path and the pre-flight that guards it — if only Save recovered, then
+        /// Exists would answer "missing" for a folder Save could have fixed, and Add would refuse an
+        /// import that would have worked.
+        ///
+        /// Both passes are file-level and idempotent: reclaim the sidecars an interrupted rename left
+        /// behind, then bring the filenames back into agreement with Penumbra — which is what stops
+        /// the next reload rewriting the folder again. Deliberately NOT the rest of Repair:
+        /// StripRedundantScdSuffixes saves every playlist (this can be called from inside Save), and
+        /// DropMissingSongs deletes songs whose audio merely looks absent, which is exactly the wrong
+        /// move when the folder is mid-rewrite or the app is pointed somewhere unexpected.
+        /// </summary>
+        /// <param name="context">Who is asking, for the log — "Save" or "Pre-flight".</param>
+        private static string RecoverAndReresolve(Playlist playlist, string context)
+        {
+            Logger.LogWarn("{Context}('{Name}'): no group file matched — attempting recovery before " +
+                "giving up.", context, playlist.PersistedName ?? playlist.Name);
+
+            try
+            {
+                foreach (var line in ReclaimReorderTempFiles())
+                    Logger.LogInfo("{Message}", line);
+                foreach (var line in NormalizeGroupFileNames())
+                    Logger.LogInfo("{Message}", line);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarn("Recovery pass failed: {Error}", ex.Message);
+                return null;
+            }
+
+            string target = ResolveFile(playlist);
+            if (target != null)
+                Logger.LogInfo("{Context}('{Name}'): recovered — resolved to {File}.",
+                    context, playlist.PersistedName ?? playlist.Name, Path.GetFileName(target));
+            return target;
         }
 
         public void Upsert(Playlist playlist)
@@ -291,6 +563,19 @@ namespace Pickles_Playlist_Editor.Utils
                     throw new PenumbraMetaException(
                         $"Could not delete '{Path.GetFileName(target)}': {ex.Message}", ex);
                 }
+
+                // Close the hole immediately. Penumbra numbers each group by its file's position in
+                // the folder, so a gap left here means the next reload rewrites and renumbers every
+                // group file — and a save landing in that rewrite is the loss this whole change is
+                // about. A no-op when the numbering already agrees, which is the usual case.
+                //
+                // Reclaim before normalizing, for the same reason HealOnLoad does: a .reorder_tmp is a
+                // live playlist, and normalizing while one is outstanding would either renumber as
+                // though that playlist did not exist or collide with its name.
+                foreach (var line in ReclaimReorderTempFiles())
+                    Logger.LogInfo("{Message}", line);
+                foreach (var line in NormalizeGroupFileNames())
+                    Logger.LogInfo("{Message}", line);
             }
         }
 
@@ -442,24 +727,200 @@ namespace Pickles_Playlist_Editor.Utils
             }
         }
 
-        // One past the highest number currently in use, so a new group lands at the end of the display
-        // order rather than colliding with an existing one.
+        /// <summary>
+        /// The lowest unused group number, NOT one past the highest.
+        ///
+        /// Penumbra derives a group's canonical number from its file's position in
+        /// EnumerateFiles("group_*.json") — so the set has to read 001, 002, ... N with no holes, or
+        /// the file sitting at position i never matches the group_{i+1:D3} it is compared against and
+        /// Penumbra renumbers the whole folder on every reload. Handing out max+1 left a hole behind
+        /// every deletion, which condemned the mod to that rewrite loop permanently.
+        /// </summary>
         private static int NextFreeGroupNumber()
         {
-            var used = GroupFilesOrdered().Select(GroupNumberOf).Where(n => n != int.MaxValue).ToList();
-            return used.Count == 0 ? 1 : used.Max() + 1;
+            var used = new HashSet<int>(GroupFilesOrdered().Select(GroupNumberOf).Where(n => n != int.MaxValue));
+            int n = 1;
+            while (used.Contains(n))
+                n++;
+            return n;
         }
 
-        // Penumbra derives the filename from the group name; "/" is the one separator this app's
-        // playlist names are allowed to contain, and it becomes "_" exactly as Penumbra writes it.
-        private static string SanitizeGroupFileName(string name)
+        /// <summary>
+        /// Renames the group files to the exact names Penumbra would give them — contiguous numbering
+        /// from 001 in the current display order, each with <see cref="SanitizeGroupFileName"/> applied
+        /// to its content name.
+        ///
+        /// This is what stops the rewrite loop for folders that are ALREADY wrong: a mod carrying
+        /// numbering holes, mixed-case names, or names from an older sanitizer makes Penumbra rewrite
+        /// and renumber every group file on every single reload, and a save or resolve landing inside
+        /// one of those rewrites is the reported data loss. Bringing the folder into agreement once
+        /// makes every later reload a no-op.
+        ///
+        /// Renames only — the file CONTENTS are never touched, which is the difference between this and
+        /// <see cref="ReorderAll"/>. Two-phase via the same sidecars so an intermediate collision (002
+        /// wanting a name 003 still holds) cannot clobber a file, and <see cref="HealOnLoad"/> reclaims
+        /// the sidecars if this is interrupted.
+        /// </summary>
+        internal static List<string> NormalizeGroupFileNames()
         {
-            string clean = (name ?? string.Empty).Replace("/", "_");
-            foreach (char c in Path.GetInvalidFileNameChars())
-                clean = clean.Replace(c, '_');
-            clean = clean.Trim(' ', '.');
-            return string.IsNullOrEmpty(clean) ? "group" : clean;
+            var log = new List<string>();
+            lock (PlaylistStore.ModFolderGate)
+            {
+                string modDir = ModRoot;
+                if (!Directory.Exists(modDir)) return log;
+
+                var files = GroupFilesOrdered();
+                if (files.Length == 0) return log;
+
+                // Plan first. A file we cannot READ makes the whole plan unsafe: its canonical name is
+                // unknowable, yet it still occupies a position every later file is numbered against,
+                // so renaming around it would hand out a number it may itself want.
+                //
+                // A file that reads fine but carries no Name is a different case and must NOT abort
+                // the pass — Penumbra would simply name it "group_NNN_.json", so that is computable
+                // and we stay in agreement. Using the name-only overload here conflated the two and
+                // let one malformed file silently disable normalization for the entire mod forever.
+                var plan = new List<(string path, string target)>();
+                for (int i = 0; i < files.Length; i++)
+                {
+                    if (!TryReadContentName(files[i], out string name, out string error))
+                    {
+                        Logger.LogWarn("Normalize: '{File}' could not be read ({Error}) — leaving all " +
+                            "group filenames alone this pass.", Path.GetFileName(files[i]), error);
+                        return log;
+                    }
+                    plan.Add((files[i],
+                        Path.Combine(modDir, $"group_{i + 1:D3}_{SanitizeGroupFileName(name ?? string.Empty)}.json")));
+                }
+
+                var wrong = plan.Where(e => !string.Equals(e.path, e.target, StringComparison.Ordinal)).ToList();
+                if (wrong.Count == 0)
+                    return log;   // already agrees with Penumbra: the overwhelmingly common case
+
+                // Phase 1: stage every participant out of the way.
+                var staged = new List<(string target, string tempPath)>();
+                foreach (var (path, target) in wrong)
+                {
+                    try
+                    {
+                        string tempPath = path + ReorderSuffix;
+
+                        // Never clear the way by deleting a sidecar. Under v3 a .reorder_tmp is a LIVE
+                        // playlist — the only copy of a group an interrupted reorder left behind — so
+                        // one sitting on the name we want means recovery has not run yet, and deleting
+                        // it would destroy that playlist outright. Abort and let the reclaim pass
+                        // (HealOnLoad, or the one ahead of this in the recovery path) restore it first;
+                        // normalization is safe to defer, losing a playlist is not.
+                        if (File.Exists(tempPath))
+                        {
+                            Logger.LogWarn("Normalize: '{File}' already exists and may be an unreclaimed " +
+                                "playlist — leaving all group filenames alone this pass.",
+                                Path.GetFileName(tempPath));
+                            RollBackStaging(staged);
+                            return log;
+                        }
+
+                        File.Move(path, tempPath);
+                        staged.Add((target, tempPath));
+                    }
+                    catch (Exception ex)
+                    {
+                        // Put back what we staged; a half-renamed set is worse than an unnormalized one.
+                        Logger.LogWarn("Normalize: could not stage '{File}' ({Error}) — rolling back.",
+                            Path.GetFileName(path), ex.Message);
+                        RollBackStaging(staged);
+                        return log;
+                    }
+                }
+
+                // Phase 2: move each back under the name Penumbra expects.
+                foreach (var (target, tempPath) in staged)
+                {
+                    try
+                    {
+                        File.Move(tempPath, target);
+                        log.Add($"NORMALIZED: {Path.GetFileName(tempPath).Replace(ReorderSuffix, string.Empty)} " +
+                                $"-> {Path.GetFileName(target)}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError("Normalize: failed writing {File}: {Error}", Path.GetFileName(target), ex);
+                    }
+                }
+            }
+            return log;
         }
+
+        // Undoes a partial phase 1. Anything that resists being put back is left as a sidecar, which
+        // ReclaimReorderTempFiles restores on the next load — the same contract ReorderAll relies on.
+        private static void RollBackStaging(List<(string target, string tempPath)> staged)
+        {
+            foreach (var (_, tempPath) in staged)
+            {
+                try { File.Move(tempPath, tempPath.Substring(0, tempPath.Length - ReorderSuffix.Length)); }
+                catch { /* HealOnLoad reclaims anything left behind on the next load */ }
+            }
+        }
+
+        /// <summary>
+        /// The name part of the group filename, byte-for-byte as Penumbra would write it.
+        ///
+        /// This has to be EXACT, and the reason is not cosmetic. On every reload of a v3 mod,
+        /// Penumbra's ModCreator.LoadAllGroups compares each file on disk against the name it would
+        /// have chosen (FilenameService.OptionGroupFile):
+        ///
+        ///     $"group_{index + 1:D3}_{name.ToLowerInvariant().ReplaceBadXivSymbols(onlyAscii)}.json"
+        ///
+        /// and if ANY file deviates it calls SaveAllOptionGroups, which rewrites and RENUMBERS the
+        /// whole set from the copy it read at the start of that reload. A save landing in that window
+        /// is silently reverted, and a resolve landing in it finds no file carrying the playlist's
+        /// name — which is exactly the "no matching group file found" abort users were hitting. Since
+        /// this app asks for a reload after every save, one character of disagreement here means that
+        /// rewrite fires forever.
+        ///
+        /// Ported from Luna's StringExtensions.ReplaceBadXivSymbols. Note the comparison in
+        /// ModCreator always passes onlyAscii:true regardless of the user's ReplaceNonAsciiOnImport
+        /// setting, so folding to ASCII unconditionally is what actually matches it.
+        /// </summary>
+        internal static string SanitizeGroupFileName(string name)
+        {
+            // Penumbra lowercases before sanitizing, so the order matters: a non-ASCII capital can
+            // fold differently than its lowercase form.
+            string s = (name ?? string.Empty).ToLowerInvariant();
+
+            // Reserved relative-path names, special-cased by Penumbra before anything else.
+            switch (s)
+            {
+                case ".": return "_";
+                case "..": return "__";
+            }
+
+            string normalized = s.Normalize(NormalizationForm.FormKC);
+            var sb = new StringBuilder(normalized.Length);
+            bool encounteredNonWhiteSpace = false;
+
+            foreach (char c in normalized)
+            {
+                // Leading whitespace is dropped entirely rather than replaced.
+                if (!encounteredNonWhiteSpace)
+                {
+                    if (char.IsWhiteSpace(c))
+                        continue;
+                    encounteredNonWhiteSpace = true;
+                }
+
+                sb.Append(Array.IndexOf(s_invalidFileNameChars, c) >= 0 || c >= 128 ? '_' : c);
+            }
+
+            while (sb.Length != 0 && char.IsWhiteSpace(sb[^1]))
+                sb.Length--;
+
+            // Deliberately NOT substituted with a placeholder when empty: Penumbra would write
+            // "group_001_.json" here, and inventing a nicer name would be a permanent mismatch.
+            return sb.ToString();
+        }
+
+        private static readonly char[] s_invalidFileNameChars = Path.GetInvalidFileNameChars();
 
         // ---- crash recovery --------------------------------------------------------------------
 
@@ -472,11 +933,46 @@ namespace Pickles_Playlist_Editor.Utils
         {
             foreach (var line in ReclaimReorderTempFiles())
                 Logger.LogInfo("{Message}", line);
+
+            // Reclaim first: a sidecar left by an interrupted rename is a live playlist, and
+            // normalizing around it would number the set as if that playlist did not exist.
+            try
+            {
+                foreach (var line in NormalizeGroupFileNames())
+                    Logger.LogInfo("{Message}", line);
+            }
+            catch (Exception ex)
+            {
+                // HealOnLoad runs on the startup path and must never throw.
+                Logger.LogWarn("Group filename normalization failed (harmless): {Error}", ex.Message);
+            }
         }
 
         internal static List<string> ReclaimReorderTempFiles()
         {
             var log = new List<string>();
+
+            // Gated like every other mutator in this class, and it must be: it moves files.
+            //
+            // Without the gate it can run while a two-phase rename is halfway through, and the two
+            // disagree about what a sidecar means. Phase 1 stages a LIVE group out to .reorder_tmp;
+            // this method, seeing a sidecar whose content name matches no visible file, concludes it
+            // is the only copy and moves it back to its old path. Phase 2 then fails to find it, and
+            // where phase 2 had already written its half, the group ends up on disk twice under one
+            // name — which trips the duplicate warning in ResolveFile and makes Penumbra's filename
+            // check disagree on every reload thereafter.
+            //
+            // This was reachable only from gated callers until the pre-flight started calling the
+            // recovery, which deliberately does not hold the gate. The gate is re-entrant, so callers
+            // that already hold it (Delete, Save's recovery) are unaffected.
+            lock (PlaylistStore.ModFolderGate)
+            {
+                return ReclaimReorderTempFilesLocked(log);
+            }
+        }
+
+        private static List<string> ReclaimReorderTempFilesLocked(List<string> log)
+        {
             try
             {
                 string modDir = ModRoot;

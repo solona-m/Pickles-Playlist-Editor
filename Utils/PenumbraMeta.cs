@@ -49,22 +49,128 @@ namespace Pickles_Playlist_Editor.Utils
 
         public static string MetaPath => Path.Combine(ModRoot, MetaFile);
 
-        /// <summary>The parsed manifest, or null when it is missing or unparseable.</summary>
+        /// <summary>
+        /// Throws if the configured mod has changed since <paramref name="captured"/> was taken.
+        ///
+        /// Nothing binds a <see cref="Playlist"/> to the mod it was loaded from: <see cref="ModRoot"/>
+        /// is recomputed from mutable settings on every single access. A long operation — importing a
+        /// track takes tens of seconds — can therefore start against one mod and finish against
+        /// another if the folder is changed in Settings meanwhile, and if the new mod happens to have a
+        /// group with the same name the save lands there, silently overwriting an unrelated playlist.
+        /// Callers capture ModRoot before doing any work and call this immediately before writing.
+        /// </summary>
+        public static void AssertModRootUnchanged(string captured)
+        {
+            string current = ModRoot;
+            if (string.Equals(captured, current, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            throw new PenumbraMetaException(
+                $"The selected mod changed from '{captured}' to '{current}' while this was running, " +
+                "so the change was not applied — writing it now would have edited a different mod. " +
+                "Nothing was written.");
+        }
+
+        /// <summary>
+        /// The parsed manifest, or null when it is missing or unparseable.
+        ///
+        /// Retries before giving up, for the same reason the v3 store retries resolution: Penumbra is
+        /// a separate process that rewrites this file, and under v4 this ONE file is the entire
+        /// library. A read that loses a race with Penumbra's writer returns null here, which reads
+        /// downstream as "this mod has no playlists" — indistinguishable from real data loss, and
+        /// alarming to a user who just watched their library empty itself.
+        ///
+        /// Parse failures are retried too, not just IO ones: catching the file mid-write yields
+        /// malformed JSON, which is transient in exactly the same way.
+        /// </summary>
         public static JObject? Read()
         {
+            FileInfo info;
             try
             {
-                string path = MetaPath;
-                if (!File.Exists(path))
+                info = new FileInfo(MetaPath);
+                if (!info.Exists)
                     return null;
-                return JObject.Parse(File.ReadAllText(path, Encoding.UTF8));
             }
-            catch (Exception ex)
+            catch
             {
-                Logger.LogError("PenumbraMeta.Read failed for {Path}: {Error}", MetaPath, ex);
                 return null;
             }
+
+            string path = info.FullName;
+
+            // A file already proven unreadable, and untouched since, is not going to become readable
+            // by sleeping at it again. Without this the retry cost multiplies: PlaylistStore.Current
+            // re-detects the format on EVERY access, so one genuinely corrupt manifest would add
+            // ~1.5s to every save — and Repair, which saves once per playlist, would spend minutes
+            // asleep on a UI-triggered button press.
+            // Read the field once — it is volatile and another thread may replace it mid-check — and
+            // compare against it field by field. Read() sits on the hottest path in the app
+            // (PlaylistStore.Current re-detects the format on every access), and the cache is null in
+            // the overwhelmingly common healthy case, so allocating a record just to test equality
+            // would be per-access garbage for nothing.
+            var known = s_knownBadMeta;
+            if (known != null
+                && known.Length == info.Length
+                && known.Stamp == info.LastWriteTimeUtc
+                && string.Equals(known.Path, path, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    var parsed = JObject.Parse(File.ReadAllText(path, Encoding.UTF8));
+                    // Guarded to keep the healthy path a plain read: this is the hottest path in the
+                    // app (PlaylistStore.Current re-detects the format on every access) and the field
+                    // is null in every healthy session, so an unconditional store would be a memory
+                    // barrier per access for no state change.
+                    //
+                    // Tests the field NOW rather than the `known` captured above: another thread may
+                    // have recorded a failure in between, and we have just proved the file reads, so
+                    // that record is stale whenever it was written. A concurrent failure landing
+                    // immediately after this check still survives, but that window is the same one
+                    // the original unconditional clear had — narrow, and self-clearing on the next
+                    // rewrite, since any rewrite changes the stamp.
+                    if (s_knownBadMeta != null)
+                        s_knownBadMeta = null;
+                    return parsed;
+                }
+                catch (Exception ex)
+                {
+                    if (attempt >= ReadRetries)
+                    {
+                        Logger.LogError("PenumbraMeta.Read failed for {Path} after {Count} retries: {Error}",
+                            path, ReadRetries, ex);
+                        // Allocated only here, on the rare failing path. Records the exact bytes that
+                        // failed as well as the path: any rewrite by Penumbra changes the stamp or
+                        // length and earns a fresh set of retries.
+                        s_knownBadMeta = new BadMeta(path, info.LastWriteTimeUtc, info.Length);
+                        return null;
+                    }
+                    Logger.LogWarn("PenumbraMeta.Read: {Path} unreadable ({Error}) — retrying.",
+                        path, ex.Message);
+                    Thread.Sleep(50 << attempt); // 50 100 200 400 800ms, as AtomicWrite
+                }
+            }
         }
+
+        private const int ReadRetries = 5;
+
+        /// <summary>
+        /// Identity of a manifest that exhausted its retries. See <see cref="Read"/>.
+        ///
+        /// Includes the PATH, not just the file's stamp and length: ModRoot follows mutable settings,
+        /// so this cache spans every mod visited in a session, and two mods installed together from
+        /// one archive can easily share a timestamp and size. Keying on those alone would let mod A's
+        /// corrupt manifest suppress the read of mod B's perfectly good one, emptying B's library.
+        /// </summary>
+        private sealed record BadMeta(string Path, DateTime Stamp, long Length);
+
+        // A reference, and volatile, so cross-thread publication is atomic. Read() runs on the UI
+        // thread, the reload timer and download tasks concurrently; a multi-word struct here could be
+        // read half-updated, and a spurious match makes a healthy library read as empty.
+        private static volatile BadMeta? s_knownBadMeta;
 
         /// <summary>
         /// The mod's option groups in <c>Groups</c> array order, or null when the manifest has no
