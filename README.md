@@ -35,7 +35,7 @@ Understanding the Top Buttons
 2)	DELETE:   will allow you to delete any checked marked songs or playlists
 WARNING THIS CAN NOT BE UNDONE!!!
 3)	Shuffle: as it says, it will shuffle selected songs or playlists around more randomly
-4)	Sort: will sort the songs by beats per minute or name
+4)	Sort: will sort the songs by beats per minute, musical key or name, or alternate fast and slow songs
 5)	PLAY:   This will allow you to play the selected songs back to hear them.
 6)	PAUSE: Pause the selected song
 7)	STOP: will stop playing song,
@@ -66,6 +66,10 @@ b. WARNING: If your playlist disappears after shuffle or any operation, don't pa
 
 Sort
 Sort by BPM (Beats per minute) will shift all the songs between either highest to lowest BPM or from lowest to highest BPM.  This allows for a smoother transition between songs without a sudden shift in tempo, if so desired.
+
+Alternate Fast/Slow does the opposite: instead of running straight up or down, it interleaves the two ends of the BPM range — fastest, slowest, second fastest, second slowest, and so on — so the set keeps swinging between peaks and breathers rather than climbing once and staying there.  A playlist of 85, 95, 105, 120, 128, 140, 150 BPM comes out as 150, 85, 140, 95, 128, 105, 120.  Clicking it again flips which end it opens on, giving you 85, 150, 95, 140, 105, 128, 120.  Any song whose BPM could not be detected is placed at the end rather than mixed in.
+
+Sort by Key orders the songs by their detected musical key, which helps you avoid clashing transitions between back to back songs.  Like Sort by BPM, clicking it again reverses the order.
 
 Thanks to 0ceal0t for VFXEditor: https://github.com/0ceal0t/Dalamud-VFXEditor. Thanks to Meo for finding the fixed_position flag which was the missing piece to enable stereo and for the new baseline scd settings.
 

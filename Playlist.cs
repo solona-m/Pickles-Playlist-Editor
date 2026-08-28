@@ -947,20 +947,26 @@ namespace Pickles_Playlist_Editor
         /// peaks and breathers rather than climbing once and staying there.
         ///
         /// <paramref name="direction"/> picks which end it opens on — Descending starts on the
-        /// fastest song, Ascending starts on the slowest.
+        /// fastest song, Ascending starts on the slowest. Songs whose BPM could not be detected
+        /// are parked at the end rather than interleaved.
         /// </summary>
         internal void SortByBpmZigZag(SortDirection direction) => ReorderOptions(options =>
         {
             var (off, songs) = SplitOff(options);
 
-            // Read each BPM exactly once. GetBPMFromSCD opens and parses the scd, so calling it
-            // from inside a comparer (as the plain sorts do) re-reads every song on every compare.
-            var byBpm = songs
+            // Pair each song with its BPM up front so the unknown check and the ordering below
+            // share one lookup.
+            var scored = songs
                 .Select(o => (Option: o, Bpm: BPMDetector.GetBPMFromSCD(GetScdPath(o))))
-                .OrderBy(x => x.Bpm)
                 .ToList();
 
-            var zigzag = new List<Option>(byBpm.Count);
+            // GetBPMFromSCD returns 0 when detection fails. Those songs are unknowns, not slow
+            // songs — interleaving them would drop one into the second slot as the set's opening
+            // breather. They keep their relative order and go after the zig-zag instead.
+            var byBpm = scored.Where(x => x.Bpm > 0).OrderBy(x => x.Bpm).ToList();
+            var undetected = scored.Where(x => x.Bpm <= 0).Select(x => x.Option);
+
+            var zigzag = new List<Option>(songs.Count);
             int low = 0, high = byBpm.Count - 1;
             bool takeHigh = direction == SortDirection.Descending;
             while (low <= high)
@@ -968,6 +974,7 @@ namespace Pickles_Playlist_Editor
                 zigzag.Add(takeHigh ? byBpm[high--].Option : byBpm[low++].Option);
                 takeHigh = !takeHigh;
             }
+            zigzag.AddRange(undetected);
 
             return Rejoin(off, zigzag);
         });

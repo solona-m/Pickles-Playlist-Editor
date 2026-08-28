@@ -10,7 +10,7 @@
   <data name="ShuffleButton.Label" xml:space="preserve"><value>Aléatoire</value></data>
   <data name="SortByBPMButton.Label" xml:space="preserve"><value>Trier</value></data>
   <data name="SortByBPMMenuItem.Text" xml:space="preserve"><value>Trier par BPM</value></data>
-  <data name="SortByBPMZigZagMenuItem.Text" xml:space="preserve"><value>Trier par BPM (haut/bas)</value></data>
+  <data name="SortByBPMZigZagMenuItem.Text" xml:space="preserve"><value>Alterner rapide/lent</value></data>
   <data name="SortByKeyMenuItem.Text" xml:space="preserve"><value>Trier par tonalité</value></data>
   <data name="SortByNameMenuItem.Text" xml:space="preserve"><value>Trier par nom</value></data>
   <data name="PreviousButton.Label" xml:space="preserve"><value>Précédent</value></data>
