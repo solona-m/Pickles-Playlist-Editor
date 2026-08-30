@@ -118,12 +118,6 @@ namespace Pickles_Playlist_Editor
             string.Format(_r.GetString(bodies == 1 ? "Dances_AddBodiesOne" : "Dances_AddBodies"), bodies);
         public static string AddDanceDone(string dance) =>
             string.Format(_r.GetString("Dances_AddDone"), dance);
-        public static string RenameDanceDone(string from, string to) =>
-            string.Format(_r.GetString("Dances_RenameDone"), from, to);
-        public static string RemoveDanceConfirm(string dance) =>
-            string.Format(_r.GetString("Dances_RemoveConfirm"), dance);
-        public static string RemoveDanceDone(string dance) =>
-            string.Format(_r.GetString("Dances_RemoveDone"), dance);
 
         /// <summary>
         /// The group name is Penumbra data, not UI text: it must match what is in the mod, so it is

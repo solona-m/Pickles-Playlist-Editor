@@ -165,26 +165,5 @@ namespace Pickles_Playlist_Editor.Utils
             return PenumbraMeta.FindGroupByName(root, group.Name);
         }
 
-        // ---- DefaultSettings ---------------------------------------------------------------------
-
-        /// <summary>
-        /// Repairs the group's default selection after its options move.
-        ///
-        /// <c>DefaultSettings</c> on a Single group is an option INDEX in both layouts, so removing or
-        /// reordering options silently changes which dance the mod defaults to unless it is remapped.
-        /// <paramref name="moved"/> maps old index to new, with -1 for an option that is gone.
-        /// </summary>
-        public static void RemapDefaultSettings(JObject group, IReadOnlyDictionary<int, int> moved)
-        {
-            if (group["DefaultSettings"] is not JValue { Type: JTokenType.Integer } value) return;
-
-            int old = (int)value;
-            if (!moved.TryGetValue(old, out int now))
-                return;
-
-            // A removed default falls back to the first option, which is what Penumbra shows anyway
-            // once the index it held no longer exists.
-            group["DefaultSettings"] = now < 0 ? 0 : now;
-        }
     }
 }

@@ -95,32 +95,11 @@
                 </ComboBox>
             </Grid>
 
-            <ListView x:Name="DanceList" MaxHeight="200" SelectionMode="Single"
-                      SelectionChanged="DanceList_SelectionChanged"/>
-
-            <StackPanel Orientation="Horizontal" Spacing="4">
-                <Button x:Uid="RenameDanceButton" x:Name="RenameDanceButton" Content="Rename"
-                        Click="RenameDanceButton_Click" IsEnabled="False"/>
-                <!-- No reordering here. Penumbra already does it, and doing it in two places invites
-                     the two disagreeing — the sort below is a view of this list, not the mod's order. -->
-                <Button x:Uid="RemoveDanceButton" x:Name="RemoveDanceButton" Content="Remove"
-                        Click="RemoveDanceButton_Click" IsEnabled="False"/>
-            </StackPanel>
-
-            <!-- Renaming needs a text box, and WinUI permits only one ContentDialog at a time while a
-                 message box cannot take input. So it is an inline row here rather than a prompt. -->
-            <Grid x:Name="RenamePanel" Visibility="Collapsed">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox x:Name="RenameBox" Grid.Column="0" Margin="0,0,4,0"/>
-                <Button x:Uid="ConfirmRenameButton" Grid.Column="1" Margin="0,0,4,0"
-                        Content="Save name" Click="ConfirmRenameButton_Click"/>
-                <Button x:Uid="CancelRenameButton" Grid.Column="2" Content="Cancel"
-                        Click="CancelRenameButton_Click"/>
-            </Grid>
+            <!-- Read-only. Renaming, removing and reordering a dance are all things Penumbra already
+                 does well, and doing them here too would mean two tools writing the same option list
+                 with two chances to disagree. This dialog does the one thing Penumbra cannot: prepare
+                 a downloaded animation and install it. -->
+            <ListView x:Name="DanceList" MaxHeight="220" SelectionMode="None" IsItemClickEnabled="False"/>
         </StackPanel>
 
         <!-- The add pane. Not a second ContentDialog: WinUI allows only one open at a time, which is

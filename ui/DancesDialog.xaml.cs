@@ -197,13 +197,7 @@ namespace Pickles_Playlist_Editor
 
         // ---- the list ----------------------------------------------------------------------------
 
-        /// <summary>
-        /// Display row to index in <see cref="_dances"/>.
-        ///
-        /// The list can be filtered and sorted, but reordering edits the mod's option array BY
-        /// POSITION — so the two only coincide while the view is the mod's own order, and this
-        /// mapping is what keeps a click on row 3 from acting on the wrong dance when it is not.
-        /// </summary>
+        /// <summary>Display row to index in <see cref="_dances"/>, under the current filter and sort.</summary>
         private List<int> _view = new();
 
         private void RefreshDances()
@@ -253,7 +247,6 @@ namespace Pickles_Playlist_Editor
                 ? AppStrings.DanceCount(_dances.Count)
                 : AppStrings.DanceCountFiltered(_view.Count, _dances.Count);
 
-            UpdateButtons();
         }
 
         private void DanceFilterBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -273,19 +266,6 @@ namespace Pickles_Playlist_Editor
             string races = dance.Races.Count > 0 ? string.Join(" ", dance.Races) : "?";
             string health = dance.Health == DanceHealth.Ok ? string.Empty : "  ⚠ " + dance.Health;
             return $"{dance.Name}    {races}{health}";
-        }
-
-        private void DanceList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (!_ready) return;
-            UpdateButtons();
-        }
-
-        private void UpdateButtons()
-        {
-            bool selected = DanceList.SelectedIndex >= 0;
-            RenameDanceButton.IsEnabled = selected;
-            RemoveDanceButton.IsEnabled = selected;
         }
 
         // ---- add ---------------------------------------------------------------------------------
@@ -498,55 +478,6 @@ namespace Pickles_Playlist_Editor
         {
             args.Cancel = true;
             ShowAddPane(false);
-        }
-
-        // ---- rename, remove, reorder -------------------------------------------------------------
-
-        private void RenameDanceButton_Click(object sender, RoutedEventArgs e)
-        {
-            var dance = SelectedDance();
-            if (dance == null) return;
-
-            RenameBox.Text = dance.Name;
-            RenamePanel.Visibility = Visibility.Visible;
-            RenameBox.Focus(FocusState.Programmatic);
-            RenameBox.SelectAll();
-        }
-
-        private void ConfirmRenameButton_Click(object sender, RoutedEventArgs e)
-        {
-            var dance = SelectedDance();
-            string typed = RenameBox.Text?.Trim() ?? string.Empty;
-            if (dance == null || _group == null || typed.Length == 0) return;
-
-            RenamePanel.Visibility = Visibility.Collapsed;
-            if (string.Equals(typed, dance.Name, StringComparison.Ordinal)) return;
-
-            Report(DanceModWrites.Rename(_group, dance, typed), AppStrings.RenameDanceDone(dance.Name, typed));
-            RefreshDances();
-        }
-
-        private void CancelRenameButton_Click(object sender, RoutedEventArgs e) =>
-            RenamePanel.Visibility = Visibility.Collapsed;
-
-        private void RemoveDanceButton_Click(object sender, RoutedEventArgs e)
-        {
-            var dance = SelectedDance();
-            if (dance == null || _group == null) return;
-
-            IntPtr hwnd = OwnerWindow();
-            if (MessageBox(hwnd, AppStrings.RemoveDanceConfirm(dance.Name), AppStrings.Dlg_Dances_Title,
-                    0x00000001 | 0x00000030) != 1) // MB_OKCANCEL | MB_ICONWARNING, IDOK
-                return;
-
-            Report(DanceModWrites.Remove(_group, dance), AppStrings.RemoveDanceDone(dance.Name));
-            RefreshDances();
-        }
-
-        private DanceEntry? SelectedDance()
-        {
-            int row = DanceList.SelectedIndex;
-            return row >= 0 && row < _view.Count ? _dances[_view[row]] : null;
         }
 
         // ---- plumbing ----------------------------------------------------------------------------
