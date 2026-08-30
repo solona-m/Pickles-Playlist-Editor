@@ -334,8 +334,13 @@ namespace Pickles_Playlist_Editor.Utils
                     p => p.Equals("chara", StringComparison.OrdinalIgnoreCase));
 
                 // Where the game path starts, or failing that everything but the filename.
-                int cut = chara > 0 ? chara : parts.Length - 1;
-                if (cut <= 0) return null;
+                //
+                // >= 0, not > 0. A path that BEGINS with chara — 2,546 real dance files do, including
+                // one of the DJ packs — means the dance sits at the mod root, and the right answer is
+                // an empty folder. Excluding index 0 sent that case down the no-chara branch instead,
+                // which returned the whole game-path chain as if it were the dance's own folder.
+                int cut = chara >= 0 ? chara : parts.Length - 1;
+                if (cut < 0) return null;
 
                 string head = string.Join("\\", parts.Take(cut));
                 if (common == null) common = head;

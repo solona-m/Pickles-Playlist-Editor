@@ -475,13 +475,18 @@ namespace Pickles_Playlist_Editor
                     result = new DanceWriteResult { Error = ex.Message };
                 }
 
-                Report(result, AppStrings.AddDanceDone(plan.DanceName));
                 if (result.Succeeded)
                 {
                     ShowAddPane(false);
                     DanceNameBox.Text = string.Empty;
                 }
+
+                // Refresh BEFORE reporting. RefreshDances claims the status line for the effect-block
+                // summary, so reporting first meant the "was added" confirmation was overwritten in
+                // the same frame and never rendered — and since the success popup was deliberately
+                // removed, that left a successful add with no confirmation at all.
                 RefreshDances();
+                Report(result, AppStrings.AddDanceDone(plan.DanceName));
             }
             catch (Exception ex)
             {
