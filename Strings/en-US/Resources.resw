@@ -41,7 +41,7 @@
   <data name="SettingsDlg.CloseButtonText" xml:space="preserve"><value>Cancel</value></data>
   <data name="ModDirLabel.Text" xml:space="preserve"><value>Mod Directory in Penumbra</value></data>
   <data name="BrowseModDirButton.Content" xml:space="preserve"><value>Browse</value></data>
-  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Baseline SCD key (e.g. sound/bpmloop.scd)</value></data>
+  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Sound path</value></data>
   <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Browse</value></data>
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Background Image</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Browse</value></data>
@@ -164,4 +164,39 @@ Nothing has been changed on disk.</value></data>
   <data name="Menu_ComputeStats" xml:space="preserve"><value>Compute Stats</value></data>
   <data name="Prog_ComputingStats" xml:space="preserve"><value>Computing BPM and key...</value></data>
   <data name="Summary_ComputeStats" xml:space="preserve"><value>Stats computation finished</value></data>
+  <data name="SoundPathHeaderLabel.Text" xml:space="preserve"><value>Give this mod its own sound path</value></data>
+  <data name="SoundPathHint.Text" xml:space="preserve"><value>Sound is shared between everyone in a venue, so two DJs whose mods use the same path hear the wrong song. Renaming yours fixes it for everyone listening, whatever plugins they run.</value></data>
+  <data name="DjNameLabel.Text" xml:space="preserve"><value>Your DJ name</value></data>
+  <data name="ChangeSoundPathButton.Content" xml:space="preserve"><value>Change sound path</value></data>
+  <data name="Dlg_SoundPath_Title" xml:space="preserve"><value>Change Sound Path</value></data>
+  <data name="Prog_RenamingSoundPath" xml:space="preserve"><value>Changing the sound path...</value></data>
+  <data name="SoundPath_EnterName" xml:space="preserve"><value>Enter your DJ name — up to {0} letters or digits.</value></data>
+  <data name="SoundPath_Preview" xml:space="preserve"><value>New path: {0}</value></data>
+  <data name="SoundPath_CompanionHeader" xml:space="preserve"><value>These other mods also request {0}. Tick the ones that are yours:</value></data>
+  <data name="SoundPath_Companion" xml:space="preserve"><value>{0} — {1} effect file(s)</value></data>
+  <data name="SoundPath_CompanionHasSongs" xml:space="preserve"><value>{0} — has songs of its own; select it in Settings and rename it separately</value></data>
+  <data name="SoundPath_ConfirmHeader" xml:space="preserve"><value>Change the sound path from {0} to {1}?</value></data>
+  <data name="SoundPath_ConfirmCounts" xml:space="preserve"><value>{0}: {1} effect file(s) and {2} song(s) will be updated.</value></data>
+  <data name="SoundPath_ConfirmCompanion" xml:space="preserve"><value>{0}: {1} effect file(s) will be updated.</value></data>
+  <data name="SoundPath_ConfirmSuspects" xml:space="preserve"><value>Warning: {0} file(s) mention the old path in a way this app could not identify:</value></data>
+  <data name="SoundPath_ConfirmFooter" xml:space="preserve"><value>The effect files are backed up first, and everything is put back if any part fails.</value></data>
+  <data name="SoundPath_Done" xml:space="preserve"><value>The sound path is now {0}.
+{1} effect file(s) and {2} song(s) were updated.</value></data>
+  <data name="SoundPath_DoneCompanions" xml:space="preserve"><value>Also updated: {0}</value></data>
+  <data name="SoundPath_Backup" xml:space="preserve"><value>The previous effect files are in:
+{0}</value></data>
+  <data name="SoundPath_KeyOnlyWarning" xml:space="preserve"><value>{0} effect file(s) in this mod still ask for {1}, and none ask for {2}.
+
+Changing only the key will stop your music playing. Use "Change sound path" to rename the mod properly.
+
+Change the key anyway?</value></data>
+  <data name="SoundPath_NoMod" xml:space="preserve"><value>Choose a valid mod folder above first.</value></data>
+  <data name="SoundPath_PreviewPadded" xml:space="preserve"><value>New path: {0}   (a few letters were added — the path needs at least {1} after "bpm")</value></data>
+  <data name="SoundPath_NameUnusable" xml:space="preserve"><value>That name has no letters or digits to build a path from.</value></data>
+  <data name="SoundPathDlg.Title" xml:space="preserve"><value>Sound Path</value></data>
+  <data name="SoundPathDlg.PrimaryButtonText" xml:space="preserve"><value>OK</value></data>
+  <data name="SoundPathDlg.CloseButtonText" xml:space="preserve"><value>Cancel</value></data>
+  <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>Sound path this mod uses</value></data>
+  <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>This is the path new songs are saved to. Changing it here does not touch the effect files that ask for it — use the rename below for that.</value></data>
+  <data name="EditSoundPathButton.Content" xml:space="preserve"><value>Edit</value></data>
 </root>

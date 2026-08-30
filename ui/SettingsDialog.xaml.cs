@@ -13,7 +13,6 @@ namespace Pickles_Playlist_Editor
     public sealed partial class SettingsDialog : ContentDialog
     {
         private bool _loading = true;
-        private bool _updatingBaselineScdOptions;
 
         public SettingsDialog()
         {
@@ -27,7 +26,7 @@ namespace Pickles_Playlist_Editor
                         Settings.PenumbraLocation ?? string.Empty,
                         Settings.ModName ?? string.Empty);
                 }
-                BaselineScdTextBox.Text = Settings.BaselineScdKey;
+                RefreshBaselineScdDisplay();
                 BackgroundImageTextBox.Text = Settings.BackgroundImagePath;
                 ScdVolumePercentageBox.Value = Settings.ScdVolumePercentage;
                 NormalizationLoudnessBox.Value = Settings.NormalizationLoudness;
@@ -61,18 +60,66 @@ namespace Pickles_Playlist_Editor
             }
 
             _loading = false;
-            RefreshBaselineScdOptions(updateTextFromMod: string.IsNullOrWhiteSpace(BaselineScdTextBox.Text));
             ValidateFields();
         }
 
         private void ValidateFields()
         {
-            bool validDirectory = !string.IsNullOrEmpty(DirectoryPathTextBox.Text)
+            // The sound path is no longer checked here: SoundPathDialog owns it, and validates it
+            // far more thoroughly than an EndsWith(".scd") ever did.
+            IsPrimaryButtonEnabled = !string.IsNullOrEmpty(DirectoryPathTextBox.Text)
                 && Directory.Exists(DirectoryPathTextBox.Text)
                 && File.Exists(Path.Combine(DirectoryPathTextBox.Text, "meta.json"));
-            bool validScd = !string.IsNullOrWhiteSpace(BaselineScdTextBox.Text)
-                && BaselineScdTextBox.Text.Trim().EndsWith(".scd", StringComparison.OrdinalIgnoreCase);
-            IsPrimaryButtonEnabled = validDirectory && validScd;
+        }
+
+        // ---- sound path ------------------------------------------------------------------------
+
+        private void RefreshBaselineScdDisplay() =>
+            BaselineScdValueText.Text = Utils.PenumbraMeta.NormalizeScdKey(Settings.BaselineScdKey);
+
+        /// <summary>
+        /// Opens the sound-path editor.
+        ///
+        /// The path, the picker and the rename all moved into their own dialog: the rename needs a
+        /// preview, a live length check and a companion-mod list, which is more than a Settings row
+        /// can carry — and the key and the rename are dangerous to confuse, so they belong side by
+        /// side rather than one of them buried in a list of toggles.
+        ///
+        /// WinUI allows one ContentDialog at a time, so Settings steps aside and comes back, the same
+        /// dance <see cref="SoundCloudSignInButton_Click"/> does. XamlRoot is captured first because
+        /// it is not reliable to read after Hide().
+        /// </summary>
+        private async void EditSoundPathButton_Click(object sender, RoutedEventArgs e)
+        {
+            var xamlRoot = this.XamlRoot;
+            Hide();
+
+            try
+            {
+                var dialog = new SoundPathDialog { XamlRoot = xamlRoot };
+                await dialog.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                Utils.Logger.LogError("Could not open the sound path editor: {Error}", ex.Message);
+            }
+
+            RefreshBaselineScdDisplay();
+
+            try
+            {
+                await this.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                // Reopening is a convenience; whatever the editor did is already saved.
+                Utils.Logger.LogWarn("Could not reopen Settings after editing the sound path: {Error}", ex.Message);
+            }
+
+            // That reopen was a second ShowAsync, so OpenSettingsAsync already returned when Hide()
+            // completed the first one. A channel change made in this second pass is ours to act on.
+            if (UpdateChannelChanged)
+                await App.MainWindow.CheckForUpdatesAsync();
         }
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e)
@@ -90,60 +137,6 @@ namespace Pickles_Playlist_Editor
             DirectoryPathTextBox.Text = dialog.SelectedPath;
             ValidateFields();
         }
-
-        private void BaselineScdComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_updatingBaselineScdOptions)
-                return;
-
-            if (BaselineScdComboBox.SelectedItem is string scdKey)
-                BaselineScdTextBox.Text = scdKey;
-        }
-
-        private void RefreshBaselineScdOptions(bool updateTextFromMod)
-        {
-            var scdKeys = FindScdKeysInMod(DirectoryPathTextBox.Text);
-            var current = NormalizeScdKey(BaselineScdTextBox.Text);
-            var selected = scdKeys.FirstOrDefault(key => string.Equals(key, current, StringComparison.OrdinalIgnoreCase));
-
-            _updatingBaselineScdOptions = true;
-            BaselineScdComboBox.Items.Clear();
-            foreach (var scdKey in scdKeys)
-                BaselineScdComboBox.Items.Add(scdKey);
-            BaselineScdComboBox.IsEnabled = scdKeys.Count > 0;
-            BaselineScdComboBox.SelectedItem = selected;
-            _updatingBaselineScdOptions = false;
-
-            if (!updateTextFromMod || scdKeys.Count == 0)
-                return;
-
-            BaselineScdTextBox.Text = selected ?? scdKeys[0];
-        }
-
-        private void SyncBaselineScdSelection()
-        {
-            if (_updatingBaselineScdOptions)
-                return;
-
-            var current = NormalizeScdKey(BaselineScdTextBox.Text);
-            var selected = BaselineScdComboBox.Items
-                .OfType<string>()
-                .FirstOrDefault(key => string.Equals(key, current, StringComparison.OrdinalIgnoreCase));
-
-            _updatingBaselineScdOptions = true;
-            BaselineScdComboBox.SelectedItem = selected;
-            _updatingBaselineScdOptions = false;
-        }
-
-        // Penumbra v4 keeps every option group inside the root meta.json, so scanning loose top-level
-        // *.json files for a "Files"/"Options" shape finds nothing at all. PenumbraMeta detects which
-        // layout the folder is in and reads the right one: the manifest (DefaultData.Files plus every
-        // group's options) for v4, or default_mod.json plus the group files for v3.
-        private static List<string> FindScdKeysInMod(string? modDirectory) =>
-            Pickles_Playlist_Editor.Utils.PenumbraMeta.CollectScdKeys(modDirectory);
-
-        private static string NormalizeScdKey(string? scdKey) =>
-            Pickles_Playlist_Editor.Utils.PenumbraMeta.NormalizeScdKey(scdKey);
 
         private void BrowseBackgroundButton_Click(object sender, RoutedEventArgs e)
         {
@@ -187,17 +180,7 @@ namespace Pickles_Playlist_Editor
         }
 
         private void DirectoryPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (!_loading)
-                RefreshBaselineScdOptions(updateTextFromMod: true);
-            ValidateFields();
-        }
-
-        private void BaselineScdTextBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-            SyncBaselineScdSelection();
-            ValidateFields();
-        }
+            => ValidateFields();
 
         // Bus 1 (Unknown) is intentionally excluded from the UI.
         // ComboBox indices: 0=BGM(0), 1=SoundEffect(2), 2=Voice(3), 3=System(4), 4=Ambient(5)
@@ -354,7 +337,8 @@ namespace Pickles_Playlist_Editor
                 : path + Path.DirectorySeparatorChar;
             Settings.ModName = modName;
             Settings.PenumbraLocation = penLocation;
-            Settings.BaselineScdKey = BaselineScdTextBox.Text;
+            // The sound path is written by SoundPathDialog, which owns both halves of that change —
+            // the key this app writes AND the effect files that ask for it.
             Settings.BackgroundImagePath = BackgroundImageTextBox.Text.Trim();
             Settings.ScdVolumePercentage = (int)ScdVolumePercentageBox.Value;
             Settings.NormalizationLoudness = (int)NormalizationLoudnessBox.Value;

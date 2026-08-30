@@ -41,7 +41,7 @@
   <data name="SettingsDlg.CloseButtonText" xml:space="preserve"><value>取消</value></data>
   <data name="ModDirLabel.Text" xml:space="preserve"><value>Penumbra 中的模组目录</value></data>
   <data name="BrowseModDirButton.Content" xml:space="preserve"><value>浏览</value></data>
-  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>基准 SCD 键（例如 sound/bpmloop.scd）</value></data>
+  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>声音路径</value></data>
   <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>浏览</value></data>
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>背景图片</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>浏览</value></data>
@@ -164,4 +164,39 @@
   <data name="Menu_ComputeStats" xml:space="preserve"><value>计算统计信息</value></data>
   <data name="Prog_ComputingStats" xml:space="preserve"><value>正在计算 BPM 和调式...</value></data>
   <data name="Summary_ComputeStats" xml:space="preserve"><value>统计信息计算完成</value></data>
+  <data name="SoundPathHeaderLabel.Text" xml:space="preserve"><value>为此模组设置专属声音路径</value></data>
+  <data name="SoundPathHint.Text" xml:space="preserve"><value>场地内所有人共享同一声音通道，因此两位 DJ 的模组使用相同路径时会听到错误的歌曲。重命名你的路径可为所有听众解决这个问题，无论他们使用什么插件。</value></data>
+  <data name="DjNameLabel.Text" xml:space="preserve"><value>你的 DJ 名称</value></data>
+  <data name="ChangeSoundPathButton.Content" xml:space="preserve"><value>更改声音路径</value></data>
+  <data name="Dlg_SoundPath_Title" xml:space="preserve"><value>更改声音路径</value></data>
+  <data name="Prog_RenamingSoundPath" xml:space="preserve"><value>正在更改声音路径…</value></data>
+  <data name="SoundPath_EnterName" xml:space="preserve"><value>输入你的 DJ 名称 — 最多 {0} 个字母或数字。</value></data>
+  <data name="SoundPath_Preview" xml:space="preserve"><value>新路径：{0}</value></data>
+  <data name="SoundPath_CompanionHeader" xml:space="preserve"><value>以下其他模组也在请求 {0}。请勾选属于你的模组：</value></data>
+  <data name="SoundPath_Companion" xml:space="preserve"><value>{0} — {1} 个特效文件</value></data>
+  <data name="SoundPath_CompanionHasSongs" xml:space="preserve"><value>{0} — 含有自己的歌曲；请在设置中选中它并单独重命名</value></data>
+  <data name="SoundPath_ConfirmHeader" xml:space="preserve"><value>确认将声音路径从 {0} 更改为 {1}？</value></data>
+  <data name="SoundPath_ConfirmCounts" xml:space="preserve"><value>{0}：将更新 {1} 个特效文件和 {2} 首歌曲。</value></data>
+  <data name="SoundPath_ConfirmCompanion" xml:space="preserve"><value>{0}：将更新 {1} 个特效文件。</value></data>
+  <data name="SoundPath_ConfirmSuspects" xml:space="preserve"><value>警告：{0} 个文件以本应用无法识别的方式提到了旧路径：</value></data>
+  <data name="SoundPath_ConfirmFooter" xml:space="preserve"><value>特效文件会先备份；若任何环节失败，所有更改都会回滚。</value></data>
+  <data name="SoundPath_Done" xml:space="preserve"><value>声音路径现为 {0}。
+已更新 {1} 个特效文件和 {2} 首歌曲。</value></data>
+  <data name="SoundPath_DoneCompanions" xml:space="preserve"><value>同时更新：{0}</value></data>
+  <data name="SoundPath_Backup" xml:space="preserve"><value>之前的特效文件位于：
+{0}</value></data>
+  <data name="SoundPath_KeyOnlyWarning" xml:space="preserve"><value>此模组中仍有 {0} 个特效文件在请求 {1}，而没有任何文件请求 {2}。
+
+仅更改键会让你的音乐无法播放。请使用“更改声音路径”正确地重命名模组。
+
+仍要更改键吗？</value></data>
+  <data name="SoundPath_NoMod" xml:space="preserve"><value>请先在上方选择有效的模组文件夹。</value></data>
+  <data name="SoundPath_PreviewPadded" xml:space="preserve"><value>新路径：{0}   （已自动补充几个字符 — “bpm” 后至少需要 {1} 个）</value></data>
+  <data name="SoundPath_NameUnusable" xml:space="preserve"><value>该名称中没有可用于生成路径的字母或数字。</value></data>
+  <data name="SoundPathDlg.Title" xml:space="preserve"><value>声音路径</value></data>
+  <data name="SoundPathDlg.PrimaryButtonText" xml:space="preserve"><value>确定</value></data>
+  <data name="SoundPathDlg.CloseButtonText" xml:space="preserve"><value>取消</value></data>
+  <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>此模组使用的声音路径</value></data>
+  <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>新歌曲会保存到这个路径。在这里修改它不会改动请求该路径的特效文件 — 请使用下方的重命名。</value></data>
+  <data name="EditSoundPathButton.Content" xml:space="preserve"><value>编辑</value></data>
 </root>

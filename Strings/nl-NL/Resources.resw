@@ -41,7 +41,7 @@
   <data name="SettingsDlg.CloseButtonText" xml:space="preserve"><value>Annuleren</value></data>
   <data name="ModDirLabel.Text" xml:space="preserve"><value>Mod-map in Penumbra</value></data>
   <data name="BrowseModDirButton.Content" xml:space="preserve"><value>Bladeren</value></data>
-  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Basis SCD-sleutel (bijv. sound/bpmloop.scd)</value></data>
+  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Geluidspad</value></data>
   <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Bladeren</value></data>
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Achtergrondafbeelding</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Bladeren</value></data>
@@ -164,4 +164,39 @@ Er is niets op de schijf gewijzigd.</value></data>
   <data name="Menu_ComputeStats" xml:space="preserve"><value>Statistieken berekenen</value></data>
   <data name="Prog_ComputingStats" xml:space="preserve"><value>BPM en toonsoort berekenen...</value></data>
   <data name="Summary_ComputeStats" xml:space="preserve"><value>Berekening van statistieken voltooid</value></data>
+  <data name="SoundPathHeaderLabel.Text" xml:space="preserve"><value>Deze mod een eigen geluidspad geven</value></data>
+  <data name="SoundPathHint.Text" xml:space="preserve"><value>Geluid wordt gedeeld door iedereen in een venue, dus twee dj's van wie de mods hetzelfde pad gebruiken horen het verkeerde nummer. Het jouwe hernoemen lost dat op voor alle luisteraars, welke plug-ins ze ook draaien.</value></data>
+  <data name="DjNameLabel.Text" xml:space="preserve"><value>Je dj-naam</value></data>
+  <data name="ChangeSoundPathButton.Content" xml:space="preserve"><value>Geluidspad wijzigen</value></data>
+  <data name="Dlg_SoundPath_Title" xml:space="preserve"><value>Geluidspad wijzigen</value></data>
+  <data name="Prog_RenamingSoundPath" xml:space="preserve"><value>Geluidspad wordt gewijzigd...</value></data>
+  <data name="SoundPath_EnterName" xml:space="preserve"><value>Voer je dj-naam in — maximaal {0} letters of cijfers.</value></data>
+  <data name="SoundPath_Preview" xml:space="preserve"><value>Nieuw pad: {0}</value></data>
+  <data name="SoundPath_CompanionHeader" xml:space="preserve"><value>Deze andere mods vragen ook om {0}. Vink aan welke van jou zijn:</value></data>
+  <data name="SoundPath_Companion" xml:space="preserve"><value>{0} — {1} effectbestand(en)</value></data>
+  <data name="SoundPath_CompanionHasSongs" xml:space="preserve"><value>{0} — heeft eigen nummers; selecteer hem in Instellingen en hernoem hem apart</value></data>
+  <data name="SoundPath_ConfirmHeader" xml:space="preserve"><value>Het geluidspad wijzigen van {0} naar {1}?</value></data>
+  <data name="SoundPath_ConfirmCounts" xml:space="preserve"><value>{0}: {1} effectbestand(en) en {2} nummer(s) worden bijgewerkt.</value></data>
+  <data name="SoundPath_ConfirmCompanion" xml:space="preserve"><value>{0}: {1} effectbestand(en) worden bijgewerkt.</value></data>
+  <data name="SoundPath_ConfirmSuspects" xml:space="preserve"><value>Waarschuwing: {0} bestand(en) noemen het oude pad op een manier die deze app niet kon herkennen:</value></data>
+  <data name="SoundPath_ConfirmFooter" xml:space="preserve"><value>Van de effectbestanden wordt eerst een back-up gemaakt, en alles wordt teruggezet als een deel mislukt.</value></data>
+  <data name="SoundPath_Done" xml:space="preserve"><value>Het geluidspad is nu {0}.
+{1} effectbestand(en) en {2} nummer(s) zijn bijgewerkt.</value></data>
+  <data name="SoundPath_DoneCompanions" xml:space="preserve"><value>Ook bijgewerkt: {0}</value></data>
+  <data name="SoundPath_Backup" xml:space="preserve"><value>De vorige effectbestanden staan in:
+{0}</value></data>
+  <data name="SoundPath_KeyOnlyWarning" xml:space="preserve"><value>{0} effectbestand(en) in deze mod vragen nog steeds om {1}, en geen enkel vraagt om {2}.
+
+Alleen de sleutel wijzigen laat je muziek stoppen. Gebruik „Geluidspad wijzigen” om de mod goed te hernoemen.
+
+De sleutel toch wijzigen?</value></data>
+  <data name="SoundPath_NoMod" xml:space="preserve"><value>Kies hierboven eerst een geldige modmap.</value></data>
+  <data name="SoundPath_PreviewPadded" xml:space="preserve"><value>Nieuw pad: {0}   (er zijn enkele letters toegevoegd — het pad heeft er na „bpm” minstens {1} nodig)</value></data>
+  <data name="SoundPath_NameUnusable" xml:space="preserve"><value>Die naam bevat geen letters of cijfers om een pad van te maken.</value></data>
+  <data name="SoundPathDlg.Title" xml:space="preserve"><value>Geluidspad</value></data>
+  <data name="SoundPathDlg.PrimaryButtonText" xml:space="preserve"><value>OK</value></data>
+  <data name="SoundPathDlg.CloseButtonText" xml:space="preserve"><value>Annuleren</value></data>
+  <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>Geluidspad dat deze mod gebruikt</value></data>
+  <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>Dit is het pad waar nieuwe nummers worden opgeslagen. Het hier wijzigen raakt de effectbestanden die erom vragen niet aan — gebruik daarvoor het hernoemen hieronder.</value></data>
+  <data name="EditSoundPathButton.Content" xml:space="preserve"><value>Bewerken</value></data>
 </root>
