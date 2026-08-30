@@ -564,6 +564,21 @@ namespace Pickles_Playlist_Editor
         private void NewButton_Click(object sender, RoutedEventArgs e) => _ = OpenNewPlaylistAsync();
         private void DeleteButton_Click(object sender, RoutedEventArgs e) => _ = DoDeleteAsync();
 
+        private void DancesButton_Click(object sender, RoutedEventArgs e) => _ = OpenDancesAsync();
+
+        /// <summary>
+        /// The dances in the DJ's dance mod.
+        ///
+        /// Deliberately NOT gated on first-run setup the way Settings is: most users have no separate
+        /// dance mod at all, and nagging them about one on launch would be wrong. The dialog picks the
+        /// mod itself the first time it is opened.
+        /// </summary>
+        private async Task OpenDancesAsync()
+        {
+            var dialog = new DancesDialog { XamlRoot = this.Content.XamlRoot };
+            await dialog.ShowAsync();
+        }
+
         private async Task OpenSettingsAsync()
         {
             var dialog = new SettingsDialog { XamlRoot = this.Content.XamlRoot };

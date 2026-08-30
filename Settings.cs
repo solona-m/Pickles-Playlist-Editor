@@ -338,6 +338,48 @@ namespace Pickles_Playlist_Editor
         /// Default: true.
         /// Stored as integer 1 (true) or 0 (false) under the same registry subkey.
         /// </summary>
+        /// <summary>
+        /// The mod folder holding the DJ's dances, which is usually NOT <see cref="ModName"/>.
+        ///
+        /// A DJ setup is normally split in two: a music mod full of .scd, which is what the rest of
+        /// this app edits, and a dance/VFX mod holding the .pap animations and the effects they fire.
+        /// Some DJs run one combined mod instead, in which case this is the same folder as
+        /// <see cref="ModName"/> — so the two settings are independent rather than one implying
+        /// anything about the other.
+        ///
+        /// Empty until the user picks one; the dances dialog offers a ranked list on first use.
+        /// </summary>
+        public static string DanceModName
+        {
+            get => (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("DanceModName") ?? string.Empty;
+            set
+            {
+                // Worth a log line for the same reason ModName's setter is: "my dances vanished" and
+                // "I am pointed at a different mod than I think" look identical from a bug report.
+                Logger.LogInfo("Settings: dance mod set to '{Mod}' (was '{Old}').",
+                    value, DanceModName.Length == 0 ? "<unset>" : DanceModName);
+
+                using RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                key?.SetValue("DanceModName", value ?? string.Empty);
+            }
+        }
+
+        /// <summary>
+        /// The option group inside <see cref="DanceModName"/> that holds the dances.
+        ///
+        /// Remembered by id because a group can be renamed, and matching on the name alone would
+        /// silently start editing a different group the day somebody does.
+        /// </summary>
+        public static string DanceGroupId
+        {
+            get => (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("DanceGroupId") ?? string.Empty;
+            set
+            {
+                using RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                key?.SetValue("DanceGroupId", value ?? string.Empty);
+            }
+        }
+
         public static bool AutoReloadMod
         {
             get

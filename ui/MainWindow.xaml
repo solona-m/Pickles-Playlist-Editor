@@ -48,6 +48,9 @@
                     </MenuFlyout>
                 </AppBarButton.Flyout>
             </AppBarButton>
+            <AppBarButton x:Name="DancesButton" x:Uid="DancesButton" Label="Dances" Click="DancesButton_Click">
+                <AppBarButton.Icon><FontIcon Glyph="&#xE8EF;"/></AppBarButton.Icon>
+            </AppBarButton>
             <CommandBar.SecondaryCommands>
                 <AppBarButton x:Name="SettingsButton" x:Uid="SettingsButton" Label="Settings" Click="SettingsButton_Click">
                     <AppBarButton.Icon><FontIcon Glyph="&#xE713;"/></AppBarButton.Icon>

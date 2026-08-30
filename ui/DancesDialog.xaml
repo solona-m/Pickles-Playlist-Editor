@@ -1,0 +1,107 @@
+<ContentDialog
+    x:Class="Pickles_Playlist_Editor.DancesDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Uid="DancesDlg"
+    Title="Dances"
+    CloseButtonText="Close"
+    DefaultButton="Close">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="8" MinWidth="560">
+
+        <!-- The dances live in a DIFFERENT mod from the playlists, and saying so plainly is the whole
+             reason this row is at the top rather than buried in Settings. A DJ setup is normally split
+             into a music mod and a dance mod, and editing the wrong one is the mistake this feature is
+             most able to cause. -->
+        <TextBlock x:Uid="DanceModLabel" Text="Dance mod" FontWeight="SemiBold"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="DanceModText" Grid.Column="0" VerticalAlignment="Center"
+                       TextWrapping="Wrap" Margin="0,0,8,0"/>
+            <Button x:Uid="ChangeDanceModButton" Grid.Column="1" Content="Change"
+                    Click="ChangeDanceModButton_Click"/>
+        </Grid>
+
+        <!-- Shown only until a mod is chosen. Ranked rather than guessed at: the top candidate is
+             usually right, but a DJ with several packs installed is exactly who this would get wrong. -->
+        <StackPanel x:Name="PickerSection" Spacing="4" Visibility="Collapsed">
+            <TextBlock x:Uid="DanceModPickerHint" TextWrapping="Wrap" Opacity="0.7"
+                       Text="These mods look like they hold dances. Pick the one you DJ with."/>
+            <ListView x:Name="CandidateList" MaxHeight="200" SelectionMode="Single"
+                      SelectionChanged="CandidateList_SelectionChanged"/>
+        </StackPanel>
+
+        <StackPanel x:Name="DancesSection" Spacing="8" Visibility="Collapsed">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="DancesHeader" Grid.Column="0" VerticalAlignment="Center"
+                           FontWeight="SemiBold"/>
+                <Button x:Uid="AddDanceButton" x:Name="AddDanceButton" Grid.Column="1"
+                        Content="Add a dance…" Click="AddDanceButton_Click"/>
+            </Grid>
+
+            <ListView x:Name="DanceList" MaxHeight="260" SelectionMode="Single"
+                      SelectionChanged="DanceList_SelectionChanged"/>
+
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <Button x:Uid="RenameDanceButton" x:Name="RenameDanceButton" Content="Rename"
+                        Click="RenameDanceButton_Click" IsEnabled="False"/>
+                <Button x:Uid="RemoveDanceButton" x:Name="RemoveDanceButton" Content="Remove"
+                        Click="RemoveDanceButton_Click" IsEnabled="False"/>
+                <Button x:Uid="MoveDanceUpButton" x:Name="MoveDanceUpButton" Content="Move up"
+                        Click="MoveDanceUpButton_Click" IsEnabled="False"/>
+                <Button x:Uid="MoveDanceDownButton" x:Name="MoveDanceDownButton" Content="Move down"
+                        Click="MoveDanceDownButton_Click" IsEnabled="False"/>
+                <Button x:Uid="ApplyDanceOrderButton" x:Name="ApplyDanceOrderButton" Content="Save order"
+                        Click="ApplyDanceOrderButton_Click" IsEnabled="False"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- The add pane. Not a second ContentDialog: WinUI allows only one open at a time, which is
+             also why every confirmation in here is a Win32 message box. -->
+        <StackPanel x:Name="AddSection" Spacing="8" Visibility="Collapsed">
+            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4"/>
+            <TextBlock x:Uid="AddDanceHeader" Text="Add a dance" FontWeight="SemiBold"/>
+            <TextBlock x:Uid="AddDanceHint" TextWrapping="Wrap" Opacity="0.7"
+                       Text="These are the dances you already have installed in Penumbra."/>
+
+            <TextBox x:Name="SearchBox" x:Uid="DanceSearchBox" PlaceholderText="Search"
+                     TextChanged="SearchBox_TextChanged"/>
+            <ListView x:Name="SourceList" MaxHeight="220" SelectionMode="Single"
+                      SelectionChanged="SourceList_SelectionChanged"/>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Uid="DanceNameLabel" Grid.Column="0" Text="Name" VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+                <TextBox x:Name="DanceNameBox" Grid.Column="1" TextChanged="DanceNameBox_TextChanged"/>
+            </Grid>
+
+            <StackPanel x:Name="RacePanel" Orientation="Horizontal" Spacing="8"/>
+            <CheckBox x:Name="IncludeStartCheckBox" x:Uid="IncludeStartCheckBox"
+                      Content="Also use the dance's intro animation" IsChecked="True"/>
+
+            <TextBlock x:Name="AddPreviewText" TextWrapping="Wrap" Opacity="0.9"/>
+
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <Button x:Uid="ConfirmAddDanceButton" x:Name="ConfirmAddDanceButton"
+                        Content="Add dance" Click="ConfirmAddDanceButton_Click" IsEnabled="False"/>
+                <Button x:Uid="CancelAddDanceButton" Content="Cancel" Click="CancelAddDanceButton_Click"/>
+            </StackPanel>
+        </StackPanel>
+
+        <TextBlock x:Name="StatusText" TextWrapping="Wrap" Opacity="0.8"/>
+
+    </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

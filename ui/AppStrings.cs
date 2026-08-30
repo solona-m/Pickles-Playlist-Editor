@@ -73,6 +73,46 @@ namespace Pickles_Playlist_Editor
         public static string Dlg_RestartRequired_Content => _r.GetString("Dlg_RestartRequired_Content");
 
         // ---- sound path rename ----
+        // ---- dances -------------------------------------------------------------------------
+        public static string Dlg_Dances_Title => _r.GetString("Dlg_Dances_Title");
+        public static string Prog_AddingDance => _r.GetString("Prog_AddingDance");
+        public static string DanceScanRunning => _r.GetString("Dances_ScanRunning");
+        public static string DanceModNoneFound => _r.GetString("Dances_NoModsFound");
+        public static string DanceModLegacyLayout => _r.GetString("Dances_LegacyLayout");
+        public static string DanceOrderPending => _r.GetString("Dances_OrderPending");
+        public static string DanceOrderDone => _r.GetString("Dances_OrderDone");
+
+        public static string DanceCount(int count) =>
+            string.Format(_r.GetString("Dances_Count"), count);
+        public static string DanceModFound(int count) =>
+            string.Format(_r.GetString("Dances_ModsFound"), count);
+        public static string DanceModNoGroup(string mod) =>
+            string.Format(_r.GetString("Dances_NoGroup"), mod, DanceGroupName);
+        public static string DanceModCandidate(string mod, int dances, bool prepped) =>
+            string.Format(_r.GetString(prepped ? "Dances_CandidatePrepped" : "Dances_Candidate"), mod, dances);
+        public static string DanceSourcesFound(int mods, int dances) =>
+            string.Format(_r.GetString("Dances_SourcesFound"), mods, dances);
+        public static string DanceBundle(int tracks, int effects) =>
+            string.Format(_r.GetString("Dances_Bundle"), tracks, effects);
+        public static string AddDancePreview(string oldName, string newName, int sounds, int tracks, int effects) =>
+            string.Format(_r.GetString("Dances_AddPreview"), oldName, newName, sounds, tracks, effects);
+        public static string AddDanceDone(string dance) =>
+            string.Format(_r.GetString("Dances_AddDone"), dance);
+        public static string RenameDanceHint(string dance) =>
+            string.Format(_r.GetString("Dances_RenameHint"), dance);
+        public static string RenameDanceDone(string from, string to) =>
+            string.Format(_r.GetString("Dances_RenameDone"), from, to);
+        public static string RemoveDanceConfirm(string dance) =>
+            string.Format(_r.GetString("Dances_RemoveConfirm"), dance);
+        public static string RemoveDanceDone(string dance) =>
+            string.Format(_r.GetString("Dances_RemoveDone"), dance);
+
+        /// <summary>
+        /// The group name is Penumbra data, not UI text: it must match what is in the mod, so it is
+        /// deliberately NOT translated.
+        /// </summary>
+        private const string DanceGroupName = Utils.DanceMod.DancesGroupName;
+
         public static string Dlg_SoundPath_Title => _r.GetString("Dlg_SoundPath_Title");
         public static string Prog_RenamingSoundPath => _r.GetString("Prog_RenamingSoundPath");
         public static string SoundPathConfirmFooter => _r.GetString("SoundPath_ConfirmFooter");

@@ -171,6 +171,46 @@ Er is niets op de schijf gewijzigd.</value></data>
   <data name="SoundPathHint.Text" xml:space="preserve"><value>Geluid wordt gedeeld door iedereen in een venue, dus twee dj's van wie de mods hetzelfde pad gebruiken horen het verkeerde nummer. Het jouwe hernoemen lost dat op voor alle luisteraars, welke plug-ins ze ook draaien.</value></data>
   <data name="DjNameLabel.Text" xml:space="preserve"><value>Je dj-naam</value></data>
   <data name="ChangeSoundPathButton.Content" xml:space="preserve"><value>Geluidspad wijzigen</value></data>
+  <data name="DancesDlg.Title" xml:space="preserve"><value>Dances</value></data>
+  <data name="DanceModLabel.Text" xml:space="preserve"><value>Dance mod</value></data>
+  <data name="ChangeDanceModButton.Content" xml:space="preserve"><value>Change</value></data>
+  <data name="DanceModPickerHint.Text" xml:space="preserve"><value>These mods look like they hold dances. Pick the one you DJ with.</value></data>
+  <data name="AddDanceButton.Content" xml:space="preserve"><value>Add a dance…</value></data>
+  <data name="RenameDanceButton.Content" xml:space="preserve"><value>Rename</value></data>
+  <data name="RemoveDanceButton.Content" xml:space="preserve"><value>Remove</value></data>
+  <data name="MoveDanceUpButton.Content" xml:space="preserve"><value>Move up</value></data>
+  <data name="MoveDanceDownButton.Content" xml:space="preserve"><value>Move down</value></data>
+  <data name="ApplyDanceOrderButton.Content" xml:space="preserve"><value>Save order</value></data>
+  <data name="AddDanceHeader.Text" xml:space="preserve"><value>Add a dance</value></data>
+  <data name="AddDanceHint.Text" xml:space="preserve"><value>These are the dances you already have installed in Penumbra.</value></data>
+  <data name="DanceSearchBox.PlaceholderText" xml:space="preserve"><value>Search</value></data>
+  <data name="DanceNameLabel.Text" xml:space="preserve"><value>Name</value></data>
+  <data name="IncludeStartCheckBox.Content" xml:space="preserve"><value>Also use the dance's intro animation</value></data>
+  <data name="ConfirmAddDanceButton.Content" xml:space="preserve"><value>Add dance</value></data>
+  <data name="CancelAddDanceButton.Content" xml:space="preserve"><value>Cancel</value></data>
+  <data name="DancesButton.Label" xml:space="preserve"><value>Dances</value></data>
+  <data name="Dlg_Dances_Title" xml:space="preserve"><value>Dances</value></data>
+  <data name="Prog_AddingDance" xml:space="preserve"><value>Adding the dance...</value></data>
+  <data name="Dances_ScanRunning" xml:space="preserve"><value>Looking through your mods...</value></data>
+  <data name="Dances_NoModsFound" xml:space="preserve"><value>No mods with dances were found in your Penumbra folder.</value></data>
+  <data name="Dances_LegacyLayout" xml:space="preserve"><value>This mod uses Penumbra’s older layout. Adding dances still works, but open it in Penumbra once if anything looks wrong.</value></data>
+  <data name="Dances_OrderPending" xml:space="preserve"><value>Order changed. Choose Save order to write it to the mod.</value></data>
+  <data name="Dances_OrderDone" xml:space="preserve"><value>The new order was saved.</value></data>
+  <data name="Dances_Count" xml:space="preserve"><value>{0} dances in this mod</value></data>
+  <data name="Dances_ModsFound" xml:space="preserve"><value>{0} mods could hold your dances.</value></data>
+  <data name="Dances_NoGroup" xml:space="preserve"><value>“{0}” has no “{1}” group, so dances cannot be added to it.</value></data>
+  <data name="Dances_Candidate" xml:space="preserve"><value>{0} — {1} dances</value></data>
+  <data name="Dances_CandidatePrepped" xml:space="preserve"><value>{0} — {1} dances, already set up for a DJ</value></data>
+  <data name="Dances_SourcesFound" xml:space="preserve"><value>{0} mods, {1} dances you can add.</value></data>
+  <data name="Dances_Bundle" xml:space="preserve"><value>New dances will get {0} tracks and {1} effects, copied from this mod.</value></data>
+  <data name="Dances_AddPreview" xml:space="preserve"><value>Rename animation “{0}” to “{1}”, remove {2} sound entries, and add {3} tracks with {4} effects.</value></data>
+  <data name="Dances_AddDone" xml:space="preserve"><value>“{0}” was added.</value></data>
+  <data name="Dances_RenameHint" xml:space="preserve"><value>Change the name below, then choose Rename again to save it for “{0}”.</value></data>
+  <data name="Dances_RenameDone" xml:space="preserve"><value>“{0}” is now called “{1}”.</value></data>
+  <data name="Dances_RemoveConfirm" xml:space="preserve"><value>Remove “{0}” from this mod?
+
+Its files are moved to the backups folder, not deleted.</value></data>
+  <data name="Dances_RemoveDone" xml:space="preserve"><value>“{0}” was removed.</value></data>
   <data name="Dlg_SoundPath_Title" xml:space="preserve"><value>Geluidspad wijzigen</value></data>
   <data name="Prog_RenamingSoundPath" xml:space="preserve"><value>Geluidspad wordt gewijzigd...</value></data>
   <data name="SoundPath_EnterName" xml:space="preserve"><value>Voer je dj-naam in — maximaal {0} letters of cijfers.</value></data>
