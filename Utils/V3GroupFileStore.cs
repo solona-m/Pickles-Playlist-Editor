@@ -74,9 +74,19 @@ namespace Pickles_Playlist_Editor.Utils
         // Every group file, in Penumbra's display order: ascending group number, name as the
         // tie-break for the rare duplicate/unparseable number. Penumbra ignores the "Priority" field
         // for display — that only affects conflict resolution — so never sort by it.
-        private static string[] GroupFilesOrdered()
+        private static string[] GroupFilesOrdered() => GroupFilesOrdered(ModRoot);
+
+        /// <summary>
+        /// As above, for a mod named explicitly rather than the configured one.
+        ///
+        /// The dances feature edits a SECOND mod - the DJ pack - which may still be in this
+        /// layout, so the group-file lookup has to be able to point somewhere else. Only reading
+        /// is shared: creating, renumbering and reordering groups stay bound to the configured
+        /// mod, because those are the operations whose failure modes cost a user their playlist
+        /// order.
+        /// </summary>
+        internal static string[] GroupFilesOrdered(string modDirectory)
         {
-            string modDirectory = ModRoot;
             if (!Directory.Exists(modDirectory))
                 return Array.Empty<string>();
 
@@ -109,7 +119,7 @@ namespace Pickles_Playlist_Editor.Utils
         /// caller that is about to back off and try again would otherwise emit one warning per
         /// attempt, burying the single line that actually matters when it finally gives up.
         /// </summary>
-        private static JObject TryLoadGroupQuiet(string path, out string error)
+        internal static JObject TryLoadGroupQuiet(string path, out string error)
         {
             error = null;
             try { return JObject.Parse(File.ReadAllText(path, Encoding.UTF8)); }
@@ -154,7 +164,7 @@ namespace Pickles_Playlist_Editor.Utils
         /// the entire library, and a Repair (which saves per playlist) quadratic in playlist count.
         /// Penumbra writes Name as the second key, so this normally reads a few dozen bytes.
         /// </summary>
-        private static string TryReadContentName(string path)
+        internal static string TryReadContentName(string path)
             => TryReadContentName(path, out string name, out _) ? name : null;
 
         /// <summary>
@@ -696,7 +706,7 @@ namespace Pickles_Playlist_Editor.Utils
         /// Crash-safe write that Penumbra sees as a MODIFY, never a delete+create — see the class
         /// remarks for why that distinction costs the user their playlist order if we get it wrong.
         /// </summary>
-        private static void WriteGroupFile(string target, JObject group)
+        internal static void WriteGroupFile(string target, JObject group)
         {
             // Back up the previous contents outside the mod folder before overwriting.
             if (File.Exists(target))
