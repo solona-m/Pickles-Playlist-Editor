@@ -128,7 +128,10 @@
   <data name="Dlg_ErrorLoadingSong" xml:space="preserve"><value>Fout bij laden van nummer {0} in afspeellijst {1}: {2}</value></data>
   <data name="Dlg_ErrorLoadingPlaylists" xml:space="preserve"><value>Fout bij laden van afspeellijsten: {0}</value></data>
   <data name="Dlg_Processed" xml:space="preserve"><value>{0}/{1} nummer(s) verwerkt.</value></data>
-  <data name="Dlg_ProcessedErrors" xml:space="preserve"><value>\n\nFouten:\n{0}</value></data>
+  <data name="Dlg_ProcessedErrors" xml:space="preserve"><value>
+
+Fouten:
+{0}</value></data>
   <data name="Dlg_AndMore" xml:space="preserve"><value>...en nog {0} meer.</value></data>
   <data name="Prog_ExtractingAudio" xml:space="preserve"><value>Audio extraheren...</value></data>
   <data name="Prog_NormalizingAudio" xml:space="preserve"><value>Audio normaliseren...</value></data>

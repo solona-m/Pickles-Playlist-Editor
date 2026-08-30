@@ -18,9 +18,25 @@ namespace Pickles_Playlist_Editor
                 BuildBand(12000, TrebleGain));
         }
 
+        /// <summary>
+        /// One <c>equalizer</c> filter, formatted for ffmpeg rather than for a human.
+        ///
+        /// The gain MUST be written with an invariant decimal point. Interpolating it with the
+        /// current culture emits "g=3,0" wherever the regional format uses a comma — German, French,
+        /// Spanish, Dutch, Swedish, most of Europe and Latin America — and a comma is what separates
+        /// filters in ffmpeg's -af syntax. ffmpeg then reads the band as ending at "g=3" and goes
+        /// looking for a filter named "0":
+        ///
+        ///     [AVFilterGraph] No such filter: '0'
+        ///     Error opening output files: Filter not found
+        ///
+        /// Every band and every value is affected, 0.0 included, so the equalizer failed outright for
+        /// those users rather than sounding wrong. <see cref="Utils.FFMpeg.NormalizeVolume"/> pins the
+        /// invariant culture for exactly this reason; this is the one place that did not.
+        /// </summary>
         private static string BuildBand(int frequency, float gain)
         {
-            return $"equalizer=f={frequency}:t=q:w=1.0:g={gain:0.0}";
+            return FormattableString.Invariant($"equalizer=f={frequency}:t=q:w=1.0:g={gain:0.0}");
         }
     }
 }

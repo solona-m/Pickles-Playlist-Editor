@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
+using System.Linq;
 
 namespace Pickles_Playlist_Editor.Utils
 {
@@ -120,10 +121,50 @@ namespace Pickles_Playlist_Editor.Utils
 
             if (process.ExitCode != 0)
             {
-                throw new InvalidOperationException($"{message}");
+                // The FULL stderr goes to the log, where it is worth having; the exception carries
+                // only the tail. ffmpeg opens every run with ~25 lines of banner — version, build
+                // flags, every bundled library — so throwing the whole thing pushed the one line
+                // that explains the failure off the bottom of the dialog. A user reporting "the
+                // equalizer is broken" would send back a screenshot of the build configuration.
+                Logger.LogError("ffmpeg exited {Code} for: ffmpeg {Args}\n{Output}",
+                    process.ExitCode, arguments, message);
+                throw new InvalidOperationException(Summarize(message));
             }
 
             return message;
+        }
+
+        /// <summary>
+        /// The part of ffmpeg's stderr worth showing a user: the last few lines that are not banner
+        /// or progress noise. Falls back to the raw tail when nothing matches, so an unrecognized
+        /// failure still says something.
+        /// </summary>
+        private static string Summarize(string stderr)
+        {
+            if (string.IsNullOrWhiteSpace(stderr))
+                return "ffmpeg failed without reporting a reason.";
+
+            var lines = stderr
+                .Split('\n')
+                .Select(l => l.TrimEnd('\r', ' '))
+                .Where(l => l.Length > 0)
+                .ToList();
+
+            // Everything up to and including the input/stream dump is context, not cause.
+            var interesting = lines
+                .Where(l => !l.StartsWith("ffmpeg version", StringComparison.Ordinal)
+                         && !l.StartsWith("  built with", StringComparison.Ordinal)
+                         && !l.StartsWith("  configuration:", StringComparison.Ordinal)
+                         && !l.StartsWith("  lib", StringComparison.Ordinal)
+                         && !l.StartsWith("Copyright (c)", StringComparison.Ordinal)
+                         && !l.StartsWith("size=", StringComparison.Ordinal)
+                         && !l.StartsWith("frame=", StringComparison.Ordinal))
+                .ToList();
+
+            if (interesting.Count == 0) interesting = lines;
+
+            const int keep = 4;
+            return string.Join("\n", interesting.Skip(Math.Max(0, interesting.Count - keep)));
         }
     }
 }

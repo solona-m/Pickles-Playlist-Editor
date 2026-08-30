@@ -129,7 +129,10 @@
   <data name="Dlg_ErrorLoadingSong" xml:space="preserve"><value>加载播放列表 {1} 中的歌曲 {0} 时出错：{2}</value></data>
   <data name="Dlg_ErrorLoadingPlaylists" xml:space="preserve"><value>加载播放列表时出错：{0}</value></data>
   <data name="Dlg_Processed" xml:space="preserve"><value>已处理 {0}/{1} 首歌曲。</value></data>
-  <data name="Dlg_ProcessedErrors" xml:space="preserve"><value>\n\n错误：\n{0}</value></data>
+  <data name="Dlg_ProcessedErrors" xml:space="preserve"><value>
+
+错误：
+{0}</value></data>
   <data name="Dlg_AndMore" xml:space="preserve"><value>……还有 {0} 个。</value></data>
   <data name="Prog_ExtractingAudio" xml:space="preserve"><value>正在提取音频…</value></data>
   <data name="Prog_NormalizingAudio" xml:space="preserve"><value>正在标准化音频…</value></data>
