@@ -130,7 +130,8 @@
                  the cost is usually nothing, because bodies very often share a single animation file
                  that is installed once with several game paths pointing at it. -->
             <CheckBox x:Name="IncludeStartCheckBox" x:Uid="IncludeStartCheckBox"
-                      Content="Also use the dance's intro animation" IsChecked="True"/>
+                      Content="Also use the dance's intro animation" IsChecked="True"
+                      Checked="IncludeStart_Changed" Unchecked="IncludeStart_Changed"/>
 
             <!-- Add and Cancel live in the dialog's own footer, not here. The footer is where the
                  accent colour is, and an accented Close beside a plain in-content "Add dance" reads

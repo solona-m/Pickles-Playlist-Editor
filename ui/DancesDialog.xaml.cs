@@ -35,6 +35,9 @@ namespace Pickles_Playlist_Editor
 
         private bool _sourcesLoaded;
 
+        /// <summary>The name last filled in from a selection, so a typed-over one is not clobbered.</summary>
+        private string _suggestedName = string.Empty;
+
         /// <summary>
         /// False until the constructor has finished wiring everything up.
         ///
@@ -345,11 +348,30 @@ namespace Pickles_Playlist_Editor
             var source = SelectedSource();
             if (source == null) { RefreshAddPreview(); return; }
 
-            if (string.IsNullOrWhiteSpace(DanceNameBox.Text))
+            // Follow the selection unless the user has typed their own name. Only filling a blank box
+            // meant picking Thriller and then Waltz installed the Waltz animation under the name
+            // "Thriller" — the wrong name on the right dance, with nothing on screen to reveal it.
+            if (string.IsNullOrWhiteSpace(DanceNameBox.Text)
+                || string.Equals(DanceNameBox.Text, _suggestedName, StringComparison.Ordinal))
+            {
                 DanceNameBox.Text = source.Label;
+            }
+            _suggestedName = source.Label;
 
             IncludeStartCheckBox.IsEnabled = source.StartByRace.Count > 0;
             IncludeStartCheckBox.IsChecked = source.StartByRace.Count > 0;
+            RefreshAddPreview();
+        }
+
+        /// <summary>
+        /// Rebuilds the plan when the intro toggle changes.
+        ///
+        /// Without this the checkbox was decorative: the plan is built in RefreshAddPreview, so
+        /// unticking it left the _start.pap still copied and still registered in the option.
+        /// </summary>
+        private void IncludeStart_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!_ready) return;
             RefreshAddPreview();
         }
 

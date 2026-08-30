@@ -334,11 +334,6 @@ namespace Pickles_Playlist_Editor
         }
 
         /// <summary>
-        /// Controls whether the mod should be auto-reloaded (Penumbra) after changes.
-        /// Default: true.
-        /// Stored as integer 1 (true) or 0 (false) under the same registry subkey.
-        /// </summary>
-        /// <summary>
         /// The mod folder holding the DJ's dances, which is usually NOT <see cref="ModName"/>.
         ///
         /// A DJ setup is normally split in two: a music mod full of .scd, which is what the rest of
@@ -380,6 +375,11 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        /// <summary>
+        /// Controls whether the mod should be auto-reloaded (Penumbra) after changes.
+        /// Default: true.
+        /// Stored as integer 1 (true) or 0 (false) under the same registry subkey.
+        /// </summary>
         public static bool AutoReloadMod
         {
             get
