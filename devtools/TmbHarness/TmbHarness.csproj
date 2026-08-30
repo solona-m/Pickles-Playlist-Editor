@@ -22,7 +22,13 @@
   <ItemGroup>
     <Compile Include="..\..\Utils\PapFile.cs" Link="PapFile.cs" />
     <Compile Include="..\..\Utils\DancePap.cs" Link="DancePap.cs" />
+    <Compile Include="..\..\Utils\PenumbraOptions.cs" Link="PenumbraOptions.cs" />
+    <Compile Include="..\..\Utils\DanceSourceScan.cs" Link="DanceSourceScan.cs" />
     <Compile Include="..\..\Utils\Tmb\*.cs" LinkBase="Tmb" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
 </Project>

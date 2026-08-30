@@ -50,6 +50,17 @@ namespace Pickles_Playlist_Editor.Utils
         public static string MetaPath => Path.Combine(ModRoot, MetaFile);
 
         /// <summary>
+        /// The manifest of a mod named explicitly rather than of the configured one.
+        ///
+        /// Everything in this class used to derive its target from <see cref="Settings.ModName"/>,
+        /// which is right for the playlist library but not for the DJ mod that holds the dances:
+        /// that is a SECOND mod, often a different folder entirely, and repointing the setting at it
+        /// mid-operation is exactly the mod swap <see cref="AssertModRootUnchanged"/> exists to
+        /// catch. So the bodies take a root and the old members pass the configured one in.
+        /// </summary>
+        public static string MetaPathFor(string modRoot) => Path.Combine(modRoot, MetaFile);
+
+        /// <summary>
         /// Throws if the configured mod has changed since <paramref name="captured"/> was taken.
         ///
         /// Nothing binds a <see cref="Playlist"/> to the mod it was loaded from: <see cref="ModRoot"/>
@@ -83,12 +94,15 @@ namespace Pickles_Playlist_Editor.Utils
         /// Parse failures are retried too, not just IO ones: catching the file mid-write yields
         /// malformed JSON, which is transient in exactly the same way.
         /// </summary>
-        public static JObject? Read()
+        public static JObject? Read() => Read(ModRoot);
+
+        /// <inheritdoc cref="Read()"/>
+        public static JObject? Read(string modRoot)
         {
             FileInfo info;
             try
             {
-                info = new FileInfo(MetaPath);
+                info = new FileInfo(MetaPathFor(modRoot));
                 if (!info.Exists)
                     return null;
             }
@@ -237,26 +251,30 @@ namespace Pickles_Playlist_Editor.Utils
         /// The one and only v4 write path. Re-reads the manifest under the lock, snapshots it, hands
         /// the fresh copy to <paramref name="edit"/> to splice, then writes it back atomically.
         /// </summary>
-        public static void Mutate(Action<JObject> edit)
+        public static void Mutate(Action<JObject> edit) =>
+            Mutate(ModRoot, Settings.ModName ?? string.Empty, edit);
+
+        /// <inheritdoc cref="Mutate(Action{JObject})"/>
+        public static void Mutate(string modRoot, string modName, Action<JObject> edit)
         {
             lock (PlaylistStore.ModFolderGate)
             {
-                var root = Read()
+                var root = Read(modRoot)
                     ?? throw new PenumbraMetaException(
-                        $"Penumbra's mod manifest could not be read: {MetaPath}. Nothing was written. " +
+                        $"Penumbra's mod manifest could not be read: {MetaPathFor(modRoot)}. Nothing was written. " +
                         "(If Penumbra is running it may be mid-write — try again in a moment.)");
 
                 // Penumbra may have converted the folder to v3 since the caller resolved its store.
                 // Refuse rather than write v4 structure into a v3 manifest: that would tell Penumbra
                 // the mod has zero option groups, so it would ignore every group_NNN_*.json on disk
                 // and orphan every playlist along with the user's current selection for each.
-                if (DetectFormat(root, ModRoot) == ModFormat.V3)
+                if (DetectFormat(root, modRoot) == ModFormat.V3)
                     throw new PenumbraMetaException(
                         "The mod folder is in Penumbra's v3 layout; refusing to write it as v4. " +
                         "Nothing was written.");
 
                 // Snapshot the pre-edit state. Cheap when nothing changed since the last one.
-                TrySnapshot();
+                TrySnapshot(modRoot, modName);
 
                 edit(root);
 
@@ -273,7 +291,7 @@ namespace Pickles_Playlist_Editor.Utils
                     throw new PenumbraMetaException(
                         "Refusing to write meta.json: the edit left it without an Identifier.");
 
-                AtomicWrite(MetaPath, Serialize(root));
+                AtomicWrite(MetaPathFor(modRoot), Serialize(root));
             }
         }
 
@@ -476,19 +494,22 @@ namespace Pickles_Playlist_Editor.Utils
         /// mod folder name is the key rather than the Identifier because the Identifier lives in the
         /// manifest we may be unable to read, which is the whole reason we're restoring.
         /// </summary>
-        public static string SnapshotDir
+        public static string SnapshotDir => SnapshotDirFor(Settings.ModName ?? string.Empty);
+
+        /// <inheritdoc cref="SnapshotDir"/>
+        public static string SnapshotDirFor(string modName)
         {
-            get
-            {
-                string dir = Path.Combine(Playlist.BackupDir, "meta", SnapshotFolderNameForMod());
-                Directory.CreateDirectory(dir);
-                return dir;
-            }
+            string dir = Path.Combine(Playlist.BackupDir, "meta", SnapshotFolderNameForMod(modName));
+            Directory.CreateDirectory(dir);
+            return dir;
         }
 
-        internal static string SnapshotFolderNameForMod()
+        internal static string SnapshotFolderNameForMod() =>
+            SnapshotFolderNameForMod(Settings.ModName ?? "unknown");
+
+        internal static string SnapshotFolderNameForMod(string modName)
         {
-            string name = Settings.ModName ?? "unknown";
+            string name = string.IsNullOrWhiteSpace(modName) ? "unknown" : modName;
             foreach (char c in Path.GetInvalidFileNameChars())
                 name = name.Replace(c, '_');
             name = name.Trim(' ', '.');
@@ -503,17 +524,21 @@ namespace Pickles_Playlist_Editor.Utils
         /// to the newest snapshot already there. Best-effort: a snapshot failure must never block the
         /// edit the user asked for.
         /// </summary>
-        public static string? TrySnapshot()
+        public static string? TrySnapshot() =>
+            TrySnapshot(ModRoot, Settings.ModName ?? string.Empty);
+
+        /// <inheritdoc cref="TrySnapshot()"/>
+        public static string? TrySnapshot(string modRoot, string modName)
         {
             try
             {
-                string path = MetaPath;
+                string path = MetaPathFor(modRoot);
                 if (!File.Exists(path)) return null;
 
                 var bytes = File.ReadAllBytes(path);
                 string hash = Convert.ToHexString(SHA256.HashData(bytes));
 
-                var existing = SnapshotFiles();
+                var existing = SnapshotFiles(modName);
                 if (existing.Count > 0)
                 {
                     var newest = existing[0];
@@ -522,10 +547,10 @@ namespace Pickles_Playlist_Editor.Utils
                         return newest.FullName; // unchanged since last snapshot — nothing to record
                 }
 
-                string dest = Path.Combine(SnapshotDir,
+                string dest = Path.Combine(SnapshotDirFor(modName),
                     $"meta_{DateTime.Now:yyyyMMdd_HHmmss_fff}.json");
                 File.WriteAllBytes(dest, bytes);
-                PruneSnapshots();
+                PruneSnapshots(modName);
                 return dest;
             }
             catch (Exception ex)
@@ -536,11 +561,14 @@ namespace Pickles_Playlist_Editor.Utils
         }
 
         // Newest first.
-        private static List<FileInfo> SnapshotFiles()
+        private static List<FileInfo> SnapshotFiles() =>
+            SnapshotFiles(Settings.ModName ?? string.Empty);
+
+        private static List<FileInfo> SnapshotFiles(string modName)
         {
             try
             {
-                return new DirectoryInfo(SnapshotDir)
+                return new DirectoryInfo(SnapshotDirFor(modName))
                     .GetFiles("meta_*.json")
                     .OrderByDescending(f => f.Name, StringComparer.Ordinal)
                     .ToList();
@@ -551,7 +579,8 @@ namespace Pickles_Playlist_Editor.Utils
             }
         }
 
-        private static void PruneSnapshots() => PruneByPolicy(SnapshotFiles(), f => { try { f.Delete(); } catch { } });
+        private static void PruneSnapshots(string modName) =>
+            PruneByPolicy(SnapshotFiles(modName), f => { try { f.Delete(); } catch { } });
 
         /// <summary>
         /// Keeps the last <see cref="KeepRecentSnapshots"/> entries plus the first of each of the last

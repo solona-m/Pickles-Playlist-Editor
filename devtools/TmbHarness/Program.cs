@@ -70,6 +70,7 @@ internal static class Program
             }
         }
 
+        SourceScan();
         RebuildIdentity(timelines);
         var djStrings = SpliceMatrix(timelines, dump);
         RoundTripDjBlock(timelines, djStrings);
@@ -127,6 +128,72 @@ internal static class Program
             $"opaque={opaque,3} {header.Magic}=[{string.Join(",", headerWords)}] pool={covered}/{total}");
 
         return tmb;
+    }
+
+    // ---- the source scan -------------------------------------------------------------------------
+
+    private const string PenumbraRoot = @"e:\Penumbradt";
+
+    /// <summary>
+    /// The dance-source filter, measured against a real 1,040-mod Penumbra folder.
+    ///
+    /// These numbers are a regression fixture, not decoration. The filter is the difference between a
+    /// browser showing 42 mods and one showing 22,000 game paths of idles, /pose stances and facial
+    /// expressions, and every clause in it was derived from this folder — so a change that quietly
+    /// loosens or tightens it shows up here rather than in the UI.
+    /// </summary>
+    private static void SourceScan()
+    {
+        Console.WriteLine("\n=== installed dance sources");
+        if (!Directory.Exists(PenumbraRoot))
+        {
+            Console.WriteLine($"  (no Penumbra folder at {PenumbraRoot} — skipped)");
+            return;
+        }
+
+        var started = DateTime.UtcNow;
+        var mods = DanceSourceScan.Scan(PenumbraRoot);
+        var elapsed = DateTime.UtcNow - started;
+        int dances = mods.Sum(m => m.Dances.Count);
+
+        foreach (var mod in mods.Take(8))
+            Console.WriteLine($"  {mod.Name,-52} {mod.Dances.Count,4} dances" +
+                (mod.DuplicateFolders.Count > 0 ? $"  (+{mod.DuplicateFolders.Count} duplicate folder)" : ""));
+        Console.WriteLine($"  ... {mods.Count} mods, {dances} dances, {elapsed.TotalSeconds:0.0}s");
+
+        // Measured after de-duplication: 38 mods / 517 dances on the reference folder. Before
+        // collapsing re-imported copies it reads 41 / 655, so a regression in de-duplication
+        // shows up as the count drifting back up rather than as anything visible in the UI.
+        Check("scan", "finds the expected number of dance mods", mods.Count is >= 32 and <= 45);
+        Check("scan", "finds the expected number of dances", dances is >= 450 and <= 600);
+
+        // The clauses, each pinned to the mod that motivated it.
+        Check("scan", "excludes idles (Idles 2.0 Megapack)",
+            !mods.Any(m => m.Name.Contains("Idles 2.0", StringComparison.OrdinalIgnoreCase)));
+        Check("scan", "emote_sp included (K-pop Demon Hunters)",
+            mods.Any(m => m.Name.Contains("K-pop", StringComparison.OrdinalIgnoreCase)));
+        Check("scan", "DefaultData included (Waltz Dance)",
+            mods.Any(m => m.Name.Contains("Waltz", StringComparison.OrdinalIgnoreCase)));
+        Check("scan", "a venue mod is trimmed to its dances, not its 14,759 paths",
+            mods.FirstOrDefault(m => m.Name.Contains("Nightlife", StringComparison.OrdinalIgnoreCase))
+                is null or { Dances.Count: < 260 });
+        Check("scan", "duplicate mod folders are collapsed",
+            mods.All(m => !m.Name.EndsWith(" (2)", StringComparison.Ordinal))
+            && mods.GroupBy(m => m.Name, StringComparer.OrdinalIgnoreCase).All(g => g.Count() == 1));
+
+        // Every dance must point at a .pap that exists and parses, or the browser is offering
+        // something that cannot be installed.
+        int checkedPaps = 0, unreadable = 0;
+        foreach (var dance in mods.SelectMany(m => m.Dances).Take(60))
+        {
+            foreach (string file in dance.LoopByRace.Values)
+            {
+                checkedPaps++;
+                try { PapFile.Parse(File.ReadAllBytes(file)); }
+                catch { unreadable++; Console.WriteLine($"  unreadable: {dance.Label} -> {file}"); }
+            }
+        }
+        Check("scan", $"listed dances resolve to readable .pap ({checkedPaps} checked)", unreadable == 0);
     }
 
     // ---- the writer's self-test ------------------------------------------------------------------
