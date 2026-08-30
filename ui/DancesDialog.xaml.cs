@@ -33,9 +33,6 @@ namespace Pickles_Playlist_Editor
         private TmbTrackBundle? _bundle;
         private HashSet<string> _djStrings = new(StringComparer.OrdinalIgnoreCase);
 
-        /// <summary>The staged order, which is only written when the user saves it.</summary>
-        private List<int>? _pendingOrder;
-
         private bool _sourcesLoaded;
 
         /// <summary>
@@ -209,16 +206,11 @@ namespace Pickles_Playlist_Editor
         /// </summary>
         private List<int> _view = new();
 
-        /// <summary>True when the list shows the mod's order, unfiltered — the only time reordering is safe.</summary>
-        private bool IsReorderable =>
-            DanceSortCombo.SelectedIndex <= 0 && string.IsNullOrWhiteSpace(DanceFilterBox.Text);
-
         private void RefreshDances()
         {
             if (_group == null) return;
 
             _dances = DanceMod.ReadDances(_group);
-            _pendingOrder = null;
             RefreshDanceList();
 
             // The effect block is read from the mod's own dances, so it has to be reloaded whenever
@@ -261,7 +253,6 @@ namespace Pickles_Playlist_Editor
                 ? AppStrings.DanceCount(_dances.Count)
                 : AppStrings.DanceCountFiltered(_view.Count, _dances.Count);
 
-            ReorderBlockedText.Visibility = IsReorderable ? Visibility.Collapsed : Visibility.Visible;
             UpdateButtons();
         }
 
@@ -274,13 +265,6 @@ namespace Pickles_Playlist_Editor
         private void DanceSortCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (!_ready) return;
-
-            // Staged moves are expressed in mod-order positions, so they cannot survive a re-sort.
-            if (_pendingOrder != null && !IsReorderable)
-            {
-                _pendingOrder = null;
-                StatusText.Text = AppStrings.DanceOrderDiscarded;
-            }
             RefreshDanceList();
         }
 
@@ -300,14 +284,8 @@ namespace Pickles_Playlist_Editor
         private void UpdateButtons()
         {
             bool selected = DanceList.SelectedIndex >= 0;
-            bool ordered = IsReorderable;
-
             RenameDanceButton.IsEnabled = selected;
             RemoveDanceButton.IsEnabled = selected;
-            MoveDanceUpButton.IsEnabled = selected && ordered && DanceList.SelectedIndex > 0;
-            MoveDanceDownButton.IsEnabled = selected && ordered
-                && DanceList.SelectedIndex < DanceList.Items.Count - 1;
-            ApplyDanceOrderButton.IsEnabled = _pendingOrder != null && ordered;
         }
 
         // ---- add ---------------------------------------------------------------------------------
@@ -414,8 +392,10 @@ namespace Pickles_Playlist_Editor
             var source = SelectedSource();
             if (source == null || _group == null || _bundle == null)
             {
-                AddPreviewText.Text = string.Empty;
-                ConfirmAddDanceButton.IsEnabled = false;
+                AddPreviewText.Text = source != null && _bundle == null
+                    ? AppStrings.DanceNoBundle
+                    : string.Empty;
+                    _addPlan = null;
                 return;
             }
 
@@ -430,20 +410,48 @@ namespace Pickles_Playlist_Editor
                   + " " + AppStrings.AddDanceFiles(_addPlan.Writes.Count,
                       _addPlan.Files.Count, _addPlan.Bytes / 1048576.0)
                   + (_addPlan.Warnings.Count > 0 ? "\n\n" + string.Join("\n", _addPlan.Warnings) : string.Empty)
-                : string.Join("\n", _addPlan.Errors);
+                : AppStrings.DanceCannotAdd + "\n" + string.Join("\n", _addPlan.Errors);
 
-            ConfirmAddDanceButton.IsEnabled = _addPlan.CanApply;
+            // The footer button is never disabled: a disabled button does not raise Click, so the
+            // reason would reach neither the user nor the log — which is exactly how an add came
+            // to "do nothing" with no trace of why. Pressing it reports the reason instead.
+            if (!_addPlan.CanApply)
+                Logger.LogInfo("Dance '{Dance}' cannot be added: {Errors}",
+                    _addPlan.DanceName, string.Join("; ", _addPlan.Errors));
         }
 
-        private void ConfirmAddDanceButton_Click(object sender, RoutedEventArgs e)
+        private void AddSelectedDance()
         {
-            if (_group == null || _addPlan == null || _bundle == null || !_addPlan.CanApply) return;
+            // Say why nothing happened rather than returning in silence. An enabled button that does
+            // nothing when clicked is the single most confusing failure this dialog can produce, and
+            // it already happened once.
+            if (_group == null || _addPlan == null || _bundle == null || !_addPlan.CanApply)
+            {
+                string why = _group == null ? "no group is selected"
+                    : _bundle == null ? "this mod has no DJ effect block to copy"
+                    : _addPlan == null ? "no dance is selected"
+                    : string.Join(" ", _addPlan.Errors);
+                Logger.LogWarn("Add dance did nothing: {Reason}", why);
+                MessageBox(OwnerWindow(), why, AppStrings.Dlg_Dances_Title, 0x00000030);
+                return;
+            }
+
+            Logger.LogInfo("Adding dance '{Dance}' to {Mod}/{Group}: {Files} files, {Paths} paths.",
+                _addPlan.DanceName, _group.ModName, _group.Name,
+                _addPlan.Writes.Count, _addPlan.Files.Count);
 
             App.MainWindow.SetProgressBarText(AppStrings.Prog_AddingDance);
             DanceWriteResult result;
             try
             {
                 result = DanceModWrites.Add(_group, _addPlan, _bundle, _djStrings);
+            }
+            catch (Exception ex)
+            {
+                // A throw out of a Click handler is swallowed by WinUI, which is how an add can
+                // appear to succeed and leave nothing behind.
+                Logger.LogError("Adding dance '{Dance}' threw: {Error}", _addPlan.DanceName, ex);
+                result = new DanceWriteResult { Error = ex.Message };
             }
             finally
             {
@@ -459,13 +467,37 @@ namespace Pickles_Playlist_Editor
             RefreshDances();
         }
 
-        private void CancelAddDanceButton_Click(object sender, RoutedEventArgs e) => ShowAddPane(false);
-
-        /// <summary>Swaps between the dance list and the add pane; only one is ever on screen.</summary>
+        /// <summary>
+        /// Swaps between the dance list and the add pane; only one is ever on screen.
+        ///
+        /// The footer changes with it. While adding, the dialog offers Add and Cancel and drops
+        /// Close: those are the only two ways out of a half-finished add, and leaving an accented
+        /// Close sitting there was drawing the eye away from the action the pane exists for.
+        /// </summary>
         private void ShowAddPane(bool adding)
         {
             AddSection.Visibility = adding ? Visibility.Visible : Visibility.Collapsed;
             DancesSection.Visibility = adding ? Visibility.Collapsed : Visibility.Visible;
+
+            PrimaryButtonText = adding ? AppStrings.AddDanceAction : string.Empty;
+            SecondaryButtonText = adding ? AppStrings.Btn_Cancel : string.Empty;
+            CloseButtonText = adding ? string.Empty : AppStrings.Btn_Close;
+        }
+
+        /// <summary>
+        /// The footer's primary action. Always cancels the dialog's own close: this dialog manages
+        /// its own panes, and an add should leave the user looking at the updated list.
+        /// </summary>
+        private void PrimaryButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+        {
+            args.Cancel = true;
+            if (AddSection.Visibility == Visibility.Visible) AddSelectedDance();
+        }
+
+        private void SecondaryButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+        {
+            args.Cancel = true;
+            ShowAddPane(false);
         }
 
         // ---- rename, remove, reorder -------------------------------------------------------------
@@ -511,43 +543,6 @@ namespace Pickles_Playlist_Editor
             RefreshDances();
         }
 
-        private void MoveDanceUpButton_Click(object sender, RoutedEventArgs e) => Move(-1);
-
-        private void MoveDanceDownButton_Click(object sender, RoutedEventArgs e) => Move(+1);
-
-        /// <summary>
-        /// Moves a dance in the list without writing anything.
-        ///
-        /// Staged rather than applied per click: reordering rewrites the group's option array and
-        /// remaps its default selection, and doing that once per arrow press would be a write per
-        /// click on a file Penumbra is watching.
-        /// </summary>
-        private void Move(int direction)
-        {
-            int at = DanceList.SelectedIndex;
-            int to = at + direction;
-            if (at < 0 || to < 0 || to >= DanceList.Items.Count) return;
-
-            _pendingOrder ??= Enumerable.Range(0, _dances.Count).ToList();
-            (_pendingOrder[at], _pendingOrder[to]) = (_pendingOrder[to], _pendingOrder[at]);
-
-            object moved = DanceList.Items[at];
-            DanceList.Items.RemoveAt(at);
-            DanceList.Items.Insert(to, moved);
-            DanceList.SelectedIndex = to;
-
-            StatusText.Text = AppStrings.DanceOrderPending;
-            UpdateButtons();
-        }
-
-        private void ApplyDanceOrderButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_group == null || _pendingOrder == null) return;
-
-            Report(DanceModWrites.Reorder(_group, _pendingOrder), AppStrings.DanceOrderDone);
-            RefreshDances();
-        }
-
         private DanceEntry? SelectedDance()
         {
             int row = DanceList.SelectedIndex;
@@ -574,12 +569,18 @@ namespace Pickles_Playlist_Editor
                 return;
             }
 
-            string text = result.Warnings.Count > 0
-                ? success + "\n\n" + string.Join("\n\n", result.Warnings)
-                : success;
+            // Success is reported in the status line, not in a box to dismiss: the list right above it
+            // already shows the dance appear, so a popup only adds a click to every single add.
+            if (result.Warnings.Count == 0)
+            {
+                StatusText.Text = success;
+                return;
+            }
 
-            MessageBox(hwnd, text, AppStrings.Dlg_Dances_Title,
-                result.Warnings.Count > 0 ? 0x00000030u : 0x00000040u); // WARNING : INFORMATION
+            // A warning still interrupts. The one that matters says Penumbra did not pick the change
+            // up, and a user who scrolls past it can lose the edit the next time they touch the mod.
+            MessageBox(hwnd, success + "\n\n" + string.Join("\n\n", result.Warnings),
+                AppStrings.Dlg_Dances_Title, 0x00000030); // MB_ICONWARNING
         }
 
         private static IntPtr OwnerWindow() =>

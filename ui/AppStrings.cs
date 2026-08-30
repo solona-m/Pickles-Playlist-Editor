@@ -79,9 +79,11 @@ namespace Pickles_Playlist_Editor
         public static string DanceScanRunning => _r.GetString("Dances_ScanRunning");
         public static string DanceModNoneFound => _r.GetString("Dances_NoModsFound");
         public static string DanceModLegacyLayout => _r.GetString("Dances_LegacyLayout");
-        public static string DanceOrderPending => _r.GetString("Dances_OrderPending");
-        public static string DanceOrderDone => _r.GetString("Dances_OrderDone");
-        public static string DanceOrderDiscarded => _r.GetString("Dances_OrderDiscarded");
+        public static string DanceCannotAdd => _r.GetString("Dances_CannotAdd");
+        public static string AddDanceAction => _r.GetString("Dances_AddAction");
+        public static string Btn_Cancel => _r.GetString("Btn_Cancel");
+        public static string Btn_Close => _r.GetString("Btn_Close");
+        public static string DanceNoBundle => _r.GetString("Dances_NoBundle");
 
         public static string DanceCount(int count) =>
             string.Format(_r.GetString(count == 1 ? "Dances_CountOne" : "Dances_Count"), count);

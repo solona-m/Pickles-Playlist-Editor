@@ -178,25 +178,18 @@ No se ha modificado nada en el disco.</value></data>
   <data name="AddDanceButton.Content" xml:space="preserve"><value>Add a dance…</value></data>
   <data name="RenameDanceButton.Content" xml:space="preserve"><value>Rename</value></data>
   <data name="RemoveDanceButton.Content" xml:space="preserve"><value>Remove</value></data>
-  <data name="MoveDanceUpButton.Content" xml:space="preserve"><value>Move up</value></data>
-  <data name="MoveDanceDownButton.Content" xml:space="preserve"><value>Move down</value></data>
-  <data name="ApplyDanceOrderButton.Content" xml:space="preserve"><value>Save order</value></data>
   <data name="AddDanceHeader.Text" xml:space="preserve"><value>Add a dance</value></data>
   <data name="AddDanceHint.Text" xml:space="preserve"><value>These are the dances you already have installed in Penumbra.</value></data>
   <data name="DanceSearchBox.PlaceholderText" xml:space="preserve"><value>Search</value></data>
   <data name="DanceNameLabel.Text" xml:space="preserve"><value>Name</value></data>
   <data name="IncludeStartCheckBox.Content" xml:space="preserve"><value>Also use the dance's intro animation</value></data>
-  <data name="ConfirmAddDanceButton.Content" xml:space="preserve"><value>Add dance</value></data>
-  <data name="CancelAddDanceButton.Content" xml:space="preserve"><value>Cancel</value></data>
   <data name="DancesButton.Label" xml:space="preserve"><value>Dances</value></data>
   <data name="DanceFilterBox.PlaceholderText" xml:space="preserve"><value>Search dances</value></data>
   <data name="DanceSortModOrder.Content" xml:space="preserve"><value>Mod order</value></data>
   <data name="DanceSortName.Content" xml:space="preserve"><value>Name (A–Z)</value></data>
-  <data name="ReorderBlockedText.Text" xml:space="preserve"><value>Clear the search and sort by mod order to change the order.</value></data>
   <data name="ConfirmRenameButton.Content" xml:space="preserve"><value>Save name</value></data>
   <data name="CancelRenameButton.Content" xml:space="preserve"><value>Cancel</value></data>
   <data name="Dances_CountFiltered" xml:space="preserve"><value>{0} of {1} dances</value></data>
-  <data name="Dances_OrderDiscarded" xml:space="preserve"><value>The unsaved order was discarded.</value></data>
   <data name="DanceGroupLabel.Text" xml:space="preserve"><value>Group</value></data>
   <data name="Dances_GroupOption" xml:space="preserve"><value>{0} — {1} dances</value></data>
   <data name="Dances_ModsFoundOne" xml:space="preserve"><value>1 VFX mod found.</value></data>
@@ -208,13 +201,16 @@ No se ha modificado nada en el disco.</value></data>
   <data name="Dances_AddFilesOne" xml:space="preserve"><value>Copies 1 animation file ({2:0.#} MB).</value></data>
   <data name="Dances_AddBodies" xml:space="preserve"><value>Installs for all {0} bodies this dance supports.</value></data>
   <data name="Dances_AddBodiesOne" xml:space="preserve"><value>Installs for the 1 body this dance supports.</value></data>
+  <data name="Dances_CannotAdd" xml:space="preserve"><value>This dance cannot be added:</value></data>
+  <data name="Dances_NoBundle" xml:space="preserve"><value>This mod has no DJ effect block to copy from, so a new dance would not react to the music.</value></data>
+  <data name="Dances_AddAction" xml:space="preserve"><value>Add dance</value></data>
+  <data name="Btn_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Btn_Close" xml:space="preserve"><value>Close</value></data>
   <data name="Dlg_Dances_Title" xml:space="preserve"><value>Dances</value></data>
   <data name="Prog_AddingDance" xml:space="preserve"><value>Adding the dance...</value></data>
   <data name="Dances_ScanRunning" xml:space="preserve"><value>Looking through your mods...</value></data>
   <data name="Dances_NoModsFound" xml:space="preserve"><value>No VFX mods set up for a DJ were found in your Penumbra folder.</value></data>
   <data name="Dances_LegacyLayout" xml:space="preserve"><value>This mod uses Penumbra’s older layout. Adding dances still works, but open it in Penumbra once if anything looks wrong.</value></data>
-  <data name="Dances_OrderPending" xml:space="preserve"><value>Order changed. Choose Save order to write it to the mod.</value></data>
-  <data name="Dances_OrderDone" xml:space="preserve"><value>The new order was saved.</value></data>
   <data name="Dances_Count" xml:space="preserve"><value>{0} dances in this mod</value></data>
   <data name="Dances_ModsFound" xml:space="preserve"><value>{0} VFX mods found.</value></data>
   <data name="Dances_NoGroup" xml:space="preserve"><value>“{0}” has no group holding dances, so dances cannot be added to it.</value></data>

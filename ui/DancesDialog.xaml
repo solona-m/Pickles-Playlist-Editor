@@ -5,7 +5,9 @@
     x:Uid="DancesDlg"
     Title="Dances"
     CloseButtonText="Close"
-    DefaultButton="Close">
+    PrimaryButtonClick="PrimaryButton_Click"
+    SecondaryButtonClick="SecondaryButton_Click"
+    DefaultButton="Primary">
 
     <!-- A ContentDialog caps its own width at ContentDialogMaxWidth (548 by default), so content
          wider than that is CLIPPED rather than widening the dialog — which cut the Add button off the
@@ -67,7 +69,10 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="DancesHeader" Grid.Column="0" VerticalAlignment="Center"
                            FontWeight="SemiBold"/>
+                <!-- Accented: it is the reason this dialog exists, and the only other button on
+                     screen is Close, which had been the one drawing the eye. -->
                 <Button x:Uid="AddDanceButton" x:Name="AddDanceButton" Grid.Column="1"
+                        Style="{StaticResource AccentButtonStyle}"
                         Content="Add a dance…" Click="AddDanceButton_Click"/>
             </Grid>
 
@@ -93,24 +98,13 @@
             <ListView x:Name="DanceList" MaxHeight="200" SelectionMode="Single"
                       SelectionChanged="DanceList_SelectionChanged"/>
 
-            <!-- Reordering edits the mod's option array by position, so it only makes sense while the
-                 list IS the mod's order. Filtering or sorting hides that, and dragging row 3 above
-                 row 1 in a sorted view would move the wrong dances. -->
-            <TextBlock x:Name="ReorderBlockedText" x:Uid="ReorderBlockedText" Opacity="0.7"
-                       TextWrapping="Wrap" Visibility="Collapsed"
-                       Text="Clear the search and sort by mod order to change the order."/>
-
             <StackPanel Orientation="Horizontal" Spacing="4">
                 <Button x:Uid="RenameDanceButton" x:Name="RenameDanceButton" Content="Rename"
                         Click="RenameDanceButton_Click" IsEnabled="False"/>
+                <!-- No reordering here. Penumbra already does it, and doing it in two places invites
+                     the two disagreeing — the sort below is a view of this list, not the mod's order. -->
                 <Button x:Uid="RemoveDanceButton" x:Name="RemoveDanceButton" Content="Remove"
                         Click="RemoveDanceButton_Click" IsEnabled="False"/>
-                <Button x:Uid="MoveDanceUpButton" x:Name="MoveDanceUpButton" Content="Move up"
-                        Click="MoveDanceUpButton_Click" IsEnabled="False"/>
-                <Button x:Uid="MoveDanceDownButton" x:Name="MoveDanceDownButton" Content="Move down"
-                        Click="MoveDanceDownButton_Click" IsEnabled="False"/>
-                <Button x:Uid="ApplyDanceOrderButton" x:Name="ApplyDanceOrderButton" Content="Save order"
-                        Click="ApplyDanceOrderButton_Click" IsEnabled="False"/>
             </StackPanel>
 
             <!-- Renaming needs a text box, and WinUI permits only one ContentDialog at a time while a
@@ -159,13 +153,11 @@
             <CheckBox x:Name="IncludeStartCheckBox" x:Uid="IncludeStartCheckBox"
                       Content="Also use the dance's intro animation" IsChecked="True"/>
 
+            <!-- Add and Cancel live in the dialog's own footer, not here. The footer is where the
+                 accent colour is, and an accented Close beside a plain in-content "Add dance" reads
+                 as an invitation to press the wrong one — worse still when the content scrolls and
+                 the real action is below the fold. -->
             <TextBlock x:Name="AddPreviewText" TextWrapping="Wrap" Opacity="0.9"/>
-
-            <StackPanel Orientation="Horizontal" Spacing="4">
-                <Button x:Uid="ConfirmAddDanceButton" x:Name="ConfirmAddDanceButton"
-                        Content="Add dance" Click="ConfirmAddDanceButton_Click" IsEnabled="False"/>
-                <Button x:Uid="CancelAddDanceButton" Content="Cancel" Click="CancelAddDanceButton_Click"/>
-            </StackPanel>
         </StackPanel>
 
         <TextBlock x:Name="StatusText" TextWrapping="Wrap" Opacity="0.8"/>

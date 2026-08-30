@@ -245,6 +245,12 @@ namespace Pickles_Playlist_Editor.Utils
             }
 
             warnings.AddRange(Settle(group, plan.DanceName, shouldExist: true));
+
+            // Logged on success too, not only on failure: "it said it worked and nothing appeared"
+            // is otherwise indistinguishable from "the click did nothing at all".
+            Logger.LogInfo("Added dance '{Dance}' to {Mod}/{Group} ({Files} files). Backup: {Backup}",
+                plan.DanceName, group.ModName, group.Name, plan.Writes.Count, backup);
+
             return new DanceWriteResult { Succeeded = true, BackupFolder = backup, Warnings = warnings };
         }
 
@@ -360,44 +366,6 @@ namespace Pickles_Playlist_Editor.Utils
             }
 
             return new DanceWriteResult { Succeeded = true, Warnings = Settle(group, newName, shouldExist: true) };
-        }
-
-        /// <summary>
-        /// Rewrites the group's options into the given order.
-        ///
-        /// <paramref name="order"/> lists the current indices in their new positions.
-        /// <c>DefaultSettings</c> follows, or the mod quietly changes which dance it defaults to.
-        /// </summary>
-        public static DanceWriteResult Reorder(DanceGroupRef group, IReadOnlyList<int> order)
-        {
-            try
-            {
-                DanceGroupIO.Mutate(group, node =>
-                {
-                    if (node["Options"] is not JArray options) return;
-                    if (order.Count != options.Count || order.Distinct().Count() != order.Count
-                        || order.Any(i => i < 0 || i >= options.Count))
-                        throw new PenumbraMetaException("The new order does not match this group's options.");
-
-                    var reordered = new JArray();
-                    var moved = new Dictionary<int, int>();
-                    for (int i = 0; i < order.Count; i++)
-                    {
-                        reordered.Add(options[order[i]]);
-                        moved[order[i]] = i;
-                    }
-
-                    node["Options"] = reordered;
-                    DanceGroupIO.RemapDefaultSettings(node, moved);
-                });
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError("Reordering dances in {Mod} failed: {Error}", group.ModName, ex);
-                return new DanceWriteResult { Error = ex.Message };
-            }
-
-            return new DanceWriteResult { Succeeded = true, Warnings = Settle(group, null, shouldExist: null) };
         }
 
         // ---- plumbing ----------------------------------------------------------------------------
