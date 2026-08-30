@@ -30,6 +30,12 @@ namespace Pickles_Playlist_Editor.Utils
         /// <summary>Bytes the source animations occupy, so a 20MB import is not a surprise.</summary>
         public long Bytes { get; init; }
 
+        /// <summary>
+        /// The mod-relative folder the dance is written into, so a failed add removes exactly
+        /// what it created rather than a path recomputed from a mod that may have changed since.
+        /// </summary>
+        public string DanceFolder { get; init; } = string.Empty;
+
         public string OldAnimationName { get; init; } = string.Empty;
         public IReadOnlyList<string> SoundPathsRemoved { get; init; } = Array.Empty<string>();
         public IReadOnlyList<string> Effects { get; init; } = Array.Empty<string>();
@@ -161,6 +167,7 @@ namespace Pickles_Playlist_Editor.Utils
                 DanceName = danceName,
                 FolderSlug = slug,
                 IncludeStart = includeStart,
+                DanceFolder = root.Length == 0 ? slug : root + "\\" + slug,
                 Files = files,
                 Writes = writes,
                 Bytes = bytes,
@@ -176,9 +183,17 @@ namespace Pickles_Playlist_Editor.Utils
         private static string GamePath(string race, string anim, string directory, string slot, string kind) =>
             $"chara/human/{race}/animation/a{anim}/bt_common/{directory}/{slot}_{kind}.pap";
 
+        /// <summary>
+        /// The mod-relative path a prepared animation is written to.
+        ///
+        /// <paramref name="root"/> may legitimately be empty, for a mod that keeps its dances at the
+        /// top level rather than under a "dances" folder — an empty root must not produce a leading
+        /// backslash, which would make the path absolute-looking and land it outside the mod.
+        /// </summary>
         private static string DiskPath(string root, string slug, string race, string anim,
             string directory, string slot, string kind) =>
-            $"{root}\\{slug}\\chara\\human\\{race}\\animation\\a{anim}\\bt_common\\{directory}\\{slot}_{kind}.pap";
+            (root.Length == 0 ? slug : root + "\\" + slug)
+            + $"\\chara\\human\\{race}\\animation\\a{anim}\\bt_common\\{directory}\\{slot}_{kind}.pap";
 
         /// <summary>
         /// Prepares the animation files, writes them, and adds the option.
@@ -194,8 +209,8 @@ namespace Pickles_Playlist_Editor.Utils
                 return new DanceWriteResult { Error = string.Join(" ", plan.Errors) };
 
             string modRoot = group.ModRoot;
-            string danceFolder = Path.Combine(modRoot, DanceMod.DanceFolderRoot(DanceMod.ReadDances(group)),
-                plan.FolderSlug);
+            string danceFolder = Path.Combine(modRoot,
+                plan.DanceFolder.Replace('\\', Path.DirectorySeparatorChar));
             string backup = BackupFolder(group.ModName);
             var warnings = new List<string>();
 

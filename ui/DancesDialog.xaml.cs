@@ -422,7 +422,7 @@ namespace Pickles_Playlist_Editor
                     _addPlan.DanceName, string.Join("; ", _addPlan.Errors));
         }
 
-        private void AddSelectedDance()
+        private async Task AddSelectedDanceAsync()
         {
             // Say why nothing happened rather than returning in silence. An enabled button that does
             // nothing when clicked is the single most confusing failure this dialog can produce, and
@@ -442,17 +442,26 @@ namespace Pickles_Playlist_Editor
                 _addPlan.DanceName, _group.ModName, _group.Name,
                 _addPlan.Writes.Count, _addPlan.Files.Count);
 
+            // Off the UI thread. Preparing a dance reads and rewrites multi-megabyte animations
+            // and then blocks on Penumbra's reload for up to five seconds; run inline it froze the
+            // window for the whole operation and the progress text set on the line above could
+            // never actually paint.
+            var group = _group;
+            var plan = _addPlan;
+            var bundle = _bundle;
+            var djStrings = _djStrings;
+
             App.MainWindow.SetProgressBarText(AppStrings.Prog_AddingDance);
             DanceWriteResult result;
             try
             {
-                result = DanceModWrites.Add(_group, _addPlan, _bundle, _djStrings);
+                result = await Task.Run(() => DanceModWrites.Add(group, plan, bundle, djStrings));
             }
             catch (Exception ex)
             {
                 // A throw out of a Click handler is swallowed by WinUI, which is how an add can
                 // appear to succeed and leave nothing behind.
-                Logger.LogError("Adding dance '{Dance}' threw: {Error}", _addPlan.DanceName, ex);
+                Logger.LogError("Adding dance '{Dance}' threw: {Error}", plan.DanceName, ex);
                 result = new DanceWriteResult { Error = ex.Message };
             }
             finally
@@ -460,7 +469,7 @@ namespace Pickles_Playlist_Editor
                 App.MainWindow.ClearProgressDisplay();
             }
 
-            Report(result, AppStrings.AddDanceDone(_addPlan.DanceName));
+            Report(result, AppStrings.AddDanceDone(plan.DanceName));
             if (result.Succeeded)
             {
                 ShowAddPane(false);
@@ -493,7 +502,7 @@ namespace Pickles_Playlist_Editor
         private void PrimaryButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
             args.Cancel = true;
-            if (AddSection.Visibility == Visibility.Visible) AddSelectedDance();
+            if (AddSection.Visibility == Visibility.Visible) _ = AddSelectedDanceAsync();
         }
 
         private void SecondaryButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)

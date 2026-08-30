@@ -314,15 +314,25 @@ namespace Pickles_Playlist_Editor.Utils
             return DanceHealth.Ok;
         }
 
-        /// <summary>The folder every one of these files sits under, when there is one.</summary>
+        /// <summary>
+        /// The folder every one of these files sits under, when there is one.
+        ///
+        /// Found by cutting at the <c>chara</c> segment that begins the game path, not by taking a
+        /// fixed number of leading segments. Assuming two — <c>dances\name\chara\…</c> — silently
+        /// mis-read a mod that keeps its dances at the top level as <c>name\chara</c>, and the folder
+        /// derived from that put new dances inside an existing dance's directory.
+        /// </summary>
         private static string? CommonFolder(IEnumerable<string> relativePaths)
         {
             string? common = null;
             foreach (string relative in relativePaths)
             {
                 string[] parts = relative.Replace('/', '\\').Split('\\');
-                if (parts.Length < 2) return null;
-                string head = parts[0] + "\\" + parts[1];
+                int chara = Array.FindIndex(parts,
+                    p => p.Equals("chara", StringComparison.OrdinalIgnoreCase));
+                if (chara <= 0) return null;
+
+                string head = string.Join("\\", parts.Take(chara));
                 if (common == null) common = head;
                 else if (!string.Equals(common, head, StringComparison.OrdinalIgnoreCase)) return null;
             }
@@ -359,18 +369,29 @@ namespace Pickles_Playlist_Editor.Utils
                 : counts.OrderByDescending(kv => kv.Value).First().Key;
         }
 
-        /// <summary>The folder under the mod that its dances live in — usually <c>dances</c>.</summary>
+        /// <summary>
+        /// The folder under the mod that its dances live in — usually <c>dances</c>.
+        ///
+        /// The PARENT of each dance's own folder, so a mod that keeps its dances at the top level
+        /// correctly yields an empty root rather than the name of whichever dance happened to be
+        /// most common. Empty is a real answer here, not a failure.
+        /// </summary>
         public static string DanceFolderRoot(IReadOnlyList<DanceEntry> existing)
         {
-            string? modal = existing
+            var parents = existing
                 .Select(e => e.FolderRelative)
                 .Where(f => f != null)
-                .Select(f => f!.Split('\\')[0])
+                .Select(f =>
+                {
+                    int cut = f!.LastIndexOf('\\');
+                    return cut < 0 ? string.Empty : f.Substring(0, cut);
+                })
                 .GroupBy(f => f, StringComparer.OrdinalIgnoreCase)
                 .OrderByDescending(g => g.Count())
-                .FirstOrDefault()?.Key;
+                .ToList();
 
-            return string.IsNullOrWhiteSpace(modal) ? DefaultDanceFolder : modal;
+            // No dances to learn from at all — not the same as "they live at the top level".
+            return parents.Count == 0 ? DefaultDanceFolder : parents[0].Key;
         }
 
         /// <summary>

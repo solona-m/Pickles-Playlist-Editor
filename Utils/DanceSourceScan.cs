@@ -129,26 +129,30 @@ namespace Pickles_Playlist_Editor.Utils
 
             foreach (var option in PenumbraOptions.Read(modDirectory))
             {
-                var loops = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                var starts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                string slot = string.Empty;
+                // Grouped by SLOT, not merged into one bucket per option. A single option can carry
+                // two entirely different dances: Waltz Dance ships dance03 for five bodies and
+                // dance05 for five more from one DefaultData block, overlapping on three of them.
+                // Keying by race alone let the second slot overwrite the first on the shared bodies,
+                // which both lost a dance and left one DanceSource holding two unrelated
+                // choreographies — so which one you got depended on your character's body.
+                var bySlot = new Dictionary<string, (Dictionary<string, string> Loops,
+                    Dictionary<string, string> Starts)>(StringComparer.OrdinalIgnoreCase);
 
                 foreach (var (gamePath, diskPath) in option.Files)
                 {
                     var loop = DancePath.Match(gamePath);
                     if (loop.Success && IsDanceSlot(loop.Groups["slot"].Value))
                     {
-                        loops["c" + loop.Groups["race"].Value] = Resolve(modDirectory, diskPath);
-                        slot = loop.Groups["slot"].Value;
+                        Slot(bySlot, loop.Groups["slot"].Value).Loops["c" + loop.Groups["race"].Value]
+                            = Resolve(modDirectory, diskPath);
                         continue;
                     }
 
                     var start = StartPath.Match(gamePath);
                     if (start.Success && IsDanceSlot(start.Groups["slot"].Value))
-                        starts["c" + start.Groups["race"].Value] = Resolve(modDirectory, diskPath);
+                        Slot(bySlot, start.Groups["slot"].Value).Starts["c" + start.Groups["race"].Value]
+                            = Resolve(modDirectory, diskPath);
                 }
-
-                if (loops.Count == 0) continue;
 
                 // The mod's own label, falling back to the mod name for a dance shipped as default
                 // files — those have no option name at all.
@@ -156,16 +160,35 @@ namespace Pickles_Playlist_Editor.Utils
                     ? PenumbraOptions.DisplayName(modDirectory)
                     : option.Name;
 
-                dances.Add(new DanceSource
+                var withLoops = bySlot.Where(s => s.Value.Loops.Count > 0).ToList();
+
+                foreach (var (slot, files) in withLoops)
                 {
-                    Label = label,
-                    LoopByRace = loops,
-                    StartByRace = starts,
-                    Slot = slot,
-                });
+                    dances.Add(new DanceSource
+                    {
+                        // Two dances from one option would otherwise be indistinguishable in the list.
+                        Label = withLoops.Count > 1 ? $"{label} ({slot})" : label,
+                        LoopByRace = files.Loops,
+                        StartByRace = files.Starts,
+                        Slot = slot,
+                    });
+                }
             }
 
             return dances;
+        }
+
+        private static (Dictionary<string, string> Loops, Dictionary<string, string> Starts) Slot(
+            Dictionary<string, (Dictionary<string, string> Loops, Dictionary<string, string> Starts)> bySlot,
+            string slot)
+        {
+            if (!bySlot.TryGetValue(slot, out var files))
+            {
+                files = (new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+                bySlot[slot] = files;
+            }
+            return files;
         }
 
         private static string Resolve(string modDirectory, string diskPath) =>

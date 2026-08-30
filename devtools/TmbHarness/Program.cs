@@ -161,11 +161,12 @@ internal static class Program
                 (mod.DuplicateFolders.Count > 0 ? $"  (+{mod.DuplicateFolders.Count} duplicate folder)" : ""));
         Console.WriteLine($"  ... {mods.Count} mods, {dances} dances, {elapsed.TotalSeconds:0.0}s");
 
-        // Measured after de-duplication: 38 mods / 517 dances on the reference folder. Before
-        // collapsing re-imported copies it reads 41 / 655, so a regression in de-duplication
-        // shows up as the count drifting back up rather than as anything visible in the UI.
+        // Measured on the reference folder: 38 mods / 722 dances. Two numbers move together here
+        // and both are regressions worth catching. De-duplicating re-imported copies takes the
+        // mod count down from 41; splitting options that carry more than one emote slot takes the
+        // dance count UP from 521, because a single option can ship two unrelated dances.
         Check("scan", "finds the expected number of dance mods", mods.Count is >= 32 and <= 45);
-        Check("scan", "finds the expected number of dances", dances is >= 450 and <= 600);
+        Check("scan", "finds the expected number of dances", dances is >= 650 and <= 800);
 
         // The clauses, each pinned to the mod that motivated it.
         Check("scan", "excludes idles (Idles 2.0 Megapack)",
@@ -176,7 +177,10 @@ internal static class Program
             mods.Any(m => m.Name.Contains("Waltz", StringComparison.OrdinalIgnoreCase)));
         Check("scan", "a venue mod is trimmed to its dances, not its 14,759 paths",
             mods.FirstOrDefault(m => m.Name.Contains("Nightlife", StringComparison.OrdinalIgnoreCase))
-                is null or { Dances.Count: < 260 });
+                is null or { Dances.Count: < 500 });
+        Check("scan", "an option carrying two emote slots yields two dances",
+            mods.FirstOrDefault(m => m.Name.Contains("Waltz", StringComparison.OrdinalIgnoreCase))
+                is { Dances.Count: >= 2 });
         Check("scan", "duplicate mod folders are collapsed",
             mods.All(m => !m.Name.EndsWith(" (2)", StringComparison.Ordinal))
             && mods.GroupBy(m => m.Name, StringComparer.OrdinalIgnoreCase).All(g => g.Count() == 1));

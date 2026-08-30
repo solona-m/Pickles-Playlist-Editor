@@ -709,11 +709,21 @@ namespace Pickles_Playlist_Editor.Utils
         internal static void WriteGroupFile(string target, JObject group)
         {
             // Back up the previous contents outside the mod folder before overwriting.
+            //
+            // Namespaced by mod, for the same reason the manifest snapshots are. This used to write a
+            // flat "<filename>.bak" into the shared backup folder, which was safe only while the
+            // configured playlist mod was the sole thing ever written; the dances feature routes a
+            // SECOND mod through here, and two mods each holding a group_002_dances.json would
+            // otherwise share one backup slot and quietly destroy each other's.
             if (File.Exists(target))
             {
                 try
                 {
-                    File.Copy(target, Path.Combine(Playlist.BackupDir, Path.GetFileName(target) + ".bak"), true);
+                    string modFolder = Path.GetFileName(Path.GetDirectoryName(target)) ?? string.Empty;
+                    string dir = Path.Combine(Playlist.BackupDir, "groups",
+                        PenumbraMeta.SnapshotFolderNameForMod(modFolder));
+                    Directory.CreateDirectory(dir);
+                    File.Copy(target, Path.Combine(dir, Path.GetFileName(target) + ".bak"), true);
                 }
                 catch (Exception ex)
                 {
