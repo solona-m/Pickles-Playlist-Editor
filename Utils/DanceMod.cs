@@ -317,10 +317,12 @@ namespace Pickles_Playlist_Editor.Utils
         /// <summary>
         /// The folder every one of these files sits under, when there is one.
         ///
-        /// Found by cutting at the <c>chara</c> segment that begins the game path, not by taking a
-        /// fixed number of leading segments. Assuming two — <c>dances\name\chara\…</c> — silently
-        /// mis-read a mod that keeps its dances at the top level as <c>name\chara</c>, and the folder
-        /// derived from that put new dances inside an existing dance's directory.
+        /// A disk path MAY mirror its game path — <c>dances\name\chara\human\…</c> — in which case the
+        /// dance's own folder ends where <c>chara</c> begins. It very often does not: mods deduplicate
+        /// by parking an animation shared between bodies under <c>common\1\dance_male_loop.pap</c>, and
+        /// on a real Penumbra folder that is the MAJORITY — 580 of 664 in one dance pack, 210 of 220 in
+        /// one DJ pack. So a missing <c>chara</c> is the normal case, not a failure, and the directory
+        /// part of the path is the answer there.
         /// </summary>
         private static string? CommonFolder(IEnumerable<string> relativePaths)
         {
@@ -330,9 +332,12 @@ namespace Pickles_Playlist_Editor.Utils
                 string[] parts = relative.Replace('/', '\\').Split('\\');
                 int chara = Array.FindIndex(parts,
                     p => p.Equals("chara", StringComparison.OrdinalIgnoreCase));
-                if (chara <= 0) return null;
 
-                string head = string.Join("\\", parts.Take(chara));
+                // Where the game path starts, or failing that everything but the filename.
+                int cut = chara > 0 ? chara : parts.Length - 1;
+                if (cut <= 0) return null;
+
+                string head = string.Join("\\", parts.Take(cut));
                 if (common == null) common = head;
                 else if (!string.Equals(common, head, StringComparison.OrdinalIgnoreCase)) return null;
             }

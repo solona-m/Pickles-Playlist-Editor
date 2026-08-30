@@ -38,6 +38,9 @@ namespace Pickles_Playlist_Editor
         /// <summary>The name last filled in from a selection, so a typed-over one is not clobbered.</summary>
         private string _suggestedName = string.Empty;
 
+        /// <summary>True while an add is in flight, so a second click cannot start another.</summary>
+        private bool _adding;
+
         /// <summary>
         /// False until the constructor has finished wiring everything up.
         ///
@@ -451,31 +454,46 @@ namespace Pickles_Playlist_Editor
             var bundle = _bundle;
             var djStrings = _djStrings;
 
+            // EVERYTHING from here is inside the try, not just the write. The caller discards this
+            // task, so anything that escapes becomes an unobserved fault: no dialog, no log line, and
+            // the add pane left half-dismissed. Refreshing the list afterwards does unguarded file
+            // I/O, so that is not a theoretical path.
+            _adding = true;
+            IsPrimaryButtonEnabled = false;
             App.MainWindow.SetProgressBarText(AppStrings.Prog_AddingDance);
-            DanceWriteResult result;
+
             try
             {
-                result = await Task.Run(() => DanceModWrites.Add(group, plan, bundle, djStrings));
+                DanceWriteResult result;
+                try
+                {
+                    result = await Task.Run(() => DanceModWrites.Add(group, plan, bundle, djStrings));
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError("Adding dance '{Dance}' threw: {Error}", plan.DanceName, ex);
+                    result = new DanceWriteResult { Error = ex.Message };
+                }
+
+                Report(result, AppStrings.AddDanceDone(plan.DanceName));
+                if (result.Succeeded)
+                {
+                    ShowAddPane(false);
+                    DanceNameBox.Text = string.Empty;
+                }
+                RefreshDances();
             }
             catch (Exception ex)
             {
-                // A throw out of a Click handler is swallowed by WinUI, which is how an add can
-                // appear to succeed and leave nothing behind.
-                Logger.LogError("Adding dance '{Dance}' threw: {Error}", plan.DanceName, ex);
-                result = new DanceWriteResult { Error = ex.Message };
+                Logger.LogError("Finishing the dance add failed: {Error}", ex);
+                MessageBox(OwnerWindow(), ex.Message, AppStrings.Dlg_Dances_Title, 0x00000010);
             }
             finally
             {
                 App.MainWindow.ClearProgressDisplay();
+                IsPrimaryButtonEnabled = true;
+                _adding = false;
             }
-
-            Report(result, AppStrings.AddDanceDone(plan.DanceName));
-            if (result.Succeeded)
-            {
-                ShowAddPane(false);
-                DanceNameBox.Text = string.Empty;
-            }
-            RefreshDances();
         }
 
         /// <summary>
@@ -502,6 +520,14 @@ namespace Pickles_Playlist_Editor
         private void PrimaryButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
             args.Cancel = true;
+
+            // An add is no longer instantaneous, and the dialog stays open across it, so a second
+            // click would start a second add from the SAME plan — whose duplicate-name and
+            // folder-exists checks were both made before the first one ran. Both would succeed and
+            // the group would end up with two identical options. The button is disabled for the
+            // duration as well; this is the guard that does not depend on the UI keeping up.
+            if (_adding) return;
+
             if (AddSection.Visibility == Visibility.Visible) _ = AddSelectedDanceAsync();
         }
 
