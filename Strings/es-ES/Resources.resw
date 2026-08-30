@@ -41,7 +41,7 @@
   <data name="SettingsDlg.CloseButtonText" xml:space="preserve"><value>Cancelar</value></data>
   <data name="ModDirLabel.Text" xml:space="preserve"><value>Directorio del mod en Penumbra</value></data>
   <data name="BrowseModDirButton.Content" xml:space="preserve"><value>Explorar</value></data>
-  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Clave SCD base (p. ej. sound/bpmloop.scd)</value></data>
+  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Ruta de sonido</value></data>
   <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Explorar</value></data>
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Imagen de fondo</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Examinar</value></data>
@@ -167,4 +167,39 @@ No se ha modificado nada en el disco.</value></data>
   <data name="Menu_ComputeStats" xml:space="preserve"><value>Calcular estadísticas</value></data>
   <data name="Prog_ComputingStats" xml:space="preserve"><value>Calculando BPM y tonalidad...</value></data>
   <data name="Summary_ComputeStats" xml:space="preserve"><value>Cálculo de estadísticas finalizado</value></data>
+  <data name="SoundPathHeaderLabel.Text" xml:space="preserve"><value>Dar a este mod su propia ruta de sonido</value></data>
+  <data name="SoundPathHint.Text" xml:space="preserve"><value>El sonido se comparte entre todos los presentes en un local, así que dos DJ cuyos mods usan la misma ruta escuchan la canción equivocada. Cambiar la tuya lo soluciona para todos los oyentes, sean cuales sean sus plugins.</value></data>
+  <data name="DjNameLabel.Text" xml:space="preserve"><value>Tu nombre de DJ</value></data>
+  <data name="ChangeSoundPathButton.Content" xml:space="preserve"><value>Cambiar la ruta de sonido</value></data>
+  <data name="Dlg_SoundPath_Title" xml:space="preserve"><value>Cambiar la ruta de sonido</value></data>
+  <data name="Prog_RenamingSoundPath" xml:space="preserve"><value>Cambiando la ruta de sonido...</value></data>
+  <data name="SoundPath_EnterName" xml:space="preserve"><value>Escribe tu nombre de DJ: hasta {0} letras o dígitos.</value></data>
+  <data name="SoundPath_Preview" xml:space="preserve"><value>Nueva ruta: {0}</value></data>
+  <data name="SoundPath_CompanionHeader" xml:space="preserve"><value>Estos otros mods también piden {0}. Marca los que sean tuyos:</value></data>
+  <data name="SoundPath_Companion" xml:space="preserve"><value>{0} — {1} archivo(s) de efectos</value></data>
+  <data name="SoundPath_CompanionHasSongs" xml:space="preserve"><value>{0} — tiene canciones propias; selecciónalo en Ajustes y cámbialo por separado</value></data>
+  <data name="SoundPath_ConfirmHeader" xml:space="preserve"><value>¿Cambiar la ruta de sonido de {0} a {1}?</value></data>
+  <data name="SoundPath_ConfirmCounts" xml:space="preserve"><value>{0}: se actualizarán {1} archivo(s) de efectos y {2} canción(es).</value></data>
+  <data name="SoundPath_ConfirmCompanion" xml:space="preserve"><value>{0}: se actualizarán {1} archivo(s) de efectos.</value></data>
+  <data name="SoundPath_ConfirmSuspects" xml:space="preserve"><value>Aviso: {0} archivo(s) mencionan la ruta antigua de una forma que esta aplicación no ha podido identificar:</value></data>
+  <data name="SoundPath_ConfirmFooter" xml:space="preserve"><value>Se hace una copia de seguridad de los archivos de efectos, y todo se restaura si algo falla.</value></data>
+  <data name="SoundPath_Done" xml:space="preserve"><value>La ruta de sonido ahora es {0}.
+Se actualizaron {1} archivo(s) de efectos y {2} canción(es).</value></data>
+  <data name="SoundPath_DoneCompanions" xml:space="preserve"><value>También actualizado: {0}</value></data>
+  <data name="SoundPath_Backup" xml:space="preserve"><value>Los archivos de efectos anteriores están en:
+{0}</value></data>
+  <data name="SoundPath_KeyOnlyWarning" xml:space="preserve"><value>{0} archivo(s) de efectos de este mod siguen pidiendo {1}, y ninguno pide {2}.
+
+Cambiar solo la clave hará que tu música deje de sonar. Usa «Cambiar la ruta de sonido» para renombrar el mod correctamente.
+
+¿Cambiar la clave de todos modos?</value></data>
+  <data name="SoundPath_NoMod" xml:space="preserve"><value>Elige antes una carpeta de mod válida arriba.</value></data>
+  <data name="SoundPath_PreviewPadded" xml:space="preserve"><value>Nueva ruta: {0}   (se añadieron algunas letras: la ruta necesita al menos {1} después de «bpm»)</value></data>
+  <data name="SoundPath_NameUnusable" xml:space="preserve"><value>Ese nombre no tiene letras ni dígitos con los que formar una ruta.</value></data>
+  <data name="SoundPathDlg.Title" xml:space="preserve"><value>Ruta de sonido</value></data>
+  <data name="SoundPathDlg.PrimaryButtonText" xml:space="preserve"><value>Aceptar</value></data>
+  <data name="SoundPathDlg.CloseButtonText" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>Ruta de sonido que usa este mod</value></data>
+  <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>Es la ruta donde se guardan las canciones nuevas. Cambiarla aquí no modifica los archivos de efectos que la piden; para eso usa el cambio de nombre de abajo.</value></data>
+  <data name="EditSoundPathButton.Content" xml:space="preserve"><value>Editar</value></data>
 </root>

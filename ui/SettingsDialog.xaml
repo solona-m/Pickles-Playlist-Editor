@@ -35,17 +35,18 @@
             <Button x:Uid="BrowseModDirButton" Grid.Column="1" Content="Browse" Click="BrowseButton_Click"/>
         </Grid>
 
-        <TextBlock x:Uid="BaselineScdLabel" Text="Baseline SCD key (e.g. sound/bpmloop.scd)" FontWeight="SemiBold"/>
+        <!-- The path itself, the picker and the rename all live in SoundPathDialog now. What is left
+             here is the one thing worth seeing at a glance — which path this mod claims — plus the
+             way in. -->
+        <TextBlock x:Uid="BaselineScdLabel" Text="Sound path" FontWeight="SemiBold"/>
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBox x:Name="BaselineScdTextBox" Grid.Column="0" Margin="0,0,4,0"
-                     TextChanged="BaselineScdTextBox_TextChanged"/>
-            <ComboBox x:Name="BaselineScdComboBox" Grid.Column="1" Width="180"
-                      PlaceholderText="Available paths"
-                      SelectionChanged="BaselineScdComboBox_SelectionChanged"/>
+            <TextBlock x:Name="BaselineScdValueText" Grid.Column="0" VerticalAlignment="Center"
+                       TextWrapping="Wrap" Margin="0,0,8,0"/>
+            <Button x:Uid="EditSoundPathButton" Grid.Column="1" Content="Edit" Click="EditSoundPathButton_Click"/>
         </Grid>
 
         <TextBlock x:Uid="BackgroundImageLabel" Text="Background Image" FontWeight="SemiBold"/>

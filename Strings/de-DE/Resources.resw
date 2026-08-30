@@ -41,7 +41,7 @@
   <data name="SettingsDlg.CloseButtonText" xml:space="preserve"><value>Abbrechen</value></data>
   <data name="ModDirLabel.Text" xml:space="preserve"><value>Mod-Verzeichnis in Penumbra</value></data>
   <data name="BrowseModDirButton.Content" xml:space="preserve"><value>Durchsuchen</value></data>
-  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Basis-SCD-Schlüssel (z.B. sound/bpmloop.scd)</value></data>
+  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Sound-Pfad</value></data>
   <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Durchsuchen</value></data>
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Hintergrundbild</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Durchsuchen</value></data>
@@ -167,4 +167,39 @@ Auf der Festplatte wurde nichts geändert.</value></data>
   <data name="Menu_ComputeStats" xml:space="preserve"><value>Statistiken berechnen</value></data>
   <data name="Prog_ComputingStats" xml:space="preserve"><value>BPM und Tonart werden berechnet...</value></data>
   <data name="Summary_ComputeStats" xml:space="preserve"><value>Berechnung der Statistiken abgeschlossen</value></data>
+  <data name="SoundPathHeaderLabel.Text" xml:space="preserve"><value>Diesem Mod einen eigenen Sound-Pfad geben</value></data>
+  <data name="SoundPathHint.Text" xml:space="preserve"><value>Sound wird von allen in einer Venue geteilt, deshalb hören zwei DJs, deren Mods denselben Pfad verwenden, das falsche Lied. Deinen umzubenennen behebt das für alle Zuhörer, unabhängig von ihren Plugins.</value></data>
+  <data name="DjNameLabel.Text" xml:space="preserve"><value>Dein DJ-Name</value></data>
+  <data name="ChangeSoundPathButton.Content" xml:space="preserve"><value>Sound-Pfad ändern</value></data>
+  <data name="Dlg_SoundPath_Title" xml:space="preserve"><value>Sound-Pfad ändern</value></data>
+  <data name="Prog_RenamingSoundPath" xml:space="preserve"><value>Sound-Pfad wird geändert ...</value></data>
+  <data name="SoundPath_EnterName" xml:space="preserve"><value>Gib deinen DJ-Namen ein — bis zu {0} Buchstaben oder Ziffern.</value></data>
+  <data name="SoundPath_Preview" xml:space="preserve"><value>Neuer Pfad: {0}</value></data>
+  <data name="SoundPath_CompanionHeader" xml:space="preserve"><value>Diese anderen Mods fordern ebenfalls {0} an. Kreuze die an, die dir gehören:</value></data>
+  <data name="SoundPath_Companion" xml:space="preserve"><value>{0} — {1} Effektdatei(en)</value></data>
+  <data name="SoundPath_CompanionHasSongs" xml:space="preserve"><value>{0} — hat eigene Lieder; wähle ihn in den Einstellungen aus und benenne ihn separat um</value></data>
+  <data name="SoundPath_ConfirmHeader" xml:space="preserve"><value>Sound-Pfad von {0} auf {1} ändern?</value></data>
+  <data name="SoundPath_ConfirmCounts" xml:space="preserve"><value>{0}: {1} Effektdatei(en) und {2} Lied(er) werden aktualisiert.</value></data>
+  <data name="SoundPath_ConfirmCompanion" xml:space="preserve"><value>{0}: {1} Effektdatei(en) werden aktualisiert.</value></data>
+  <data name="SoundPath_ConfirmSuspects" xml:space="preserve"><value>Warnung: {0} Datei(en) nennen den alten Pfad auf eine Weise, die diese App nicht zuordnen konnte:</value></data>
+  <data name="SoundPath_ConfirmFooter" xml:space="preserve"><value>Die Effektdateien werden vorher gesichert, und alles wird zurückgesetzt, falls ein Teil fehlschlägt.</value></data>
+  <data name="SoundPath_Done" xml:space="preserve"><value>Der Sound-Pfad ist jetzt {0}.
+{1} Effektdatei(en) und {2} Lied(er) wurden aktualisiert.</value></data>
+  <data name="SoundPath_DoneCompanions" xml:space="preserve"><value>Ebenfalls aktualisiert: {0}</value></data>
+  <data name="SoundPath_Backup" xml:space="preserve"><value>Die vorherigen Effektdateien liegen in:
+{0}</value></data>
+  <data name="SoundPath_KeyOnlyWarning" xml:space="preserve"><value>{0} Effektdatei(en) in diesem Mod fordern weiterhin {1} an, und keine fordert {2} an.
+
+Nur den Schlüssel zu ändern, lässt deine Musik verstummen. Verwende „Sound-Pfad ändern“, um den Mod richtig umzubenennen.
+
+Schlüssel trotzdem ändern?</value></data>
+  <data name="SoundPath_NoMod" xml:space="preserve"><value>Wähle zuerst oben einen gültigen Mod-Ordner aus.</value></data>
+  <data name="SoundPath_PreviewPadded" xml:space="preserve"><value>Neuer Pfad: {0}   (einige Buchstaben wurden ergänzt — der Pfad braucht nach „bpm“ mindestens {1})</value></data>
+  <data name="SoundPath_NameUnusable" xml:space="preserve"><value>Dieser Name enthält keine Buchstaben oder Ziffern, aus denen ein Pfad gebildet werden kann.</value></data>
+  <data name="SoundPathDlg.Title" xml:space="preserve"><value>Sound-Pfad</value></data>
+  <data name="SoundPathDlg.PrimaryButtonText" xml:space="preserve"><value>OK</value></data>
+  <data name="SoundPathDlg.CloseButtonText" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>Von diesem Mod verwendeter Sound-Pfad</value></data>
+  <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>Unter diesem Pfad werden neue Lieder gespeichert. Eine Änderung hier verändert nicht die Effektdateien, die ihn anfordern — nutze dafür die Umbenennung unten.</value></data>
+  <data name="EditSoundPathButton.Content" xml:space="preserve"><value>Bearbeiten</value></data>
 </root>

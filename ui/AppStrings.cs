@@ -72,6 +72,45 @@ namespace Pickles_Playlist_Editor
         public static string Dlg_RestartRequired_Title => _r.GetString("Dlg_RestartRequired_Title");
         public static string Dlg_RestartRequired_Content => _r.GetString("Dlg_RestartRequired_Content");
 
+        // ---- sound path rename ----
+        public static string Dlg_SoundPath_Title => _r.GetString("Dlg_SoundPath_Title");
+        public static string Prog_RenamingSoundPath => _r.GetString("Prog_RenamingSoundPath");
+        public static string SoundPathConfirmFooter => _r.GetString("SoundPath_ConfirmFooter");
+        public static string SoundPathNoMod => _r.GetString("SoundPath_NoMod");
+
+        public static string SoundPathNameUnusable => _r.GetString("SoundPath_NameUnusable");
+
+        // Phrased in DJ-NAME characters, not path characters. The bucket is a whole-path limit, and
+        // quoting it next to a box labelled "your DJ name" reads as demanding a 16-letter name.
+        public static string SoundPathEnterName(int maxName) =>
+            string.Format(_r.GetString("SoundPath_EnterName"), maxName);
+        public static string SoundPathPreview(string path) =>
+            string.Format(_r.GetString("SoundPath_Preview"), path);
+        public static string SoundPathPreviewPadded(string path, int minName) =>
+            string.Format(_r.GetString("SoundPath_PreviewPadded"), path, minName);
+        public static string SoundPathCompanionHeader(string oldPath) =>
+            string.Format(_r.GetString("SoundPath_CompanionHeader"), oldPath);
+        public static string SoundPathCompanion(string name, int count) =>
+            string.Format(_r.GetString("SoundPath_Companion"), name, count);
+        public static string SoundPathCompanionHasSongs(string name) =>
+            string.Format(_r.GetString("SoundPath_CompanionHasSongs"), name);
+        public static string SoundPathConfirmHeader(string oldPath, string newPath) =>
+            string.Format(_r.GetString("SoundPath_ConfirmHeader"), oldPath, newPath);
+        public static string SoundPathConfirmCounts(string mod, int effects, int songs) =>
+            string.Format(_r.GetString("SoundPath_ConfirmCounts"), mod, effects, songs);
+        public static string SoundPathConfirmCompanion(string name, int effects) =>
+            string.Format(_r.GetString("SoundPath_ConfirmCompanion"), name, effects);
+        public static string SoundPathConfirmSuspects(int count) =>
+            string.Format(_r.GetString("SoundPath_ConfirmSuspects"), count);
+        public static string SoundPathDone(string newPath, int effects, int songs) =>
+            string.Format(_r.GetString("SoundPath_Done"), newPath, effects, songs);
+        public static string SoundPathDoneCompanions(string names) =>
+            string.Format(_r.GetString("SoundPath_DoneCompanions"), names);
+        public static string SoundPathBackup(string folder) =>
+            string.Format(_r.GetString("SoundPath_Backup"), folder);
+        public static string SoundPathKeyOnlyWarning(int count, string oldPath, string newPath) =>
+            string.Format(_r.GetString("SoundPath_KeyOnlyWarning"), count, oldPath, newPath);
+
         public static string ErrorAddingSongs(string msg) => string.Format(_r.GetString("Dlg_ErrorAddingSongs"), msg);
         public static string ErrorDeletion(string msg) => string.Format(_r.GetString("Dlg_ErrorDeletion"), msg);
         public static string UpdateAvailableContent(string version) => string.Format(_r.GetString("Dlg_UpdateAvailable_Content"), version);

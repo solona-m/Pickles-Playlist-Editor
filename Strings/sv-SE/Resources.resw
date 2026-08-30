@@ -41,7 +41,7 @@
   <data name="SettingsDlg.CloseButtonText" xml:space="preserve"><value>Avbryt</value></data>
   <data name="ModDirLabel.Text" xml:space="preserve"><value>Mod-katalog i Penumbra</value></data>
   <data name="BrowseModDirButton.Content" xml:space="preserve"><value>Bläddra</value></data>
-  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Bas-SCD-nyckel (t.ex. sound/bpmloop.scd)</value></data>
+  <data name="BaselineScdLabel.Text" xml:space="preserve"><value>Ljudsökväg</value></data>
   <data name="BrowseBaselineScdButton.Content" xml:space="preserve"><value>Bläddra</value></data>
   <data name="BackgroundImageLabel.Text" xml:space="preserve"><value>Bakgrundsbild</value></data>
   <data name="BrowseBackgroundButton.Content" xml:space="preserve"><value>Bläddra</value></data>
@@ -167,4 +167,39 @@ Ingenting har ändrats på disken.</value></data>
   <data name="Menu_ComputeStats" xml:space="preserve"><value>Beräkna statistik</value></data>
   <data name="Prog_ComputingStats" xml:space="preserve"><value>Beräknar BPM och tonart...</value></data>
   <data name="Summary_ComputeStats" xml:space="preserve"><value>Beräkning av statistik klar</value></data>
+  <data name="SoundPathHeaderLabel.Text" xml:space="preserve"><value>Ge den här modden en egen ljudsökväg</value></data>
+  <data name="SoundPathHint.Text" xml:space="preserve"><value>Ljud delas mellan alla i en venue, så två DJ:s vars moddar använder samma sökväg hör fel låt. Att byta namn på din löser det för alla som lyssnar, oavsett vilka plugins de kör.</value></data>
+  <data name="DjNameLabel.Text" xml:space="preserve"><value>Ditt DJ-namn</value></data>
+  <data name="ChangeSoundPathButton.Content" xml:space="preserve"><value>Ändra ljudsökväg</value></data>
+  <data name="Dlg_SoundPath_Title" xml:space="preserve"><value>Ändra ljudsökväg</value></data>
+  <data name="Prog_RenamingSoundPath" xml:space="preserve"><value>Ändrar ljudsökvägen ...</value></data>
+  <data name="SoundPath_EnterName" xml:space="preserve"><value>Ange ditt DJ-namn — upp till {0} bokstäver eller siffror.</value></data>
+  <data name="SoundPath_Preview" xml:space="preserve"><value>Ny sökväg: {0}</value></data>
+  <data name="SoundPath_CompanionHeader" xml:space="preserve"><value>De här andra moddarna begär också {0}. Kryssa i dem som är dina:</value></data>
+  <data name="SoundPath_Companion" xml:space="preserve"><value>{0} — {1} effektfil(er)</value></data>
+  <data name="SoundPath_CompanionHasSongs" xml:space="preserve"><value>{0} — har egna låtar; välj den i Inställningar och byt namn på den separat</value></data>
+  <data name="SoundPath_ConfirmHeader" xml:space="preserve"><value>Ändra ljudsökvägen från {0} till {1}?</value></data>
+  <data name="SoundPath_ConfirmCounts" xml:space="preserve"><value>{0}: {1} effektfil(er) och {2} låt(ar) kommer att uppdateras.</value></data>
+  <data name="SoundPath_ConfirmCompanion" xml:space="preserve"><value>{0}: {1} effektfil(er) kommer att uppdateras.</value></data>
+  <data name="SoundPath_ConfirmSuspects" xml:space="preserve"><value>Varning: {0} fil(er) nämner den gamla sökvägen på ett sätt som appen inte kunde identifiera:</value></data>
+  <data name="SoundPath_ConfirmFooter" xml:space="preserve"><value>Effektfilerna säkerhetskopieras först, och allt återställs om någon del misslyckas.</value></data>
+  <data name="SoundPath_Done" xml:space="preserve"><value>Ljudsökvägen är nu {0}.
+{1} effektfil(er) och {2} låt(ar) uppdaterades.</value></data>
+  <data name="SoundPath_DoneCompanions" xml:space="preserve"><value>Även uppdaterat: {0}</value></data>
+  <data name="SoundPath_Backup" xml:space="preserve"><value>De tidigare effektfilerna finns i:
+{0}</value></data>
+  <data name="SoundPath_KeyOnlyWarning" xml:space="preserve"><value>{0} effektfil(er) i den här modden begär fortfarande {1}, och ingen begär {2}.
+
+Att bara ändra nyckeln gör att musiken tystnar. Använd ”Ändra ljudsökväg” för att byta namn på modden ordentligt.
+
+Ändra nyckeln ändå?</value></data>
+  <data name="SoundPath_NoMod" xml:space="preserve"><value>Välj först en giltig moddmapp ovan.</value></data>
+  <data name="SoundPath_PreviewPadded" xml:space="preserve"><value>Ny sökväg: {0}   (några bokstäver lades till — sökvägen behöver minst {1} efter ”bpm”)</value></data>
+  <data name="SoundPath_NameUnusable" xml:space="preserve"><value>Det namnet har inga bokstäver eller siffror att bygga en sökväg av.</value></data>
+  <data name="SoundPathDlg.Title" xml:space="preserve"><value>Ljudsökväg</value></data>
+  <data name="SoundPathDlg.PrimaryButtonText" xml:space="preserve"><value>OK</value></data>
+  <data name="SoundPathDlg.CloseButtonText" xml:space="preserve"><value>Avbryt</value></data>
+  <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>Ljudsökväg som den här modden använder</value></data>
+  <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>Det här är sökvägen där nya låtar sparas. Att ändra den här rör inte effektfilerna som begär den — använd namnbytet nedan för det.</value></data>
+  <data name="EditSoundPathButton.Content" xml:space="preserve"><value>Redigera</value></data>
 </root>

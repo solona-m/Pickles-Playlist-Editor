@@ -1,0 +1,62 @@
+<ContentDialog
+    x:Class="Pickles_Playlist_Editor.SoundPathDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Uid="SoundPathDlg"
+    Title="Sound Path"
+    PrimaryButtonText="OK"
+    CloseButtonText="Cancel"
+    PrimaryButtonClick="OkButton_Click"
+    DefaultButton="Primary">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="8" MinWidth="520">
+
+        <!-- Two different things live here, and keeping them apart is the point. The key above says
+             which path this app WRITES when it imports a song. The rename below rewrites the .avfx
+             that ASK for that path, and re-keys every song to match. Doing the first without the
+             second is what silently breaks a mod, which is why they now sit side by side instead of
+             the key being a lone text box in Settings. -->
+        <TextBlock x:Uid="SoundPathKeyLabel" Text="Sound path this mod uses" FontWeight="SemiBold"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="BaselineScdTextBox" Grid.Column="0" Margin="0,0,4,0"
+                     TextChanged="BaselineScdTextBox_TextChanged"/>
+            <ComboBox x:Name="BaselineScdComboBox" Grid.Column="1" Width="180"
+                      PlaceholderText="Available paths"
+                      SelectionChanged="BaselineScdComboBox_SelectionChanged"/>
+        </Grid>
+        <TextBlock x:Uid="SoundPathKeyHint" Opacity="0.7" TextWrapping="Wrap"
+                   Text="This is the path new songs are saved to. Changing it here does not touch the effect files that ask for it — use the rename below for that."/>
+
+        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,8,0,4"/>
+
+        <TextBlock x:Uid="SoundPathHeaderLabel" Text="Give this mod its own sound path" FontWeight="SemiBold"/>
+        <TextBlock x:Uid="SoundPathHint" Opacity="0.7" TextWrapping="Wrap"
+                   Text="Sound is shared between everyone in a venue, so two DJs whose mods use the same path hear the wrong song. Renaming yours fixes it for everyone listening, whatever plugins they run."/>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Uid="DjNameLabel" Grid.Column="0" Text="Your DJ name" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <TextBox x:Name="DjNameTextBox" Grid.Column="1" TextChanged="DjNameTextBox_TextChanged"/>
+        </Grid>
+        <TextBlock x:Name="SoundPathPreviewText" TextWrapping="Wrap" Opacity="0.9"/>
+
+        <StackPanel x:Name="CompanionModsSection" Spacing="4" Visibility="Collapsed">
+            <TextBlock x:Name="CompanionModsHeader" TextWrapping="Wrap"/>
+            <StackPanel x:Name="CompanionModsPanel" Spacing="2" Margin="8,0,0,0"/>
+        </StackPanel>
+
+        <Button x:Uid="ChangeSoundPathButton" x:Name="ChangeSoundPathButton"
+                Content="Change sound path" Click="ChangeSoundPathButton_Click"
+                HorizontalAlignment="Stretch" IsEnabled="False"/>
+
+    </StackPanel>
+    </ScrollViewer>
+</ContentDialog>
