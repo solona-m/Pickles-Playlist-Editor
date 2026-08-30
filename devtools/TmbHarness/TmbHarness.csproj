@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Offline exercise rig for the .pap / TMB format code.
+
+    The app itself is a self-contained win-x86 WinUI build, which is a slow and awkward thing to run
+    a byte-level round-trip check inside. Those two format files were deliberately written with no
+    dependency on the rest of the app precisely so they could be linked into a plain console project
+    and run over a real Penumbra mod folder. This project is excluded from the app build; it is not
+    shipped and nothing in the app references it.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>TmbHarness</RootNamespace>
+    <AssemblyName>TmbHarness</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Utils\PapFile.cs" Link="PapFile.cs" />
+    <Compile Include="..\..\Utils\DancePap.cs" Link="DancePap.cs" />
+    <Compile Include="..\..\Utils\Tmb\*.cs" LinkBase="Tmb" />
+  </ItemGroup>
+
+</Project>

@@ -27,6 +27,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- devtools\ holds offline exercise rigs for the format code. They have their own project files
+         and their own Main, so the app's source glob must not swallow them.
+         NOT named "tools": Windows paths are case-insensitive, so that pattern also excludes the
+         app's own Tools\ folder and takes the Pickles_Playlist_Editor.Tools namespace with it. -->
+    <Compile Remove="devtools\**" />
+    <None Remove="devtools\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="pickle.ico" />
     <Content Include="Resources\pickle.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
