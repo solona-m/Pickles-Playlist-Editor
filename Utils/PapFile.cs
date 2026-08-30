@@ -173,6 +173,48 @@ namespace Pickles_Playlist_Editor.Utils
             return InfoOffset + index * AnimationBytes;
         }
 
+        /// <summary>
+        /// The embedded timeline, read off disk WITHOUT loading the animation.
+        ///
+        /// The timeline is the last section and the header says where it starts, so answering
+        /// questions about it costs a 26-byte read, a seek and a few kilobytes — not the whole file.
+        /// That matters at scale: classifying every candidate mod in a real Penumbra folder samples
+        /// 224 animations, and reading them whole came to 886MB, nearly half of it one 482MB mod.
+        ///
+        /// Deliberately more permissive than <see cref="Parse"/>, which validates the animation table
+        /// and havok section this never looks at.
+        /// </summary>
+        public static byte[] ReadTimeline(string path)
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
+            var header = new byte[HeaderBytes];
+            if (stream.Length < HeaderBytes)
+                throw new PapFormatException("Not a .pap file: shorter than its own header.");
+            stream.ReadExactly(header);
+
+            for (int i = 0; i < Magic.Length; i++)
+            {
+                if (header[i] != Magic[i])
+                    throw new PapFormatException("Not a .pap file: the pap signature is missing.");
+            }
+
+            int version = BitConverter.ToInt32(header, 0x04);
+            if (version != ExpectedVersion)
+                throw new PapFormatException(
+                    $"Unsupported .pap version 0x{version:X8} (expected 0x{ExpectedVersion:X8}).");
+
+            int footer = BitConverter.ToInt32(header, 0x16);
+            if (footer < HeaderBytes || footer >= stream.Length)
+                throw new PapFormatException(
+                    $"This .pap points its timeline at {footer}, outside a file of {stream.Length} bytes.");
+
+            var timeline = new byte[stream.Length - footer];
+            stream.Seek(footer, SeekOrigin.Begin);
+            stream.ReadExactly(timeline);
+            return timeline;
+        }
+
         /// <summary>The embedded TMB timeline, copied out.</summary>
         public byte[] GetTimeline()
         {

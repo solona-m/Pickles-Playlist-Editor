@@ -246,7 +246,8 @@ internal static class Program
                 .Take(16)
                 .Select(f =>
                 {
-                    try { return TmbBinary.Walk(PapFile.Parse(File.ReadAllBytes(f!)).GetTimeline()); }
+                    // Same header-and-tail read the picker uses, so this exercises that path too.
+                    try { return TmbBinary.Walk(PapFile.ReadTimeline(f!)); }
                     catch { return null; }
                 })
                 .Where(l => l != null)

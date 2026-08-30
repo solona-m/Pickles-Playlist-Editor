@@ -228,7 +228,9 @@ namespace Pickles_Playlist_Editor.Utils
             var layouts = new List<TmbLayout>();
             foreach (string file in papFiles.Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                try { layouts.Add(TmbBinary.Walk(PapFile.Parse(File.ReadAllBytes(file)).GetTimeline())); }
+                // Header and tail only. Nothing here inspects the animation, and reading it would
+                // mean hundreds of megabytes just to populate a list of mods.
+                try { layouts.Add(TmbBinary.Walk(PapFile.ReadTimeline(file))); }
                 catch { /* a dance we cannot read tells us nothing either way */ }
             }
             return layouts;
