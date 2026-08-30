@@ -7,14 +7,24 @@
     CloseButtonText="Close"
     DefaultButton="Close">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel Spacing="8" MinWidth="560">
+    <!-- A ContentDialog caps its own width at ContentDialogMaxWidth (548 by default), so content
+         wider than that is CLIPPED rather than widening the dialog — which cut the Add button off the
+         right-hand edge. Raising the cap is the supported way to widen one. -->
+    <ContentDialog.Resources>
+        <x:Double x:Key="ContentDialogMaxWidth">760</x:Double>
+    </ContentDialog.Resources>
+
+    <!-- MaxHeight, not just Auto scrolling: a ContentDialog grows to fit its content, so without a
+         ceiling the buttons at the bottom of the add pane end up off-screen entirely. Bounded here
+         and the whole thing scrolls inside the dialog instead. -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="520">
+    <StackPanel Spacing="8" Width="700">
 
         <!-- The dances live in a DIFFERENT mod from the playlists, and saying so plainly is the whole
              reason this row is at the top rather than buried in Settings. A DJ setup is normally split
              into a music mod and a dance mod, and editing the wrong one is the mistake this feature is
              most able to cause. -->
-        <TextBlock x:Uid="DanceModLabel" Text="Dance mod" FontWeight="SemiBold"/>
+        <TextBlock x:Uid="DanceModLabel" Text="VFX Mod" FontWeight="SemiBold"/>
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -36,6 +46,20 @@
         </StackPanel>
 
         <StackPanel x:Name="DancesSection" Spacing="8" Visibility="Collapsed">
+            <!-- Which group holds the dances is detected from its contents, not its name: plenty of
+                 DJ packs have no group called "Dances". Shown and overridable because detection can
+                 still pick the wrong one in a mod with several. -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Uid="DanceGroupLabel" Grid.Column="0" Text="Group"
+                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox x:Name="GroupCombo" Grid.Column="1" HorizontalAlignment="Stretch"
+                          SelectionChanged="GroupCombo_SelectionChanged"/>
+            </Grid>
+
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -47,8 +71,34 @@
                         Content="Add a dance…" Click="AddDanceButton_Click"/>
             </Grid>
 
-            <ListView x:Name="DanceList" MaxHeight="260" SelectionMode="Single"
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="DanceFilterBox" x:Uid="DanceFilterBox" Grid.Column="0"
+                         Margin="0,0,4,0" PlaceholderText="Search dances"
+                         TextChanged="DanceFilterBox_TextChanged"/>
+                <ComboBox x:Name="DanceSortCombo" Grid.Column="1" Width="150"
+                          SelectionChanged="DanceSortCombo_SelectionChanged">
+                    <!-- No IsSelected here. Setting it in markup raises SelectionChanged DURING
+                         InitializeComponent, and the handler touches controls declared further down
+                         the file that do not exist yet — which surfaces as "XAML parsing failed"
+                         with no further detail. The constructor selects the default instead. -->
+                    <ComboBoxItem x:Uid="DanceSortModOrder" Content="Mod order"/>
+                    <ComboBoxItem x:Uid="DanceSortName" Content="Name (A&#8211;Z)"/>
+                </ComboBox>
+            </Grid>
+
+            <ListView x:Name="DanceList" MaxHeight="200" SelectionMode="Single"
                       SelectionChanged="DanceList_SelectionChanged"/>
+
+            <!-- Reordering edits the mod's option array by position, so it only makes sense while the
+                 list IS the mod's order. Filtering or sorting hides that, and dragging row 3 above
+                 row 1 in a sorted view would move the wrong dances. -->
+            <TextBlock x:Name="ReorderBlockedText" x:Uid="ReorderBlockedText" Opacity="0.7"
+                       TextWrapping="Wrap" Visibility="Collapsed"
+                       Text="Clear the search and sort by mod order to change the order."/>
 
             <StackPanel Orientation="Horizontal" Spacing="4">
                 <Button x:Uid="RenameDanceButton" x:Name="RenameDanceButton" Content="Rename"
@@ -62,6 +112,21 @@
                 <Button x:Uid="ApplyDanceOrderButton" x:Name="ApplyDanceOrderButton" Content="Save order"
                         Click="ApplyDanceOrderButton_Click" IsEnabled="False"/>
             </StackPanel>
+
+            <!-- Renaming needs a text box, and WinUI permits only one ContentDialog at a time while a
+                 message box cannot take input. So it is an inline row here rather than a prompt. -->
+            <Grid x:Name="RenamePanel" Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="RenameBox" Grid.Column="0" Margin="0,0,4,0"/>
+                <Button x:Uid="ConfirmRenameButton" Grid.Column="1" Margin="0,0,4,0"
+                        Content="Save name" Click="ConfirmRenameButton_Click"/>
+                <Button x:Uid="CancelRenameButton" Grid.Column="2" Content="Cancel"
+                        Click="CancelRenameButton_Click"/>
+            </Grid>
         </StackPanel>
 
         <!-- The add pane. Not a second ContentDialog: WinUI allows only one open at a time, which is
@@ -74,7 +139,7 @@
 
             <TextBox x:Name="SearchBox" x:Uid="DanceSearchBox" PlaceholderText="Search"
                      TextChanged="SearchBox_TextChanged"/>
-            <ListView x:Name="SourceList" MaxHeight="220" SelectionMode="Single"
+            <ListView x:Name="SourceList" MaxHeight="180" SelectionMode="Single"
                       SelectionChanged="SourceList_SelectionChanged"/>
 
             <Grid>
@@ -87,7 +152,10 @@
                 <TextBox x:Name="DanceNameBox" Grid.Column="1" TextChanged="DanceNameBox_TextChanged"/>
             </Grid>
 
-            <StackPanel x:Name="RacePanel" Orientation="Horizontal" Spacing="8"/>
+            <!-- No body picker. Every body the source mod ships is installed, always: leaving one out
+                 fails silently — that body just plays the game's stock emote with no hint why — and
+                 the cost is usually nothing, because bodies very often share a single animation file
+                 that is installed once with several game paths pointing at it. -->
             <CheckBox x:Name="IncludeStartCheckBox" x:Uid="IncludeStartCheckBox"
                       Content="Also use the dance's intro animation" IsChecked="True"/>
 

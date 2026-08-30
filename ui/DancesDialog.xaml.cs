@@ -38,9 +38,22 @@ namespace Pickles_Playlist_Editor
 
         private bool _sourcesLoaded;
 
+        /// <summary>
+        /// False until the constructor has finished wiring everything up.
+        ///
+        /// Guards every SelectionChanged handler. A control that raises one while the XAML is still
+        /// being parsed reaches handlers whose other controls do not exist yet, and the resulting null
+        /// reference is reported only as "XAML parsing failed" with no inner detail at all.
+        /// </summary>
+        private bool _ready;
+
         public DancesDialog()
         {
             this.InitializeComponent();
+
+            DanceSortCombo.SelectedIndex = 0;   // mod order
+            _ready = true;
+
             LoadDanceMod();
         }
 
@@ -58,14 +71,7 @@ namespace Pickles_Playlist_Editor
             }
 
             string modRoot = Path.Combine(penumbra, folder);
-            var groups = DanceGroupIO.ListGroups(modRoot, folder);
-
-            // By remembered id first: a group can be renamed, and matching on the name alone would
-            // quietly start editing a different group the day somebody does.
-            var group = groups.FirstOrDefault(g =>
-                    g.Id is { } id && id.ToString() == Settings.DanceGroupId)
-                ?? groups.FirstOrDefault(g =>
-                    string.Equals(g.Name, DanceMod.DancesGroupName, StringComparison.OrdinalIgnoreCase));
+            var group = DanceMod.FindDancesGroup(modRoot, folder, Settings.DanceGroupId);
 
             if (group == null)
             {
@@ -78,6 +84,46 @@ namespace Pickles_Playlist_Editor
             DanceModText.Text = PenumbraOptions.DisplayName(modRoot);
             PickerSection.Visibility = Visibility.Collapsed;
             DancesSection.Visibility = Visibility.Visible;
+            LoadGroups(modRoot, folder, group);
+            RefreshDances();
+        }
+
+        /// <summary>
+        /// Fills the group picker, showing how many dances each group holds.
+        ///
+        /// Every group is listed rather than only the plausible ones: detection goes on contents, and
+        /// a mod whose dances live somewhere unexpected is exactly the case the user needs to be able
+        /// to correct.
+        /// </summary>
+        private void LoadGroups(string modRoot, string folder, DanceGroupRef selected)
+        {
+            _groups = DanceGroupIO.ListGroups(modRoot, folder);
+            var counts = DanceMod.DanceCountsByGroup(modRoot);
+
+            _loadingGroups = true;
+            GroupCombo.Items.Clear();
+            foreach (var group in _groups)
+            {
+                counts.TryGetValue(group.Name, out int dances);
+                GroupCombo.Items.Add(AppStrings.DanceGroupOption(group.Name, dances));
+            }
+            GroupCombo.SelectedIndex = _groups.FindIndex(g =>
+                g.Id == selected.Id && string.Equals(g.Name, selected.Name, StringComparison.Ordinal));
+            _loadingGroups = false;
+        }
+
+        private List<DanceGroupRef> _groups = new();
+        private bool _loadingGroups;
+
+        private void GroupCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_ready || _loadingGroups) return;
+            int at = GroupCombo.SelectedIndex;
+            if (at < 0 || at >= _groups.Count) return;
+
+            _group = _groups[at];
+            Settings.DanceGroupId = _group.Id?.ToString() ?? string.Empty;
+            _sourcesLoaded = false;
             RefreshDances();
         }
 
@@ -106,21 +152,32 @@ namespace Pickles_Playlist_Editor
 
                 DispatcherQueue.TryEnqueue(() =>
                 {
-                    _candidates = found;
-                    CandidateList.Items.Clear();
-                    foreach (var candidate in found)
-                        CandidateList.Items.Add(AppStrings.DanceModCandidate(
-                            candidate.Name, candidate.DanceCount, candidate.HasDjBlock));
+                    // Only mods whose dances already carry a DJ effect block. Any mod holding a .pap
+                    // technically qualifies, but that list is 41 entries long and mostly dance packs
+                    // to install FROM rather than the VFX mod to install INTO — offering them invites
+                    // the one mistake this feature must not make.
+                    var usable = found.Where(c => c.HasDjBlock).ToList();
 
-                    StatusText.Text = found.Count == 0
-                        ? AppStrings.DanceModNoneFound
-                        : AppStrings.DanceModFound(found.Count);
+                    // Unless none qualify, in which case an empty list would be a dead end.
+                    bool relaxed = usable.Count == 0;
+                    if (relaxed) usable = found;
+
+                    _candidates = usable;
+                    CandidateList.Items.Clear();
+                    foreach (var candidate in usable)
+                        CandidateList.Items.Add(
+                            AppStrings.DanceModCandidate(candidate.Name, candidate.DanceCount));
+
+                    StatusText.Text = usable.Count == 0 ? AppStrings.DanceModNoneFound
+                        : relaxed ? AppStrings.DanceModNonePrepped(usable.Count)
+                        : AppStrings.DanceModFound(usable.Count);
                 });
             });
         }
 
         private void CandidateList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (!_ready) return;
             int at = CandidateList.SelectedIndex;
             if (at < 0 || at >= _candidates.Count) return;
 
@@ -143,19 +200,26 @@ namespace Pickles_Playlist_Editor
 
         // ---- the list ----------------------------------------------------------------------------
 
+        /// <summary>
+        /// Display row to index in <see cref="_dances"/>.
+        ///
+        /// The list can be filtered and sorted, but reordering edits the mod's option array BY
+        /// POSITION — so the two only coincide while the view is the mod's own order, and this
+        /// mapping is what keeps a click on row 3 from acting on the wrong dance when it is not.
+        /// </summary>
+        private List<int> _view = new();
+
+        /// <summary>True when the list shows the mod's order, unfiltered — the only time reordering is safe.</summary>
+        private bool IsReorderable =>
+            DanceSortCombo.SelectedIndex <= 0 && string.IsNullOrWhiteSpace(DanceFilterBox.Text);
+
         private void RefreshDances()
         {
             if (_group == null) return;
 
             _dances = DanceMod.ReadDances(_group);
             _pendingOrder = null;
-
-            DanceList.Items.Clear();
-            foreach (var dance in _dances)
-                DanceList.Items.Add(Describe(dance));
-
-            DancesHeader.Text = AppStrings.DanceCount(_dances.Count);
-            UpdateButtons();
+            RefreshDanceList();
 
             // The effect block is read from the mod's own dances, so it has to be reloaded whenever
             // the list changes — and its absence is what makes Add impossible rather than merely
@@ -174,6 +238,52 @@ namespace Pickles_Playlist_Editor
             AddDanceButton.IsEnabled = _bundle != null;
         }
 
+        /// <summary>Rebuilds the visible rows from the current filter and sort.</summary>
+        private void RefreshDanceList()
+        {
+            string filter = DanceFilterBox.Text?.Trim() ?? string.Empty;
+            bool byName = DanceSortCombo.SelectedIndex == 1;
+
+            var rows = Enumerable.Range(0, _dances.Count)
+                .Where(i => filter.Length == 0
+                    || _dances[i].Name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0);
+
+            if (byName)
+                rows = rows.OrderBy(i => _dances[i].Name, StringComparer.CurrentCultureIgnoreCase);
+
+            _view = rows.ToList();
+
+            DanceList.Items.Clear();
+            foreach (int i in _view)
+                DanceList.Items.Add(Describe(_dances[i]));
+
+            DancesHeader.Text = _view.Count == _dances.Count
+                ? AppStrings.DanceCount(_dances.Count)
+                : AppStrings.DanceCountFiltered(_view.Count, _dances.Count);
+
+            ReorderBlockedText.Visibility = IsReorderable ? Visibility.Collapsed : Visibility.Visible;
+            UpdateButtons();
+        }
+
+        private void DanceFilterBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_ready) return;
+            RefreshDanceList();
+        }
+
+        private void DanceSortCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_ready) return;
+
+            // Staged moves are expressed in mod-order positions, so they cannot survive a re-sort.
+            if (_pendingOrder != null && !IsReorderable)
+            {
+                _pendingOrder = null;
+                StatusText.Text = AppStrings.DanceOrderDiscarded;
+            }
+            RefreshDanceList();
+        }
+
         private static string Describe(DanceEntry dance)
         {
             string races = dance.Races.Count > 0 ? string.Join(" ", dance.Races) : "?";
@@ -181,23 +291,34 @@ namespace Pickles_Playlist_Editor
             return $"{dance.Name}    {races}{health}";
         }
 
-        private void DanceList_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateButtons();
+        private void DanceList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_ready) return;
+            UpdateButtons();
+        }
 
         private void UpdateButtons()
         {
             bool selected = DanceList.SelectedIndex >= 0;
+            bool ordered = IsReorderable;
+
             RenameDanceButton.IsEnabled = selected;
             RemoveDanceButton.IsEnabled = selected;
-            MoveDanceUpButton.IsEnabled = selected && DanceList.SelectedIndex > 0;
-            MoveDanceDownButton.IsEnabled = selected && DanceList.SelectedIndex < DanceList.Items.Count - 1;
-            ApplyDanceOrderButton.IsEnabled = _pendingOrder != null;
+            MoveDanceUpButton.IsEnabled = selected && ordered && DanceList.SelectedIndex > 0;
+            MoveDanceDownButton.IsEnabled = selected && ordered
+                && DanceList.SelectedIndex < DanceList.Items.Count - 1;
+            ApplyDanceOrderButton.IsEnabled = _pendingOrder != null && ordered;
         }
 
         // ---- add ---------------------------------------------------------------------------------
 
         private void AddDanceButton_Click(object sender, RoutedEventArgs e)
         {
-            AddSection.Visibility = Visibility.Visible;
+            // The add pane takes the dialog over rather than appearing below the list. A
+            // ContentDialog cannot be resized and its height is capped, so two long lists competing
+            // for the same space leaves both unusable — the source list ended up a few rows tall at
+            // the very bottom of the window.
+            ShowAddPane(true);
             if (_sourcesLoaded) return;
 
             _sourcesLoaded = true;
@@ -246,7 +367,7 @@ namespace Pickles_Playlist_Editor
                         continue;
 
                     _visibleSources.Add(dance);
-                    SourceList.Items.Add($"{dance.Label}    {string.Join(" ", dance.Races)}    — {mod.Name}");
+                    SourceList.Items.Add($"{dance.Label}    —  {mod.Name}");
                     if (_visibleSources.Count >= 300) return;
                 }
             }
@@ -254,33 +375,20 @@ namespace Pickles_Playlist_Editor
 
         private readonly List<DanceSource> _visibleSources = new();
 
-        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) =>
+        private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_ready) return;
             ShowSources(SearchBox.Text?.Trim() ?? string.Empty);
+        }
 
         private void SourceList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (!_ready) return;
             var source = SelectedSource();
-            RacePanel.Children.Clear();
             if (source == null) { RefreshAddPreview(); return; }
 
             if (string.IsNullOrWhiteSpace(DanceNameBox.Text))
                 DanceNameBox.Text = source.Label;
-
-            foreach (string race in source.Races)
-            {
-                var box = new CheckBox
-                {
-                    Content = race,
-                    Tag = race,
-                    // c0101 is the midlander body every DJ pack measured is built on, and the guide
-                    // treats it as the default. Anything else is opt-in.
-                    IsChecked = race.Equals("c0101", StringComparison.OrdinalIgnoreCase)
-                                || source.Races.Count == 1,
-                };
-                box.Checked += (_, _) => RefreshAddPreview();
-                box.Unchecked += (_, _) => RefreshAddPreview();
-                RacePanel.Children.Add(box);
-            }
 
             IncludeStartCheckBox.IsEnabled = source.StartByRace.Count > 0;
             IncludeStartCheckBox.IsChecked = source.StartByRace.Count > 0;
@@ -293,13 +401,11 @@ namespace Pickles_Playlist_Editor
             return at >= 0 && at < _visibleSources.Count ? _visibleSources[at] : null;
         }
 
-        private List<string> SelectedRaces() => RacePanel.Children
-            .OfType<CheckBox>()
-            .Where(c => c.IsChecked == true)
-            .Select(c => (string)c.Tag)
-            .ToList();
-
-        private void DanceNameBox_TextChanged(object sender, TextChangedEventArgs e) => RefreshAddPreview();
+        private void DanceNameBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_ready) return;
+            RefreshAddPreview();
+        }
 
         private AddDancePlan? _addPlan;
 
@@ -313,13 +419,16 @@ namespace Pickles_Playlist_Editor
                 return;
             }
 
-            _addPlan = DanceModWrites.PlanAdd(_group, _dances, source, SelectedRaces(),
+            _addPlan = DanceModWrites.PlanAdd(_group, _dances, source, source.Races,
                 DanceNameBox.Text?.Trim() ?? string.Empty,
                 IncludeStartCheckBox.IsChecked == true, _bundle, _djStrings);
 
             AddPreviewText.Text = _addPlan.CanApply
                 ? AppStrings.AddDancePreview(_addPlan.OldAnimationName, PapFile.DanceAnimationName,
-                    _addPlan.SoundPathsRemoved.Count, _addPlan.Tracks, _addPlan.Effects.Count)
+                      _addPlan.SoundPathsRemoved.Count, _addPlan.Tracks, _addPlan.Effects.Count)
+                  + "\n" + AppStrings.AddDanceBodies(_addPlan.Races.Count)
+                  + " " + AppStrings.AddDanceFiles(_addPlan.Writes.Count,
+                      _addPlan.Files.Count, _addPlan.Bytes / 1048576.0)
                   + (_addPlan.Warnings.Count > 0 ? "\n\n" + string.Join("\n", _addPlan.Warnings) : string.Empty)
                 : string.Join("\n", _addPlan.Errors);
 
@@ -344,37 +453,49 @@ namespace Pickles_Playlist_Editor
             Report(result, AppStrings.AddDanceDone(_addPlan.DanceName));
             if (result.Succeeded)
             {
-                AddSection.Visibility = Visibility.Collapsed;
+                ShowAddPane(false);
                 DanceNameBox.Text = string.Empty;
             }
             RefreshDances();
         }
 
-        private void CancelAddDanceButton_Click(object sender, RoutedEventArgs e) =>
-            AddSection.Visibility = Visibility.Collapsed;
+        private void CancelAddDanceButton_Click(object sender, RoutedEventArgs e) => ShowAddPane(false);
+
+        /// <summary>Swaps between the dance list and the add pane; only one is ever on screen.</summary>
+        private void ShowAddPane(bool adding)
+        {
+            AddSection.Visibility = adding ? Visibility.Visible : Visibility.Collapsed;
+            DancesSection.Visibility = adding ? Visibility.Collapsed : Visibility.Visible;
+        }
 
         // ---- rename, remove, reorder -------------------------------------------------------------
 
         private void RenameDanceButton_Click(object sender, RoutedEventArgs e)
         {
             var dance = SelectedDance();
-            if (dance == null || _group == null) return;
+            if (dance == null) return;
 
-            // Reuses the add pane's name box rather than opening a prompt, because a second
-            // ContentDialog is not possible and a message box cannot take text.
-            string typed = DanceNameBox.Text?.Trim() ?? string.Empty;
-            if (typed.Length == 0)
-            {
-                DanceNameBox.Text = dance.Name;
-                AddSection.Visibility = Visibility.Visible;
-                StatusText.Text = AppStrings.RenameDanceHint(dance.Name);
-                return;
-            }
+            RenameBox.Text = dance.Name;
+            RenamePanel.Visibility = Visibility.Visible;
+            RenameBox.Focus(FocusState.Programmatic);
+            RenameBox.SelectAll();
+        }
+
+        private void ConfirmRenameButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dance = SelectedDance();
+            string typed = RenameBox.Text?.Trim() ?? string.Empty;
+            if (dance == null || _group == null || typed.Length == 0) return;
+
+            RenamePanel.Visibility = Visibility.Collapsed;
+            if (string.Equals(typed, dance.Name, StringComparison.Ordinal)) return;
 
             Report(DanceModWrites.Rename(_group, dance, typed), AppStrings.RenameDanceDone(dance.Name, typed));
-            DanceNameBox.Text = string.Empty;
             RefreshDances();
         }
+
+        private void CancelRenameButton_Click(object sender, RoutedEventArgs e) =>
+            RenamePanel.Visibility = Visibility.Collapsed;
 
         private void RemoveDanceButton_Click(object sender, RoutedEventArgs e)
         {
@@ -429,8 +550,8 @@ namespace Pickles_Playlist_Editor
 
         private DanceEntry? SelectedDance()
         {
-            int at = DanceList.SelectedIndex;
-            return at >= 0 && at < _dances.Count ? _dances[at] : null;
+            int row = DanceList.SelectedIndex;
+            return row >= 0 && row < _view.Count ? _dances[_view[row]] : null;
         }
 
         // ---- plumbing ----------------------------------------------------------------------------

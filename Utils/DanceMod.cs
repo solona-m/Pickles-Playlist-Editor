@@ -90,6 +90,53 @@ namespace Pickles_Playlist_Editor.Utils
             @"^chara/human/c(?<race>\d{4})/animation/a(?<anim>\d{4})/bt_common/(?<dir>emote|emote_sp)/(?<slot>[a-z0-9_]+)_(?<kind>loop|start)\.pap$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        /// <summary>
+        /// How many dance animations each of the mod's groups holds, keyed by group name.
+        /// </summary>
+        public static Dictionary<string, int> DanceCountsByGroup(string modRoot)
+        {
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var option in PenumbraOptions.Read(modRoot))
+            {
+                if (!option.Files.Keys.Any(k => DanceGamePath.IsMatch(k))) continue;
+                counts.TryGetValue(option.GroupName, out int n);
+                counts[option.GroupName] = n + 1;
+            }
+            return counts;
+        }
+
+        /// <summary>
+        /// The group holding this mod's dances, found by what is IN it rather than by its name.
+        ///
+        /// Naming was the obvious rule and it is wrong: plenty of DJ packs do not have a group called
+        /// "Dances" at all, and a name match would simply report those mods as unusable. The group
+        /// carrying the most dance animations is the answer whatever it is called; the name is only a
+        /// tie-break for a mod whose groups are all empty of them.
+        ///
+        /// A remembered id always wins, so a user who picked a different group keeps it.
+        /// </summary>
+        public static DanceGroupRef? FindDancesGroup(string modRoot, string folder, string? rememberedId = null)
+        {
+            var groups = DanceGroupIO.ListGroups(modRoot, folder);
+            if (groups.Count == 0) return null;
+
+            if (!string.IsNullOrWhiteSpace(rememberedId))
+            {
+                var remembered = groups.FirstOrDefault(g => g.Id?.ToString() == rememberedId);
+                if (remembered != null) return remembered;
+            }
+
+            var counts = DanceCountsByGroup(modRoot);
+            var byContent = groups
+                .Where(g => counts.TryGetValue(g.Name, out int n) && n > 0)
+                .OrderByDescending(g => counts[g.Name])
+                .FirstOrDefault();
+            if (byContent != null) return byContent;
+
+            return groups.FirstOrDefault(
+                g => string.Equals(g.Name, DancesGroupName, StringComparison.OrdinalIgnoreCase));
+        }
+
         // ---- finding the mod ---------------------------------------------------------------------
 
         /// <summary>
@@ -121,9 +168,7 @@ namespace Pickles_Playlist_Editor.Utils
                 if (dances.Count == 0) continue;
 
                 string modName = PenumbraOptions.DisplayName(directory);
-                var groups = DanceGroupIO.ListGroups(directory, folder);
-                var group = groups.FirstOrDefault(
-                    g => string.Equals(g.Name, DancesGroupName, StringComparison.OrdinalIgnoreCase));
+                var group = FindDancesGroup(directory, folder);
 
                 bool configured = !string.IsNullOrEmpty(configuredModName)
                     && string.Equals(folder, configuredModName, StringComparison.OrdinalIgnoreCase);
@@ -327,6 +372,53 @@ namespace Pickles_Playlist_Editor.Utils
 
             return string.IsNullOrWhiteSpace(modal) ? DefaultDanceFolder : modal;
         }
+
+        /// <summary>
+        /// FFXIV body model codes, as they appear in a game path.
+        ///
+        /// An animation is authored against a body, so a dance mod ships one file per body it
+        /// supports and the code in the path says which. They are worth spelling out in the UI: a
+        /// column of c0101/c0201/c0301 is meaningless unless you already know the scheme, and picking
+        /// the wrong one gives you a dance that silently does nothing on your character.
+        ///
+        /// Matches the mod author's own guide, which lists Midlander c0101, Miqo c0801, Roe c0901,
+        /// Lala c1101, Viera male c1701 and Viera female c1801.
+        /// </summary>
+        private static readonly Dictionary<string, string> RaceNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["c0101"] = "Midlander M",   ["c0201"] = "Midlander F",
+            ["c0301"] = "Highlander M",  ["c0401"] = "Highlander F",
+            ["c0501"] = "Elezen M",      ["c0601"] = "Elezen F",
+            ["c0701"] = "Miqo'te M",     ["c0801"] = "Miqo'te F",
+            ["c0901"] = "Roegadyn M",    ["c1001"] = "Roegadyn F",
+            ["c1101"] = "Lalafell M",    ["c1201"] = "Lalafell F",
+            ["c1301"] = "Au Ra M",       ["c1401"] = "Au Ra F",
+            ["c1501"] = "Hrothgar M",    ["c1601"] = "Hrothgar F",
+            ["c1701"] = "Viera M",       ["c1801"] = "Viera F",
+        };
+
+        /// <summary>The body code with its name, or just the code for one this does not know.</summary>
+        public static string RaceLabel(string race) =>
+            RaceNames.TryGetValue(race, out string? name) ? $"{race}  {name}" : race;
+
+        /// <summary>
+        /// Which bodies to tick by default: all of them.
+        ///
+        /// Installing only one body is the choice that can go silently wrong. A body with no redirect
+        /// simply plays the game's stock emote, so a DJ who picks the wrong one — or later plays an
+        /// alt, or shares the pack, which is what DJ packs are for — sees the vanilla dance and no
+        /// obvious reason why.
+        ///
+        /// The cost of taking them all is usually nothing. Measured on real dance mods, bodies very
+        /// often share one animation: seven bodies backed by a single 0.4MB file, or eight backed by
+        /// two. Those are installed as ONE file with several game paths pointing at it. Where the
+        /// bodies really are different animations it does cost real space — one mod ships ten
+        /// distinct files totalling 22.7MB — which is why the size is shown before anything is
+        /// written and the boxes can be unticked.
+        /// </summary>
+        public static HashSet<string> DefaultRaces(IReadOnlyList<DanceEntry> existing,
+            IReadOnlyCollection<string> available) =>
+            new(available, StringComparer.OrdinalIgnoreCase);
 
         /// <summary>A folder name safe to create, derived from what the user typed.</summary>
         public static string FolderSlug(string danceName)

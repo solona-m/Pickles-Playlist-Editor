@@ -81,25 +81,41 @@ namespace Pickles_Playlist_Editor
         public static string DanceModLegacyLayout => _r.GetString("Dances_LegacyLayout");
         public static string DanceOrderPending => _r.GetString("Dances_OrderPending");
         public static string DanceOrderDone => _r.GetString("Dances_OrderDone");
+        public static string DanceOrderDiscarded => _r.GetString("Dances_OrderDiscarded");
 
         public static string DanceCount(int count) =>
-            string.Format(_r.GetString("Dances_Count"), count);
+            string.Format(_r.GetString(count == 1 ? "Dances_CountOne" : "Dances_Count"), count);
+        public static string DanceCountFiltered(int shown, int total) =>
+            string.Format(_r.GetString("Dances_CountFiltered"), shown, total);
+        public static string DanceGroupOption(string group, int dances) =>
+            string.Format(_r.GetString(dances == 1 ? "Dances_GroupOptionOne" : "Dances_GroupOption"),
+                group, dances);
         public static string DanceModFound(int count) =>
-            string.Format(_r.GetString("Dances_ModsFound"), count);
+            string.Format(_r.GetString(count == 1 ? "Dances_ModsFoundOne" : "Dances_ModsFound"), count);
         public static string DanceModNoGroup(string mod) =>
             string.Format(_r.GetString("Dances_NoGroup"), mod, DanceGroupName);
-        public static string DanceModCandidate(string mod, int dances, bool prepped) =>
-            string.Format(_r.GetString(prepped ? "Dances_CandidatePrepped" : "Dances_Candidate"), mod, dances);
+        /// <summary>
+        /// Only mods already set up for a DJ are offered, so the row says what the mod IS rather
+        /// than repeating a qualifier that is true of every entry in the list.
+        /// </summary>
+        public static string DanceModCandidate(string mod, int dances) =>
+            string.Format(_r.GetString(dances == 1 ? "Dances_CandidateOne" : "Dances_Candidate"),
+                mod, dances);
+        public static string DanceModNonePrepped(int count) =>
+            string.Format(_r.GetString("Dances_NonePrepped"), count);
         public static string DanceSourcesFound(int mods, int dances) =>
             string.Format(_r.GetString("Dances_SourcesFound"), mods, dances);
         public static string DanceBundle(int tracks, int effects) =>
             string.Format(_r.GetString("Dances_Bundle"), tracks, effects);
         public static string AddDancePreview(string oldName, string newName, int sounds, int tracks, int effects) =>
             string.Format(_r.GetString("Dances_AddPreview"), oldName, newName, sounds, tracks, effects);
+        public static string AddDanceFiles(int files, int paths, double megabytes) =>
+            string.Format(_r.GetString(files == 1 ? "Dances_AddFilesOne" : "Dances_AddFiles"),
+                files, paths, megabytes);
+        public static string AddDanceBodies(int bodies) =>
+            string.Format(_r.GetString(bodies == 1 ? "Dances_AddBodiesOne" : "Dances_AddBodies"), bodies);
         public static string AddDanceDone(string dance) =>
             string.Format(_r.GetString("Dances_AddDone"), dance);
-        public static string RenameDanceHint(string dance) =>
-            string.Format(_r.GetString("Dances_RenameHint"), dance);
         public static string RenameDanceDone(string from, string to) =>
             string.Format(_r.GetString("Dances_RenameDone"), from, to);
         public static string RemoveDanceConfirm(string dance) =>

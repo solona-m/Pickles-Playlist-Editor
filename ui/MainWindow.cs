@@ -575,8 +575,29 @@ namespace Pickles_Playlist_Editor
         /// </summary>
         private async Task OpenDancesAsync()
         {
-            var dialog = new DancesDialog { XamlRoot = this.Content.XamlRoot };
-            await dialog.ShowAsync();
+            // Everything here is inside a try, because the caller discards the task. An exception
+            // building or showing the dialog would otherwise be an unobserved task fault: no log
+            // line, no message, and a toolbar button that simply does nothing when clicked.
+            try
+            {
+                var dialog = new DancesDialog { XamlRoot = this.Content.XamlRoot };
+                await dialog.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                Utils.Logger.LogError("Opening the dances dialog failed: {Error}", ex);
+                try
+                {
+                    await new ContentDialog
+                    {
+                        XamlRoot = this.Content.XamlRoot,
+                        Title = AppStrings.Dlg_Dances_Title,
+                        Content = ex.Message,
+                        CloseButtonText = "OK",
+                    }.ShowAsync();
+                }
+                catch { /* the failure is already in the log; never fail while reporting a failure */ }
+            }
         }
 
         private async Task OpenSettingsAsync()

@@ -20,6 +20,16 @@ namespace Pickles_Playlist_Editor.Utils
         public IReadOnlyDictionary<string, string> Files { get; init; } =
             new Dictionary<string, string>();
 
+        /// <summary>
+        /// Mod-relative path to the source file it is prepared from — one entry per file actually
+        /// written, which is fewer than <see cref="Files"/> whenever bodies share an animation.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> Writes { get; init; } =
+            new Dictionary<string, string>();
+
+        /// <summary>Bytes the source animations occupy, so a 20MB import is not a surprise.</summary>
+        public long Bytes { get; init; }
+
         public string OldAnimationName { get; init; } = string.Empty;
         public IReadOnlyList<string> SoundPathsRemoved { get; init; } = Array.Empty<string>();
         public IReadOnlyList<string> Effects { get; init; } = Array.Empty<string>();
@@ -88,31 +98,49 @@ namespace Pickles_Playlist_Editor.Utils
             if (Directory.Exists(Path.Combine(group.ModRoot, root, slug)))
                 errors.Add($"The folder '{root}\\{slug}' already exists in this mod.");
 
-            foreach (string race in races)
+            // Bodies that share one animation share one installed file, pointed at by several game
+            // paths — which is exactly what the source mods do. Measured on real dance mods, one file
+            // can serve eight bodies; copying it eight times would waste the space and make the mod
+            // harder to read for no benefit.
+            var writes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            long bytes = 0;
+
+            foreach (var kind in new[] { "loop", "start" })
             {
-                if (!source.LoopByRace.TryGetValue(race, out string? loop))
+                if (kind == "start" && !includeStart) continue;
+                var lookup = kind == "loop" ? source.LoopByRace : source.StartByRace;
+
+                foreach (var shared in races.Where(lookup.ContainsKey)
+                             .GroupBy(r => lookup[r], StringComparer.OrdinalIgnoreCase))
                 {
-                    errors.Add($"This dance has no animation for {race}.");
-                    continue;
+                    string disk = DiskPath(root, slug, shared.First(), anim, directory, slot, kind);
+                    writes[disk] = shared.Key;
+                    try { bytes += new FileInfo(shared.Key).Length; } catch { }
+
+                    foreach (string race in shared)
+                        files[GamePath(race, anim, directory, slot, kind)] = disk;
                 }
+            }
 
-                files[GamePath(race, anim, directory, slot, "loop")] = DiskPath(root, slug, race, anim, directory, slot, "loop");
+            foreach (string race in races.Where(r => !source.LoopByRace.ContainsKey(r)))
+                errors.Add($"This dance has no animation for {DanceMod.RaceLabel(race)}.");
 
-                if (includeStart && source.StartByRace.TryGetValue(race, out _))
-                    files[GamePath(race, anim, directory, slot, "start")] = DiskPath(root, slug, race, anim, directory, slot, "start");
-
+            // Inspect each distinct animation once rather than once per body pointing at it.
+            foreach (var (disk, sourceFile) in writes.Where(w => w.Key.EndsWith("_loop.pap",
+                         StringComparison.OrdinalIgnoreCase)))
+            {
                 try
                 {
-                    var papPlan = DancePap.Inspect(File.ReadAllBytes(loop), bundle, djStrings);
+                    var papPlan = DancePap.Inspect(File.ReadAllBytes(sourceFile), bundle, djStrings);
                     if (oldName.Length == 0) oldName = papPlan.OldAnimationName;
                     foreach (string path in papPlan.SoundPathsToBlank)
                         if (!removedSounds.Contains(path)) removedSounds.Add(path);
-                    errors.AddRange(papPlan.Errors.Select(e => $"{race}: {e}"));
-                    warnings.AddRange(papPlan.Warnings.Select(w => $"{race}: {w}"));
+                    errors.AddRange(papPlan.Errors);
+                    warnings.AddRange(papPlan.Warnings);
                 }
                 catch (Exception ex)
                 {
-                    errors.Add($"{race}: {ex.Message}");
+                    errors.Add($"{Path.GetFileName(sourceFile)}: {ex.Message}");
                 }
             }
 
@@ -134,6 +162,8 @@ namespace Pickles_Playlist_Editor.Utils
                 FolderSlug = slug,
                 IncludeStart = includeStart,
                 Files = files,
+                Writes = writes,
+                Bytes = bytes,
                 OldAnimationName = oldName,
                 SoundPathsRemoved = removedSounds,
                 Effects = bundle.EffectPaths,
@@ -174,12 +204,12 @@ namespace Pickles_Playlist_Editor.Utils
                 Directory.CreateDirectory(backup);
                 PenumbraMeta.TrySnapshot(modRoot, group.ModName);
 
-                foreach (var (gamePath, relative) in plan.Files)
+                // One write per distinct animation, not per body: several bodies can point at the
+                // same installed file, exactly as the source mods do.
+                int produced = 0;
+                foreach (var (relative, sourceFile) in plan.Writes)
                 {
-                    bool isStart = gamePath.EndsWith("_start.pap", StringComparison.OrdinalIgnoreCase);
-                    string race = RaceOf(gamePath);
-                    var lookup = isStart ? plan.Source.StartByRace : plan.Source.LoopByRace;
-                    if (!lookup.TryGetValue(race, out string? sourceFile)) continue;
+                    bool isStart = relative.EndsWith("_start.pap", StringComparison.OrdinalIgnoreCase);
 
                     byte[] prepared = isStart
                         // The intro carries no effect block in any real dance; it only needs the
@@ -191,7 +221,8 @@ namespace Pickles_Playlist_Editor.Utils
                     Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                     AtomicWrite(target, prepared);
 
-                    File.WriteAllBytes(Path.Combine(backup, Path.GetFileName(target) + "." + race + ".produced"), prepared);
+                    File.WriteAllBytes(
+                        Path.Combine(backup, $"{produced++:D2}." + Path.GetFileName(target)), prepared);
                 }
 
                 // No AssertModRootUnchanged here, deliberately. That guard exists because the playlist
@@ -215,12 +246,6 @@ namespace Pickles_Playlist_Editor.Utils
 
             warnings.AddRange(Settle(group, plan.DanceName, shouldExist: true));
             return new DanceWriteResult { Succeeded = true, BackupFolder = backup, Warnings = warnings };
-        }
-
-        private static string RaceOf(string gamePath)
-        {
-            var parts = gamePath.Split('/');
-            return parts.Length > 2 ? parts[2] : "c0101";
         }
 
         private static byte[] Rename(byte[] pap, string animationName)
