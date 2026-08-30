@@ -209,12 +209,19 @@ namespace Pickles_Playlist_Editor.Utils
         /// </summary>
         private static bool HasDjBlock(IReadOnlyList<DanceSource> dances)
         {
-            var layouts = ReadTimelines(dances.SelectMany(d => d.LoopByRace.Values).Take(12));
-            if (layouts.Count == 0) return false;
+            // ONE file per dance. Flattening every race variant and taking the first dozen could
+            // sample a single dance twelve times over — a mod whose first dance ships for twelve
+            // bodies — and a vote taken across twelve copies of one dance says nothing at all.
+            var layouts = ReadTimelines(dances
+                .Select(d => d.LoopByRace.Values.FirstOrDefault())
+                .Where(f => f != null)!
+                .Take(SampledDances)!);
 
-            var djStrings = TmbTrackBundle.DjStringSet(layouts);
-            return djStrings.Count >= 3 && layouts.Any(l => TmbTrackBundle.IsAlreadyPrepped(l, djStrings));
+            return TmbTrackBundle.LooksLikeDjPack(layouts);
         }
+
+        /// <summary>How many dances to read when classifying a mod. Enough to vote, few enough to be quick.</summary>
+        private const int SampledDances = 16;
 
         private static List<TmbLayout> ReadTimelines(IEnumerable<string> papFiles)
         {

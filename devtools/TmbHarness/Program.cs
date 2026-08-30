@@ -198,6 +198,67 @@ internal static class Program
             }
         }
         Check("scan", $"listed dances resolve to readable .pap ({checkedPaps} checked)", unreadable == 0);
+
+        DjPackClassification(mods);
+    }
+
+    /// <summary>
+    /// Which mods the VFX-mod picker offers, checked against mods whose nature is known.
+    ///
+    /// This is the one decision in the feature that steers the user somewhere irreversible: the mod
+    /// chosen here is the one dances get installed INTO, and picking an ordinary dance mod means
+    /// every future dance gets that mod's own effects instead of the DJ's. It classified
+    /// "miku live plus" — two copies of one dance — as a DJ pack until the sharing requirement went in.
+    /// </summary>
+    private static void DjPackClassification(List<DanceSourceMod> mods)
+    {
+        // Mods whose nature is not in doubt: DJ packs on the left, plain dance mods on the right.
+        var expected = new (string Fragment, bool IsDjPack)[]
+        {
+            ("DJ Solona", true),
+            ("DJ Pickles", true),
+            ("DAMThunderdome", true),
+
+            // Two copies of one dance, four effects between them. The vote was unanimous because
+            // there was nothing to vote against, and this was offered as a place to install dances.
+            ("miku live plus", false),
+
+            // A MUSIC mod that happens to contain dances — it is one of the playlist mod defaults in
+            // Settings. Its dances carry no effect tracks at all, so there is no block to copy and an
+            // add against it could only fail. Excluding it is right even though "DJ" is in the folder
+            // name of one of its copies.
+            ("Yue & Lu", false),
+
+            ("Waltz", false),
+            ("K-pop", false),
+        };
+
+        foreach (var (fragment, isDjPack) in expected)
+        {
+            var mod = mods.FirstOrDefault(m =>
+                m.Name.Contains(fragment, StringComparison.OrdinalIgnoreCase)
+                || m.FullPath.Contains(fragment, StringComparison.OrdinalIgnoreCase));
+            if (mod == null) continue;
+
+            var layouts = mod.Dances
+                .Select(d => d.LoopByRace.Values.FirstOrDefault())
+                .Where(f => f != null && File.Exists(f))
+                .Take(16)
+                .Select(f =>
+                {
+                    try { return TmbBinary.Walk(PapFile.Parse(File.ReadAllBytes(f!)).GetTimeline()); }
+                    catch { return null; }
+                })
+                .Where(l => l != null)
+                .Select(l => l!)
+                .ToList();
+
+            bool classified = TmbTrackBundle.LooksLikeDjPack(layouts);
+            Check("classify", $"{mod.Name} is {(isDjPack ? "" : "not ")}a DJ pack",
+                classified == isDjPack);
+            Console.WriteLine($"  {mod.Name,-52} dances={mod.Dances.Count,4} " +
+                $"djPack={classified,-5} expected={isDjPack}");
+        }
     }
 
     // ---- the writer's self-test ------------------------------------------------------------------

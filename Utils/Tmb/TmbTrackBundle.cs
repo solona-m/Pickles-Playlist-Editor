@@ -202,6 +202,41 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
             return shared;
         }
 
+        /// <summary>
+        /// Whether these dances look like a DJ pack rather than an ordinary dance mod.
+        ///
+        /// The distinction is SHARING. A DJ pack gives every dance the same effect block, so the block
+        /// shows up again and again; an ordinary dance mod gives each dance its own effects, which
+        /// show up once each. <see cref="DjStringSet"/> is a majority vote, and a vote over one or two
+        /// dances is unanimous by construction — so on a mod with a single dance every effect it
+        /// happens to use was promoted to a "DJ effect", and the mod was then offered as somewhere to
+        /// install dances into. Picking it would have built every future dance's block from that one
+        /// dance's personal effects, giving animations that play and never react to the music.
+        ///
+        /// Three requirements, all about sharing rather than about any particular effect name. Naming
+        /// is not usable: of the DJ packs measured, some anchor on <c>vfx/bpmloop-others.avfx</c>,
+        /// one uses <c>vfx/bpmloop.avfx</c>, and one carries 159 effects with no bpmloop at all.
+        /// </summary>
+        public static bool LooksLikeDjPack(IReadOnlyList<TmbLayout> dances)
+        {
+            // A vote needs enough voters to mean anything.
+            if (dances.Count < MinDancesForDjBlock) return false;
+
+            var shared = DjStringSet(dances);
+            if (shared.Count < MinSharedEffects) return false;
+
+            // And the block has to be genuinely common property, not one dance's set that the vote
+            // waved through: at least two dances must carry the whole of it.
+            int carryAll = dances.Count(d => CoverageOf(d, shared).Count == shared.Count);
+            return carryAll >= 2;
+        }
+
+        /// <summary>Fewer dances than this and the shared-effect vote is unanimous by construction.</summary>
+        private const int MinDancesForDjBlock = 4;
+
+        /// <summary>A block smaller than this is more plausibly one dance's own effects.</summary>
+        private const int MinSharedEffects = 5;
+
         /// <summary>Every distinct C012 effect path in a timeline.</summary>
         private static HashSet<string> EffectStrings(TmbLayout timeline)
         {
