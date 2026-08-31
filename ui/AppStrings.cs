@@ -180,5 +180,26 @@ namespace Pickles_Playlist_Editor
         public static string Processed(int success, int total) => string.Format(_r.GetString("Dlg_Processed"), success, total);
         public static string ProcessedErrors(string errors) => string.Format(_r.GetString("Dlg_ProcessedErrors"), errors);
         public static string AndMore(int count) => string.Format(_r.GetString("Dlg_AndMore"), count);
+
+        // ---- backups ----------------------------------------------------------------------------
+        public static string Backup_Loading => _r.GetString("Backup_Loading");
+        public static string Backup_None => _r.GetString("Backup_None");
+        public static string Backup_IncompatibleSuffix => _r.GetString("Backup_IncompatibleSuffix");
+        public static string Dlg_LoadBackup_Title => _r.GetString("Dlg_LoadBackup_Title");
+        public static string Dlg_LoadBackup_DoneTitle => _r.GetString("Dlg_LoadBackup_DoneTitle");
+
+        /// <summary>
+        /// One line in the backups dropdown. Deliberately "(s)" rather than separate singular forms:
+        /// the counts are meant to be compared against the "Loaded N playlist(s), M song(s)" line in
+        /// the log, which is how a user identifies the copy from before a loss.
+        /// </summary>
+        public static string BackupEntry(string when, int playlists, int songs) =>
+            string.Format(_r.GetString("Backup_EntryFormat"), when, playlists, songs);
+        public static string BackupVersionSuffix(string version) =>
+            string.Format(_r.GetString("Backup_VersionSuffix"), version);
+        public static string LoadBackupConfirm(string entry, string modName) =>
+            string.Format(_r.GetString("Dlg_LoadBackup_Content"), entry, modName);
+        public static string LoadBackupFailed(string message) =>
+            string.Format(_r.GetString("Dlg_LoadBackup_Failed"), message);
     }
 }

@@ -246,4 +246,24 @@ Change the key anyway?</value></data>
   <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>Sound path this mod uses</value></data>
   <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>This is the path new songs are saved to. Changing it here does not touch the effect files that ask for it — use the rename below for that.</value></data>
   <data name="EditSoundPathButton.Content" xml:space="preserve"><value>Edit</value></data>
+  <data name="BackupsLabel.Text" xml:space="preserve"><value>Backups</value></data>
+  <data name="LoadBackupButton.Content" xml:space="preserve"><value>Load Backup</value></data>
+  <data name="BackupsHint.Text" xml:space="preserve"><value>Puts the playlists from a saved copy back into the mod. What is there now is saved first, so you can pick a different copy afterwards.</value></data>
+  <data name="Backup_Loading" xml:space="preserve"><value>Loading backups…</value></data>
+  <data name="Backup_None" xml:space="preserve"><value>No backups found for this mod</value></data>
+  <data name="Backup_EntryFormat" xml:space="preserve"><value>{0} — {1} playlist(s), {2} song(s)</value></data>
+  <data name="Backup_VersionSuffix" xml:space="preserve"><value> (saved for v{0})</value></data>
+  <data name="Backup_IncompatibleSuffix" xml:space="preserve"><value> — cannot be restored here</value></data>
+  <data name="Dlg_LoadBackup_Title" xml:space="preserve"><value>Warning</value></data>
+  <data name="Dlg_LoadBackup_Content" xml:space="preserve"><value>{0}
+
+This replaces the playlists in "{1}" with the ones in this backup, and removes playlists the backup does not contain.
+
+What is there now is saved first, so you can load a different backup afterwards. Your song files are not touched.
+
+Do you want to proceed?</value></data>
+  <data name="Dlg_LoadBackup_DoneTitle" xml:space="preserve"><value>Backup Loaded</value></data>
+  <data name="Dlg_LoadBackup_Failed" xml:space="preserve"><value>The backup could not be loaded:
+
+{0}</value></data>
 </root>

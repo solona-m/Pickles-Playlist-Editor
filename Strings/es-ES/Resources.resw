@@ -246,4 +246,24 @@ Cambiar solo la clave hará que tu música deje de sonar. Usa «Cambiar la ruta 
   <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>Ruta de sonido que usa este mod</value></data>
   <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>Es la ruta donde se guardan las canciones nuevas. Cambiarla aquí no modifica los archivos de efectos que la piden; para eso usa el cambio de nombre de abajo.</value></data>
   <data name="EditSoundPathButton.Content" xml:space="preserve"><value>Editar</value></data>
+  <data name="BackupsLabel.Text" xml:space="preserve"><value>Copias de seguridad</value></data>
+  <data name="LoadBackupButton.Content" xml:space="preserve"><value>Cargar copia</value></data>
+  <data name="BackupsHint.Text" xml:space="preserve"><value>Devuelve al mod las listas de reproducción de una copia guardada. Lo que hay ahora se guarda antes, así que después puedes elegir otra copia.</value></data>
+  <data name="Backup_Loading" xml:space="preserve"><value>Cargando copias de seguridad…</value></data>
+  <data name="Backup_None" xml:space="preserve"><value>No se han encontrado copias de seguridad de este mod</value></data>
+  <data name="Backup_EntryFormat" xml:space="preserve"><value>{0} — {1} lista(s), {2} canción(es)</value></data>
+  <data name="Backup_VersionSuffix" xml:space="preserve"><value> (guardada para v{0})</value></data>
+  <data name="Backup_IncompatibleSuffix" xml:space="preserve"><value> — no se puede restaurar aquí</value></data>
+  <data name="Dlg_LoadBackup_Title" xml:space="preserve"><value>Advertencia</value></data>
+  <data name="Dlg_LoadBackup_Content" xml:space="preserve"><value>{0}
+
+Esto sustituye las listas de reproducción de «{1}» por las de esta copia y elimina las listas que la copia no contiene.
+
+Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tus archivos de canciones no se tocan.
+
+¿Quieres continuar?</value></data>
+  <data name="Dlg_LoadBackup_DoneTitle" xml:space="preserve"><value>Copia cargada</value></data>
+  <data name="Dlg_LoadBackup_Failed" xml:space="preserve"><value>No se ha podido cargar la copia de seguridad:
+
+{0}</value></data>
 </root>

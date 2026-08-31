@@ -246,4 +246,24 @@ Schlüssel trotzdem ändern?</value></data>
   <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>Von diesem Mod verwendeter Sound-Pfad</value></data>
   <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>Unter diesem Pfad werden neue Lieder gespeichert. Eine Änderung hier verändert nicht die Effektdateien, die ihn anfordern — nutze dafür die Umbenennung unten.</value></data>
   <data name="EditSoundPathButton.Content" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="BackupsLabel.Text" xml:space="preserve"><value>Sicherungen</value></data>
+  <data name="LoadBackupButton.Content" xml:space="preserve"><value>Sicherung laden</value></data>
+  <data name="BackupsHint.Text" xml:space="preserve"><value>Setzt die Playlists aus einer gespeicherten Kopie zurück in den Mod. Der aktuelle Stand wird vorher gesichert, du kannst also danach eine andere Kopie wählen.</value></data>
+  <data name="Backup_Loading" xml:space="preserve"><value>Sicherungen werden geladen…</value></data>
+  <data name="Backup_None" xml:space="preserve"><value>Keine Sicherungen für diesen Mod gefunden</value></data>
+  <data name="Backup_EntryFormat" xml:space="preserve"><value>{0} — {1} Playlist(s), {2} Song(s)</value></data>
+  <data name="Backup_VersionSuffix" xml:space="preserve"><value> (gespeichert für v{0})</value></data>
+  <data name="Backup_IncompatibleSuffix" xml:space="preserve"><value> — hier nicht wiederherstellbar</value></data>
+  <data name="Dlg_LoadBackup_Title" xml:space="preserve"><value>Warnung</value></data>
+  <data name="Dlg_LoadBackup_Content" xml:space="preserve"><value>{0}
+
+Dies ersetzt die Playlists in „{1}“ durch die aus dieser Sicherung und entfernt Playlists, die in der Sicherung nicht enthalten sind.
+
+Der aktuelle Stand wird vorher gesichert, du kannst also danach eine andere Sicherung laden. Deine Songdateien bleiben unberührt.
+
+Möchtest du fortfahren?</value></data>
+  <data name="Dlg_LoadBackup_DoneTitle" xml:space="preserve"><value>Sicherung geladen</value></data>
+  <data name="Dlg_LoadBackup_Failed" xml:space="preserve"><value>Die Sicherung konnte nicht geladen werden:
+
+{0}</value></data>
 </root>

@@ -34,24 +34,47 @@ namespace Pickles_Playlist_Editor.Utils
         // rather than the first to occur silencing the other.
         private static int s_timeoutReported;
 
+        // Penumbra 1.7 split its single config file into a folder, so both locations have to be
+        // tried — reading only the old one meant every 1.7 user with no saved path got "" and had to
+        // find their own mod folder by hand.
+        //
+        // Newest first, and deliberately not "first file that exists": a machine that has been
+        // through the move still has the old Penumbra.json sitting there, so preferring it would
+        // hand back whichever mod directory was configured before the upgrade.
+        private static readonly string[] s_configPaths =
+        {
+            Path.Combine("Penumbra", "config", "penumbra.json"),   // Penumbra 1.7 and later
+            "Penumbra.json",                                       // earlier releases
+        };
+
+        /// <summary>
+        /// The mod directory Penumbra is configured with, or "" when it cannot be read. Only used to
+        /// guess a folder for a user who has never set one, so an empty answer costs a prompt rather
+        /// than a failure.
+        /// </summary>
         public static string GetPenumbraDirectory()
         {
-            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "XIVLauncher", "pluginConfigs", "Penumbra.json");
-            if (!File.Exists(path))
+            foreach (string relative in s_configPaths)
             {
-                return "";
+                string path = Path.Combine(PenumbraInstall.DalamudRoot, "pluginConfigs", relative);
+                if (!File.Exists(path))
+                    continue;
+
+                try
+                {
+                    string? modDirectory = (string?)JObject.Parse(File.ReadAllText(path))["ModDirectory"];
+                    if (!string.IsNullOrWhiteSpace(modDirectory))
+                        return modDirectory;
+                }
+                catch (Exception ex)
+                {
+                    // Keep looking rather than give up: a damaged config in one layout says nothing
+                    // about whether the other one is readable.
+                    Logger.LogWarn("Could not read Penumbra's config at '{Path}': {Error}", path, ex.Message);
+                }
             }
 
-            try
-            {
-                var obj = JObject.Parse(File.ReadAllText(path));
-                var st = (string)obj["ModDirectory"];
-                return st;
-            }
-            catch (Exception ex)
-            {
-                return "";
-            }
+            return "";
         }
 
         /// <summary>

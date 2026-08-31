@@ -59,6 +59,12 @@ namespace Pickles_Playlist_Editor
                 Utils.Logger.LogWarn("Could not preselect the update channel: {Error}", e.Message);
             }
 
+            // Enumerating backups parses every group file of every saved set, so it cannot run here —
+            // the constructor is on the UI thread and the dialog would not paint until it finished.
+            // Loaded fires with the controls already up, which is what lets the dropdown show its own
+            // "loading" state instead of the dialog appearing frozen.
+            this.Loaded += async (_, _) => await RefreshBackupsAsync();
+
             _loading = false;
             ValidateFields();
         }
@@ -442,13 +448,156 @@ namespace Pickles_Playlist_Editor
             });
         }
 
-        // Restoring an older version's config is a manual copy, so the folder has to be reachable —
+        // ---- backups ---------------------------------------------------------------------------
+
+        // Parallel to the dropdown's items by index. The ComboBox holds display strings rather than
+        // the entries themselves so that the "loading" and "none" placeholders can occupy it without
+        // being selectable as backups — the index is then only a real backup when it lands in here.
+        private List<Utils.BackupCatalog.BackupEntry> _backups = new();
+
+        private async Task RefreshBackupsAsync()
+        {
+            _backups = new List<Utils.BackupCatalog.BackupEntry>();
+            BackupComboBox.ItemsSource = new List<string> { AppStrings.Backup_Loading };
+            BackupComboBox.SelectedIndex = 0;
+            BackupComboBox.IsEnabled = false;
+            LoadBackupButton.IsEnabled = false;
+
+            List<Utils.BackupCatalog.BackupEntry> found;
+            try
+            {
+                found = await Task.Run(() => Utils.BackupCatalog.List());
+            }
+            catch (Exception ex)
+            {
+                // A dropdown that cannot be filled is not worth taking the Settings dialog down over,
+                // and BackupCatalog already guards each source individually — reaching here means
+                // something broader, which the log is the right place for.
+                Utils.Logger.LogWarn("Could not list backups: {Error}", ex.Message);
+                found = new List<Utils.BackupCatalog.BackupEntry>();
+            }
+
+            _backups = found;
+            BackupComboBox.ItemsSource = found.Count > 0
+                ? found.Select(DescribeBackup).ToList()
+                : new List<string> { AppStrings.Backup_None };
+            BackupComboBox.SelectedIndex = 0;
+            BackupComboBox.IsEnabled = found.Count > 0;
+        }
+
+        /// <summary>
+        /// One dropdown line. The two counts are the entire point: they are what someone whose
+        /// library was replaced compares against the "Loaded N playlist(s), M song(s)" line in the log
+        /// to find the copy from before the loss. A list of bare timestamps would not be choosable.
+        /// </summary>
+        private static string DescribeBackup(Utils.BackupCatalog.BackupEntry entry)
+        {
+            string text = AppStrings.BackupEntry(
+                entry.TakenAt.ToString("g", System.Globalization.CultureInfo.CurrentCulture),
+                entry.PlaylistCount,
+                entry.SongCount);
+
+            if (entry.Source == Utils.BackupCatalog.BackupSource.Version
+                && !string.IsNullOrWhiteSpace(entry.VersionLabel))
+                text += AppStrings.BackupVersionSuffix(entry.VersionLabel);
+
+            if (!entry.Compatible)
+                text += AppStrings.Backup_IncompatibleSuffix;
+
+            return text;
+        }
+
+        private void BackupComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            int index = BackupComboBox.SelectedIndex;
+            LoadBackupButton.IsEnabled = index >= 0 && index < _backups.Count;
+        }
+
+        private async void LoadBackupButton_Click(object sender, RoutedEventArgs e)
+        {
+            int index = BackupComboBox.SelectedIndex;
+            if (index < 0 || index >= _backups.Count)
+                return;   // a placeholder is selected, not a backup
+
+            var entry = _backups[index];
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+
+            if (entry.UnrestorableReason != null)
+            {
+                // The catalog's own words, not one fixed sentence: "wrong layout" and "this folder
+                // cannot be read well enough to tell" are different problems with different ways out,
+                // and the second one needs to point at the manual route. Resolved when the list was
+                // built, so this costs no disk access on the UI thread.
+                MessageBox(hwnd,
+                    entry.UnrestorableReason,
+                    AppStrings.Dlg_LoadBackup_Title,
+                    0x00000030); // MB_ICONWARNING
+                return;
+            }
+
+            int result = MessageBox(hwnd,
+                AppStrings.LoadBackupConfirm(DescribeBackup(entry), Settings.ModName ?? string.Empty),
+                AppStrings.Dlg_LoadBackup_Title,
+                0x00000001 | 0x00000030); // MB_OKCANCEL | MB_ICONWARNING
+            if (result != 1) // IDOK
+                return;
+
+            // Locked down for the duration. The confirmation above is modal, but it returns before
+            // the restore begins and the await below hands the UI thread back — so without this, a
+            // second click (or an impatient double-click) starts a second restore whose "undo"
+            // snapshot is a capture of the first one part-way through. RefreshBackupsAsync at the end
+            // restores both control states on every path.
+            LoadBackupButton.IsEnabled = false;
+            BackupComboBox.IsEnabled = false;
+
+            try
+            {
+                List<string>? log = null;
+                try
+                {
+                    await Task.Run(() => { log = Utils.BackupCatalog.Restore(entry); });
+                }
+                finally
+                {
+                    // The tree is showing the library that was just replaced — and on a failure
+                    // part-way through it is showing one that no longer matches disk at all, which is
+                    // precisely when a stale tree misleads: the user would see their old playlists
+                    // listed and believe nothing had happened.
+                    App.MainWindow.LoadPlaylists();
+                }
+
+                MessageBox(hwnd,
+                    string.Join("\n", log ?? new List<string>()),
+                    AppStrings.Dlg_LoadBackup_DoneTitle,
+                    0x00000040); // MB_ICONINFORMATION
+            }
+            catch (Exception ex)
+            {
+                Utils.Logger.LogError("Loading backup '{Path}' failed: {Error}", entry.Path, ex);
+                MessageBox(hwnd,
+                    AppStrings.LoadBackupFailed(ex.Message),
+                    AppStrings.Dlg_Error,
+                    0x00000010); // MB_ICONERROR
+            }
+
+            // Whether it worked or not, the list has moved: a successful restore snapshots the folder
+            // it replaced, so the undo is now the newest entry and the user must be able to reach it
+            // without reopening Settings.
+            await RefreshBackupsAsync();
+        }
+
+        // Anything the dropdown above cannot do is a manual copy, so the folder has to be reachable —
         // it lives under %LOCALAPPDATA% where nobody would find it unaided.
+        //
+        // Opens the backup root, not VersionBackup.VersionsRoot. That subfolder holds one copy per app
+        // version and is refreshed on every boot, so it is the LEAST likely of the three to still have
+        // a pre-incident copy; opening it alone hid the per-write snapshots — the ones that actually
+        // survive a mod folder being replaced — from someone digging by hand.
         private void OpenBackupsButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                string path = Utils.VersionBackup.VersionsRoot;
+                string path = Playlist.BackupDir;
                 Directory.CreateDirectory(path);
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path)
                 {

@@ -246,4 +246,24 @@ Att bara ändra nyckeln gör att musiken tystnar. Använd ”Ändra ljudsökväg
   <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>Ljudsökväg som den här modden använder</value></data>
   <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>Det här är sökvägen där nya låtar sparas. Att ändra den här rör inte effektfilerna som begär den — använd namnbytet nedan för det.</value></data>
   <data name="EditSoundPathButton.Content" xml:space="preserve"><value>Redigera</value></data>
+  <data name="BackupsLabel.Text" xml:space="preserve"><value>Säkerhetskopior</value></data>
+  <data name="LoadBackupButton.Content" xml:space="preserve"><value>Läs in kopia</value></data>
+  <data name="BackupsHint.Text" xml:space="preserve"><value>Lägger tillbaka spellistorna från en sparad kopia i modden. Det som finns nu sparas först, så du kan välja en annan kopia efteråt.</value></data>
+  <data name="Backup_Loading" xml:space="preserve"><value>Läser in säkerhetskopior…</value></data>
+  <data name="Backup_None" xml:space="preserve"><value>Inga säkerhetskopior hittades för den här modden</value></data>
+  <data name="Backup_EntryFormat" xml:space="preserve"><value>{0} — {1} spellista/-or, {2} låt(ar)</value></data>
+  <data name="Backup_VersionSuffix" xml:space="preserve"><value> (sparad för v{0})</value></data>
+  <data name="Backup_IncompatibleSuffix" xml:space="preserve"><value> — kan inte återställas här</value></data>
+  <data name="Dlg_LoadBackup_Title" xml:space="preserve"><value>Varning</value></data>
+  <data name="Dlg_LoadBackup_Content" xml:space="preserve"><value>{0}
+
+Detta ersätter spellistorna i ”{1}” med dem i den här kopian och tar bort spellistor som kopian inte innehåller.
+
+Det som finns nu sparas först, så du kan läsa in en annan kopia efteråt. Dina låtfiler rörs inte.
+
+Vill du fortsätta?</value></data>
+  <data name="Dlg_LoadBackup_DoneTitle" xml:space="preserve"><value>Kopian inläst</value></data>
+  <data name="Dlg_LoadBackup_Failed" xml:space="preserve"><value>Säkerhetskopian kunde inte läsas in:
+
+{0}</value></data>
 </root>

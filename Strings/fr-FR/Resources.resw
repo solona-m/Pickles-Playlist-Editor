@@ -246,4 +246,24 @@ Changer quand même la clé ?</value></data>
   <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>Chemin sonore utilisé par ce mod</value></data>
   <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>C'est le chemin où les nouveaux morceaux sont enregistrés. Le modifier ici ne touche pas aux fichiers d'effets qui le demandent ; utilisez le renommage ci-dessous pour cela.</value></data>
   <data name="EditSoundPathButton.Content" xml:space="preserve"><value>Modifier</value></data>
+  <data name="BackupsLabel.Text" xml:space="preserve"><value>Sauvegardes</value></data>
+  <data name="LoadBackupButton.Content" xml:space="preserve"><value>Charger la sauvegarde</value></data>
+  <data name="BackupsHint.Text" xml:space="preserve"><value>Remet dans le mod les playlists d'une copie enregistrée. L'état actuel est sauvegardé au préalable, vous pouvez donc en choisir une autre ensuite.</value></data>
+  <data name="Backup_Loading" xml:space="preserve"><value>Chargement des sauvegardes…</value></data>
+  <data name="Backup_None" xml:space="preserve"><value>Aucune sauvegarde trouvée pour ce mod</value></data>
+  <data name="Backup_EntryFormat" xml:space="preserve"><value>{0} — {1} playlist(s), {2} morceau(x)</value></data>
+  <data name="Backup_VersionSuffix" xml:space="preserve"><value> (enregistrée pour v{0})</value></data>
+  <data name="Backup_IncompatibleSuffix" xml:space="preserve"><value> — non restaurable ici</value></data>
+  <data name="Dlg_LoadBackup_Title" xml:space="preserve"><value>Avertissement</value></data>
+  <data name="Dlg_LoadBackup_Content" xml:space="preserve"><value>{0}
+
+Cela remplace les playlists de « {1} » par celles de cette sauvegarde et supprime les playlists que la sauvegarde ne contient pas.
+
+L'état actuel est sauvegardé au préalable, vous pourrez donc charger une autre sauvegarde ensuite. Vos fichiers de morceaux ne sont pas touchés.
+
+Voulez-vous continuer ?</value></data>
+  <data name="Dlg_LoadBackup_DoneTitle" xml:space="preserve"><value>Sauvegarde chargée</value></data>
+  <data name="Dlg_LoadBackup_Failed" xml:space="preserve"><value>La sauvegarde n'a pas pu être chargée :
+
+{0}</value></data>
 </root>

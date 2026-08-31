@@ -98,6 +98,19 @@
                     Content="Sign Out" Click="SoundCloudSignOutButton_Click" HorizontalAlignment="Stretch"/>
         </Grid>
 
+        <TextBlock x:Uid="BackupsLabel" Text="Backups" FontWeight="SemiBold"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <ComboBox x:Name="BackupComboBox" Grid.Column="0" Margin="0,0,4,0"
+                      HorizontalAlignment="Stretch" SelectionChanged="BackupComboBox_SelectionChanged"/>
+            <Button x:Uid="LoadBackupButton" x:Name="LoadBackupButton" Grid.Column="1"
+                    Content="Load Backup" Click="LoadBackupButton_Click"/>
+        </Grid>
+        <TextBlock x:Uid="BackupsHint" x:Name="BackupsHintText" Opacity="0.7" TextWrapping="Wrap"
+                   Text="Puts the playlists from a saved copy back into the mod. The copy it replaces is saved first, so you can pick a different one afterwards."/>
         <Button x:Uid="OpenBackupsButton" Content="Open Backups Folder" Click="OpenBackupsButton_Click" HorizontalAlignment="Stretch"/>
         <Button x:Uid="OrganizeLibraryButton" Content="Organize Library" Click="OrganizeLibraryButton_Click" HorizontalAlignment="Stretch"/>
         <Button x:Uid="RepairLibraryButton" Content="Repair Library" Click="RepairLibraryButton_Click" HorizontalAlignment="Stretch"/>

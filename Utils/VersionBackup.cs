@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -76,7 +76,9 @@ namespace Pickles_Playlist_Editor.Utils
         /// </summary>
         internal static string VersionsRoot => Path.Combine(Playlist.BackupDir, "versions");
 
-        private static string ModVersionsDir
+        // Internal rather than private because BackupCatalog enumerates the same folder to offer
+        // these backups in Settings. Everything that WRITES here stays in this class.
+        internal static string ModVersionsDir
         {
             get
             {
@@ -514,7 +516,9 @@ namespace Pickles_Playlist_Editor.Utils
         private const string StagingSuffix = ".tmp";
         private const string PreviousSuffix = ".old";
 
-        private static bool IsSidecar(string name) =>
+        // Internal for BackupCatalog, which must skip the same half-swapped leftovers this class
+        // resolves on its next capture — until then they are duplicates of a folder already listed.
+        internal static bool IsSidecar(string name) =>
             name.EndsWith(StagingSuffix, StringComparison.OrdinalIgnoreCase)
             || name.EndsWith(PreviousSuffix, StringComparison.OrdinalIgnoreCase);
 

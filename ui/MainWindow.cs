@@ -65,6 +65,12 @@ namespace Pickles_Playlist_Editor
             Utils.Logger.LogInfo("Startup: log='{Log}' crashLog='{CrashLog}'",
                 Utils.Logger.LogFilePath, Utils.Logger.CrashLogPath);
 
+            // Penumbra's version, not ours. It owns the mod folder's layout — v3 and v4 are both live
+            // steady states and it converts between them on its own schedule — so a report about
+            // playlists that changed shape, or a folder that was rewritten underneath us, is not
+            // answerable without knowing which build did it.
+            Utils.Logger.LogInfo("Startup: Penumbra plugin {Version}", Utils.PenumbraInstall.DescribeForLog());
+
             // Clear decoded previews orphaned by a previous crash or hard kill.
             Player.PurgeStalePlaybackFiles();
 

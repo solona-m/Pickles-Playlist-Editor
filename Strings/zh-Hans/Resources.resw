@@ -246,4 +246,24 @@
   <data name="SoundPathKeyLabel.Text" xml:space="preserve"><value>此模组使用的声音路径</value></data>
   <data name="SoundPathKeyHint.Text" xml:space="preserve"><value>新歌曲会保存到这个路径。在这里修改它不会改动请求该路径的特效文件 — 请使用下方的重命名。</value></data>
   <data name="EditSoundPathButton.Content" xml:space="preserve"><value>编辑</value></data>
+  <data name="BackupsLabel.Text" xml:space="preserve"><value>备份</value></data>
+  <data name="LoadBackupButton.Content" xml:space="preserve"><value>载入备份</value></data>
+  <data name="BackupsHint.Text" xml:space="preserve"><value>把已保存副本中的播放列表放回模组。当前内容会先保存，之后你仍可以选择其他副本。</value></data>
+  <data name="Backup_Loading" xml:space="preserve"><value>正在载入备份…</value></data>
+  <data name="Backup_None" xml:space="preserve"><value>未找到此模组的备份</value></data>
+  <data name="Backup_EntryFormat" xml:space="preserve"><value>{0} — {1} 个播放列表，{2} 首歌曲</value></data>
+  <data name="Backup_VersionSuffix" xml:space="preserve"><value>（为 v{0} 保存）</value></data>
+  <data name="Backup_IncompatibleSuffix" xml:space="preserve"><value> — 无法在此还原</value></data>
+  <data name="Dlg_LoadBackup_Title" xml:space="preserve"><value>警告</value></data>
+  <data name="Dlg_LoadBackup_Content" xml:space="preserve"><value>{0}
+
+这会用此备份中的播放列表替换“{1}”中的播放列表，并删除备份中没有的播放列表。
+
+当前内容会先保存，之后你仍可以载入其他备份。你的歌曲文件不会被动。
+
+确定继续吗？</value></data>
+  <data name="Dlg_LoadBackup_DoneTitle" xml:space="preserve"><value>备份已载入</value></data>
+  <data name="Dlg_LoadBackup_Failed" xml:space="preserve"><value>无法载入备份：
+
+{0}</value></data>
 </root>
