@@ -85,6 +85,38 @@ namespace Pickles_Playlist_Editor
             return Path.Combine(PlaybackTempDir, $"{baseName}_{suffix}_{Guid.NewGuid():N}.ogg");
         }
 
+        // Matches exactly what the line above writes: "{name}_{tag}_{32 hex}.ogg". Anchored at the end
+        // so a real song merely called "preview" is untouched — it takes the tag AND a full GUID in
+        // the final position to qualify, which no track picks up by accident.
+        private static readonly System.Text.RegularExpressions.Regex s_extractedNamePattern = new(
+            @"_(?:now_playing|preview)_[0-9a-f]{32}$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            | System.Text.RegularExpressions.RegexOptions.CultureInvariant
+            | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>
+        /// True for a decoded preview this app wrote for playback.
+        ///
+        /// These are not songs. They are what <see cref="CreateExtractedOggPath"/> drops in the
+        /// playback folder every time the user hits play, and <see cref="PurgeStalePlaybackFiles"/>
+        /// clears at boot. Import has to know about them because nothing stops a user from pointing
+        /// "New Playlist" at a folder that contains some — one did, and ended up with playlist entries
+        /// named after a GUID. Recognized by NAME rather than by location, since by the time one has
+        /// been copied somewhere else the folder no longer identifies it.
+        ///
+        /// The extension is deliberately not part of the test. These are written as .ogg, but once one
+        /// has been imported the mod holds a .scd under the same name, and re-importing THAT — which is
+        /// exactly what a second rebuild attempt does — would put the junk straight back. Nothing but
+        /// this app produces a tag followed by a full GUID in the final position, whatever the
+        /// extension, so matching the name alone cannot catch a real track.
+        /// </summary>
+        public static bool IsExtractedPlaybackFile(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return false;
+
+            return s_extractedNamePattern.IsMatch(Path.GetFileNameWithoutExtension(path));
+        }
+
         // %LOCALAPPDATA%\PicklesPlaylistEditor\playback — always writable for the current
         // user, falls back to %TEMP% if it somehow isn't.
         private static string PlaybackTempDir

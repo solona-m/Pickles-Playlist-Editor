@@ -86,18 +86,18 @@ namespace Pickles_Playlist_Editor
 
             if (!string.IsNullOrEmpty(dir))
             {
-                int count = 0, totalCount = 0;
-                foreach (string ext in Settings.SupportedFileTypes)
-                    totalCount += Directory.GetFiles(dir, "*" + ext, SearchOption.AllDirectories).Length;
+                // Enumerated once instead of twice. The old counting pass and importing pass walked
+                // the tree separately, so any filtering had to be kept in step across both or the
+                // progress bar would drift; one list cannot disagree with itself.
+                var files = EnumerateImportableFiles(dir);
+                var referenced = ReferencedScdPaths();
 
-                foreach (string ext in Settings.SupportedFileTypes)
+                int count = 0;
+                foreach (string file in files)
                 {
-                    foreach (string file in Directory.GetFiles(dir, "*" + ext, SearchOption.AllDirectories))
-                    {
-                        AddFiles(playlistName, group, file);
-                        if (callback != null)
-                            callback((int)((float)(++count) / totalCount * 100));
-                    }
+                    AddFiles(playlistName, group, file, referenced);
+                    if (callback != null)
+                        callback((int)((float)(++count) / files.Count * 100));
                 }
             }
 
@@ -109,6 +109,33 @@ namespace Pickles_Playlist_Editor
             RefreshPenumbraMod();
         }
 
+        /// <summary>
+        /// Every supported audio file under <paramref name="dir"/>, in the extension order
+        /// <see cref="Settings.SupportedFileTypes"/> declares, minus this app's own playback previews.
+        ///
+        /// The exclusion is not hypothetical tidiness. A user rebuilding a lost library pointed New
+        /// Playlist at a folder holding a handful of them and got playlist entries named
+        /// "Faith No More - Epic_now_playing_0ec27e89434f400d9866b88648b88d32" — the app importing its
+        /// own scratch files as though they were music, twice, because the recursion sweeps up
+        /// everything with a supported extension.
+        /// </summary>
+        private static List<string> EnumerateImportableFiles(string dir)
+        {
+            var files = new List<string>();
+            foreach (string ext in Settings.SupportedFileTypes)
+                files.AddRange(Directory.GetFiles(dir, "*" + ext, SearchOption.AllDirectories));
+
+            int before = files.Count;
+            files.RemoveAll(Player.IsExtractedPlaybackFile);
+
+            int skipped = before - files.Count;
+            if (skipped > 0)
+                Logger.LogInfo("Import: skipped {Count} of this app's own playback preview file(s) " +
+                    "found under '{Dir}'.", skipped, dir);
+
+            return files;
+        }
+
         private static Playlist NewPlaylist(string playlistName)
         {
             var group = new Playlist { Id = Guid.NewGuid(), Name = playlistName };
@@ -116,7 +143,47 @@ namespace Pickles_Playlist_Editor
             return group;
         }
 
-        static Option AddFiles(string playlistName, Playlist group, string file)
+        /// <summary>
+        /// Every .scd path any playlist in this mod currently points at, normalized for comparison.
+        ///
+        /// Built once per import batch and handed to <see cref="AddFiles"/>, which will only reuse a
+        /// file that appears nowhere in it. That restriction is what keeps reuse safe: deleting a song
+        /// deletes its .scd outright, with no check for other options referencing it, so two entries
+        /// sharing one file means deleting either destroys the audio the other still needs. Reuse is
+        /// therefore confined to ORPHANED audio — which is exactly the case it exists for, rebuilding
+        /// a playlist from the .scd files a lost group file left behind.
+        ///
+        /// Entries are added as the batch proceeds, so a source listed twice in one import does not
+        /// have its second copy reuse the file the first just wrote.
+        /// </summary>
+        private static HashSet<string> ReferencedScdPaths()
+        {
+            var referenced = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                foreach (var playlist in GetAll().Values)
+                {
+                    if (playlist.Options == null) continue;
+                    foreach (var option in playlist.Options)
+                    {
+                        if (option?.Files == null) continue;
+                        foreach (string path in option.Files.Values)
+                            referenced.Add(NormalizeRelativeModPath(path));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // An empty set only costs the optimization — every import then writes its own copy,
+                // which is what this code did before reuse existed. Never worth failing an import for.
+                Logger.LogWarn("Import: could not list referenced audio, so nothing will be reused " +
+                    "this batch: {Error}", ex.Message);
+            }
+            return referenced;
+        }
+
+        static Option AddFiles(string playlistName, Playlist group, string file,
+            HashSet<string> referencedScdPaths = null)
         {
             Option opt = null;
             try
@@ -136,19 +203,68 @@ namespace Pickles_Playlist_Editor
                 if (string.IsNullOrWhiteSpace(safeFileName))
                     safeFileName = "audio";
 
-                string targetPath = GetNonCollidingPath(Path.Combine(outDir, safeFileName + ".scd"));
-                using (BinaryWriter writer = new BinaryWriter(new FileStream(targetPath, FileMode.CreateNew)))
+                // Encoded up front rather than straight to the file, so it can be compared against
+                // what is already sitting at the target name. Importing re-encodes — the bytes here
+                // are not the source file's — so comparing our OUTPUT to the existing file is the
+                // only test that answers "is this already in the mod".
+                byte[] encoded;
+                using (var buffer = new MemoryStream())
                 {
-                    scdFile.Write(writer);
+                    using (var writer = new BinaryWriter(buffer, Encoding.UTF8, leaveOpen: true))
+                        scdFile.Write(writer);
+                    encoded = buffer.ToArray();
                 }
+
+                string desiredPath = Path.Combine(outDir, safeFileName + ".scd");
+                string desiredRelative = NormalizeRelativeModPath(
+                    Path.Combine(playlistScdDirectory, Path.GetFileName(desiredPath)));
+
+                // Three conditions, all necessary. The file has to be there, it has to be the same
+                // audio byte for byte, and — the one that makes this safe — nothing may already point
+                // at it. See ReferencedScdPaths.
+                bool reused = referencedScdPaths != null
+                    && !referencedScdPaths.Contains(desiredRelative)
+                    && File.Exists(desiredPath)
+                    && FileHasBytes(desiredPath, encoded);
+
+                string targetPath;
+                if (reused)
+                {
+                    // Byte-for-byte what is already there and referenced by nothing, so writing a
+                    // "_1" beside it would buy a second copy of the same audio and nothing else. This
+                    // is the shape of rebuilding a lost playlist from the orphaned .scd files still in
+                    // the mod folder: every track re-imports onto itself, and one user's mod grew
+                    // "X_1.scd" and then "X_1_1.scd" across two attempts before the playlist came back.
+                    targetPath = desiredPath;
+                }
+                else
+                {
+                    targetPath = GetNonCollidingPath(desiredPath);
+                    // CreateNew, not a plain write: GetNonCollidingPath says the name is free, and if
+                    // something claimed it in between, failing is right. Nothing here may clobber
+                    // audio another playlist is pointing at.
+                    using var stream = new FileStream(targetPath, FileMode.CreateNew);
+                    stream.Write(encoded, 0, encoded.Length);
+                }
+
+                string targetRelative = Path.Combine(playlistScdDirectory, Path.GetFileName(targetPath));
+
+                // Claimed for the rest of the batch, whether written or reused, so a source file
+                // listed twice cannot have its second occurrence reuse what its first just produced.
+                referencedScdPaths?.Add(NormalizeRelativeModPath(targetRelative));
+
                 opt = new Option();
                 opt.Name = filenameroot;
-                opt.Files.Add(
-                    Settings.BaselineScdKey,
-                    Path.Combine(playlistScdDirectory, Path.GetFileName(targetPath)));
+                opt.Files.Add(Settings.BaselineScdKey, targetRelative);
                 group.Options.Add(opt);
-                Logger.LogInfo("Imported '{Source}' -> {Target} (playlist '{Playlist}')",
-                    Path.GetFileName(file), Path.GetFileName(targetPath), playlistName);
+
+                if (reused)
+                    Logger.LogInfo("Imported '{Source}' -> {Target} (playlist '{Playlist}') — reused " +
+                        "the identical copy already in this mod instead of duplicating it.",
+                        Path.GetFileName(file), Path.GetFileName(targetPath), playlistName);
+                else
+                    Logger.LogInfo("Imported '{Source}' -> {Target} (playlist '{Playlist}')",
+                        Path.GetFileName(file), Path.GetFileName(targetPath), playlistName);
 
                 try
                 {
@@ -169,6 +285,38 @@ namespace Pickles_Playlist_Editor
                 throw new InvalidOperationException("Error adding file " + file + ": " + ex.Message, ex);
             }
             return opt;
+        }
+
+        /// <summary>
+        /// Whether the file at <paramref name="path"/> is exactly <paramref name="expected"/>.
+        ///
+        /// Streamed rather than read whole: a track is megabytes, and the overwhelmingly common answer
+        /// is "no" at the length check, before a single byte is read. An unreadable file answers false
+        /// — the caller then writes a fresh copy, which is the safe way to be wrong.
+        /// </summary>
+        private static bool FileHasBytes(string path, byte[] expected)
+        {
+            try
+            {
+                var info = new FileInfo(path);
+                if (!info.Exists || info.Length != expected.Length) return false;
+
+                using var stream = File.OpenRead(path);
+                byte[] chunk = new byte[64 * 1024];
+                int offset = 0, read;
+                while ((read = stream.Read(chunk, 0, chunk.Length)) > 0)
+                {
+                    if (offset + read > expected.Length) return false;
+                    if (!chunk.AsSpan(0, read).SequenceEqual(expected.AsSpan(offset, read)))
+                        return false;
+                    offset += read;
+                }
+                return offset == expected.Length;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static string ResolvePlaylistScdDirectory(string playlistName, Playlist group)
@@ -541,17 +689,31 @@ namespace Pickles_Playlist_Editor
             // can refuse rather than write this playlist into whichever mod is selected by then.
             string modAtStart = PenumbraMeta.ModRoot;
 
+            var referenced = ReferencedScdPaths();
+
             int count = 0;
             foreach (string file in fileNames)
             {
-                if (Settings.SupportedFileTypes.Contains(Path.GetExtension(file).ToLower()))
-                    AddFiles(Name, this, file);
+                if (Settings.SupportedFileTypes.Contains(Path.GetExtension(file).ToLower())
+                    && !SkipPlaybackPreview(file, Name))
+                    AddFiles(Name, this, file, referenced);
                 if (callback != null)
                     callback((int)((float)(++count)/fileNames.Length*100));
             }
 
             PenumbraMeta.AssertModRootUnchanged(modAtStart);
             Save();
+        }
+
+        // Logged rather than dropped quietly: a file the user explicitly selected vanishing from the
+        // result with no explanation is its own kind of confusing.
+        private static bool SkipPlaybackPreview(string file, string playlistName)
+        {
+            if (!Player.IsExtractedPlaybackFile(file)) return false;
+
+            Logger.LogInfo("Import: skipping '{File}' into '{Playlist}' — it is one of this app's own " +
+                "playback preview files, not a song.", Path.GetFileName(file), playlistName);
+            return true;
         }
 
         public void Insert(string[] fileNames, int index, Action<int>? callback = null)
@@ -572,11 +734,22 @@ namespace Pickles_Playlist_Editor
                 index = Math.Max(index, offIndex + 1);
 
             string modAtStart = PenumbraMeta.ModRoot;
+            var referenced = ReferencedScdPaths();
 
             int count = 0;
             foreach (string file in fileNames)
             {
-                Option opt = AddFiles(Name, this, file);
+                // Only the playback previews are filtered here, not the full extension check Add
+                // applies: Insert's callers hand it a list they have already vetted, and tightening
+                // that would silently drop files this path accepts today.
+                if (SkipPlaybackPreview(file, Name))
+                {
+                    if (callback != null)
+                        callback((int)((float)(++count) / fileNames.Length * 100));
+                    continue;
+                }
+
+                Option opt = AddFiles(Name, this, file, referenced);
                 Options.RemoveAt(Options.Count - 1);
                 Options.Insert(index, opt);
                 index++;
