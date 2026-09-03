@@ -266,4 +266,12 @@ Möchtest du fortfahren?</value></data>
   <data name="Dlg_LoadBackup_Failed" xml:space="preserve"><value>Die Sicherung konnte nicht geladen werden:
 
 {0}</value></data>
+  <data name="Revert_Title" xml:space="preserve"><value>Playlists sind verschwunden</value></data>
+  <data name="Revert_Message" xml:space="preserve"><value>Dieser Mod hatte um {2} noch {0} Playlist(s) und {1} Song(s) und hat jetzt {3} und {4}. Diese Änderung kam nicht von dieser App — Penumbra hat vermutlich eine ältere Kopie zurückgeschrieben.</value></data>
+  <data name="Revert_UndoAction" xml:space="preserve"><value>Zurückholen</value></data>
+  <data name="Revert_Restored" xml:space="preserve"><value>{0} Playlist(s) und {1} Song(s) wurden zurückgeholt. Lade den Mod in Penumbra neu, bevor du weiterarbeitest, sonst wird das eventuell erneut rückgängig gemacht.</value></data>
+  <data name="Revert_RestoreFailed" xml:space="preserve"><value>Sie konnten nicht zurückgeholt werden: {0}</value></data>
+  <data name="Revert_NoBackup" xml:space="preserve"><value>Es gibt keine gespeicherte Kopie von vor der Änderung. Öffne die Einstellungen und wähle unter Sicherungen eine andere aus.</value></data>
+  <data name="Reload_PausedTitle" xml:space="preserve"><value>Penumbra lädt nicht neu</value></data>
+  <data name="Reload_PausedMessage" xml:space="preserve"><value>Penumbra hat die letzten {0} Neuladeversuche abgelehnt. Deine Änderungen sind trotzdem gespeichert; die App versucht es alle {1} Minute(n) erneut.</value></data>
 </root>

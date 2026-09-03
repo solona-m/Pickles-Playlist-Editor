@@ -266,4 +266,12 @@
   <data name="Dlg_LoadBackup_Failed" xml:space="preserve"><value>无法载入备份：
 
 {0}</value></data>
+  <data name="Revert_Title" xml:space="preserve"><value>播放列表消失了</value></data>
+  <data name="Revert_Message" xml:space="preserve"><value>此模组在 {2} 时还有 {0} 个播放列表、{1} 首歌曲，现在只剩 {3} 和 {4}。这不是本应用做的更改 — Penumbra 可能把旧副本写回了。</value></data>
+  <data name="Revert_UndoAction" xml:space="preserve"><value>把它们放回去</value></data>
+  <data name="Revert_Restored" xml:space="preserve"><value>已放回 {0} 个播放列表和 {1} 首歌曲。继续编辑前请先在 Penumbra 中重新加载此模组，否则可能再次被撤销。</value></data>
+  <data name="Revert_RestoreFailed" xml:space="preserve"><value>无法放回：{0}</value></data>
+  <data name="Revert_NoBackup" xml:space="preserve"><value>没有更改之前的已保存副本。请打开设置，在“备份”中选择其他副本。</value></data>
+  <data name="Reload_PausedTitle" xml:space="preserve"><value>Penumbra 未重新加载</value></data>
+  <data name="Reload_PausedMessage" xml:space="preserve"><value>Penumbra 拒绝了最近 {0} 次重新加载请求。你的编辑仍已保存到磁盘；本应用将每 {1} 分钟重试一次。</value></data>
 </root>

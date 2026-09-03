@@ -266,4 +266,12 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="Dlg_LoadBackup_Failed" xml:space="preserve"><value>No se ha podido cargar la copia de seguridad:
 
 {0}</value></data>
+  <data name="Revert_Title" xml:space="preserve"><value>Han desaparecido listas de reproducción</value></data>
+  <data name="Revert_Message" xml:space="preserve"><value>Este mod tenía {0} lista(s) y {1} canción(es) a las {2}, y ahora tiene {3} y {4}. Esta aplicación no hizo ese cambio: es posible que Penumbra haya reescrito una copia anterior.</value></data>
+  <data name="Revert_UndoAction" xml:space="preserve"><value>Recuperarlas</value></data>
+  <data name="Revert_Restored" xml:space="preserve"><value>Se han recuperado {0} lista(s) y {1} canción(es). Recarga el mod en Penumbra antes de seguir editando o podría deshacerlo otra vez.</value></data>
+  <data name="Revert_RestoreFailed" xml:space="preserve"><value>No se han podido recuperar: {0}</value></data>
+  <data name="Revert_NoBackup" xml:space="preserve"><value>No hay ninguna copia guardada anterior al cambio. Abre Ajustes y usa Copias de seguridad para elegir otra.</value></data>
+  <data name="Reload_PausedTitle" xml:space="preserve"><value>Penumbra no se está recargando</value></data>
+  <data name="Reload_PausedMessage" xml:space="preserve"><value>Penumbra ha rechazado las últimas {0} peticiones de recarga. Tus cambios se siguen guardando en disco; la aplicación lo intentará de nuevo cada {1} minuto(s).</value></data>
 </root>

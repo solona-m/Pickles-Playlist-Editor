@@ -63,6 +63,23 @@ namespace Pickles_Playlist_Editor.Utils
             }
         }
 
+        private static string? s_cachedDescription;
+
+        /// <summary>
+        /// <see cref="DescribeForLog"/>, resolved once and kept.
+        ///
+        /// For naming the Penumbra build inside incident lines — a failed reload, a mod folder that
+        /// changed underneath us — rather than only in the startup line. A report arrives as a couple
+        /// of thousand lines and the boot line can be a long way from the incident: in the log that
+        /// prompted this, the reversion was at line 2042 and the last startup at 1870. Putting the
+        /// version on the line that matters makes "which Penumbra did this" a single grep.
+        ///
+        /// Cached because those lines can repeat often and each resolve reads the plugin manifest off
+        /// disk. The installed version cannot change without restarting the game anyway.
+        /// </summary>
+        internal static string CachedDescription =>
+            s_cachedDescription ??= DescribeForLog();
+
         /// <summary>
         /// One line for the startup log. Always returns something printable — "unknown" is itself a
         /// useful datum in a report, since it means Penumbra is not installed where this app looks.

@@ -74,6 +74,8 @@ namespace Pickles_Playlist_Editor
             // Clear decoded previews orphaned by a previous crash or hard kill.
             Player.PurgeStalePlaybackFiles();
 
+            WireModFolderNotices();
+
             _treeContextMenu = BuildContextMenu();
             _rootContextMenu = BuildRootContextMenu();
 

@@ -528,10 +528,18 @@ namespace Pickles_Playlist_Editor.Utils
             TrySnapshot(ModRoot, Settings.ModName ?? string.Empty);
 
         /// <inheritdoc cref="TrySnapshot()"/>
-        public static string? TrySnapshot(string modRoot, string modName)
+        /// <param name="ourWrite">
+        /// True for the ordinary case — a mutator snapshotting immediately before it writes — which
+        /// is also how <see cref="ModFolderGuard"/> learns that the next change to the folder is
+        /// ours. False for the one caller that snapshots before somebody ELSE writes: the failed
+        /// reload, which is protecting the folder from Penumbra rather than from itself.
+        /// </param>
+        public static string? TrySnapshot(string modRoot, string modName, bool ourWrite = true)
         {
             try
             {
+                if (ourWrite) ModFolderGuard.NoteWrite();
+
                 string path = MetaPathFor(modRoot);
                 if (!File.Exists(path)) return null;
 

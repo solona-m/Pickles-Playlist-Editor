@@ -13,6 +13,8 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <!-- Notices about the mod folder. Auto, so it takes no space when nothing is wrong. -->
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -71,8 +73,22 @@
             <TextBox Grid.Column="1" x:Name="SearchTextBox" TextChanged="SearchTextBox_TextChanged"/>
         </Grid>
 
+        <!-- Mod folder notices. Two bars, not one: a paused reload and a folder that lost content
+             are independent and can be true at the same time, and a shared bar would let the
+             lesser notice clobber the offer to put the playlists back. -->
+        <StackPanel Grid.Row="2" Margin="4,4,4,0" Spacing="4">
+            <InfoBar x:Name="RevertInfoBar" IsOpen="False" IsClosable="True" Severity="Warning"
+                     Closed="RevertInfoBar_Closed">
+                <InfoBar.ActionButton>
+                    <Button x:Name="RevertUndoButton" Click="RevertUndoButton_Click"/>
+                </InfoBar.ActionButton>
+            </InfoBar>
+            <InfoBar x:Name="ReloadPausedInfoBar" IsOpen="False" IsClosable="True"
+                     Severity="Informational"/>
+        </StackPanel>
+
         <!-- Playlist tree -->
-        <Grid Grid.Row="2" Margin="4,4,4,0">
+        <Grid Grid.Row="3" Margin="4,4,4,0">
             <Grid.Background>
                 <ImageBrush x:Name="TreeViewBackgroundBrush" ImageSource="picklebackground.png" Stretch="UniformToFill" Opacity="0.15"/>
             </Grid.Background>
@@ -107,13 +123,13 @@
         </Grid>
 
         <!-- Progress bar -->
-        <Grid Grid.Row="3" Margin="4,2,4,4">
+        <Grid Grid.Row="4" Margin="4,2,4,4">
             <ProgressBar x:Name="ProgressBar1" Minimum="0" Maximum="100" Value="0" Height="16"/>
             <TextBlock x:Name="ProgressLabel" Text="" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11"/>
         </Grid>
 
         <!-- Playback bar -->
-        <Grid Grid.Row="4" Margin="4,0,4,4">
+        <Grid Grid.Row="5" Margin="4,0,4,4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>

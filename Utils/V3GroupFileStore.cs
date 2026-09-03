@@ -90,11 +90,21 @@ namespace Pickles_Playlist_Editor.Utils
             if (!Directory.Exists(modDirectory))
                 return Array.Empty<string>();
 
-            return Directory.GetFiles(modDirectory, GroupGlob)
-                .OrderBy(GroupNumberOf)
-                .ThenBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-                .ToArray();
+            return InGroupOrder(Directory.GetFiles(modDirectory, GroupGlob)).ToArray();
         }
+
+        /// <summary>
+        /// The same ordering, applied to group files already in hand.
+        ///
+        /// For <see cref="BackupCatalog"/>, which counts a snapshot set it has already enumerated and
+        /// has to break a repeated group name the same way a load would — the loader keeps the FIRST
+        /// of a name, so "first" has to mean the same thing on both sides or the two counts disagree
+        /// about a set neither of them misread.
+        /// </summary>
+        internal static IEnumerable<string> InGroupOrder(IEnumerable<string> groupFiles) =>
+            groupFiles
+                .OrderBy(GroupNumberOf)
+                .ThenBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase);
 
         // Parses the NNN out of "group_NNN_Name.json". Unparseable names sort last, keeping them out
         // of the meaningful range rather than colliding at zero.
@@ -1091,10 +1101,19 @@ namespace Pickles_Playlist_Editor.Utils
         ///
         /// Best-effort: a snapshot failure must never block the edit the user asked for.
         /// </summary>
-        internal static string TrySnapshotSet()
+        /// <param name="ourWrite">
+        /// True for the ordinary case — a mutator snapshotting immediately before it writes — which
+        /// is also how <see cref="ModFolderGuard"/> learns that the next change to the folder is
+        /// ours. False for the one caller that snapshots before somebody ELSE writes: the failed
+        /// reload, which is protecting the folder from Penumbra rather than from itself. Defaulted to
+        /// true so a mutator added later is opted in rather than out.
+        /// </param>
+        internal static string TrySnapshotSet(bool ourWrite = true)
         {
             try
             {
+                if (ourWrite) ModFolderGuard.NoteWrite();
+
                 string modDir = ModRoot;
                 if (!Directory.Exists(modDir)) return null;
 

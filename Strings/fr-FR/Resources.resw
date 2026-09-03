@@ -266,4 +266,12 @@ Voulez-vous continuer ?</value></data>
   <data name="Dlg_LoadBackup_Failed" xml:space="preserve"><value>La sauvegarde n'a pas pu être chargée :
 
 {0}</value></data>
+  <data name="Revert_Title" xml:space="preserve"><value>Des playlists ont disparu</value></data>
+  <data name="Revert_Message" xml:space="preserve"><value>Ce mod avait {0} playlist(s) et {1} morceau(x) à {2}, et en a maintenant {3} et {4}. Ce changement ne vient pas de cette application : Penumbra a probablement réécrit une copie plus ancienne.</value></data>
+  <data name="Revert_UndoAction" xml:space="preserve"><value>Les remettre</value></data>
+  <data name="Revert_Restored" xml:space="preserve"><value>{0} playlist(s) et {1} morceau(x) ont été remis. Rechargez le mod dans Penumbra avant de continuer, sinon cela pourrait être annulé à nouveau.</value></data>
+  <data name="Revert_RestoreFailed" xml:space="preserve"><value>Impossible de les remettre : {0}</value></data>
+  <data name="Revert_NoBackup" xml:space="preserve"><value>Aucune copie enregistrée d'avant le changement n'est disponible. Ouvrez les Paramètres et utilisez Sauvegardes pour en choisir une autre.</value></data>
+  <data name="Reload_PausedTitle" xml:space="preserve"><value>Penumbra ne recharge pas</value></data>
+  <data name="Reload_PausedMessage" xml:space="preserve"><value>Penumbra a refusé les {0} dernières demandes de rechargement. Vos modifications restent enregistrées sur le disque ; l'application réessaiera toutes les {1} minute(s).</value></data>
 </root>

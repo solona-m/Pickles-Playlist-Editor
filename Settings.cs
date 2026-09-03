@@ -44,6 +44,15 @@ namespace Pickles_Playlist_Editor
             }
             set
             {
+                // Half of what ModRoot is built from, so on a real change the folder the guard holds
+                // counts for is no longer the folder those counts came from. Only on a real change,
+                // though: the Settings dialog writes this on every OK whether or not the path was
+                // touched, and forgetting unconditionally would disarm the guard for anyone who
+                // opened Settings to move the volume slider.
+                string current = (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue(s_valueName, null);
+                if (!string.Equals(current, value, StringComparison.OrdinalIgnoreCase))
+                    ModFolderGuard.Forget();
+
                 // Specify the registry key and value
 
                 // Open or create the registry key
@@ -111,12 +120,24 @@ namespace Pickles_Playlist_Editor
             }
             set
             {
+                string previous = s_guessedModName
+                    ?? (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("ModName");
+
                 // The mod folder decides where every playlist read and write lands, so a change of it
                 // is worth a line in the log: a report of "my playlists vanished" is otherwise
                 // indistinguishable from "I am pointed at a different mod than I think".
                 Logger.LogInfo("Settings: mod folder set to '{Mod}' (was '{Old}').",
-                    value, s_guessedModName ?? (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("ModName") ?? "<unset>");
+                    value, previous ?? "<unset>");
                 s_guessedModName = null;
+
+                // The other half of ModRoot. Playlist counts held for the old mod say nothing about
+                // the new one, and a baseline kept across the switch would be compared again the next
+                // time the app is pointed back — by which point it can be arbitrarily old. Guarded on
+                // a real change for the same reason as PenumbraLocation: the Settings dialog rewrites
+                // both halves on every OK. A name that was only ever a guess counts as unchanged when
+                // the user confirms it, because the folder it resolves to is the same one.
+                if (!string.Equals(previous, value, StringComparison.OrdinalIgnoreCase))
+                    ModFolderGuard.Forget();
 
                 // Open or create the registry key
                 using (RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey))

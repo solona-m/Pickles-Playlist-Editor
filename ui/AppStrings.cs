@@ -201,5 +201,27 @@ namespace Pickles_Playlist_Editor
             string.Format(_r.GetString("Dlg_LoadBackup_Content"), entry, modName);
         public static string LoadBackupFailed(string message) =>
             string.Format(_r.GetString("Dlg_LoadBackup_Failed"), message);
+
+        // ---- mod folder notices -----------------------------------------------------------------
+        public static string Revert_Title => _r.GetString("Revert_Title");
+        public static string Revert_UndoAction => _r.GetString("Revert_UndoAction");
+        public static string Revert_NoBackup => _r.GetString("Revert_NoBackup");
+        public static string Reload_PausedTitle => _r.GetString("Reload_PausedTitle");
+
+        /// <summary>
+        /// The counts are the point, and they are deliberately the same ones the log line and the
+        /// backups dropdown report — including VFX groups, which the tree filters out — so a user can
+        /// match what they are told against both.
+        /// </summary>
+        public static string RevertMessage(int wasPlaylists, int wasSongs, string when,
+            int nowPlaylists, int nowSongs) =>
+            string.Format(_r.GetString("Revert_Message"),
+                wasPlaylists, wasSongs, when, nowPlaylists, nowSongs);
+        public static string RevertRestored(int playlists, int songs) =>
+            string.Format(_r.GetString("Revert_Restored"), playlists, songs);
+        public static string RevertRestoreFailed(string message) =>
+            string.Format(_r.GetString("Revert_RestoreFailed"), message);
+        public static string ReloadPausedMessage(int failures, int minutes) =>
+            string.Format(_r.GetString("Reload_PausedMessage"), failures, minutes);
     }
 }

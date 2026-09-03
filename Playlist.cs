@@ -581,6 +581,13 @@ namespace Pickles_Playlist_Editor
 
             var store = PlaylistStore.Current;
 
+            // Captured BEFORE the read, so a write of ours landing during it cannot be mistaken for
+            // part of what was read. A baseline whose write count is older than its contents is inert
+            // rather than wrong, which is the direction to fail in — see ModFolderGuard.NoteBaseline
+            // for what happens when counts and the write counter disagree the other way round.
+            // HealOnLoad's own repairs deliberately do not move this counter.
+            long writesBeforeRead = ModFolderGuard.CurrentWrites;
+
             // Recover first, sweep second: under v3 a .reorder_tmp is a live playlist, and the sweep
             // must never see one that HealOnLoad would have restored.
             store.HealOnLoad();
@@ -606,8 +613,43 @@ namespace Pickles_Playlist_Editor
                 playlists[playlist.Name] = playlist;
             }
 
-            LogLibrarySummary(playlists, modDirectory);
+            LogLibrarySummary(playlists, modDirectory, writesBeforeRead);
             return playlists;
+        }
+
+        /// <summary>
+        /// Counts a set of group objects the way <see cref="GetAll"/> loads them: a group with no name
+        /// is skipped, and a name that repeats counts only once — because the dictionary above is keyed
+        /// by name and every later group with that name is unreachable.
+        ///
+        /// Shared rather than reimplemented per caller. Three places count a group set — this loader,
+        /// <see cref="Utils.ModFolderGuard"/> deciding whether the folder lost content, and
+        /// <see cref="Utils.BackupCatalog"/> deciding which backup is big enough to restore — and they
+        /// only mean anything when compared against each other. Two of them counting raw files while
+        /// the third de-duplicated is how the "never restore a smaller set than was lost" test came to
+        /// compare two different kinds of number.
+        ///
+        /// The caller owns the enumeration and what to do about a member it cannot read: a live folder
+        /// treats one unreadable group as "do not answer at all", while a backup treats it as costing
+        /// only its own count. Those are different policies about different things, and neither
+        /// belongs here.
+        /// </summary>
+        internal sealed class GroupTally
+        {
+            private readonly HashSet<string> _seen = new(StringComparer.Ordinal);
+
+            internal int Playlists { get; private set; }
+            internal int Songs { get; private set; }
+
+            internal void Add(JObject group)
+            {
+                string name = group["Name"]?.ToString() ?? string.Empty;
+                if (name.Length == 0) return;
+                if (!_seen.Add(name)) return;
+
+                Playlists++;
+                Songs += (group["Options"] as JArray)?.Count ?? 0;
+            }
         }
 
         /// <summary>
@@ -622,13 +664,33 @@ namespace Pickles_Playlist_Editor
         /// at all — but the group type is one toggle away in Penumbra's own UI, so a report of "my
         /// playlist split in two" should be answerable from the log rather than by guesswork.
         /// </summary>
-        private static void LogLibrarySummary(Dictionary<string, Playlist> playlists, string modDirectory)
+        /// <param name="writesBeforeRead">
+        /// The write counter as it stood before the folder was read — see <see cref="GetAll"/>.
+        /// </param>
+        private static void LogLibrarySummary(Dictionary<string, Playlist> playlists, string modDirectory,
+            long writesBeforeRead)
         {
             try
             {
                 int songs = playlists.Values.Sum(p => p.Options?.Count ?? 0);
                 Logger.LogInfo("Loaded {Playlists} playlist(s), {Songs} song(s) from '{Dir}'.",
                     playlists.Count, songs, modDirectory);
+
+                // Judged here because this is the one place that already knows both counts, and it
+                // runs on every load — so a folder Penumbra rewrote while the app sat idle is noticed
+                // the next time anything refreshes the tree, without a watcher of its own. Returns
+                // immediately; the confirmation and any report happen off this thread.
+                ModFolderGuard.ReportIfExternalChange(modDirectory, playlists.Count, songs);
+
+                // Then bring the baseline up to date, AFTER the judgement above has had this load to
+                // compare against. The reload path is the stronger moment to record one — Penumbra has
+                // just agreed with the folder there — but it was until now the ONLY moment, which made
+                // the whole guard depend on a setting that has nothing to do with it: with "auto-reload
+                // mod" unticked no reload ever fires, so no baseline was ever taken and the detection,
+                // the banner and the undo were all silently inert. A reload dropped because the folder
+                // gate was busy left the same hole, and so did the whole first stretch of any session
+                // before the user's first edit.
+                ModFolderGuard.NoteBaselineFromLoad(modDirectory, playlists.Count, songs, writesBeforeRead);
 
                 foreach (var p in playlists.Values)
                 {
@@ -1376,9 +1438,45 @@ namespace Pickles_Playlist_Editor
             lock (s_reloadLock)
             {
                 s_reloadTimer ??= new Timer(_ => FirePenumbraReload(), null, Timeout.Infinite, Timeout.Infinite);
+
+                // Penumbra has been refusing reloads, so asking again after every single edit only
+                // gives it more chances to write its stale copy over the folder. Wait out the rest of
+                // the pause instead — the REST of it, not a fresh interval each time, or a steady
+                // stream of edits would push the retry back on every one of them and it would never
+                // fire while the user was working. Aiming every edit at the same moment means the
+                // retry lands when the pause ends, whatever happens in between.
+                var pause = ModFolderGuard.RemainingPause;
+                int due = pause > TimeSpan.Zero
+                    ? (int)Math.Max(pause.TotalMilliseconds, PenumbraReloadDebounceMs)
+                    : PenumbraReloadDebounceMs;
+
                 // Restart the countdown — only the last change in a burst triggers the reload.
-                s_reloadTimer.Change(PenumbraReloadDebounceMs, Timeout.Infinite);
+                s_reloadTimer.Change(due, Timeout.Infinite);
             }
+        }
+
+        /// <summary>
+        /// Re-aims the timer at the end of the pause, so the retry happens whether or not the user
+        /// edits anything else.
+        ///
+        /// Without this the retry rides entirely on the next edit: nothing else ever touches the
+        /// timer, so an app left sitting with a wedged Penumbra simply never asks again, and the
+        /// "retrying every N minutes" that both the log line and the banner promise does not happen.
+        ///
+        /// Only the debounced path calls this. The shutdown flush must not leave a timer armed behind
+        /// a process that is on its way out.
+        /// </summary>
+        private static void ArmPauseRetry()
+        {
+            var pause = ModFolderGuard.RemainingPause;
+            if (pause <= TimeSpan.Zero)
+                return;
+
+            // Safe to take under the folder gate: nothing anywhere holds s_reloadLock while waiting
+            // for that gate — FlushPenumbraMod releases this lock before it asks for it — so there is
+            // no cycle to deadlock on.
+            lock (s_reloadLock)
+                s_reloadTimer?.Change((int)pause.TotalMilliseconds, Timeout.Infinite);
         }
 
         // The TOTAL the shutdown flush is willing to spend — waiting for the folder gate and waiting
@@ -1499,10 +1597,22 @@ namespace Pickles_Playlist_Editor
                     // that exists nowhere still answers 200 with an empty body), so the ModMissing code
                     // its IPC returns never reaches us. Failed here means a non-2xx or a transport
                     // error, not "the mod is unknown".
-                    if (call.GetAwaiter().GetResult() == PenumbraApi.ApiResult.Failed)
-                        Logger.LogWarn("Penumbra: reload of '{Mod}' did not complete — it answered but " +
-                            "the call failed (see the API error above). New songs will not appear in " +
-                            "game until it reloads.", mod);
+                    var result = call.GetAwaiter().GetResult();
+
+                    // All of this is best-effort bookkeeping around a best-effort reload. Its own
+                    // try/catch because the outer one swallows silently, and a detector that dies
+                    // without saying so is worse than no detector.
+                    try
+                    {
+                        // answerWait is set only by the shutdown flush, so its absence is what marks
+                        // this as the ordinary debounced path — the one allowed to arm a retry.
+                        GuardAfterReload(result, mod, debounced: answerWait is null);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarn("Mod folder guard failed after a reload (continuing): {Error}",
+                            ex.Message);
+                    }
                 }
                 finally
                 {
@@ -1514,5 +1624,97 @@ namespace Pickles_Playlist_Editor
                 // best-effort only; swallow any errors to avoid breaking the UI
             }
         }
+
+        /// <summary>
+        /// What to do about the reload's answer, beyond logging it.
+        ///
+        /// Runs with the folder gate still held, which is what makes the snapshot safe: the gate does
+        /// not lock Penumbra out, but it does keep our own reorders and downloads from writing while
+        /// the copy is taken.
+        /// </summary>
+        private static void GuardAfterReload(PenumbraApi.ApiResult result, string mod, bool debounced)
+        {
+            switch (result)
+            {
+                case PenumbraApi.ApiResult.Success:
+                    if (ModFolderGuard.NoteReloadSucceeded())
+                    {
+                        Logger.LogInfo("Penumbra: reloads are being accepted again — resuming the " +
+                            "usual refresh after each edit.");
+
+                        // The banner says edits are not reaching Penumbra. They are again, and this is
+                        // the only thing that can say so: the event used to be raised with true and
+                        // never with false, so the notice sat there until dismissed by hand.
+                        ReloadPausedChanged?.Invoke(false);
+                    }
+
+                    // Penumbra has just re-read the folder, so its copy and ours agree. This is the
+                    // one moment where a baseline is unambiguously true.
+                    ModFolderGuard.NoteBaseline(PenumbraMeta.ModRoot);
+                    break;
+
+                case PenumbraApi.ApiResult.Failed:
+                    Logger.LogWarn("Penumbra: reload of '{Mod}' did not complete — it answered but " +
+                        "the call failed (see the API error above). New songs will not appear in " +
+                        "game until it reloads. Penumbra {Penumbra}.",
+                        mod, Utils.PenumbraInstall.CachedDescription);
+
+                    // Penumbra answered but did not re-read the folder, so its in-memory copy is now
+                    // older than what is on disk — and the next thing that makes it write this mod
+                    // puts that copy back. Take a copy of the good state while it still exists.
+                    // ourWrite:false, because the write being guarded against is not ours. Skipped
+                    // when nothing has been edited since the last copy: retries go on for as long as
+                    // Penumbra stays wedged, and re-copying an unchanged folder only buries the early
+                    // snapshot that is actually worth keeping.
+                    if (ModFolderGuard.ShouldSnapshotForFailure())
+                    {
+                        if (PenumbraMeta.DetectFormat() == ModFormat.V3)
+                            V3GroupFileStore.TrySnapshotSet(ourWrite: false);
+                        else
+                            PenumbraMeta.TrySnapshot(PenumbraMeta.ModRoot,
+                                Settings.ModName ?? string.Empty, ourWrite: false);
+                    }
+
+                    // Still a baseline: the folder as it stands is ours, whatever Penumbra thinks.
+                    ModFolderGuard.NoteBaseline(PenumbraMeta.ModRoot);
+
+                    if (ModFolderGuard.NoteReloadFailed())
+                    {
+                        Logger.LogWarn("Penumbra has refused {Count} reloads in a row — pausing the " +
+                            "refresh after each edit and retrying every {Minutes} minute(s). Edits " +
+                            "are still saved to disk.",
+                            ModFolderGuard.ConsecutiveFailures,
+                            (int)ModFolderGuard.RetryAfterPause.TotalMinutes);
+                        ReloadPausedChanged?.Invoke(true);
+                    }
+
+                    // Make the retry the log line just promised actually happen, rather than leaving
+                    // it to whenever the user next edits something.
+                    if (debounced)
+                        ArmPauseRetry();
+                    break;
+
+                // NoAnswer is deliberately not COUNTED. It is the ordinary state of editing with the
+                // game closed, or of Penumbra mid-zone-load, and the API layer already reports each
+                // cause once per session. Letting it spend the failure budget would pause reloads
+                // permanently for every offline editor — and a Penumbra that is not running cannot
+                // rewrite the folder, so there is nothing to guard against either.
+                //
+                // It does, however, END a pause that has already run out. That is the same reasoning
+                // from the other side: nothing is there to be paused against. Left armed, the stale
+                // value silently swallowed the report the NEXT run of refusals should have produced.
+                default:
+                    if (ModFolderGuard.NoteReloadUnanswered())
+                    {
+                        Logger.LogInfo("Penumbra: no answer to a reload, so the pause after its " +
+                            "earlier refusals is cleared — nothing is there to write the folder back.");
+                        ReloadPausedChanged?.Invoke(false);
+                    }
+                    break;
+            }
+        }
+
+        /// <summary>Raised when the per-edit reload is paused or resumes.</summary>
+        internal static event Action<bool>? ReloadPausedChanged;
     }
 }

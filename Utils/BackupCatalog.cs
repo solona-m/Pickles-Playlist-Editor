@@ -394,27 +394,35 @@ namespace Pickles_Playlist_Editor.Utils
         }
 
         /// <summary>
-        /// Playlists and songs in a v3 file set. Songs are summed the same way the startup summary
-        /// sums them — one per option — so the numbers here and the "Loaded N playlist(s), M song(s)"
-        /// line in the log are directly comparable. That comparison is the whole point of showing
-        /// them: it is how a user picks the backup from before the loss.
+        /// Playlists and songs in a v3 file set, counted through <see cref="Playlist.GroupTally"/> —
+        /// the loader's own rule, so the numbers here and the "Loaded N playlist(s), M song(s)" line
+        /// in the log are directly comparable. That comparison is the whole point of showing them: it
+        /// is how a user picks the backup from before the loss, and it is how the undo offered on the
+        /// mod folder banner decides a backup holds at least what was lost.
+        ///
+        /// Counting the files instead was close enough to look right and wrong where it mattered. A
+        /// set carrying a duplicated group name — which is what Penumbra's rewrite-and-renumber
+        /// produces — reported one playlist per FILE while the loss it was being compared against
+        /// counted the name once, so a backup could pass the "at least as much as was lost" test on
+        /// content the restore would not actually bring back.
         /// </summary>
         private static Inspection CountGroupFiles(string key, FileInfo[] groups)
         {
             DateTime stamp = groups.Length == 0 ? default : groups.Max(f => f.LastWriteTimeUtc);
             if (TryGetCached(key, stamp, out var cached)) return cached;
 
-            int playlists = 0, songs = 0;
-            foreach (var file in groups)
+            // Ordered the way the loader reads them: with a name repeated across two files it keeps
+            // the first, and "first" has to mean the same thing on both sides of the comparison.
+            var tally = new Playlist.GroupTally();
+            foreach (string path in V3GroupFileStore.InGroupOrder(groups.Select(f => f.FullName)))
             {
-                var group = V3GroupFileStore.TryLoadGroupQuiet(file.FullName, out _);
+                var group = V3GroupFileStore.TryLoadGroupQuiet(path, out _);
                 if (group == null) continue;   // an unreadable member costs its own count, not the set
 
-                playlists++;
-                songs += (group["Options"] as JArray)?.Count ?? 0;
+                tally.Add(group);
             }
 
-            return Cache(key, new Inspection(stamp, ModFormat.V3, playlists, songs));
+            return Cache(key, new Inspection(stamp, ModFormat.V3, tally.Playlists, tally.Songs));
         }
 
         /// <summary>
@@ -444,11 +452,19 @@ namespace Pickles_Playlist_Editor.Utils
                 // DetectFormat fall back to scanning it would classify by the wrong folder's files.
                 ModFormat format = PenumbraMeta.DetectFormat(root, modDirectory: null);
 
-                if (root["Groups"] is not JArray groups)
+                if (PenumbraMeta.TryReadGroups(root) is not JArray groups)
                     return Cache(metaPath, new Inspection(file.LastWriteTimeUtc, format, 0, 0));
 
-                int songs = groups.OfType<JObject>().Sum(g => (g["Options"] as JArray)?.Count ?? 0);
-                return Cache(metaPath, new Inspection(file.LastWriteTimeUtc, format, groups.Count, songs));
+                // Through the loader's rule, for the same reason as CountGroupFiles: groups.Count is
+                // one per ENTRY, and a manifest carrying a repeated name loads as fewer playlists than
+                // it lists. Comparing that against a loss counted the other way is how a backup could
+                // look big enough to cover a loss it does not cover.
+                var tally = new Playlist.GroupTally();
+                foreach (var g in groups.OfType<JObject>())
+                    tally.Add(g);
+
+                return Cache(metaPath,
+                    new Inspection(file.LastWriteTimeUtc, format, tally.Playlists, tally.Songs));
             }
             catch
             {
