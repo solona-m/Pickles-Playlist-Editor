@@ -34,10 +34,16 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
     /// havok data rather than from the timeline, so a rejected timeline looks like "the effects are
     /// broken" rather than like a bad file.
     ///
-    /// Undecoded entries are copied verbatim and never interpreted. That is safe because
-    /// <see cref="TmbBinary.PoolCoverage"/> accounts for every byte of every pool in all 35 real files
-    /// using only the declared fields — including the one carrying 28 undecoded C042 entries — so
-    /// nothing undecoded owns pool data that a rebuild would drop.
+    /// Undecoded entries are copied verbatim and never interpreted. That is safe only where
+    /// <see cref="TmbBinary.PoolCoverage"/> says it is — where the declared fields account for the
+    /// whole pool, nothing undecoded owns data a rebuild would drop, and 28 undecoded C042 entries in
+    /// one real file are genuinely harmless.
+    ///
+    /// It was once stated the other way round, as a property of the format rather than of each file,
+    /// on the evidence that all 35 files in one pack happened to satisfy it. A donor with four
+    /// undeclared C173 entries did not, and the resulting dance crashed the game to desktop. So the
+    /// coverage count is now a PRECONDITION every rebuild checks rather than a reassurance in a
+    /// comment — see <see cref="AssertSafeToRebuild"/>.
     /// </summary>
     internal static class TmbSplice
     {
@@ -110,9 +116,11 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
             Build(tmb, null, entryOffsets);
 
         private static byte[] Build(byte[] destTmb, TmbTrackBundle? bundle,
-            IReadOnlyCollection<int>? exclude = null)
+            IReadOnlyCollection<int>? exclude = null, IReadOnlyList<TmbStringEdit>? edits = null)
         {
             var dest = TmbBinary.Walk(destTmb);
+            AssertSafeToRebuild(dest, exclude);
+
             var actor = TmbTrackBundle.FirstActor(dest)
                 ?? throw new TmbFormatException("This timeline has no actor to attach tracks to.");
             short[] existingTrackIds =
@@ -179,11 +187,25 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
                             lists.Add((item, field.BodyOffset, ids));
                             break;
                         case TmbFieldKind.String:
-                            strings.Add((item, field.BodyOffset, value.Text));
+                            strings.Add((item, field.BodyOffset,
+                                Edited(edits, item, field, out string replacement)
+                                    ? replacement : value.Text));
                             break;
                     }
                 }
             }
+
+            // An edit naming an entry or a field that is not there is a caller working from a stale
+            // reading of the file, which is exactly the mistake that must not reach the bytes.
+            if (edits != null)
+                foreach (var edit in edits)
+                    if (!plan.Any(item => !item.FromBundle
+                            && item.Source.Offset == edit.EntryOffset
+                            && item.Source.Fields.Any(f => f.Kind == TmbFieldKind.String
+                                && f.BodyOffset == edit.FieldBodyOffset)))
+                        throw new TmbFormatException(
+                            $"No entry at offset {edit.EntryOffset} has a known string field at body " +
+                            $"offset {edit.FieldBodyOffset}. The timeline was not rewritten.");
 
             var offsets = new Dictionary<(Planned, int), int>();
             int cursor = entriesEnd;
@@ -307,6 +329,29 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
             return plan;
         }
 
+        /// <summary>
+        /// Whether a string field has a new value waiting for it.
+        ///
+        /// Destination entries only. An edit addresses an entry by its offset in the DESTINATION, and
+        /// a bundle entry's offset is an offset in a different file entirely — the two ranges overlap
+        /// freely, so matching on the number alone would let an edit meant for one land on the other.
+        /// </summary>
+        private static bool Edited(IReadOnlyList<TmbStringEdit>? edits, Planned item, TmbField field,
+            out string value)
+        {
+            value = string.Empty;
+            if (edits == null || item.FromBundle) return false;
+
+            foreach (var edit in edits)
+            {
+                if (edit.EntryOffset != item.Source.Offset) continue;
+                if (edit.FieldBodyOffset != field.BodyOffset) continue;
+                value = edit.Value;
+                return true;
+            }
+            return false;
+        }
+
         private static short[] ReferencedBy(Planned entry, short[] ids,
             Dictionary<short, short> destIds, Dictionary<short, short> bundleIds,
             HashSet<short> removedIds)
@@ -325,6 +370,86 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
         }
 
         // ---- the rules, asserted ---------------------------------------------------------------------
+
+        /// <summary>
+        /// Proves a timeline can be rebuilt FROM without losing or laundering anything.
+        ///
+        /// The other two asserts in this file run on the OUTPUT, and there is a whole class of
+        /// corruption they are structurally incapable of seeing: this writer emits the pool from the
+        /// fields it knows about, so a pool pointer it does NOT know about is never written, never
+        /// counted, and cannot be missed. The output is immaculate and the entry it belonged to is
+        /// pointing at nothing.
+        ///
+        /// That is not a hypothetical. Four C173 entries went through a merge as opaque bytes,
+        /// carrying donor-relative path offsets into a file whose pool had moved half a kilobyte. The
+        /// result crashed the game to desktop every time the dance looped, and every check this app
+        /// had passed on it.
+        ///
+        /// So the SOURCE is checked, in the two ways that do not require knowing what to look for:
+        ///
+        ///   NOTHING UNCLAIMED. If the declared fields do not account for the pool, something in there
+        ///   is reachable only through a pointer this code has not modelled, and rebuilding will drop
+        ///   it. Counted over every entry including the excluded ones, because it is a property of the
+        ///   file rather than of this operation.
+        ///
+        ///   NOTHING ALREADY BROKEN. An entry carried forward whose path does not resolve is a defect
+        ///   this rewrite would launder into a fresh, well-formed, still-fatal file. Counted over the
+        ///   SURVIVORS only — which is what lets a repair pass hand the broken entries to
+        ///   <paramref name="exclude"/> and get a clean timeline back, the one way out for a mod that
+        ///   has already shipped.
+        /// </summary>
+        public static void AssertSafeToRebuild(TmbLayout source, IReadOnlyCollection<int>? exclude = null)
+        {
+            int orphaned = TmbBinary.OrphanedPoolBytes(source);
+            if (orphaned > TmbBinary.PoolSlack)
+            {
+                var unmodelled = source.Entries.Where(e => e.IsOpaque).Select(e => e.Magic)
+                    .Distinct(StringComparer.Ordinal).OrderBy(m => m, StringComparer.Ordinal).ToList();
+                throw new TmbFormatException(
+                    $"{orphaned} bytes of this timeline's pool belong to no entry this app can read, " +
+                    "so rebuilding it would silently throw them away" +
+                    (unmodelled.Count > 0
+                        ? $" (entry types it does not model: {string.Join(", ", unmodelled)})"
+                        : string.Empty) +
+                    ". The timeline was not rewritten.");
+            }
+
+            foreach (var broken in TmbBinary.BrokenPaths(source))
+            {
+                if (exclude != null && exclude.Contains(broken.Entry.Offset)) continue;
+                throw new TmbFormatException(
+                    $"{broken.Entry} {broken.Problem}. This timeline is already broken, and rebuilding " +
+                    "it would carry the fault into the result. It was not rewritten.");
+            }
+        }
+
+        /// <summary>
+        /// The given entries, plus any track the removal would leave with nothing in it.
+        ///
+        /// A track with no items is not something the format is ever seen to contain, so dropping the
+        /// last item out of one means dropping the track as well.
+        /// </summary>
+        public static List<int> WithEmptiedTracks(TmbLayout layout, IReadOnlyCollection<int> dropping)
+        {
+            var drop = new HashSet<int>(dropping);
+            if (drop.Count == 0) return new List<int>();
+
+            var droppedIds = new HashSet<short>();
+            foreach (var entry in layout.Entries)
+                if (drop.Contains(entry.Offset) && TmbBinary.CarriesId(entry.Magic))
+                    droppedIds.Add(entry.Id);
+
+            foreach (var entry in layout.Entries)
+            {
+                if (entry.Magic != TmbBinary.Tmtr || entry.Fields.Count == 0) continue;
+                if (drop.Contains(entry.Offset)) continue;
+
+                var items = TmbBinary.ResolveInt16List(layout, entry, entry.Fields[0]);
+                if (items.Length > 0 && items.All(droppedIds.Contains)) drop.Add(entry.Offset);
+            }
+
+            return drop.ToList();
+        }
 
         /// <summary>
         /// Proves entry ids run 1, 2, 3, ... in file order, and that every track precedes every item.
@@ -418,62 +543,21 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
                     "timeline has none. The timeline was not rewritten.");
         }
 
-        private static TmbEntry FindByOffset(TmbLayout layout, int offset)
-        {
-            foreach (var entry in layout.Entries)
-                if (entry.Offset == offset) return entry;
-            throw new TmbFormatException($"No entry at offset {offset} after splicing.");
-        }
-
         // ---- repointing strings ---------------------------------------------------------------------
 
         /// <summary>
-        /// Points string fields at new values, appended to the end of the timeline.
+        /// Points string fields at new values.
         ///
-        /// Safe to leave as an append rather than a rebuild ONLY because it runs before
-        /// <see cref="AppendTracks"/>, which rebuilds the pool from resolved values and so cleans up
-        /// after it. Used on its own it would leave the string section non-canonical.
+        /// A full rebuild, not an append. Appending was tempting and cheap — write the new string past
+        /// the end, repoint the field — and it was safe only in the narrow sense that
+        /// <see cref="AppendTracks"/> always ran afterwards and rebuilt the pool anyway. What it left
+        /// in between was a file whose old string sat in the pool with nothing pointing at it, which is
+        /// indistinguishable from the signature <see cref="AssertSafeToRebuild"/> exists to catch: pool
+        /// bytes belonging to no declared field. Rebuilding instead means the intermediate file is as
+        /// canonical as the final one, and the guard can be trusted at every step rather than at the
+        /// end.
         /// </summary>
-        public static byte[] SetStrings(byte[] tmb, IReadOnlyList<TmbStringEdit> edits)
-        {
-            if (edits == null || edits.Count == 0) return (byte[])tmb.Clone();
-
-            var layout = TmbBinary.Walk(tmb);
-
-            var positions = new Dictionary<string, int>(StringComparer.Ordinal);
-            var appended = new List<byte>();
-            foreach (var edit in edits)
-            {
-                if (positions.ContainsKey(edit.Value)) continue;
-                positions[edit.Value] = layout.TotalSize + appended.Count;
-                appended.AddRange(Encoding.ASCII.GetBytes(edit.Value));
-                appended.Add(0x00);
-            }
-
-            var output = new byte[layout.TotalSize + appended.Count];
-            Buffer.BlockCopy(tmb, 0, output, 0, layout.TotalSize);
-            appended.CopyTo(output, layout.TotalSize);
-            TmbBinary.WriteInt32(output, 4, output.Length);
-
-            foreach (var edit in edits)
-            {
-                var entry = FindByOffset(layout, edit.EntryOffset);
-                bool known = false;
-                foreach (var field in entry.Fields)
-                {
-                    if (field.Kind != TmbFieldKind.String || field.BodyOffset != edit.FieldBodyOffset)
-                        continue;
-                    TmbBinary.WriteInt32(output, entry.Body + field.BodyOffset,
-                        positions[edit.Value] - entry.Body);
-                    known = true;
-                }
-
-                if (!known)
-                    throw new TmbFormatException(
-                        $"{entry} has no known string field at body offset {edit.FieldBodyOffset}.");
-            }
-
-            return output;
-        }
+        public static byte[] SetStrings(byte[] tmb, IReadOnlyList<TmbStringEdit> edits) =>
+            edits == null || edits.Count == 0 ? (byte[])tmb.Clone() : Build(tmb, null, null, edits);
     }
 }

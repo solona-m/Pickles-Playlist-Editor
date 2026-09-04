@@ -22,6 +22,23 @@ namespace Pickles_Playlist_Editor.Utils
         /// <summary>Effects the appended block will fire.</summary>
         public IReadOnlyList<string> EffectsToAdd { get; init; } = Array.Empty<string>();
 
+        /// <summary>
+        /// Effects the dance ALREADY fires, which come along with it and are the DJ mod's problem
+        /// afterwards: unlike the appended block, nothing supplies these.
+        /// </summary>
+        public IReadOnlyList<string> EffectsUsed { get; init; } = Array.Empty<string>();
+
+        /// <summary>
+        /// The effect PATHS whose async-VFX clips will be removed, because the mod cannot supply the
+        /// .avfx they name and the game does not ship it either.
+        ///
+        /// Not a warning about something the user might want to fix later — the entry is going, and
+        /// they should be told, because a C173 pointing at a file nobody has is a crash rather than a
+        /// missing sparkle. Paths rather than sentences so the caller can subtract them from its own
+        /// "these effects are missing" list.
+        /// </summary>
+        public IReadOnlyList<string> AsyncEffectsDropped { get; init; } = Array.Empty<string>();
+
         public int TracksToAdd { get; init; }
 
         /// <summary>Reasons this must not run. Empty means it may.</summary>
@@ -56,11 +73,14 @@ namespace Pickles_Playlist_Editor.Utils
         /// the user all of them at once instead of one per attempt.
         /// </summary>
         public static DancePapPlan Inspect(byte[] sourcePap, TmbTrackBundle bundle,
-            ISet<string> djStrings, string animationName = PapFile.DanceAnimationName)
+            ISet<string> djStrings, string animationName = PapFile.DanceAnimationName,
+            ISet<string>? modSupplies = null)
         {
             var errors = new List<string>();
             var warnings = new List<string>();
             var soundPaths = new List<string>();
+            var ownEffects = new List<string>();
+            var droppedEffects = new List<string>();
             string oldName = string.Empty;
             string race = string.Empty;
 
@@ -98,6 +118,15 @@ namespace Pickles_Playlist_Editor.Utils
                         string path = TmbBinary.ResolveString(timeline, entry, entry.Fields[0]);
                         if (path.Length > 0) soundPaths.Add(path);
                     }
+                    else if (TmbTrackBundle.IsEffectEntry(entry.Magic))
+                    {
+                        foreach (var field in entry.Fields)
+                        {
+                            if (field.Kind != TmbFieldKind.String) continue;
+                            string path = TmbBinary.ResolveString(timeline, entry, field);
+                            if (path.Length > 0 && !ownEffects.Contains(path)) ownEffects.Add(path);
+                        }
+                    }
                 }
 
                 // Not fatal: the rename in the info table is what the game matches on, and a handful
@@ -107,7 +136,18 @@ namespace Pickles_Playlist_Editor.Utils
                     warnings.Add("This dance has no animation entry in its timeline, so only its " +
                         "animation name was retargeted.");
 
+                // Reported as PATHS rather than as sentences, so the caller can subtract them from
+                // the "this mod does not provide these effects" warning instead of telling the user
+                // both to go and find a file and that the clip using it has been removed.
+                droppedEffects.AddRange(UnsuppliedAsyncEffectPaths(timeline, modSupplies));
+
                 TmbSplice.TrackInsertionPoint(timeline);
+
+                // Asked here so a source this app cannot rewrite safely is reported in the dialog,
+                // beside every other reason, rather than throwing halfway through writing files. The
+                // same exclusion Prepare will apply is passed in, or a dance whose only fault is a
+                // sound entry about to be removed anyway would be refused for it.
+                TmbSplice.AssertSafeToRebuild(timeline, SoundEntriesToDrop(timeline));
             }
             catch (Exception ex) when (ex is PapFormatException or TmbFormatException)
             {
@@ -121,6 +161,8 @@ namespace Pickles_Playlist_Editor.Utils
                 RaceCode = race,
                 SoundPathsToBlank = soundPaths,
                 EffectsToAdd = bundle.EffectPaths,
+                EffectsUsed = ownEffects,
+                AsyncEffectsDropped = droppedEffects,
                 TracksToAdd = bundle.TrackCount,
                 Errors = errors,
                 Warnings = warnings,
@@ -135,9 +177,9 @@ namespace Pickles_Playlist_Editor.Utils
         /// applied to this one.
         /// </summary>
         public static byte[] Prepare(byte[] sourcePap, TmbTrackBundle bundle, ISet<string> djStrings,
-            string animationName = PapFile.DanceAnimationName)
+            string animationName = PapFile.DanceAnimationName, ISet<string>? modSupplies = null)
         {
-            var plan = Inspect(sourcePap, bundle, djStrings, animationName);
+            var plan = Inspect(sourcePap, bundle, djStrings, animationName, modSupplies);
             if (!plan.CanApply)
                 throw new PapFormatException(string.Join(" ", plan.Errors));
 
@@ -145,25 +187,81 @@ namespace Pickles_Playlist_Editor.Utils
             pap.SetAnimationName(0, animationName);
 
             byte[] timeline = pap.GetTimeline();
-            var layout = TmbBinary.Walk(timeline);
 
-            var edits = new List<TmbStringEdit>();
-            foreach (var entry in layout.Entries)
-            {
-                if (entry.Fields.Count == 0) continue;
-                if (entry.Magic == TmbBinary.AnimationEntry)
-                    edits.Add(new TmbStringEdit(entry.Offset, entry.Fields[0].BodyOffset, animationName));
-            }
-
-            timeline = TmbSplice.SetStrings(timeline, edits);
-            timeline = TmbSplice.Remove(timeline, SoundEntriesToDrop(layout));
+            // The sound entries go FIRST, and the order is load-bearing. Every step below rebuilds the
+            // timeline and each one refuses a source that is already broken, so removing an entry with
+            // a blanked path — which a hand-edited dance really does carry — has to happen before
+            // anything else asks whether the file is sound. Doing it second meant the retarget refused
+            // a dance that the plan had already said could be prepared.
+            //
+            // Removing entries renumbers everything after them, so the edits are computed from the
+            // timeline as it stands afterwards rather than from the one that came in.
+            timeline = TmbSplice.Remove(timeline, SoundEntriesToDrop(TmbBinary.Walk(timeline)));
+            timeline = TmbSplice.SetStrings(timeline, RetargetAnimation(TmbBinary.Walk(timeline), animationName));
             timeline = ReconcileDurations(timeline);
             timeline = TmbSplice.AppendTracks(timeline, bundle);
 
+            // LAST, so it sees the spliced result rather than the source. The DJ block arrives in the
+            // line above and is not filtered on the way in, so an unsupplied async clip in the block
+            // ITSELF would otherwise be stamped into every dance built from this mod — the same crash
+            // this rule exists to prevent, on the one path that touches every single dance.
+            timeline = DropUnsuppliedAsyncEffects(timeline, modSupplies, out var dropped);
+
             byte[] result = pap.WithTimeline(timeline);
-            Verify(result, bundle, djStrings, animationName);
+            Verify(result, bundle, djStrings, animationName, modSupplies, dropped);
             return result;
         }
+
+        /// <summary>The async-VFX paths in this timeline that nothing will supply, as paths.</summary>
+        private static HashSet<string> UnsuppliedAsyncEffectPaths(TmbLayout layout,
+            ISet<string>? modSupplies)
+        {
+            var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var unsupplied in DanceRepair.UnsuppliedAsyncEffects(layout, modSupplies))
+                if (TmbBinary.TryResolveString(layout, unsupplied.Entry, unsupplied.Field,
+                        out string path, out _))
+                    paths.Add(path);
+            return paths;
+        }
+
+        /// <summary>
+        /// The timeline with every async-VFX clip removed whose effect file nothing provides.
+        ///
+        /// A C173 naming a file nobody has is not a missing effect — it is the same
+        /// <c>[null + 0xC0]</c> as an empty path. The author usually has the source mod installed and
+        /// never sees it; everyone watching them over sync receives only what the author's collection
+        /// resolves, and gets the crash. See <see cref="DanceRepair.UnsuppliedAsyncEffects"/>.
+        /// </summary>
+        private static byte[] DropUnsuppliedAsyncEffects(byte[] timeline, ISet<string>? modSupplies,
+            out HashSet<string> droppedPaths)
+        {
+            // One walk, so what is reported and what is removed cannot drift apart.
+            var layout = TmbBinary.Walk(timeline);
+            var unsupplied = DanceRepair.UnsuppliedAsyncEffects(layout, modSupplies);
+
+            droppedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var clip in unsupplied)
+                if (TmbBinary.TryResolveString(layout, clip.Entry, clip.Field, out string path, out _))
+                    droppedPaths.Add(path);
+
+            if (unsupplied.Count == 0) return timeline;
+
+            return TmbSplice.Remove(timeline, TmbSplice.WithEmptiedTracks(layout,
+                unsupplied.Select(b => b.Entry.Offset).Distinct().ToList()));
+        }
+
+        /// <summary>
+        /// Pointing every animation entry at the name the DJ mod's option expects.
+        ///
+        /// A list rather than one edit because nothing guarantees there is only one C009, and the
+        /// second one being left on the source's own name is the kind of half-conversion that plays
+        /// perfectly on the machine that made it.
+        /// </summary>
+        private static List<TmbStringEdit> RetargetAnimation(TmbLayout layout, string animationName) =>
+            layout.Entries
+                .Where(e => e.Magic == TmbBinary.AnimationEntry && e.Fields.Count > 0)
+                .Select(e => new TmbStringEdit(e.Offset, e.Fields[0].BodyOffset, animationName))
+                .ToList();
 
         /// <summary>
         /// Durations that are wildly out of step with the timeline's own length, brought back to it.
@@ -197,7 +295,7 @@ namespace Pickles_Playlist_Editor.Utils
             var output = (byte[])timeline.Clone();
             foreach (var entry in layout.Entries)
             {
-                if (entry.Magic is not (TmbBinary.AnimationEntry or "C010")) continue;
+                if (entry.Magic is not (TmbBinary.AnimationEntry or TmbBinary.ExpressionEntry)) continue;
 
                 int at = entry.Body + 4;
                 int duration = BitConverter.ToInt32(timeline, at);
@@ -228,30 +326,11 @@ namespace Pickles_Playlist_Editor.Utils
         /// A track emptied by the removal goes too: a track with no items is not something the format
         /// is ever seen to contain.
         /// </summary>
-        private static List<int> SoundEntriesToDrop(TmbLayout layout)
-        {
-            var drop = new List<int>();
-            var dropped = new HashSet<short>();
-
-            foreach (var entry in layout.Entries)
-            {
-                if (entry.Magic != TmbBinary.SoundEntry) continue;
-                drop.Add(entry.Offset);
-                dropped.Add(entry.Id);
-            }
-
-            if (drop.Count == 0) return drop;
-
-            foreach (var entry in layout.Entries)
-            {
-                if (entry.Magic != TmbBinary.Tmtr || entry.Fields.Count == 0) continue;
-                var items = TmbBinary.ResolveInt16List(layout, entry, entry.Fields[0]);
-                if (items.Length > 0 && items.All(dropped.Contains))
-                    drop.Add(entry.Offset);
-            }
-
-            return drop;
-        }
+        private static List<int> SoundEntriesToDrop(TmbLayout layout) =>
+            TmbSplice.WithEmptiedTracks(layout, layout.Entries
+                .Where(e => e.Magic == TmbBinary.SoundEntry)
+                .Select(e => e.Offset)
+                .ToList());
 
         /// <summary>
         /// Re-reads the produced bytes and checks they are what was asked for.
@@ -261,7 +340,7 @@ namespace Pickles_Playlist_Editor.Utils
         /// the transformation was subtly wrong, and only the result can show that.
         /// </summary>
         private static void Verify(byte[] produced, TmbTrackBundle bundle, ISet<string> djStrings,
-            string animationName)
+            string animationName, ISet<string>? modSupplies, ISet<string> droppedEffects)
         {
             var pap = PapFile.Parse(produced);
 
@@ -271,6 +350,22 @@ namespace Pickles_Playlist_Editor.Utils
                     $"'{animationName}'; it was not written.");
 
             var timeline = TmbBinary.Walk(pap.GetTimeline());
+
+            // The generic assertion, ahead of the specific ones. The two checks below say the
+            // transformation did what it was asked; this one says the result is a file the game can
+            // survive, and it does not depend on knowing which entry type went wrong this time —
+            // which is the property the C009/C063 pair conspicuously lacked when a C173 did.
+            var broken = TmbBinary.BrokenPaths(timeline);
+
+            // The unsupplied async clips are checked here too, on the FINAL bytes. That is the only
+            // place that sees the spliced-in DJ block, so it is the only place that can prove the
+            // block did not smuggle one back in after the drop.
+            broken.AddRange(DanceRepair.UnsuppliedAsyncEffects(timeline, modSupplies));
+
+            if (broken.Count > 0)
+                throw new PapFormatException(
+                    $"The prepared dance {broken[0].Problem} ({broken[0].Entry.Magic}); it was not " +
+                    $"written. {broken.Count} entr{(broken.Count == 1 ? "y is" : "ies are")} affected.");
 
             foreach (var entry in timeline.Entries)
             {
@@ -291,6 +386,11 @@ namespace Pickles_Playlist_Editor.Utils
             var carried = TmbTrackBundle.CoverageOf(timeline, djStrings);
             foreach (string effect in bundle.EffectPaths)
             {
+                // An effect the drop deliberately removed is not a missing one. Without this, a DJ
+                // block that itself names an unsupplied .avfx would make every add fail outright
+                // rather than quietly producing a dance that cannot crash anybody.
+                if (droppedEffects.Contains(effect)) continue;
+
                 if (!carried.Contains(effect))
                     throw new PapFormatException(
                         $"The prepared dance is missing effect '{effect}'; it was not written.");

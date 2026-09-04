@@ -88,6 +88,7 @@ namespace Pickles_Playlist_Editor.Utils
             var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             string oldName = string.Empty;
             var removedSounds = new List<string>();
+            var ownEffects = new List<string>();
 
             if (string.IsNullOrWhiteSpace(danceName))
                 errors.Add("Give the dance a name.");
@@ -131,16 +132,35 @@ namespace Pickles_Playlist_Editor.Utils
             foreach (string race in races.Where(r => !source.LoopByRace.ContainsKey(r)))
                 errors.Add($"This dance has no animation for {DanceMod.RaceLabel(race)}.");
 
+            // What the mod itself provides, read before the animations are inspected: an async-VFX
+            // clip naming a file that is not in here has to be dropped rather than carried, so the
+            // inspection needs the answer.
+            var supplied = DanceRepair.SuppliedPaths(group.ModRoot);
+            var droppedEffects = new List<string>();
+
+            // Null means the manifest could not be read, and every check below then silently passes:
+            // no missing-effect warning, and no async clip dropped. Said out loud rather than left to
+            // look like a clean bill of health, because the checks it disables are the ones that stop
+            // a dance crashing the people who watch it.
+            if (supplied == null)
+                warnings.Add("This mod's file list could not be read, so the effect files this dance " +
+                    "needs could not be checked. It will be installed exactly as it is.");
+
             // Inspect each distinct animation once rather than once per body pointing at it.
             foreach (var (disk, sourceFile) in writes.Where(w => w.Key.EndsWith("_loop.pap",
                          StringComparison.OrdinalIgnoreCase)))
             {
                 try
                 {
-                    var papPlan = DancePap.Inspect(File.ReadAllBytes(sourceFile), bundle, djStrings);
+                    var papPlan = DancePap.Inspect(File.ReadAllBytes(sourceFile), bundle, djStrings,
+                        PapFile.DanceAnimationName, supplied);
                     if (oldName.Length == 0) oldName = papPlan.OldAnimationName;
                     foreach (string path in papPlan.SoundPathsToBlank)
                         if (!removedSounds.Contains(path)) removedSounds.Add(path);
+                    foreach (string path in papPlan.EffectsUsed)
+                        if (!ownEffects.Contains(path)) ownEffects.Add(path);
+                    foreach (string dropped in papPlan.AsyncEffectsDropped)
+                        if (!droppedEffects.Contains(dropped)) droppedEffects.Add(dropped);
                     errors.AddRange(papPlan.Errors);
                     warnings.AddRange(papPlan.Warnings);
                 }
@@ -152,13 +172,40 @@ namespace Pickles_Playlist_Editor.Utils
 
             // Not fatal, but the dance will animate and do nothing else if the effects it fires are
             // not supplied by this mod — which is exactly the failure that is hardest to diagnose.
-            var supplied = new HashSet<string>(
-                PenumbraOptions.Read(group.ModRoot).SelectMany(o => o.Files.Keys),
-                StringComparer.OrdinalIgnoreCase);
-            var missing = bundle.EffectPaths.Where(e => !supplied.Contains(e)).ToList();
+            var missing = supplied == null
+                ? new List<string>()
+                : bundle.EffectPaths.Where(e => !supplied.Contains(e)).ToList();
             if (missing.Count > 0)
                 warnings.Add($"{missing.Count} of the {bundle.EffectPaths.Count} effects this dance " +
                     $"will trigger are not provided by this mod (for example {missing[0]}).");
+
+            // The dance's OWN effects, which are a different problem with the same symptom. The DJ
+            // block is copied from this mod and its files are usually right here; a downloaded dance
+            // brings its effect paths with it and nothing brings the .avfx, because only the .pap is
+            // installed. Saying so is the whole remedy available — the user has to copy those files
+            // across themselves — and it is exactly what nobody was told when a dance shipped
+            // pointing at two .avfx that existed nowhere in the pack.
+            // Minus the ones being removed. Listing a dropped clip here as well would tell the user
+            // to go and find a file AND that the entry using it is gone — two warnings about the
+            // same path, one of which is no longer true.
+            var unsupplied = supplied == null
+                ? new List<string>()
+                : ownEffects.Where(e => !supplied.Contains(e) && !droppedEffects.Contains(e)).ToList();
+            if (unsupplied.Count > 0)
+                warnings.Add($"This dance fires {unsupplied.Count} effect" +
+                    (unsupplied.Count == 1 ? "" : "s") + " of its own that this mod does not provide " +
+                    $"(for example {unsupplied[0]}). Copy them across from the source mod, or the " +
+                    "dance will play without them.");
+
+            // Said separately and more firmly, because this is not "you may want to fix this later".
+            // The clip is being removed, and the alternative to removing it is that everyone who sees
+            // the dance over sync crashes to desktop.
+            if (droppedEffects.Count > 0)
+                warnings.Add($"{droppedEffects.Count} async VFX clip" +
+                    (droppedEffects.Count == 1 ? " was" : "s were") + " removed from this dance " +
+                    "because the effect file is not in this mod, and that combination crashes anyone " +
+                    "watching you rather than simply not showing. Add the .avfx to this mod and " +
+                    $"re-add the dance to keep them. Removed: {string.Join("; ", droppedEffects)}.");
 
             return new AddDancePlan
             {
@@ -230,11 +277,12 @@ namespace Pickles_Playlist_Editor.Utils
                         // The intro carries no effect block in any real dance; it only needs the
                         // animation name the mod's option expects.
                         ? Rename(File.ReadAllBytes(sourceFile), PapFile.StartAnimationName)
-                        : DancePap.Prepare(File.ReadAllBytes(sourceFile), bundle, djStrings);
+                        : DancePap.Prepare(File.ReadAllBytes(sourceFile), bundle, djStrings,
+                            PapFile.DanceAnimationName, DanceRepair.SuppliedPaths(modRoot));
 
                     string target = Path.Combine(modRoot, relative.Replace('\\', Path.DirectorySeparatorChar));
                     Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                    AtomicWrite(target, prepared);
+                    PenumbraMeta.AtomicWrite(target, prepared);
 
                     File.WriteAllBytes(
                         Path.Combine(backup, $"{produced++:D2}." + Path.GetFileName(target)), prepared);
@@ -259,6 +307,10 @@ namespace Pickles_Playlist_Editor.Utils
                 return new DanceWriteResult { Error = ex.Message, BackupFolder = backup };
             }
 
+            // Before the reload, so Penumbra picks the new dance and the repairs up in one pass. The
+            // load-time pass will have run already in the normal case; this catches a mod that went
+            // bad while the dialog was open, and the dance just written if it somehow came out wrong.
+            warnings.AddRange(CleanBrokenDances(modRoot, backup).Warnings);
             warnings.AddRange(Settle(group, plan.DanceName, shouldExist: true));
 
             // Logged on success too, not only on failure: "it said it worked and nothing appeared"
@@ -289,6 +341,142 @@ namespace Pickles_Playlist_Editor.Utils
             if (format == ModFormat.V3) option["Description"] = string.Empty;
             option["Files"] = files;
             return option;
+        }
+
+        // ---- repairing ---------------------------------------------------------------------------
+
+        /// <summary>What a repair pass found and did.</summary>
+        internal sealed record RepairOutcome(int Repaired, int Failed, List<string> Warnings)
+        {
+            public static readonly RepairOutcome Nothing = new(0, 0, new List<string>());
+            public bool ChangedAnything => Repaired > 0;
+        }
+
+        /// <summary>
+        /// Repairs every animation in this mod that would crash the game, whether or not the user was
+        /// doing anything to it.
+        ///
+        /// Called when a dance mod is LOADED, not only when one is written to, and that distinction is
+        /// the whole reason this is public. A DJ pack is a thing people download; the person who ends
+        /// up with a crashing dance in it is usually not the person who built it, and they have no
+        /// reason to ever add a dance. Repairing only on write would have fixed the author's copy and
+        /// left everybody they shared it with crashing.
+        ///
+        /// Penumbra is asked to reload afterwards. Only the .pap bytes changed and not the manifest,
+        /// so this is not the usual "or Penumbra overwrites the edit" problem — it is that Penumbra
+        /// may already be holding the old resource, and the point of the exercise is that the game
+        /// stops being handed it.
+        /// </summary>
+        public static DanceWriteResult RepairMod(DanceGroupRef group)
+        {
+            string backup = BackupFolder(group.ModName);
+            var outcome = CleanBrokenDances(group.ModRoot, backup);
+
+            if (!outcome.ChangedAnything)
+                return new DanceWriteResult { Succeeded = true, Warnings = outcome.Warnings };
+
+            Logger.LogInfo("Repaired {Count} animation(s) in {Mod}. Backup: {Backup}",
+                outcome.Repaired, group.ModName, backup);
+
+            var warnings = new List<string>(outcome.Warnings);
+            warnings.AddRange(Settle(group, null, null));
+            return new DanceWriteResult { Succeeded = true, BackupFolder = backup, Warnings = warnings };
+        }
+
+        /// <summary>
+        /// Repairs any animation in the mod that asks the game for a path it cannot have.
+        ///
+        /// Silent and unasked, deliberately. The fault it clears is not cosmetic — an empty VFX path
+        /// is a crash to desktop the moment the dance loops — and the packs carrying it were built by
+        /// an older version of this very tool. A prompt describing an orphaned pool offset is one most
+        /// people would dismiss, and dismissing it means carrying on crashing. It takes a backup and
+        /// says afterwards what it changed, which is the honest version of doing it anyway.
+        ///
+        /// Never fatal. This is a pass over files the user did not ask about, so a failure here must
+        /// not fail — or roll back — whatever they actually requested.
+        /// </summary>
+        private static RepairOutcome CleanBrokenDances(string modRoot, string backupFolder)
+        {
+            var warnings = new List<string>();
+
+            try
+            {
+                var notes = new List<string>();
+                var broken = DanceRepair.Scan(modRoot, notes);
+                var supplies = DanceRepair.SuppliedPaths(modRoot);
+
+                foreach (string note in notes)
+                    Logger.LogWarn("Could not check an animation in {Mod}: {Note}", modRoot, note);
+                if (broken.Count == 0) return RepairOutcome.Nothing;
+
+                Logger.LogWarn("{Count} animation(s) in {Mod} carry unusable paths: {Files}",
+                    broken.Count, modRoot, string.Join(" | ", broken.Select(b => b.ToString())));
+
+                var repaired = new List<string>();
+                int failed = 0;
+
+                // Each file stands alone. One that cannot be repaired is logged and skipped rather
+                // than abandoning the rest — the case this was written for has two identical bad
+                // files, and fixing one of them is not a useful outcome.
+                foreach (var file in broken)
+                {
+                    try
+                    {
+                        byte[] original = File.ReadAllBytes(file.FullPath);
+                        byte[] result = DanceRepair.Repair(file, original, supplies);
+
+                        Backup(original, file.Relative, backupFolder);
+                        PenumbraMeta.AtomicWrite(file.FullPath, result);
+
+                        Logger.LogInfo("Repaired {File}: dropped {Count} entries ({Problems})",
+                            file.Relative, file.EntriesToDrop.Count, string.Join("; ", file.Problems));
+                        repaired.Add(file.Relative);
+                    }
+                    catch (Exception ex)
+                    {
+                        failed++;
+                        Logger.LogWarn("Could not repair {File}: {Error}", file.Relative, ex.Message);
+                    }
+                }
+
+                // Worded to read the same after an add and on its own, because it is shown in both
+                // places and "N OTHER animations" is nonsense when nothing else just happened.
+                if (repaired.Count > 0)
+                    warnings.Add($"{repaired.Count} animation" +
+                        (repaired.Count == 1 ? " in this mod was" : "s in this mod were") +
+                        " asking the game for effect files that are not there, which can crash the " +
+                        "game when the dance plays. The broken entries were removed and the " +
+                        $"originals kept in the backup folder: {string.Join(", ", repaired)}.");
+
+                if (failed > 0)
+                    warnings.Add($"{failed} animation" + (failed == 1 ? "" : "s") +
+                        " in this mod could not be repaired. The log says which; re-adding those " +
+                        "dances from their original mods is the way to fix them.");
+
+                return new RepairOutcome(repaired.Count, failed, warnings);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarn("Checking {Mod} for broken dances failed: {Error}", modRoot, ex.Message);
+                return new RepairOutcome(0, 0, warnings);
+            }
+        }
+
+        /// <summary>
+        /// The original of a repaired animation, kept under a name that survives being looked at a
+        /// month later.
+        ///
+        /// The mod-relative path is flattened into the filename rather than recreated as folders:
+        /// every bad animation in a pack is called <c>dance_male_loop.pap</c>, so the folders are the
+        /// only thing telling them apart, and a backup folder full of identically named files is one
+        /// nobody can restore from.
+        /// </summary>
+        private static void Backup(byte[] original, string relative, string backupFolder)
+        {
+            Directory.CreateDirectory(backupFolder);
+            string name = relative.Replace('\\', '-').Replace('/', '-');
+            foreach (char c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '-');
+            File.WriteAllBytes(Path.Combine(backupFolder, "broken-" + name), original);
         }
 
         // ---- plumbing ----------------------------------------------------------------------------
@@ -330,19 +518,6 @@ namespace Pickles_Playlist_Editor.Utils
                       "overwritten the change.");
 
             return warnings;
-        }
-
-        /// <summary>
-        /// Writes via a sibling temp file and an atomic move, for the same reason
-        /// <see cref="PenumbraMeta.AtomicWrite"/> does: Penumbra watches this folder, and a
-        /// half-written animation is worse than no animation.
-        /// </summary>
-        private static void AtomicWrite(string target, byte[] contents)
-        {
-            string tmp = target + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            File.WriteAllBytes(tmp, contents);
-            try { File.Move(tmp, target, overwrite: true); }
-            catch { try { File.Delete(tmp); } catch { } throw; }
         }
     }
 }

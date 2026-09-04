@@ -47,6 +47,12 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
     /// </summary>
     internal readonly record struct TmbPoolItem(TmbFieldKind Kind, string Text, byte[] Bytes, short[] Ids);
 
+    /// <summary>One declared path field that would not give the game a resource it can load.</summary>
+    internal readonly record struct TmbBrokenPath(TmbEntry Entry, TmbField Field, string Problem)
+    {
+        public override string ToString() => $"{Entry} {Problem}";
+    }
+
     /// <summary>One entry in a TMB, located but not fully decoded.</summary>
     internal sealed class TmbEntry
     {
@@ -65,7 +71,15 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
         /// <summary>The entry id, referenced by the int16 lists in TMAL / TMAC / TMTR.</summary>
         public short Id { get; init; }
 
-        /// <summary>The int16 sharing the first body word with <see cref="Id"/>. 1 on C012, else 0.</summary>
+        /// <summary>
+        /// The int16 sharing the first body word with <see cref="Id"/>.
+        ///
+        /// Called a flag because on C012 it is 1 and on the skeleton types it is 0, which is the whole
+        /// of what this app needs from it. It is not a flag: on C173 it holds values like 170, 403 and
+        /// 233 in a timeline 400-odd frames long, which is a clip time. Nothing here reads it for
+        /// meaning — it is carried through in the entry's own bytes — so the name is left alone rather
+        /// than replaced with a second guess.
+        /// </summary>
         public short Flag { get; init; }
 
         /// <summary>
@@ -157,8 +171,29 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
         public const string Tmal = "TMAL";
         public const string Tmac = "TMAC";
         public const string Tmtr = "TMTR";
+        public const string ActionEntry = "C002";
         public const string AnimationEntry = "C009";
+        public const string ExpressionEntry = "C010";
+        public const string EffectEntry = "C012";
         public const string SoundEntry = "C063";
+
+        /// <summary>
+        /// Async VFX. Fires an .avfx the same way <see cref="EffectEntry"/> does, but on the loading
+        /// path that <c>SchedulerTimeline.LoadTimelineResources</c> walks rather than on the clip's
+        /// own tick — which is why an unusable path here is fatal rather than merely invisible.
+        /// </summary>
+        public const string AsyncEffectEntry = "C173";
+
+        /// <summary>
+        /// Whether this entry's string is a RESOURCE PATH the game will try to load.
+        ///
+        /// The distinction matters because empty is not uniformly a defect. <see cref="Tmpp"/>'s
+        /// string is the timeline's own name and one real file leaves it blank quite happily; an empty
+        /// path in any of these is a file the game asks for and cannot get.
+        /// </summary>
+        public static bool CarriesResourcePath(string magic) =>
+            magic is ActionEntry or AnimationEntry or ExpressionEntry or EffectEntry
+                  or SoundEntry or AsyncEffectEntry;
 
         /// <summary>
         /// The entry types the skeleton is made of: the timeline header, its name, the actor list and
@@ -197,15 +232,22 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
             [Tmal] = (16, new[] { new TmbField(0, TmbFieldKind.Int16List, CountBodyOffset: 4) }),
             [Tmac] = (28, new[] { new TmbField(12, TmbFieldKind.Int16List, CountBodyOffset: 16) }),
             [Tmtr] = (24, new[] { new TmbField(4, TmbFieldKind.Int16List, CountBodyOffset: 8) }),
+
+            // Measured on .tmb rather than on a dance .pap — no dance carries one — but unanimous
+            // where it does appear: all six in the reference folder resolve to
+            // "chara/action/battle/ability_end". Declared so those files are rebuildable rather than
+            // refused; nothing this app writes contains one.
+            [ActionEntry] = (28, new[] { new TmbField(16, TmbFieldKind.String) }),
+
             [AnimationEntry] = (24, new[] { new TmbField(12, TmbFieldKind.String) }),
-            ["C010"] = (40, new[] { new TmbField(24, TmbFieldKind.String) }),
+            [ExpressionEntry] = (40, new[] { new TmbField(24, TmbFieldKind.String) }),
 
             // C012 carries FOUR pool pointers, each with its own count immediately after it, not one
             // record. Declaring only the first is what made a spliced dance animate correctly and
             // fire nothing: the other three kept their donor-relative distances and pointed into
             // whatever the new file happened to have there. Nothing detected it, because a table that
             // does not name a field cannot check it — which is why PoolCoverage exists now.
-            ["C012"] = (72, new[]
+            [EffectEntry] = (72, new[]
             {
                 new TmbField(12, TmbFieldKind.String),
                 new TmbField(24, TmbFieldKind.Float32List, CountBodyOffset: 28),
@@ -214,6 +256,21 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
                 new TmbField(48, TmbFieldKind.Float32List, CountBodyOffset: 52),
             }),
             [SoundEntry] = (32, new[] { new TmbField(12, TmbFieldKind.String) }),
+
+            // C173's absence from this table is the most expensive one so far: a donor's four C173
+            // entries went through a merge as opaque, byte-copied with their DONOR-relative path
+            // offsets intact into a file whose pool had moved 0x5B0 bytes. Their strings were never
+            // written to the rebuilt pool at all, so the offsets landed back in the entry region and
+            // read a 0x00 — an empty path. Penumbra answers an empty game path with a literal null and
+            // the game's VFX handler dereferences it untested, so the dance was a reproducible crash
+            // to desktop 2.7 seconds in, at the instant the loop timeline loaded.
+            //
+            // One string, and only one. Verified across five unrelated mods: every other body word is
+            // 0, 1, 3 or a packed int16 pair, none of which can be a pool offset — added to the body
+            // they land inside the entry itself. Pool coverage then accounts for every byte of every
+            // pool in 14,271 of 14,295 real timelines, which is the check that says so without having
+            // to be told what to look for.
+            [AsyncEffectEntry] = (68, new[] { new TmbField(12, TmbFieldKind.String) }),
         };
 
         // ---- walking -------------------------------------------------------------------------------
@@ -333,6 +390,88 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
             return Encoding.ASCII.GetString(layout.Bytes, at, length);
         }
 
+        /// <summary>
+        /// The string a field points at, or the reason it does not have one.
+        ///
+        /// The non-throwing half of <see cref="ResolveString"/>, and stricter than it in one way that
+        /// matters: a target BEFORE the pools is rejected rather than read. That is not a hypothetical
+        /// shape. It is the exact signature of an offset carried over from a file whose pool sat
+        /// somewhere else — it lands back in the entry region, where the byte it finds is almost always
+        /// a 0x00, and the caller gets a perfectly well-formed empty string instead of an error.
+        ///
+        /// Two callers need to survey a file rather than trust it: the coverage count, which has to
+        /// keep going past a bad field to report the rest, and the repair pass, whose entire input is
+        /// files with bad fields in them.
+        /// </summary>
+        public static bool TryResolveString(TmbLayout layout, TmbEntry entry, TmbField field,
+            out string value, out string problem)
+        {
+            value = string.Empty;
+            problem = string.Empty;
+
+            if (field.Kind != TmbFieldKind.String)
+            {
+                problem = $"has no string at body offset {field.BodyOffset}";
+                return false;
+            }
+
+            int at = Target(layout, entry, field);
+            if (at < 0 || at >= layout.TotalSize)
+            {
+                problem = $"points its path outside the file (offset {at} of {layout.TotalSize})";
+                return false;
+            }
+
+            if (at < layout.EntriesEnd)
+            {
+                problem = $"points its path into the entry region (offset {at}, the pools start at " +
+                          $"{layout.EntriesEnd}), so it reads whatever byte happens to be there";
+                return false;
+            }
+
+            int length = 0;
+            while (at + length < layout.TotalSize && layout.Bytes[at + length] != 0x00)
+                length++;
+
+            if (at + length >= layout.TotalSize)
+            {
+                problem = "points at an unterminated string";
+                return false;
+            }
+
+            value = Encoding.ASCII.GetString(layout.Bytes, at, length);
+            return true;
+        }
+
+        /// <summary>
+        /// Every resource path in this timeline that the game could not load, and why. Never throws:
+        /// a file with one bad field usually has four, and the caller wants all of them.
+        ///
+        /// An EMPTY path counts as broken, which is the whole point rather than fastidiousness.
+        /// Penumbra returns a literal null for an empty game path and logs it; the game's timeline VFX
+        /// handler then dereferences that null with no test in between. So an empty path is a crash to
+        /// desktop, where a path that merely fails to LOAD is survivable — the async loader warns and
+        /// carries on. Only <see cref="CarriesResourcePath"/> types are checked, because TMPP's string
+        /// is the timeline's own name and being blank is legal there.
+        /// </summary>
+        public static List<TmbBrokenPath> BrokenPaths(TmbLayout layout)
+        {
+            var broken = new List<TmbBrokenPath>();
+            foreach (var entry in layout.Entries)
+            {
+                if (!CarriesResourcePath(entry.Magic)) continue;
+                foreach (var field in entry.Fields)
+                {
+                    if (field.Kind != TmbFieldKind.String) continue;
+                    if (!TryResolveString(layout, entry, field, out string value, out string problem))
+                        broken.Add(new TmbBrokenPath(entry, field, problem));
+                    else if (value.Length == 0)
+                        broken.Add(new TmbBrokenPath(entry, field, "asks the game for an empty path"));
+                }
+            }
+            return broken;
+        }
+
         /// <summary>The int16 id list a field points at.</summary>
         public static short[] ResolveInt16List(TmbLayout layout, TmbEntry entry, TmbField field)
         {
@@ -407,7 +546,13 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
                     switch (field.Kind)
                     {
                         case TmbFieldKind.String:
-                            Claim(at, ResolveString(layout, entry, field).Length + 1);
+                            // A field that does not resolve claims nothing rather than throwing, and
+                            // erring that way is deliberate: the question this answers is whether the
+                            // pool is fully accounted for, and a field pointing at nothing is one more
+                            // reason the answer is no. Throwing here would also make the count useless
+                            // to the two callers that exist to examine broken files.
+                            if (TryResolveString(layout, entry, field, out string text, out _))
+                                Claim(at, text.Length + 1);
                             break;
                         case TmbFieldKind.Int16List:
                         case TmbFieldKind.Float32List:
@@ -423,6 +568,25 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
 
             return (covered, layout.PoolBytes);
         }
+
+        /// <summary>Pool bytes no declared field claims. See <see cref="PoolCoverage"/> for why.</summary>
+        public static int OrphanedPoolBytes(TmbLayout layout)
+        {
+            var (covered, total) = PoolCoverage(layout);
+            return total - covered;
+        }
+
+        /// <summary>
+        /// How many orphaned pool bytes are consistent with a file this app understands completely.
+        ///
+        /// Not zero, and not generous either. Measured over 3,076 real .pap and .tmb: 14,271 of 14,295
+        /// timelines account for every single pool byte, and the two dozen that do not are out by 2 to
+        /// 12 bytes of dust in overlapping id lists. The number is kept well under the smallest real
+        /// miss — the two undeclared C173 paths that motivated this check orphaned 52 bytes — because
+        /// a slack set to be comfortable would have waved that one through exactly as every other
+        /// check here did.
+        /// </summary>
+        public const int PoolSlack = 16;
 
         /// <summary>
         /// Every resolvable target of every known entry, as a comparable string.

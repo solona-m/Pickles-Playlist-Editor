@@ -38,10 +38,22 @@ internal static class Program
 
     private static int _checked, _failed;
 
+    /// <summary>Mod-name fragments given to <c>--find</c>, reported by the source scan.</summary>
+    private static List<string> _find = new();
+
     private static int Main(string[] args)
     {
         bool dump = args.Contains("--dump");
-        string root = args.FirstOrDefault(a => !a.StartsWith("--")) ?? DefaultRoot;
+
+        // --find takes its own values, so they must not also be eligible to be the root. Without
+        // this, "--find Mine" silently ran the whole harness against a directory called Mine.
+        _find = args.SkipWhile(a => a != "--find").Skip(1).TakeWhile(a => !a.StartsWith("--")).ToList();
+        string root = args.FirstOrDefault(a => !a.StartsWith("--") && !_find.Contains(a)) ?? DefaultRoot;
+
+        // The only mode here that writes to a mod folder, and it is opt-in for that reason. Point it
+        // at a COPY to see what the repair would produce; point it at the real thing only knowingly.
+        if (args.Contains("--repair")) return RepairInPlace(root);
+
         if (!Directory.Exists(root))
         {
             Console.Error.WriteLine($"No such directory: {root}");
@@ -76,6 +88,8 @@ internal static class Program
         RoundTripDjBlock(timelines, djStrings);
         StringEdits(timelines);
         PrepareRealDances(timelines, djStrings);
+        AsyncVfxSurvivesASplice(timelines, djStrings, ModRootOf(root));
+        RepairPass(root);
 
         Console.WriteLine($"\n{_checked} checks, {_failed} failed.");
         return _failed == 0 ? 0 : 1;
@@ -159,6 +173,19 @@ internal static class Program
         foreach (var mod in mods.Take(8))
             Console.WriteLine($"  {mod.Name,-52} {mod.Dances.Count,4} dances" +
                 (mod.DuplicateFolders.Count > 0 ? $"  (+{mod.DuplicateFolders.Count} duplicate folder)" : ""));
+
+        // Anything named on the command line, so "is this mod offered as a source?" — the question
+        // asked every time a dance will not appear in the browser — is answerable without a UI.
+        foreach (string fragment in _find)
+        {
+            var matches = mods.Where(m =>
+                m.Name.Contains(fragment, StringComparison.OrdinalIgnoreCase)).ToList();
+            Console.WriteLine($"  --find '{fragment}': {matches.Count} mod(s)");
+            foreach (var mod in matches)
+                foreach (var dance in mod.Dances)
+                    Console.WriteLine($"     {mod.Name} / {dance.Label}  " +
+                        $"[{string.Join(" ", dance.Races)}] start={dance.StartByRace.Count > 0}");
+        }
         Console.WriteLine($"  ... {mods.Count} mods, {dances} dances, {elapsed.TotalSeconds:0.0}s");
 
         // Measured on the reference folder: 38 mods / 722 dances. Two numbers move together here
@@ -447,6 +474,12 @@ internal static class Program
         @"e:\Penumbradt\[LUMI] Kill This Love Dance",
         @"e:\Penumbradt\[LUMI] Thriller Dance",
         @"e:\Penumbradt\Waltz Dance",
+
+        // The C173 dance. Here as well as in AsyncVfxSurvivesASplice because this path exercises
+        // what the app actually runs — Inspect, then Prepare, then Verify — rather than the splice
+        // alone, and it is the dance that shipped a crash.
+        @"e:\Penumbradt\Mine",
+
         @"e:\Penumbradt\Slow Dance Mod",
         @"e:\Penumbradt\[OCN] Line Dancin' - Cyr Edit w Eira Edit",
     };
@@ -525,6 +558,286 @@ internal static class Program
         }
 
         Console.WriteLine($"\n{prepared} prepared, {refused} refused. Output: {outDir}");
+    }
+
+    // ---- the C173 regression ---------------------------------------------------------------------
+
+    /// <summary>The donor whose four C173 entries shipped broken. Its .pmp copy is structurally clean.</summary>
+    private const string AsyncVfxDonor = @"e:\Penumbradt\Mine\common\1\dance_male_loop.pap";
+
+    /// <summary>
+    /// The exact case that shipped a crash to desktop.
+    ///
+    /// This dance carries four C173 "async VFX" entries. Splicing the DJ block in front of them moves
+    /// the pool by hundreds of bytes, and the entries hold their path as a distance from their own
+    /// body — so an entry type the writer does not model comes out the far side byte-copied, still
+    /// holding the DONOR's distance, pointing back into the entry region at a 0x00. That is an empty
+    /// resource path, which Penumbra answers with a null the game dereferences untested.
+    ///
+    /// Asserting the four paths RESOLVE is the check that would have caught it. Asserting they are the
+    /// right four is the check that catches the sloppier fix, where they resolve to whatever string
+    /// happened to be nearby.
+    /// </summary>
+    private static void AsyncVfxSurvivesASplice(List<Timeline> timelines, HashSet<string> djStrings,
+        string modRoot)
+    {
+        Console.WriteLine("\n=== C173 survives a pool-shifting splice");
+        if (!File.Exists(AsyncVfxDonor))
+        {
+            Console.WriteLine($"  (not installed: {AsyncVfxDonor} — skipped)");
+            return;
+        }
+
+        var loopLayouts = timelines.Where(t => t.IsLoop).Select(t => TmbBinary.Walk(t.Tmb)).ToList();
+        var (donor, tracks) = TmbTrackBundle.ChooseDonor(loopLayouts, djStrings);
+        var bundle = TmbTrackBundle.Extract(donor, tracks);
+
+        try
+        {
+            byte[] source = File.ReadAllBytes(AsyncVfxDonor);
+            var before = TmbBinary.Walk(PapFile.Parse(source).GetTimeline());
+            var expected = AsyncVfxPaths(before);
+
+            Check("C173", "the donor ships four resolvable C173 paths", expected.Count == 4);
+
+            byte[] prepared = DancePap.Prepare(source, bundle, djStrings);
+            var after = TmbBinary.Walk(PapFile.Parse(prepared).GetTimeline());
+            var landed = AsyncVfxPaths(after);
+
+            Check("C173", "the pool actually moved, so this proves something",
+                after.EntriesEnd != before.EntriesEnd);
+            Check("C173", "all four paths survive the splice", landed.SequenceEqual(expected));
+            Check("C173", "the prepared dance asks for no empty or stray path",
+                TmbBinary.BrokenPaths(after).Count == 0);
+
+            // The paths are only half of it. Before the fix these two .avfx were not enumerated at
+            // all, so nothing downstream could know the dance needed them — which is why the pack
+            // shipped without either file even where the offsets happened to survive.
+            var enumerated = DancePap.Inspect(source, bundle, djStrings).EffectsUsed;
+            Check("C173", "its own effects are enumerated so the mod can be told about them",
+                expected.Distinct().All(enumerated.Contains));
+
+            Console.WriteLine($"  pool {before.EntriesEnd} -> {after.EntriesEnd}, " +
+                $"{landed.Count} C173 paths kept: {string.Join(", ", landed.Distinct())}");
+
+            // And the second half of the same story. Keeping those paths is only correct when the
+            // mod can actually supply what they name. This pack cannot, and a C173 naming a file
+            // nobody has crashes everyone watching over sync — so against a real destination the
+            // same dance must come out with the clips REMOVED rather than merely pointed correctly.
+            var supplies = DanceRepair.SuppliedPaths(modRoot);
+            Check("C173", "the destination mod's supplied paths are readable", supplies != null);
+            Check("C173", "this pack really does not supply the two .avfx",
+                supplies != null && expected.Distinct().All(p => !supplies.Contains(p)));
+
+            var plan = DancePap.Inspect(source, bundle, djStrings, PapFile.DanceAnimationName, supplies);
+            Check("C173", $"the unsupplied clips are reported ({plan.AsyncEffectsDropped.Count})",
+                plan.AsyncEffectsDropped.Count == 2);
+
+            byte[] guarded = DancePap.Prepare(source, bundle, djStrings,
+                PapFile.DanceAnimationName, supplies);
+            var guardedTimeline = TmbBinary.Walk(PapFile.Parse(guarded).GetTimeline());
+
+            Check("C173", "an unsupplied async clip is dropped, not shipped pointing at nothing",
+                AsyncVfxPaths(guardedTimeline).Count == 0);
+            Check("C173", "dropping them leaves nothing else broken",
+                TmbBinary.BrokenPaths(guardedTimeline).Count == 0
+                && DanceRepair.UnsuppliedAsyncEffects(guardedTimeline, supplies).Count == 0);
+
+            // The DJ block is the point of the whole operation and must survive the removal.
+            Check("C173", "the DJ effect block still lands after the drop",
+                TmbTrackBundle.CoverageOf(guardedTimeline, djStrings).Count == djStrings.Count);
+
+            Console.WriteLine($"  against the real pack: {plan.AsyncEffectsDropped.Count} clip(s) dropped, " +
+                $"{after.Entries.Count} -> {guardedTimeline.Entries.Count} entries");
+        }
+        catch (Exception ex)
+        {
+            Fail("C173", "prepare: " + ex.Message);
+        }
+
+        StockAsyncEffectsAreKept();
+    }
+
+    /// <summary>Dances whose C173 fires a VANILLA effect. No mod supplies these, and none has to.</summary>
+    private static readonly string[] StockAsyncVfxDances =
+    {
+        @"e:\Penumbradt\Lilly's Silent Dance Party\common\135\dance03_loop.pap",
+        @"e:\Penumbradt\Nightlife+ v3.1.1\common\870\loop_emot24_loop.pap",
+    };
+
+    /// <summary>
+    /// The other half of the unsupplied rule, and the one that can quietly destroy a mod.
+    ///
+    /// "Unsupplied" cannot mean "absent from this mod's option list", because a stock game effect is
+    /// absent from every mod's option list. Measured over the whole reference folder, exactly one
+    /// stock path appears in a C173 — <c>vfx/common/eff/syncactiontimelineclip01t.avfx</c>, in three
+    /// mods — and treating it as unsupplied would have silently deleted a working effect from every
+    /// one of their dances the first time the dialog was opened on them.
+    /// </summary>
+    private static void StockAsyncEffectsAreKept()
+    {
+        var nothingSupplied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string file in StockAsyncVfxDances)
+        {
+            if (!File.Exists(file)) { Console.WriteLine($"  (not installed: {file})"); continue; }
+            try
+            {
+                var layout = TmbBinary.Walk(PapFile.ReadTimeline(file));
+                var paths = AsyncVfxPaths(layout);
+                string label = "stock/" + Path.GetFileName(Path.GetDirectoryName(file)!);
+
+                Check(label, "the fixture really does carry a C173", paths.Count > 0);
+                Check(label, $"a stock effect is kept even when NOTHING is supplied ({paths.FirstOrDefault()})",
+                    DanceRepair.UnsuppliedAsyncEffects(layout, nothingSupplied).Count == 0);
+                Check(label, "and it is recognised as the game's own",
+                    paths.All(DanceRepair.IsStockPath));
+            }
+            catch (Exception ex)
+            {
+                Fail(file, "stock check: " + ex.Message);
+            }
+        }
+
+        UnreadableManifestDropsNothing();
+    }
+
+    /// <summary>
+    /// A mod whose file list cannot be read must disable the rule, not satisfy it vacuously.
+    ///
+    /// The first version of the sentinel keyed on <see cref="PenumbraOptions.Read"/> throwing, which
+    /// it never does — it is built to return an empty list for anything unreadable. So the guard was
+    /// dead code and the real failure mode went straight past it: an unreadable manifest read as
+    /// "supplies nothing", which makes every custom async effect in the pack unsupplied and would
+    /// have had the load-time repair strip the lot. Penumbra rewrites meta.json underneath this app,
+    /// so that read is ordinary rather than exotic.
+    /// </summary>
+    private static void UnreadableManifestDropsNothing()
+    {
+        string empty = Path.Combine(Path.GetTempPath(), "tmbharness-no-manifest");
+        Directory.CreateDirectory(empty);
+
+        Check("supplies", "a mod with no readable manifest reports UNKNOWN, not 'supplies nothing'",
+            DanceRepair.SuppliedPaths(empty) == null);
+
+        // And unknown must be inert, or the sentinel buys nothing.
+        if (File.Exists(AsyncVfxDonor))
+        {
+            var layout = TmbBinary.Walk(PapFile.Parse(File.ReadAllBytes(AsyncVfxDonor)).GetTimeline());
+            Check("supplies", "unknown supplies drops nothing",
+                DanceRepair.UnsuppliedAsyncEffects(layout, null).Count == 0);
+            Check("supplies", "but a genuinely empty set still would (the two are not the same)",
+                DanceRepair.UnsuppliedAsyncEffects(layout,
+                    new HashSet<string>(StringComparer.OrdinalIgnoreCase)).Count == 4);
+        }
+    }
+
+    /// <summary>
+    /// The mod folder a scan root belongs to. The default root is the pack's <c>dances</c> subfolder,
+    /// but a mod's manifest — and therefore the set of paths it supplies — lives one level up.
+    /// </summary>
+    private static string ModRootOf(string root) =>
+        Path.GetFileName(root.TrimEnd('\\', '/')).Equals("dances", StringComparison.OrdinalIgnoreCase)
+            ? Path.GetDirectoryName(root.TrimEnd('\\', '/'))! : root;
+
+    private static List<string> AsyncVfxPaths(TmbLayout layout) =>
+        layout.Entries
+            .Where(e => e.Magic == TmbBinary.AsyncEffectEntry)
+            .SelectMany(e => e.Fields
+                .Where(f => f.Kind == TmbFieldKind.String)
+                .Select(f => TmbBinary.ResolveString(layout, e, f)))
+            .ToList();
+
+    /// <summary>
+    /// Applies the repair to a mod folder for real, so a repaired pack can be run back through every
+    /// check above. <c>TmbHarness &lt;modRoot&gt; --repair</c>.
+    /// </summary>
+    private static int RepairInPlace(string modRoot)
+    {
+        var notes = new List<string>();
+        var broken = DanceRepair.Scan(modRoot, notes);
+        foreach (string note in notes) Console.WriteLine($"unreadable: {note}");
+
+        foreach (var file in broken)
+        {
+            byte[] original = File.ReadAllBytes(file.FullPath);
+            File.WriteAllBytes(file.FullPath + ".broken.bak", original);
+            File.WriteAllBytes(file.FullPath, DanceRepair.Repair(file, original));
+            Console.WriteLine($"repaired {file.Relative} ({file.EntriesToDrop.Count} entries dropped)");
+        }
+
+        Console.WriteLine($"{broken.Count} repaired in {modRoot}.");
+        return 0;
+    }
+
+    // ---- the repair pass -------------------------------------------------------------------------
+
+    /// <summary>
+    /// What <see cref="DanceRepair"/> would do to the packs that already shipped.
+    ///
+    /// Read-only against the real mod — Scan writes nothing — and the repair itself is exercised in
+    /// memory, so running this cannot change a folder the user did not ask about. The point is to
+    /// prove that removing the broken entries yields a timeline that walks, resolves and is canonical,
+    /// rather than one that merely no longer trips the check that found it.
+    /// </summary>
+    private static void RepairPass(string root)
+    {
+        Console.WriteLine("\n=== repairing what already shipped");
+
+        string modRoot = ModRootOf(root);
+
+        var notes = new List<string>();
+        var broken = DanceRepair.Scan(modRoot, notes);
+        Console.WriteLine($"{broken.Count} animation(s) in {Path.GetFileName(modRoot)} carry unusable paths");
+        foreach (string note in notes) Console.WriteLine($"  unreadable: {note}");
+        foreach (var file in broken)
+            Console.WriteLine($"  {file.Relative}\n     " + string.Join("\n     ", file.Problems));
+
+        foreach (var file in broken)
+        {
+            try
+            {
+                byte[] original = File.ReadAllBytes(file.FullPath);
+                var beforeLayout = TmbBinary.Walk(PapFile.Parse(original).GetTimeline());
+
+                byte[] repairedPap = DanceRepair.Repair(file, original);
+                byte[] repaired = PapFile.Parse(repairedPap).GetTimeline();
+                var after = TmbBinary.Walk(repaired);
+
+                Check(file.Relative, "the repaired timeline asks for nothing it cannot have",
+                    TmbBinary.BrokenPaths(after).Count == 0);
+                Check(file.Relative, "the repair drops exactly the broken entries and their empty tracks",
+                    after.Entries.Count == beforeLayout.Entries.Count - file.EntriesToDrop.Count);
+
+                // Everything the dance actually does has to still be there. The repair removes clips
+                // that were pointing at nothing; anything else changing means it removed too much.
+                var kept = beforeLayout.Entries
+                    .Where(e => !file.EntriesToDrop.Contains(e.Offset))
+                    .Where(e => TmbBinary.CarriesResourcePath(e.Magic))
+                    .SelectMany(e => e.Fields.Where(f => f.Kind == TmbFieldKind.String)
+                        .Select(f => e.Magic + ":" + TmbBinary.ResolveString(beforeLayout, e, f)))
+                    .OrderBy(s => s, StringComparer.Ordinal).ToList();
+                var survived = after.Entries
+                    .Where(e => TmbBinary.CarriesResourcePath(e.Magic))
+                    .SelectMany(e => e.Fields.Where(f => f.Kind == TmbFieldKind.String)
+                        .Select(f => e.Magic + ":" + TmbBinary.ResolveString(after, e, f)))
+                    .OrderBy(s => s, StringComparer.Ordinal).ToList();
+                Check(file.Relative, $"every other path is untouched ({survived.Count} kept)",
+                    kept.SequenceEqual(survived));
+
+                // And the repaired file must go back through the writer cleanly, or the next add
+                // against this mod fails on a file this pass claimed to have fixed.
+                Check(file.Relative, "the repaired timeline rebuilds",
+                    TmbSplice.Rebuild(repaired).AsSpan().SequenceEqual(repaired));
+
+                Console.WriteLine($"  {file.Relative,-70} {beforeLayout.TotalSize} -> {repaired.Length} bytes, " +
+                    $"{beforeLayout.Entries.Count} -> {after.Entries.Count} entries");
+            }
+            catch (Exception ex)
+            {
+                Fail(file.Relative, "repair: " + ex.Message);
+            }
+        }
     }
 
     /// <summary>Every entry in file order: what it is, what id it claims, and whether it is modelled.</summary>

@@ -120,6 +120,19 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
                         $"{entry} is part of the timeline skeleton and cannot be bundled.");
             }
 
+            // A donor entry whose own path does not resolve would be copied into every dance added
+            // from here on, so it is refused at the point it is picked up rather than at each write.
+            // Scoped to the SELECTED entries deliberately: a dance elsewhere in the same donor file
+            // being broken is a reason to repair that dance, not a reason this block cannot be copied.
+            var picked = new HashSet<int>(selected.Select(e => e.Offset));
+            foreach (var broken in TmbBinary.BrokenPaths(donor))
+            {
+                if (!picked.Contains(broken.Entry.Offset)) continue;
+                throw new TmbFormatException(
+                    $"{broken.Entry} {broken.Problem}, so this effect block cannot be copied into " +
+                    "another dance.");
+            }
+
             // Tracks first, then items. Donor order already satisfies this in every real file; sorting
             // makes it true by construction, because the splice relies on being able to cut the
             // bundle in two at TrackEntryBytes.
@@ -177,8 +190,8 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
         /// the genuinely per-dance effects, which appear exactly once each: one dance's
         /// <c>vfx/mikulivec.avfx</c>, another's <c>vfx/axie/shuffle.avfx</c>.
         ///
-        /// Only C012 strings are counted. The C009 animation name and the C010 facial expressions are
-        /// shared just as widely and are not effects.
+        /// Only effect strings are counted. The C009 animation name and the C010 facial expressions
+        /// are shared just as widely and are not effects.
         /// </summary>
         public static HashSet<string> DjStringSet(IEnumerable<TmbLayout> preppedDances)
         {
@@ -237,13 +250,23 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
         /// <summary>A block smaller than this is more plausibly one dance's own effects.</summary>
         private const int MinSharedEffects = 5;
 
-        /// <summary>Every distinct C012 effect path in a timeline.</summary>
+        /// <summary>
+        /// Whether an entry is one that fires an .avfx.
+        ///
+        /// C173 belongs here as much as C012 does. Leaving it out is why a donor's two C173 paths were
+        /// never enumerated and so never copied into the pack: the animation was rebuilt to point at
+        /// <c>vfx/makeyoumineloop.avfx</c> and that file was nowhere under the mod.
+        /// </summary>
+        public static bool IsEffectEntry(string magic) =>
+            magic == TmbBinary.EffectEntry || magic == TmbBinary.AsyncEffectEntry;
+
+        /// <summary>Every distinct effect path in a timeline.</summary>
         private static HashSet<string> EffectStrings(TmbLayout timeline)
         {
             var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var entry in timeline.Entries)
             {
-                if (entry.Magic != "C012") continue;
+                if (!IsEffectEntry(entry.Magic)) continue;
                 foreach (var field in entry.Fields)
                 {
                     if (field.Kind != TmbFieldKind.String) continue;
@@ -363,7 +386,11 @@ namespace Pickles_Playlist_Editor.Utils.Tmb
             foreach (short id in ids)
             {
                 if (!byId.TryGetValue(id, out var item)) return false;
-                if (item.Magic != "C012") return false;
+
+                // Any effect entry, not C012 alone. This is a TRAILING-RUN scan, so a single
+                // unrecognised item does not merely skip its own track — it stops the walk and
+                // silently shortens the whole extracted block.
+                if (!IsEffectEntry(item.Magic)) return false;
 
                 bool named = false;
                 foreach (var field in item.Fields)

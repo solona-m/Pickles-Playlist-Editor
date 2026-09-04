@@ -89,6 +89,63 @@ namespace Pickles_Playlist_Editor
             DancesSection.Visibility = Visibility.Visible;
             LoadGroups(modRoot, folder, group);
             RefreshDances();
+            RepairBrokenDances();
+        }
+
+        /// <summary>The mod a repair pass has already been run over, so it runs once per mod.</summary>
+        private string _repairedMod = string.Empty;
+
+        /// <summary>
+        /// Fixes any dance in this mod that would crash the game, without being asked to.
+        ///
+        /// Here, on LOAD, rather than only on the add path, because of who is actually affected. A DJ
+        /// pack gets shared; the person left with a crashing dance is usually not the one who built
+        /// it, and has no reason ever to add a dance. Repairing only when something is written would
+        /// fix the author's copy and nobody else's.
+        ///
+        /// Off the UI thread and after the list has already been drawn. It reads every animation the
+        /// mod's options name and may rewrite two of them, which is not work to do inside a handler
+        /// that is holding the window — and in the overwhelmingly common case it finds nothing, says
+        /// nothing, and the user never learns it happened.
+        /// </summary>
+        private void RepairBrokenDances()
+        {
+            if (_group == null
+                || string.Equals(_repairedMod, _group.ModRoot, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _repairedMod = _group.ModRoot;
+            var group = _group;
+
+            _ = Task.Run(() =>
+            {
+                DanceWriteResult result;
+                try
+                {
+                    result = DanceModWrites.RepairMod(group);
+                }
+                catch (Exception ex)
+                {
+                    // Nothing was asked for, so nothing is reported. The log is the record.
+                    Logger.LogWarn("Repairing {Mod} on load failed: {Error}", group.ModName, ex.Message);
+                    return;
+                }
+
+                if (result.Warnings.Count == 0) return;
+
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    // The mod on disk changed underneath the list that is already on screen, and the
+                    // effect block was read from files this may have just rewritten.
+                    RefreshDances();
+
+                    // A box rather than the status line. Files in somebody's mod folder were altered
+                    // without them asking, and the one thing that must not happen is that they find
+                    // out later from a backup folder they do not recognise.
+                    MessageBox(OwnerWindow(), string.Join("\n\n", result.Warnings),
+                        AppStrings.Dlg_Dances_Title, 0x00000030); // MB_ICONWARNING
+                });
+            });
         }
 
         /// <summary>

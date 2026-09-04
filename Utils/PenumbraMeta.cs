@@ -462,6 +462,25 @@ namespace Pickles_Playlist_Editor.Utils
         {
             string tmp = target + "." + Guid.NewGuid().ToString("N") + ".tmp";
             File.WriteAllText(tmp, contents, new UTF8Encoding(false));
+            MoveIntoPlace(tmp, target);
+        }
+
+        /// <summary>
+        /// The same, for a file whose contents are bytes rather than text — an animation, say.
+        ///
+        /// Shares the retry loop rather than reimplementing the easy half: an animation lands in the
+        /// same watched folder as the manifest and hits the same held handle, and the copies of this
+        /// that did not retry were the ones that occasionally failed for no reason a user could see.
+        /// </summary>
+        public static void AtomicWrite(string target, byte[] contents)
+        {
+            string tmp = target + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            File.WriteAllBytes(tmp, contents);
+            MoveIntoPlace(tmp, target);
+        }
+
+        private static void MoveIntoPlace(string tmp, string target)
+        {
             for (int i = 0; ; i++)
             {
                 try
