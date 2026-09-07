@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -274,4 +274,21 @@ Wil je doorgaan?</value></data>
   <data name="Revert_NoBackup" xml:space="preserve"><value>Er is geen bewaarde kopie van vóór de wijziging. Open Instellingen en kies er een via Back-ups.</value></data>
   <data name="Reload_PausedTitle" xml:space="preserve"><value>Penumbra herlaadt niet</value></data>
   <data name="Reload_PausedMessage" xml:space="preserve"><value>Penumbra heeft de laatste {0} herlaadverzoeken geweigerd. Je bewerkingen worden nog steeds opgeslagen; de app probeert het elke {1} minuut/minuten opnieuw.</value></data>
+  <data name="MergeButton.Label" xml:space="preserve"><value>Samenvoegen</value></data>
+  <data name="MergePlaylistsDlg.Title" xml:space="preserve"><value>Afspeellijsten samenvoegen</value></data>
+  <data name="MergePlaylistsDlg.PrimaryButtonText" xml:space="preserve"><value>Samenvoegen</value></data>
+  <data name="MergePlaylistsDlg.CloseButtonText" xml:space="preserve"><value>Annuleren</value></data>
+  <data name="MergeHint.Text" xml:space="preserve"><value>De aangevinkte afspeellijsten worden er een voor een in gevoegd en daarna verwijderd. Hun nummers en audiobestanden verhuizen mee.</value></data>
+  <data name="Prog_Merging" xml:space="preserve"><value>Afspeellijsten samenvoegen...</value></data>
+  <data name="Dlg_MergeComplete_Title" xml:space="preserve"><value>Samenvoegen voltooid</value></data>
+  <data name="Merge_SummaryNone" xml:space="preserve"><value>Vink de afspeellijsten aan die je wilt samenvoegen.</value></data>
+  <data name="Merge_TargetHeader" xml:space="preserve"><value>Samenvoegen in "{0}"</value></data>
+  <data name="Merge_SourceEntry" xml:space="preserve"><value>{0} — {1} nummers</value></data>
+  <data name="Merge_SourceEntryOne" xml:space="preserve"><value>{0} — 1 nummer</value></data>
+  <data name="Merge_Summary" xml:space="preserve"><value>Verplaatst {0} nummer(s) uit {1} afspeellijsten naar "{2}" en verwijdert ze daarna.</value></data>
+  <data name="Merge_SummaryOne" xml:space="preserve"><value>Verplaatst {0} nummer(s) uit 1 afspeellijst naar "{2}" en verwijdert die daarna.</value></data>
+  <data name="Merge_DiscardWarning" xml:space="preserve"><value>{0} nummers zitten al met deze naam in de samenvoeging en vervallen, audio inbegrepen: {1}</value></data>
+  <data name="Merge_DiscardWarningOne" xml:space="preserve"><value>1 nummer zit al met deze naam in de samenvoeging en vervalt, audio inbegrepen: {1}</value></data>
+  <data name="Merge_CompleteWithDiscards" xml:space="preserve"><value>{0} nummer(s) naar "{1}" verplaatst. {2} duplicaat/duplicaten vervallen.</value></data>
+  <data name="Error_Merge" xml:space="preserve"><value>De afspeellijsten konden niet worden samengevoegd: {0}</value></data>
 </root>

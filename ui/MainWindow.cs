@@ -565,7 +565,32 @@ namespace Pickles_Playlist_Editor
             DeleteButton.IsEnabled = hasCheckedPlaylist || hasCheckedSong;
             ShuffleButton.IsEnabled = hasCheckedPlaylist;
             SortByBPMButton.IsEnabled = hasCheckedPlaylist;
+            MergeButton.IsEnabled = CanMerge(selected);
         }
+
+        /// <summary>
+        /// Merge needs one playlist to merge INTO and at least one other to merge FROM. The target is
+        /// the tree selection; the sources are picked in the dialog, because the tree is single-select.
+        /// </summary>
+        private bool CanMerge(List<PlaylistNodeContent> selected)
+        {
+            var playlistNodes = selected.Where(item => item.Level == 1).ToList();
+            if (playlistNodes.Count != 1) return false;
+
+            string target = playlistNodes[0].Name;
+            return MergeCandidates(target).Count > 0;
+        }
+
+        /// <summary>
+        /// Every playlist that could be folded into <paramref name="targetName"/> — that is, all of
+        /// them except the target itself and the VFX groups, which are hidden from the tree
+        /// (MainWindowCore.LoadPlaylists) and are not playlists in any sense the user would recognise.
+        /// </summary>
+        private static List<Playlist> MergeCandidates(string targetName) =>
+            Playlists.Values
+                .Where(p => !string.Equals(p.Name, targetName, StringComparison.Ordinal))
+                .Where(p => !p.IsVFXGroup())
+                .ToList();
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e) => _ = OpenSettingsAsync();
         private async void HelpButton_Click(object sender, RoutedEventArgs e) => await Windows.System.Launcher.LaunchUriAsync(new Uri("https://discord.gg/cY7eN5k7sc"));
@@ -670,6 +695,80 @@ namespace Pickles_Playlist_Editor
         private void ShuffleButton_Click(object sender, RoutedEventArgs e)
         {
             RunPlaylistReorder(pl => pl.Shuffle());
+        }
+
+        private void MergeButton_Click(object sender, RoutedEventArgs e) => _ = DoMergeAsync();
+
+        /// <summary>
+        /// Folds the playlists the user picks into the selected one.
+        ///
+        /// The merge itself runs off the UI thread: it moves a .scd per song and re-reads the whole
+        /// library once per deleted source, which is far too slow to block on.
+        /// </summary>
+        private async Task DoMergeAsync()
+        {
+            try
+            {
+                var selected = PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>().ToList();
+                if (!CanMerge(selected)) return;
+
+                string targetName = selected.First(item => item.Level == 1).Name;
+                if (!Playlists.TryGetValue(targetName, out var target)) return;
+
+                var dialog = new MergePlaylistsDialog(target, MergeCandidates(targetName))
+                {
+                    XamlRoot = this.Content.XamlRoot
+                };
+                if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+
+                var sources = dialog.SelectedSources;
+                if (sources.Count == 0) return;
+
+                SetProgressBarText(AppStrings.Prog_Merging);
+                Playlist.MergeResult result;
+                try
+                {
+                    result = await Task.Run(() => target.MergeFrom(sources, SetProgressBarPercent));
+                }
+                finally
+                {
+                    ClearProgressDisplay();
+                }
+
+                // Only the sources the merge actually removed leave the tree. One that failed to
+                // delete is still a real playlist and must keep its node.
+                foreach (var name in result.MergedSources)
+                {
+                    Playlists.Remove(name);
+                    if (!IsFilterActive) RemovePlaylistNode(name);
+
+                    // A song playing out of a playlist that just went away is still playing, and its
+                    // entry survives under the same name in the target. Without this the lookup in
+                    // MainWindow.Player fails and Next/Previous go dead with no explanation.
+                    if (string.Equals(_nowPlayingPlaylistName, name, StringComparison.Ordinal))
+                        _nowPlayingPlaylistName = targetName;
+                }
+
+                if (IsFilterActive) LoadPlaylists(SearchTextBox.Text);
+                else SyncPlaylistNode(target);
+
+                PlaylistTreeView.SelectedItems.Clear();
+
+                if (result.Discarded.Count > 0)
+                {
+                    await ShowDialogAsync(AppStrings.Dlg_MergeComplete_Title,
+                        AppStrings.MergeCompleteWithDiscards(result.Moved, targetName,
+                            result.Discarded.Count));
+                }
+            }
+            catch (Exception ex)
+            {
+                Utils.Logger.LogError("Merge failed: {Error}", ex);
+                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorMerge(FormatExceptionMessage(ex)));
+                // The in-memory model may now disagree with disk — reload rather than guess.
+                Playlists = Playlist.GetAll();
+                LoadPlaylists();
+            }
         }
 
         private SortDirection _currentSortDirection = SortDirection.Ascending;

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -274,4 +274,21 @@ Do you want to proceed?</value></data>
   <data name="Revert_NoBackup" xml:space="preserve"><value>No saved copy from before the change is available. Open Settings and use Backups to choose another.</value></data>
   <data name="Reload_PausedTitle" xml:space="preserve"><value>Penumbra is not reloading</value></data>
   <data name="Reload_PausedMessage" xml:space="preserve"><value>Penumbra refused the last {0} reload requests. Your edits are still saved to disk; this app will try again every {1} minute(s).</value></data>
+  <data name="MergeButton.Label" xml:space="preserve"><value>Merge</value></data>
+  <data name="MergePlaylistsDlg.Title" xml:space="preserve"><value>Merge Playlists</value></data>
+  <data name="MergePlaylistsDlg.PrimaryButtonText" xml:space="preserve"><value>Merge</value></data>
+  <data name="MergePlaylistsDlg.CloseButtonText" xml:space="preserve"><value>Cancel</value></data>
+  <data name="MergeHint.Text" xml:space="preserve"><value>The playlists you tick are folded into it one after another, and are then deleted. Their songs and audio files move across.</value></data>
+  <data name="Prog_Merging" xml:space="preserve"><value>Merging playlists...</value></data>
+  <data name="Dlg_MergeComplete_Title" xml:space="preserve"><value>Merge complete</value></data>
+  <data name="Merge_SummaryNone" xml:space="preserve"><value>Tick the playlists you want to merge in.</value></data>
+  <data name="Merge_TargetHeader" xml:space="preserve"><value>Merge into "{0}"</value></data>
+  <data name="Merge_SourceEntry" xml:space="preserve"><value>{0} — {1} songs</value></data>
+  <data name="Merge_SourceEntryOne" xml:space="preserve"><value>{0} — 1 song</value></data>
+  <data name="Merge_Summary" xml:space="preserve"><value>Moves {0} song(s) from {1} playlists into "{2}", then deletes them.</value></data>
+  <data name="Merge_SummaryOne" xml:space="preserve"><value>Moves {0} song(s) from 1 playlist into "{2}", then deletes it.</value></data>
+  <data name="Merge_DiscardWarning" xml:space="preserve"><value>{0} songs are already in the merge by name and will be discarded, audio included: {1}</value></data>
+  <data name="Merge_DiscardWarningOne" xml:space="preserve"><value>1 song is already in the merge by name and will be discarded, audio included: {1}</value></data>
+  <data name="Merge_CompleteWithDiscards" xml:space="preserve"><value>Moved {0} song(s) into "{1}". {2} duplicate(s) were discarded.</value></data>
+  <data name="Error_Merge" xml:space="preserve"><value>The playlists could not be merged: {0}</value></data>
 </root>

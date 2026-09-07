@@ -39,6 +39,9 @@
             <AppBarButton x:Name="ShuffleButton" x:Uid="ShuffleButton" Label="Shuffle" IsEnabled="False" Click="ShuffleButton_Click">
                 <AppBarButton.Icon><FontIcon Glyph="&#xE8B1;"/></AppBarButton.Icon>
             </AppBarButton>
+            <AppBarButton x:Name="MergeButton" x:Uid="MergeButton" Label="Merge" IsEnabled="False" Click="MergeButton_Click">
+                <AppBarButton.Icon><FontIcon Glyph="&#xE8C4;"/></AppBarButton.Icon>
+            </AppBarButton>
             <AppBarButton x:Name="SortByBPMButton" x:Uid="SortByBPMButton" Label="Sort" IsEnabled="False">
                 <AppBarButton.Icon><FontIcon Glyph="&#xE8CB;"/></AppBarButton.Icon>
                 <AppBarButton.Flyout>

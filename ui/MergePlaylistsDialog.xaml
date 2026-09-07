@@ -1,0 +1,34 @@
+<ContentDialog
+    x:Class="Pickles_Playlist_Editor.MergePlaylistsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Uid="MergePlaylistsDlg"
+    Title="Merge Playlists"
+    PrimaryButtonText="Merge"
+    CloseButtonText="Cancel"
+    PrimaryButtonClick="MergeButton_Click"
+    DefaultButton="Primary">
+
+    <StackPanel Spacing="8" MinWidth="520">
+
+        <TextBlock x:Name="TargetHeader" TextWrapping="Wrap" FontWeight="SemiBold"/>
+        <TextBlock x:Uid="MergeHint" Opacity="0.7" TextWrapping="Wrap"
+                   Text="The playlists you tick are folded into it one after another, and are then deleted. Their songs and audio files move across."/>
+
+        <!-- Capped rather than free-growing: a heavy mod has dozens of playlists, and a ContentDialog
+             that outgrows the window clips its own buttons instead of scrolling. -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="260">
+            <StackPanel x:Name="SourcePlaylistsPanel" Spacing="2" Margin="4,0,0,0"/>
+        </ScrollViewer>
+
+        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4,0,0"/>
+
+        <!-- The summary lives here, not behind a second prompt: WinUI allows only one ContentDialog at
+             a time, so this dialog cannot raise a confirmation over itself. Showing the counts live as
+             boxes are ticked warns the user before they commit rather than after. -->
+        <TextBlock x:Name="SummaryText" TextWrapping="Wrap"/>
+        <TextBlock x:Name="DiscardWarningText" TextWrapping="Wrap" Visibility="Collapsed"
+                   Foreground="{ThemeResource SystemFillColorCautionBrush}"/>
+
+    </StackPanel>
+</ContentDialog>

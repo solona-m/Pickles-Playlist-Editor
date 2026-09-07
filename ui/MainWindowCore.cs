@@ -572,6 +572,7 @@ namespace Pickles_Playlist_Editor
                 DeleteButton.IsEnabled = false;
                 ShuffleButton.IsEnabled = false;
                 SortByBPMButton.IsEnabled = false;
+                MergeButton.IsEnabled = false;
                 if (IsFilterActive) LoadPlaylists(SearchTextBox.Text);
             }
             catch (Exception ex)

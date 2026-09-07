@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -274,4 +274,21 @@ Vill du fortsätta?</value></data>
   <data name="Revert_NoBackup" xml:space="preserve"><value>Det finns ingen sparad kopia från före ändringen. Öppna Inställningar och välj en annan under Säkerhetskopior.</value></data>
   <data name="Reload_PausedTitle" xml:space="preserve"><value>Penumbra laddar inte om</value></data>
   <data name="Reload_PausedMessage" xml:space="preserve"><value>Penumbra avvisade de senaste {0} omladdningsförsöken. Dina ändringar sparas fortfarande på disk; appen försöker igen var {1} minut.</value></data>
+  <data name="MergeButton.Label" xml:space="preserve"><value>Slå ihop</value></data>
+  <data name="MergePlaylistsDlg.Title" xml:space="preserve"><value>Slå ihop spellistor</value></data>
+  <data name="MergePlaylistsDlg.PrimaryButtonText" xml:space="preserve"><value>Slå ihop</value></data>
+  <data name="MergePlaylistsDlg.CloseButtonText" xml:space="preserve"><value>Avbryt</value></data>
+  <data name="MergeHint.Text" xml:space="preserve"><value>Spellistorna du kryssar i läggs in en efter en och tas sedan bort. Deras låtar och ljudfiler flyttas med.</value></data>
+  <data name="Prog_Merging" xml:space="preserve"><value>Slår ihop spellistor...</value></data>
+  <data name="Dlg_MergeComplete_Title" xml:space="preserve"><value>Sammanslagning klar</value></data>
+  <data name="Merge_SummaryNone" xml:space="preserve"><value>Kryssa i de spellistor du vill slå ihop.</value></data>
+  <data name="Merge_TargetHeader" xml:space="preserve"><value>Slå ihop till "{0}"</value></data>
+  <data name="Merge_SourceEntry" xml:space="preserve"><value>{0} — {1} låtar</value></data>
+  <data name="Merge_SourceEntryOne" xml:space="preserve"><value>{0} — 1 låt</value></data>
+  <data name="Merge_Summary" xml:space="preserve"><value>Flyttar {0} låt(ar) från {1} spellistor till "{2}" och tar sedan bort dem.</value></data>
+  <data name="Merge_SummaryOne" xml:space="preserve"><value>Flyttar {0} låt(ar) från 1 spellista till "{2}" och tar sedan bort den.</value></data>
+  <data name="Merge_DiscardWarning" xml:space="preserve"><value>{0} låtar finns redan med i sammanslagningen med samma namn och slängs, ljudet med: {1}</value></data>
+  <data name="Merge_DiscardWarningOne" xml:space="preserve"><value>1 låt finns redan med i sammanslagningen med samma namn och slängs, ljudet med: {1}</value></data>
+  <data name="Merge_CompleteWithDiscards" xml:space="preserve"><value>Flyttade {0} låt(ar) till "{1}". {2} dubblett(er) slängdes.</value></data>
+  <data name="Error_Merge" xml:space="preserve"><value>Det gick inte att slå ihop spellistorna: {0}</value></data>
 </root>

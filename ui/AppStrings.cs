@@ -72,6 +72,27 @@ namespace Pickles_Playlist_Editor
         public static string Dlg_RestartRequired_Title => _r.GetString("Dlg_RestartRequired_Title");
         public static string Dlg_RestartRequired_Content => _r.GetString("Dlg_RestartRequired_Content");
 
+        // ---- merge playlists ----------------------------------------------------------------
+        public static string Prog_Merging => _r.GetString("Prog_Merging");
+        public static string Dlg_MergeComplete_Title => _r.GetString("Dlg_MergeComplete_Title");
+        public static string MergeSummaryNone => _r.GetString("Merge_SummaryNone");
+
+        public static string MergeTargetHeader(string target) =>
+            string.Format(_r.GetString("Merge_TargetHeader"), target);
+        public static string MergeSourceEntry(string playlist, int songs) =>
+            string.Format(_r.GetString(songs == 1 ? "Merge_SourceEntryOne" : "Merge_SourceEntry"),
+                playlist, songs);
+        public static string MergeSummary(int songs, int playlists, string target) =>
+            string.Format(_r.GetString(playlists == 1 ? "Merge_SummaryOne" : "Merge_Summary"),
+                songs, playlists, target);
+        public static string MergeDiscardWarning(int count, string names) =>
+            string.Format(_r.GetString(count == 1 ? "Merge_DiscardWarningOne" : "Merge_DiscardWarning"),
+                count, names);
+        public static string MergeCompleteWithDiscards(int moved, string target, int discarded) =>
+            string.Format(_r.GetString("Merge_CompleteWithDiscards"), moved, target, discarded);
+        public static string ErrorMerge(string error) =>
+            string.Format(_r.GetString("Error_Merge"), error);
+
         // ---- sound path rename ----
         // ---- dances -------------------------------------------------------------------------
         public static string Dlg_Dances_Title => _r.GetString("Dlg_Dances_Title");

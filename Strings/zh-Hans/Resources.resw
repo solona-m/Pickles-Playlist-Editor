@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -274,4 +274,21 @@
   <data name="Revert_NoBackup" xml:space="preserve"><value>没有更改之前的已保存副本。请打开设置，在“备份”中选择其他副本。</value></data>
   <data name="Reload_PausedTitle" xml:space="preserve"><value>Penumbra 未重新加载</value></data>
   <data name="Reload_PausedMessage" xml:space="preserve"><value>Penumbra 拒绝了最近 {0} 次重新加载请求。你的编辑仍已保存到磁盘；本应用将每 {1} 分钟重试一次。</value></data>
+  <data name="MergeButton.Label" xml:space="preserve"><value>合并</value></data>
+  <data name="MergePlaylistsDlg.Title" xml:space="preserve"><value>合并播放列表</value></data>
+  <data name="MergePlaylistsDlg.PrimaryButtonText" xml:space="preserve"><value>合并</value></data>
+  <data name="MergePlaylistsDlg.CloseButtonText" xml:space="preserve"><value>取消</value></data>
+  <data name="MergeHint.Text" xml:space="preserve"><value>勾选的播放列表会按顺序依次并入其中，然后被删除。它们的歌曲和音频文件会一起移动过去。</value></data>
+  <data name="Prog_Merging" xml:space="preserve"><value>正在合并播放列表...</value></data>
+  <data name="Dlg_MergeComplete_Title" xml:space="preserve"><value>合并完成</value></data>
+  <data name="Merge_SummaryNone" xml:space="preserve"><value>请勾选要合并进来的播放列表。</value></data>
+  <data name="Merge_TargetHeader" xml:space="preserve"><value>合并到“{0}”</value></data>
+  <data name="Merge_SourceEntry" xml:space="preserve"><value>{0} — {1} 首歌曲</value></data>
+  <data name="Merge_SourceEntryOne" xml:space="preserve"><value>{0} — 1 首歌曲</value></data>
+  <data name="Merge_Summary" xml:space="preserve"><value>将 {1} 个播放列表中的 {0} 首歌曲移入“{2}”，然后删除这些列表。</value></data>
+  <data name="Merge_SummaryOne" xml:space="preserve"><value>将 1 个播放列表中的 {0} 首歌曲移入“{2}”，然后删除该列表。</value></data>
+  <data name="Merge_DiscardWarning" xml:space="preserve"><value>有 {0} 首歌曲的名称已存在于本次合并中，将连同音频一并丢弃：{1}</value></data>
+  <data name="Merge_DiscardWarningOne" xml:space="preserve"><value>有 1 首歌曲的名称已存在于本次合并中，将连同音频一并丢弃：{1}</value></data>
+  <data name="Merge_CompleteWithDiscards" xml:space="preserve"><value>已将 {0} 首歌曲移入“{1}”。丢弃了 {2} 首重复歌曲。</value></data>
+  <data name="Error_Merge" xml:space="preserve"><value>无法合并播放列表：{0}</value></data>
 </root>

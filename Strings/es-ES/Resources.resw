@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -274,4 +274,21 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="Revert_NoBackup" xml:space="preserve"><value>No hay ninguna copia guardada anterior al cambio. Abre Ajustes y usa Copias de seguridad para elegir otra.</value></data>
   <data name="Reload_PausedTitle" xml:space="preserve"><value>Penumbra no se está recargando</value></data>
   <data name="Reload_PausedMessage" xml:space="preserve"><value>Penumbra ha rechazado las últimas {0} peticiones de recarga. Tus cambios se siguen guardando en disco; la aplicación lo intentará de nuevo cada {1} minuto(s).</value></data>
+  <data name="MergeButton.Label" xml:space="preserve"><value>Combinar</value></data>
+  <data name="MergePlaylistsDlg.Title" xml:space="preserve"><value>Combinar listas</value></data>
+  <data name="MergePlaylistsDlg.PrimaryButtonText" xml:space="preserve"><value>Combinar</value></data>
+  <data name="MergePlaylistsDlg.CloseButtonText" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="MergeHint.Text" xml:space="preserve"><value>Las listas que marques se añaden una tras otra y después se eliminan. Sus canciones y archivos de audio se trasladan.</value></data>
+  <data name="Prog_Merging" xml:space="preserve"><value>Combinando listas...</value></data>
+  <data name="Dlg_MergeComplete_Title" xml:space="preserve"><value>Combinación completada</value></data>
+  <data name="Merge_SummaryNone" xml:space="preserve"><value>Marca las listas que quieras combinar.</value></data>
+  <data name="Merge_TargetHeader" xml:space="preserve"><value>Combinar en "{0}"</value></data>
+  <data name="Merge_SourceEntry" xml:space="preserve"><value>{0} — {1} canciones</value></data>
+  <data name="Merge_SourceEntryOne" xml:space="preserve"><value>{0} — 1 canción</value></data>
+  <data name="Merge_Summary" xml:space="preserve"><value>Mueve {0} canción(es) de {1} listas a "{2}" y luego las elimina.</value></data>
+  <data name="Merge_SummaryOne" xml:space="preserve"><value>Mueve {0} canción(es) de 1 lista a "{2}" y luego la elimina.</value></data>
+  <data name="Merge_DiscardWarning" xml:space="preserve"><value>{0} canciones ya están en la combinación por nombre y se descartarán, audio incluido: {1}</value></data>
+  <data name="Merge_DiscardWarningOne" xml:space="preserve"><value>1 canción ya está en la combinación por nombre y se descartará, audio incluido: {1}</value></data>
+  <data name="Merge_CompleteWithDiscards" xml:space="preserve"><value>Se movieron {0} canción(es) a "{1}". Se descartaron {2} duplicado(s).</value></data>
+  <data name="Error_Merge" xml:space="preserve"><value>No se pudieron combinar las listas: {0}</value></data>
 </root>

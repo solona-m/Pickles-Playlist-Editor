@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -274,4 +274,21 @@ Möchtest du fortfahren?</value></data>
   <data name="Revert_NoBackup" xml:space="preserve"><value>Es gibt keine gespeicherte Kopie von vor der Änderung. Öffne die Einstellungen und wähle unter Sicherungen eine andere aus.</value></data>
   <data name="Reload_PausedTitle" xml:space="preserve"><value>Penumbra lädt nicht neu</value></data>
   <data name="Reload_PausedMessage" xml:space="preserve"><value>Penumbra hat die letzten {0} Neuladeversuche abgelehnt. Deine Änderungen sind trotzdem gespeichert; die App versucht es alle {1} Minute(n) erneut.</value></data>
+  <data name="MergeButton.Label" xml:space="preserve"><value>Zusammenführen</value></data>
+  <data name="MergePlaylistsDlg.Title" xml:space="preserve"><value>Playlists zusammenführen</value></data>
+  <data name="MergePlaylistsDlg.PrimaryButtonText" xml:space="preserve"><value>Zusammenführen</value></data>
+  <data name="MergePlaylistsDlg.CloseButtonText" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="MergeHint.Text" xml:space="preserve"><value>Die angehakten Playlists werden nacheinander eingefügt und danach gelöscht. Ihre Songs und Audiodateien werden mit übernommen.</value></data>
+  <data name="Prog_Merging" xml:space="preserve"><value>Playlists werden zusammengeführt...</value></data>
+  <data name="Dlg_MergeComplete_Title" xml:space="preserve"><value>Zusammenführen abgeschlossen</value></data>
+  <data name="Merge_SummaryNone" xml:space="preserve"><value>Hake die Playlists an, die zusammengeführt werden sollen.</value></data>
+  <data name="Merge_TargetHeader" xml:space="preserve"><value>In "{0}" zusammenführen</value></data>
+  <data name="Merge_SourceEntry" xml:space="preserve"><value>{0} — {1} Songs</value></data>
+  <data name="Merge_SourceEntryOne" xml:space="preserve"><value>{0} — 1 Song</value></data>
+  <data name="Merge_Summary" xml:space="preserve"><value>Verschiebt {0} Song(s) aus {1} Playlists nach "{2}" und löscht sie danach.</value></data>
+  <data name="Merge_SummaryOne" xml:space="preserve"><value>Verschiebt {0} Song(s) aus 1 Playlist nach "{2}" und löscht sie danach.</value></data>
+  <data name="Merge_DiscardWarning" xml:space="preserve"><value>{0} Songs sind dem Namen nach bereits enthalten und werden samt Audio verworfen: {1}</value></data>
+  <data name="Merge_DiscardWarningOne" xml:space="preserve"><value>1 Song ist dem Namen nach bereits enthalten und wird samt Audio verworfen: {1}</value></data>
+  <data name="Merge_CompleteWithDiscards" xml:space="preserve"><value>{0} Song(s) nach "{1}" verschoben. {2} Duplikat(e) wurden verworfen.</value></data>
+  <data name="Error_Merge" xml:space="preserve"><value>Die Playlists konnten nicht zusammengeführt werden: {0}</value></data>
 </root>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
@@ -274,4 +274,21 @@ Voulez-vous continuer ?</value></data>
   <data name="Revert_NoBackup" xml:space="preserve"><value>Aucune copie enregistrée d'avant le changement n'est disponible. Ouvrez les Paramètres et utilisez Sauvegardes pour en choisir une autre.</value></data>
   <data name="Reload_PausedTitle" xml:space="preserve"><value>Penumbra ne recharge pas</value></data>
   <data name="Reload_PausedMessage" xml:space="preserve"><value>Penumbra a refusé les {0} dernières demandes de rechargement. Vos modifications restent enregistrées sur le disque ; l'application réessaiera toutes les {1} minute(s).</value></data>
+  <data name="MergeButton.Label" xml:space="preserve"><value>Fusionner</value></data>
+  <data name="MergePlaylistsDlg.Title" xml:space="preserve"><value>Fusionner les playlists</value></data>
+  <data name="MergePlaylistsDlg.PrimaryButtonText" xml:space="preserve"><value>Fusionner</value></data>
+  <data name="MergePlaylistsDlg.CloseButtonText" xml:space="preserve"><value>Annuler</value></data>
+  <data name="MergeHint.Text" xml:space="preserve"><value>Les playlists cochées y sont ajoutées les unes après les autres, puis supprimées. Leurs morceaux et fichiers audio sont déplacés.</value></data>
+  <data name="Prog_Merging" xml:space="preserve"><value>Fusion des playlists...</value></data>
+  <data name="Dlg_MergeComplete_Title" xml:space="preserve"><value>Fusion terminée</value></data>
+  <data name="Merge_SummaryNone" xml:space="preserve"><value>Cochez les playlists à fusionner.</value></data>
+  <data name="Merge_TargetHeader" xml:space="preserve"><value>Fusionner dans « {0} »</value></data>
+  <data name="Merge_SourceEntry" xml:space="preserve"><value>{0} — {1} morceaux</value></data>
+  <data name="Merge_SourceEntryOne" xml:space="preserve"><value>{0} — 1 morceau</value></data>
+  <data name="Merge_Summary" xml:space="preserve"><value>Déplace {0} morceau(x) depuis {1} playlists vers « {2} », puis les supprime.</value></data>
+  <data name="Merge_SummaryOne" xml:space="preserve"><value>Déplace {0} morceau(x) depuis 1 playlist vers « {2} », puis la supprime.</value></data>
+  <data name="Merge_DiscardWarning" xml:space="preserve"><value>{0} morceaux portent déjà ce nom dans la fusion et seront écartés, audio compris : {1}</value></data>
+  <data name="Merge_DiscardWarningOne" xml:space="preserve"><value>1 morceau porte déjà ce nom dans la fusion et sera écarté, audio compris : {1}</value></data>
+  <data name="Merge_CompleteWithDiscards" xml:space="preserve"><value>{0} morceau(x) déplacé(s) vers « {1} ». {2} doublon(s) écarté(s).</value></data>
+  <data name="Error_Merge" xml:space="preserve"><value>Les playlists n'ont pas pu être fusionnées : {0}</value></data>
 </root>
