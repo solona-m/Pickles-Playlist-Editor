@@ -113,19 +113,73 @@ namespace Pickles_Playlist_Editor.Utils
 
         private static void AddGroup(JObject? group, List<ModOption> into)
         {
-            if (group?["Options"] is not JArray entries) return;
+            if (group is null) return;
             string groupName = group["Name"]?.ToString() ?? string.Empty;
 
-            for (int i = 0; i < entries.Count; i++)
+            if (group["Options"] is JArray entries)
             {
-                if (entries[i] is not JObject option) continue;
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    if (entries[i] is not JObject option) continue;
+                    into.Add(new ModOption
+                    {
+                        Id = Guid.TryParse(option["Id"]?.ToString(), out var id) ? id : null,
+                        Name = option["Name"]?.ToString() ?? string.Empty,
+                        GroupName = groupName,
+                        Index = i,
+                        Files = ReadFiles(option["Files"] as JObject),
+                    });
+                }
+            }
+
+            AddCombiningContainers(group, groupName, into);
+        }
+
+        /// <summary>
+        /// The files of a Combining group, which do not live in its options at all.
+        ///
+        /// A Combining group's options are bare toggles — <c>Id</c> and <c>Name</c>, no <c>Files</c>
+        /// — and the redirections sit in a parallel <c>Containers</c> array holding one entry per
+        /// COMBINATION of them. The index is a bitmask over the options, bit 0 being the first,
+        /// verified against a real group: a two-toggle group yields containers [none], [first],
+        /// [second], [both]. So a reader that only walked options saw a mod like this as shipping
+        /// nothing, and its dances went unfound.
+        ///
+        /// Each container becomes one synthetic option named for the toggles it needs, because that
+        /// is what a user would have to switch on to get those files. <see cref="ModOption.Index"/>
+        /// is -1: a container is a combination, not a position <c>DefaultSettings</c> can index, and
+        /// handing back a number that looks like one invites a writer to use it as one.
+        ///
+        /// One option per container really is 2^toggles of them — 127 for a group in a real physics
+        /// mod — and that is not padding to be collapsed: those containers ship genuinely different
+        /// files, a merged one per combination, so 11 of the 15 combining groups in a real Penumbra
+        /// root map one game path to several different files. Folding them into a union would drop
+        /// every variant but one, and repair work that walks a mod's files would then never look at
+        /// the dropped ones. Callers that count CONTENT rather than options dedupe on what they
+        /// actually care about instead — see <see cref="DanceMod.DanceCountsByGroup"/> and
+        /// <see cref="DanceSourceScan.DancesIn"/>.
+        /// </summary>
+        private static void AddCombiningContainers(JObject group, string groupName, List<ModOption> into)
+        {
+            if (group["Containers"] is not JArray containers) return;
+
+            var toggles = (group["Options"] as JArray)?.OfType<JObject>()
+                .Select(o => o["Name"]?.ToString() ?? string.Empty).ToList() ?? new List<string>();
+
+            for (int mask = 0; mask < containers.Count; mask++)
+            {
+                if (containers[mask] is not JObject container) continue;
+
+                var files = ReadFiles(container["Files"] as JObject);
+                if (files.Count == 0) continue;
+
+                var selected = toggles.Where((_, bit) => (mask & (1 << bit)) != 0).ToList();
                 into.Add(new ModOption
                 {
-                    Id = Guid.TryParse(option["Id"]?.ToString(), out var id) ? id : null,
-                    Name = option["Name"]?.ToString() ?? string.Empty,
+                    Name = selected.Count > 0 ? string.Join(" + ", selected) : string.Empty,
                     GroupName = groupName,
-                    Index = i,
-                    Files = ReadFiles(option["Files"] as JObject),
+                    Index = -1,
+                    Files = files,
                 });
             }
         }

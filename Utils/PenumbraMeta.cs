@@ -369,9 +369,19 @@ namespace Pickles_Playlist_Editor.Utils
         public static JObject? FindGroupByName(JObject root, string name) => FindGroupByName(root, name, out _);
 
         /// <summary>
-        /// Every <c>.scd</c> game-path key referenced anywhere in the mod: <c>DefaultData.Files</c>
-        /// (often absent) plus every option's <c>Files</c>. Reads the v3 layout instead for a v3
-        /// folder. Used to populate the baseline-SCD picker.
+        /// Every <c>.scd</c> game-path key referenced anywhere in the mod. Reads the v3 layout
+        /// instead for a v3 folder. Used to populate the baseline-SCD picker.
+        ///
+        /// Finds EVERY <c>Files</c> object at any depth rather than walking the two places files
+        /// used to live (<c>DefaultData.Files</c> and each option's <c>Files</c>). Penumbra's
+        /// Combining groups put theirs in <c>Groups[].Containers[].Files</c> instead — 751 such
+        /// objects in one real Penumbra root — and the structural walk could not see them, so a mod
+        /// whose songs sat in a Combining group offered an empty picker. Matching
+        /// <see cref="SoundPathRename"/>, which has always counted this way, also ends the split
+        /// where the two halves of the sound-path feature disagreed about what the mod contains.
+        ///
+        /// Only Penumbra's own files are read, and only their contents are walked: the depth is in
+        /// where we look INSIDE a manifest, never in which files count as one.
         /// </summary>
         public static List<string> CollectScdKeys(string? modDirectory)
         {
@@ -391,15 +401,7 @@ namespace Pickles_Playlist_Editor.Utils
                 Logger.LogWarn("CollectScdKeys: could not parse meta.json: {Error}", ex.Message);
             }
 
-            if (root != null)
-            {
-                AddScdKeys(root["DefaultData"]?["Files"] as JObject, keys);
-                if (root["Groups"] is JArray groups)
-                {
-                    foreach (var g in groups.OfType<JObject>())
-                        AddOptionScdKeys(g["Options"] as JArray, keys);
-                }
-            }
+            AddScdKeysDeep(root, keys);
 
             // v3 reads the per-group files instead. Branch on the detected FORMAT, not on whether a
             // Groups array is present: Penumbra omits that key for any v4 mod with no option groups,
@@ -417,9 +419,7 @@ namespace Pickles_Playlist_Editor.Utils
                 {
                     try
                     {
-                        var legacy = JObject.Parse(File.ReadAllText(jsonPath, Encoding.UTF8));
-                        AddScdKeys(legacy["Files"] as JObject, keys);
-                        AddOptionScdKeys(legacy["Options"] as JArray, keys);
+                        AddScdKeysDeep(JObject.Parse(File.ReadAllText(jsonPath, Encoding.UTF8)), keys);
                     }
                     catch (Exception ex)
                     {
@@ -431,11 +431,15 @@ namespace Pickles_Playlist_Editor.Utils
             return keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
         }
 
-        private static void AddOptionScdKeys(JArray? options, HashSet<string> keys)
+        /// <summary>
+        /// Adds the .scd keys of every <c>Files</c> object anywhere in one parsed manifest — the v4
+        /// meta.json, a v3 group file, or default_mod.json, all of which nest them differently.
+        /// </summary>
+        private static void AddScdKeysDeep(JObject? manifest, HashSet<string> keys)
         {
-            if (options == null) return;
-            foreach (var o in options.OfType<JObject>())
-                AddScdKeys(o["Files"] as JObject, keys);
+            if (manifest == null) return;
+            foreach (var files in manifest.SelectTokens("$..Files").OfType<JObject>())
+                AddScdKeys(files, keys);
         }
 
         private static void AddScdKeys(JObject? files, HashSet<string> keys)

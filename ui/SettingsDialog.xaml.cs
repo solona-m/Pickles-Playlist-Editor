@@ -73,9 +73,54 @@ namespace Pickles_Playlist_Editor
         {
             // The sound path is no longer checked here: SoundPathDialog owns it, and validates it
             // far more thoroughly than an EndsWith(".scd") ever did.
-            IsPrimaryButtonEnabled = !string.IsNullOrEmpty(DirectoryPathTextBox.Text)
-                && Directory.Exists(DirectoryPathTextBox.Text)
-                && File.Exists(Path.Combine(DirectoryPathTextBox.Text, "meta.json"));
+            IsPrimaryButtonEnabled = IsModFolder(DirectoryPathTextBox.Text);
+        }
+
+        /// <summary>
+        /// The text box's path, spelled the one way both OK and the sound-path editor read it.
+        ///
+        /// Trimming here rather than at each call site is what keeps the two in step: with the
+        /// whitespace trim on one path only, a pasted path with a stray space made OK stay disabled
+        /// while the editor happily committed the same folder.
+        /// </summary>
+        private static string CleanPath(string? raw) =>
+            (raw ?? string.Empty).Trim().TrimEnd('\\', '/');
+
+        /// <summary>
+        /// Whether this path is a Penumbra mod folder — the one bar OK and the sound-path editor
+        /// both measure against, so the editor can never be handed a folder OK would refuse.
+        /// </summary>
+        private static bool IsModFolder(string? path)
+        {
+            string clean = CleanPath(path);
+            if (clean.Length == 0) return false;
+            try
+            {
+                return Directory.Exists(clean)
+                    && File.Exists(Path.Combine(clean, Utils.PenumbraMeta.MetaFile));
+            }
+            catch
+            {
+                return false; // unparseable as a path at all
+            }
+        }
+
+        /// <summary>
+        /// Saves the mod folder as the two halves the rest of the app reads it in.
+        ///
+        /// Shared by OK and the sound-path editor so there is one spelling of that split. Both
+        /// setters forget cached state only on a REAL change, so committing the same folder twice
+        /// costs nothing.
+        /// </summary>
+        private static void CommitModFolder(string modFolder)
+        {
+            string path = CleanPath(modFolder);
+            string modName = Path.GetFileName(path);
+            string penLocation = path.Length > modName.Length
+                ? path[..^modName.Length]
+                : path + Path.DirectorySeparatorChar;
+            Settings.ModName = modName;
+            Settings.PenumbraLocation = penLocation;
         }
 
         // ---- sound path ------------------------------------------------------------------------
@@ -94,15 +139,35 @@ namespace Pickles_Playlist_Editor
         /// WinUI allows one ContentDialog at a time, so Settings steps aside and comes back, the same
         /// dance <see cref="SoundCloudSignInButton_Click"/> does. XamlRoot is captured first because
         /// it is not reliable to read after Hide().
+        ///
+        /// The mod folder is saved BEFORE the editor opens rather than waiting for OK. Everything in
+        /// there — the picker, the prefilled key, the rename — is about one specific mod, and the
+        /// rename half reads that mod from Settings, so opening it on an uncommitted folder pointed
+        /// the two halves at different mods and showed the user the wrong one's paths. Committing is
+        /// not the surprise it looks like: this dialog's caller reloads the library when it closes
+        /// whether or not OK was pressed.
+        ///
+        /// A box holding something that is NOT a mod folder — a half-typed path, a parent directory,
+        /// or the empty box of a first run — falls back to the configured mod rather than being
+        /// passed along uncommitted. Handing the editor a folder Settings never saved is what let the
+        /// two halves disagree: the editor would describe one folder while the rename planned against
+        /// another, and a rename is not an operation to run on a mod the user was not looking at.
         /// </summary>
         private async void EditSoundPathButton_Click(object sender, RoutedEventArgs e)
         {
             var xamlRoot = this.XamlRoot;
+            string typed = DirectoryPathTextBox.Text;
+            if (IsModFolder(typed))
+                CommitModFolder(typed);
+
+            // Read AFTER the commit, so this is the folder the rename half will resolve to as well.
+            string modRoot = Utils.PenumbraMeta.ModRoot;
+
             Hide();
 
             try
             {
-                var dialog = new SoundPathDialog { XamlRoot = xamlRoot };
+                var dialog = new SoundPathDialog(modRoot) { XamlRoot = xamlRoot };
                 await dialog.ShowAsync();
             }
             catch (Exception ex)
@@ -336,13 +401,7 @@ namespace Pickles_Playlist_Editor
 
         private void OkButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
-            string path = DirectoryPathTextBox.Text.TrimEnd('\\', '/');
-            string modName = Path.GetFileName(path);
-            string penLocation = path.Length > modName.Length
-                ? path[..^modName.Length]
-                : path + Path.DirectorySeparatorChar;
-            Settings.ModName = modName;
-            Settings.PenumbraLocation = penLocation;
+            CommitModFolder(DirectoryPathTextBox.Text);
             // The sound path is written by SoundPathDialog, which owns both halves of that change —
             // the key this app writes AND the effect files that ask for it.
             Settings.BackgroundImagePath = BackgroundImageTextBox.Text.Trim();
