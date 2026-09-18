@@ -20,6 +20,7 @@ Setup
 a.	NOTE: Windows is pissy about non-commercial software. You may need to click more info and run anyway on the smartscreen filter.
 
 2) Install any dependencies when prompted. Then after setup completes, the program should launch. You can also launch from your start menu.
+a.	The program needs the .NET 9 Desktop Runtime (x86). If it isn't installed for you, or the program won't start, download and install it here: https://aka.ms/dotnet/9.0/windowsdesktop-runtime-win-x86.exe
 
 3)	(optional) if you don't want to reload the mod after every change, open penumbra. Click the settings tab at top left. Expand Advanced. Check Enable HTTP API.
 
