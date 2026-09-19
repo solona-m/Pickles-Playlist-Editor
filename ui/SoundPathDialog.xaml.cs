@@ -30,27 +30,78 @@ namespace Pickles_Playlist_Editor
         private bool _loading = true;
         private bool _updatingBaselineScdOptions;
 
+        /// <summary>
+        /// The mod every read here is about: the picker, the preview, the companion scan and the
+        /// key check.
+        ///
+        /// Passed in rather than read from <see cref="Utils.PenumbraMeta.ModRoot"/>, which is the
+        /// SAVED mod. Settings only writes the folder on OK, so a user who browsed to another mod
+        /// and opened this editor first got a picker, a prefilled key and a rename plan all
+        /// describing the mod they had just navigated away from — with nothing on screen saying so.
+        ///
+        /// The caller passes a folder it has already COMMITTED to Settings, because the rename half
+        /// derives its target from Settings by design (see
+        /// <see cref="Utils.SoundPathRename.BuildPlan"/> and
+        /// <see cref="Utils.PenumbraMeta.AssertModRootUnchanged"/>) — so this is the configured mod,
+        /// captured once at open. Do not weaken that to "whatever the user typed": the enable rule
+        /// for the rename button is only that the folder EXISTS, so a folder with no meta.json in it
+        /// would arm a rename here while the plan was built against a different mod entirely.
+        /// </summary>
+        private readonly string _modRoot;
+
         /// <summary>The key as it stands when this dialog closes, for Settings to display.</summary>
         internal string ResultKey { get; private set; } = string.Empty;
 
-        public SoundPathDialog()
+        public SoundPathDialog(string modRoot)
         {
+            _modRoot = modRoot ?? string.Empty;
             this.InitializeComponent();
 
             BaselineScdTextBox.Text = Settings.BaselineScdKey ?? string.Empty;
             ResultKey = BaselineScdTextBox.Text;
 
             _loading = false;
-            RefreshBaselineScdOptions();
+            QueueBaselineScdOptions();
             RefreshSoundPathPreview();
             QueueCompanionScan();
         }
 
         // ---- the key ---------------------------------------------------------------------------
 
-        private void RefreshBaselineScdOptions()
+        /// <summary>
+        /// Fills the picker with the mod's own .scd paths, off the UI thread.
+        ///
+        /// Collecting them parses the whole manifest and then visits every node of it, and under v4
+        /// that manifest is the entire library — 400KB and ~11,000 lines for a working DJ pack. Doing
+        /// that in the constructor is time the dialog spends not appearing, so it goes to a
+        /// background thread and lands when it lands, the same shape <see cref="QueueCompanionScan"/>
+        /// uses for the same reason. The picker is a convenience over the text box beside it, which
+        /// is usable the instant the dialog opens.
+        /// </summary>
+        private void QueueBaselineScdOptions()
         {
-            var scdKeys = Utils.PenumbraMeta.CollectScdKeys(Utils.PenumbraMeta.ModRoot);
+            string root = _modRoot;
+            _ = Task.Run(() =>
+            {
+                List<string> scdKeys;
+                try
+                {
+                    scdKeys = Utils.PenumbraMeta.CollectScdKeys(root);
+                }
+                catch (Exception ex)
+                {
+                    // An unreadable manifest costs the picker, not the dialog.
+                    Utils.Logger.LogWarn("Could not list the mod's sound paths: {Error}", ex.Message);
+                    scdKeys = new List<string>();
+                }
+
+                DispatcherQueue.TryEnqueue(() => ShowBaselineScdOptions(scdKeys));
+            });
+        }
+
+        private void ShowBaselineScdOptions(List<string> scdKeys)
+        {
+            // Read the box now rather than when the scan started: the user can type while it runs.
             var current = Utils.PenumbraMeta.NormalizeScdKey(BaselineScdTextBox.Text);
 
             _updatingBaselineScdOptions = true;
@@ -118,7 +169,7 @@ namespace Pickles_Playlist_Editor
             if (_loading) return;
 
             string current = SavedBaselinePath;
-            if (!Directory.Exists(Utils.PenumbraMeta.ModRoot) || string.IsNullOrWhiteSpace(current))
+            if (!Directory.Exists(_modRoot) || string.IsNullOrWhiteSpace(current))
             {
                 SoundPathPreviewText.Text = AppStrings.SoundPathNoMod;
                 ChangeSoundPathButton.IsEnabled = false;
@@ -157,7 +208,7 @@ namespace Pickles_Playlist_Editor
         {
             if (_loading) return;
 
-            string root = Utils.PenumbraMeta.ModRoot;
+            string root = _modRoot;
             string oldPath = SavedBaselinePath;
             string key = root + "|" + oldPath;
             if (key == _companionScanKey || _companionScanRunning) return;
@@ -286,7 +337,7 @@ namespace Pickles_Playlist_Editor
             BaselineScdTextBox.Text = plan.NewPath;
             DjNameTextBox.Text = string.Empty;
             _companionScanKey = null;
-            RefreshBaselineScdOptions();
+            QueueBaselineScdOptions();
             QueueCompanionScan();
 
             MessageBox(hwnd, BuildResultText(plan, result), AppStrings.Dlg_SoundPath_Title,
@@ -374,7 +425,7 @@ namespace Pickles_Playlist_Editor
                 if (string.Equals(typed, stored, StringComparison.OrdinalIgnoreCase))
                     return true;
 
-                string modRoot = Utils.PenumbraMeta.ModRoot;
+                string modRoot = _modRoot;
                 if (!Directory.Exists(modRoot))
                     return true;
 

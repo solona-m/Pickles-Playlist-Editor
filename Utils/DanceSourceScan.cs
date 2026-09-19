@@ -126,6 +126,7 @@ namespace Pickles_Playlist_Editor.Utils
         public static List<DanceSource> DancesIn(string modDirectory)
         {
             var dances = new List<DanceSource>();
+            var emitted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var option in PenumbraOptions.Read(modDirectory))
             {
@@ -164,6 +165,13 @@ namespace Pickles_Playlist_Editor.Utils
 
                 foreach (var (slot, files) in withLoops)
                 {
+                    // The same dance reached twice is one dance. An ordinary mod never does that, but
+                    // a Combining group lists one entry per combination of its toggles — 128 of them
+                    // for eight toggles — and every combination that switches a dance on carries the
+                    // same animation files, so without this the picker would offer the identical
+                    // dance over and over.
+                    if (!emitted.Add(SameDanceKey(slot, files.Loops, files.Starts))) continue;
+
                     dances.Add(new DanceSource
                     {
                         // Two dances from one option would otherwise be indistinguishable in the list.
@@ -176,6 +184,21 @@ namespace Pickles_Playlist_Editor.Utils
             }
 
             return dances;
+        }
+
+        /// <summary>
+        /// What makes two dances the same one: the slot they occupy and the exact files they supply
+        /// per race. Labels are deliberately NOT part of it — the same animation reached through two
+        /// toggle combinations gets two different labels and is still one dance.
+        /// </summary>
+        private static string SameDanceKey(string slot,
+            Dictionary<string, string> loops, Dictionary<string, string> starts)
+        {
+            static string Flatten(Dictionary<string, string> files) =>
+                string.Join(" ", files.OrderBy(f => f.Key, StringComparer.OrdinalIgnoreCase)
+                    .Select(f => f.Key + "" + f.Value));
+
+            return slot + "" + Flatten(loops) + "" + Flatten(starts);
         }
 
         private static (Dictionary<string, string> Loops, Dictionary<string, string> Starts) Slot(
