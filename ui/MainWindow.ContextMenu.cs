@@ -13,6 +13,9 @@ namespace Pickles_Playlist_Editor
 {
     public sealed partial class MainWindow
     {
+        // Held so RightTapped can switch it off for a multi-selection; every other item batches.
+        private MenuFlyoutItem _renameMenuItem = null!;
+
         private MenuFlyout BuildContextMenu()
         {
             var flyout = new MenuFlyout();
@@ -22,6 +25,7 @@ namespace Pickles_Playlist_Editor
             normalize.Click += NormalizeAudioMenuItem_Click;
             var rename = new MenuFlyoutItem { Text = AppStrings.Menu_Rename };
             rename.Click += RenameMenuItem_Click;
+            _renameMenuItem = rename;
             flyout.Items.Add(rename);
             flyout.Items.Add(new MenuFlyoutSeparator());
             flyout.Items.Add(extract);
@@ -60,10 +64,13 @@ namespace Pickles_Playlist_Editor
 
         private async void ExtractAudioMenuItem_Click(object sender, object e)
         {
-            var node = _contextMenuNode;
-            if (node == null) return;
-            var targetSongs = GetSongTargetsForNode(node);
+            var targetSongs = GetSongTargets();
             if (targetSongs.Count == 0) { await ShowDialogAsync(AppStrings.Dlg_ExtractAudio_Title, AppStrings.Dlg_ExtractAudio_NoSongs); return; }
+            // A folder per playlist whenever a whole playlist was picked, or the extraction spans
+            // several, so same-named songs can't land on each other. Just some songs out of one
+            // playlist go straight into the folder the user chose.
+            bool foldersPerPlaylist = _contextMenuNodes.Any(n => n.Level != 2)
+                || targetSongs.Select(t => t.playlist).Distinct().Count() > 1;
             string? outputFolder = await PickFolderAsync("Choose output folder for extracted OGG files");
             if (string.IsNullOrWhiteSpace(outputFolder)) return;
             SetProgressBarText(AppStrings.Prog_ExtractingAudio);
@@ -76,7 +83,7 @@ namespace Pickles_Playlist_Editor
                 {
                     try
                     {
-                        string outputDir = node.Level == 1
+                        string outputDir = foldersPerPlaylist
                             ? Path.Combine(outputFolder, SanitizeFileName(playlist.Name))
                             : outputFolder;
                         // Base name only — the stats suffix is for display, not for filenames.
@@ -95,9 +102,7 @@ namespace Pickles_Playlist_Editor
 
         private async void NormalizeAudioMenuItem_Click(object sender, object e)
         {
-            var node = _contextMenuNode;
-            if (node == null) return;
-            var targetSongs = GetSongTargetsForNode(node);
+            var targetSongs = GetSongTargets();
             if (targetSongs.Count == 0) { await ShowDialogAsync(AppStrings.Dlg_NormalizeAudio_Title, AppStrings.Dlg_NoSongs); return; }
             var confirm = await ShowDialogAsync(AppStrings.Dlg_NormalizeAudio_Title,
                 AppStrings.NormalizeConfirm(targetSongs.Count),
@@ -123,16 +128,12 @@ namespace Pickles_Playlist_Editor
 
         private async void ApplyEqSettingsMenuItem_Click(object sender, object e)
         {
-            var node = _contextMenuNode;
-            if (node == null) return;
-            await OpenEqualizerWorkflowAsync(node);
+            await OpenEqualizerWorkflowAsync();
         }
 
         private async void ComputeStatsMenuItem_Click(object sender, object e)
         {
-            var node = _contextMenuNode;
-            if (node == null) return;
-            var targetSongs = GetSongTargetsForNode(node);
+            var targetSongs = GetSongTargets();
             if (targetSongs.Count == 0) { await ShowDialogAsync(AppStrings.Menu_ComputeStats, AppStrings.Dlg_NoSongs); return; }
             SetProgressBarText(AppStrings.Prog_ComputingStats);
             SetProgressBarPercent(0);
@@ -173,6 +174,22 @@ namespace Pickles_Playlist_Editor
             ShowOperationSummary(AppStrings.Summary_ComputeStats, processed, targetSongs.Count, errors);
         }
 
+        /// <summary>
+        /// The songs the open context menu acts on: every row it was opened over — the selection, or
+        /// the single right-clicked row — expanded to songs. Deduped, because selecting a playlist
+        /// and some of its songs must not process those songs twice.
+        /// </summary>
+        private List<(Playlist playlist, Option option)> GetSongTargets()
+        {
+            var results = new List<(Playlist, Option)>();
+            var seen = new HashSet<Option>();
+            foreach (var node in _contextMenuNodes)
+                foreach (var target in GetSongTargetsForNode(node))
+                    if (seen.Add(target.option))
+                        results.Add(target);
+            return results;
+        }
+
         private List<(Playlist playlist, Option option)> GetSongTargetsForNode(PlaylistNodeContent node)
         {
             var results = new List<(Playlist, Option)>();
@@ -201,9 +218,9 @@ namespace Pickles_Playlist_Editor
             return results;
         }
 
-        private async Task OpenEqualizerWorkflowAsync(PlaylistNodeContent node)
+        private async Task OpenEqualizerWorkflowAsync()
         {
-            var targets = GetSongTargetsForNode(node);
+            var targets = GetSongTargets();
             if (targets.Count == 0) { await ShowDialogAsync(AppStrings.Dlg_Equalizer_Title, AppStrings.Dlg_NoSongs); return; }
             var dialog = new EqualizerDialog { XamlRoot = this.Content.XamlRoot };
             var result = await dialog.ShowAsync();

@@ -21,6 +21,8 @@ namespace Pickles_Playlist_Editor
         public ObservableCollection<PlaylistNodeContent> RootPlaylistItems { get; } = new();
 
         private PlaylistNodeContent? _contextMenuNode;
+        // The rows the open context menu acts on — the selection, or just the right-clicked row.
+        private List<PlaylistNodeContent> _contextMenuNodes = new();
         private PlaylistNodeContent? _selectedNode;
 
         private readonly MenuFlyout _treeContextMenu;
@@ -305,11 +307,33 @@ namespace Pickles_Playlist_Editor
             if (e.OriginalSource is not FrameworkElement fe)
                 return;
 
+            // Expanding a playlist is not selecting it, so leave the selection alone when the tap
+            // landed on the chevron.
+            if (IsExpandCollapseChevron(fe))
+                return;
+
             var content = FindNodeContentFromElement(fe);
+            HandleSelectionClick(content);
+
             if (content == null || content.Level < 1)
                 return;
 
             _selectedNode = content;
+        }
+
+        // True when the tapped element is (or sits inside) a TreeViewItem's expand/collapse chevron,
+        // which the default template names ExpandCollapseChevron.
+        private static bool IsExpandCollapseChevron(FrameworkElement fe)
+        {
+            DependencyObject? cur = fe;
+            while (cur != null)
+            {
+                if (cur is TreeViewItem) return false;
+                if (cur is FrameworkElement named && named.Name.StartsWith("ExpandCollapse", StringComparison.Ordinal))
+                    return true;
+                cur = VisualTreeHelper.GetParent(cur);
+            }
+            return false;
         }
 
         private async void PlaylistTreeView_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
@@ -402,8 +426,7 @@ namespace Pickles_Playlist_Editor
                 }
                 if (renamed != null)
                 {
-                    PlaylistTreeView.SelectedItems.Clear();
-                    PlaylistTreeView.SelectedItems.Add(renamed);
+                    SelectOnly(renamed);
                     _selectedNode = renamed;
                 }
             }
@@ -471,8 +494,7 @@ namespace Pickles_Playlist_Editor
             }
             if (renamedSong != null)
             {
-                PlaylistTreeView.SelectedItems.Clear();
-                PlaylistTreeView.SelectedItems.Add(renamedSong);
+                SelectOnly(renamedSong);
                 _selectedNode = renamedSong;
             }
         }
@@ -502,15 +524,26 @@ namespace Pickles_Playlist_Editor
                 if (level == 0)
                 {
                     _contextMenuNode = content;
+                    _contextMenuNodes = new List<PlaylistNodeContent> { content };
                     _rootContextMenu.ShowAt(PlaylistTreeView, e.GetPosition(PlaylistTreeView));
                     return;
                 }
 
+                // Right-clicking inside the selection keeps it, so the menu acts on everything the
+                // user picked. Right-clicking outside it moves the selection to that row first,
+                // which is what makes "act on the selection" safe to do without looking.
+                if (!_selection.Contains(content)) SelectOnly(content);
+
                 _contextMenuNode = level >= 1 ? content : null;
+                _contextMenuNodes = SelectionOrNode(_contextMenuNode);
 
                 bool valid = level == 1 || level == 2;
                 foreach (var item in _treeContextMenu.Items)
                     item.IsEnabled = valid;
+
+                // Renaming is one node at a time by nature; there is no sensible new name to give a
+                // batch, so it stays off while several rows are selected.
+                _renameMenuItem.IsEnabled = valid && _contextMenuNodes.Count <= 1;
 
                 if (valid)
                     _treeContextMenu.ShowAt(PlaylistTreeView, e.GetPosition(PlaylistTreeView));
@@ -528,49 +561,10 @@ namespace Pickles_Playlist_Editor
             return null;
         }
 
-        private void PlaylistTreeView_SelectionChanged(TreeView sender, TreeViewSelectionChangedEventArgs args)
-        {
-            var selected = PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>().ToList();
-
-            // Strip "Off" songs which can never be individually deleted.
-            var toDeselect = selected
-                .Where(item => item.Level == 2 && item.Name.Equals("Off", StringComparison.InvariantCultureIgnoreCase))
-                .ToList();
-
-            if (toDeselect.Count > 0)
-            {
-                DispatcherQueue.TryEnqueue(() =>
-                {
-                    foreach (var item in toDeselect)
-                        PlaylistTreeView.SelectedItems.Remove(item);
-                });
-                return; // SelectionChanged fires again after the deferred removes
-            }
-
-            bool hasCheckedPlaylist = false;
-            bool hasCheckedSong = false;
-
-            foreach (var item in selected)
-            {
-                if (item.Level == 1) hasCheckedPlaylist = true;
-                if (item.Level == 2) { hasCheckedSong = true; _selectedNode = item; }
-            }
-
-            if (!hasCheckedSong)
-            {
-                var single = selected.FirstOrDefault();
-                if (single != null) _selectedNode = single;
-            }
-
-            DeleteButton.IsEnabled = hasCheckedPlaylist || hasCheckedSong;
-            ShuffleButton.IsEnabled = hasCheckedPlaylist;
-            SortByBPMButton.IsEnabled = hasCheckedPlaylist;
-            MergeButton.IsEnabled = CanMerge(selected);
-        }
-
         /// <summary>
-        /// Merge needs one playlist to merge INTO and at least one other to merge FROM. The target is
-        /// the tree selection; the sources are picked in the dialog, because the tree is single-select.
+        /// Merge needs exactly one playlist to merge INTO and at least one other to merge FROM. The
+        /// target is the tree selection; the sources are picked in the dialog, so selecting several
+        /// playlists is ambiguous rather than useful and disables the button.
         /// </summary>
         private bool CanMerge(List<PlaylistNodeContent> selected)
         {
@@ -694,7 +688,7 @@ namespace Pickles_Playlist_Editor
         // what's actually on disk.
         private void RunPlaylistReorder(Action<Playlist> reorder)
         {
-            foreach (var item in PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>().ToList())
+            foreach (var item in SelectedNodes())
             {
                 if (item.Level != 1 || !Playlists.TryGetValue(item.Name, out var pl)) continue;
                 try
@@ -729,7 +723,7 @@ namespace Pickles_Playlist_Editor
         {
             try
             {
-                var selected = PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>().ToList();
+                var selected = SelectedNodes();
                 if (!CanMerge(selected)) return;
 
                 string targetName = selected.First(item => item.Level == 1).Name;
@@ -772,7 +766,8 @@ namespace Pickles_Playlist_Editor
                 if (IsFilterActive) LoadPlaylists(SearchTextBox.Text);
                 else SyncPlaylistNode(target);
 
-                PlaylistTreeView.SelectedItems.Clear();
+                ClearSelection();
+                UpdateSelectionCommands();
 
                 if (result.Discarded.Count > 0)
                 {

@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
@@ -14,6 +14,7 @@ namespace Pickles_Playlist_Editor
     {
         private string _displayText = "";
         private bool _isExpanded;
+        private bool _isSelected;
         private string _camelotText = "";
         private SolidColorBrush? _camelotBrush;
         private Visibility _camelotVisibility = Visibility.Collapsed;
@@ -60,6 +61,22 @@ namespace Pickles_Playlist_Editor
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CamelotVisibility)));
             }
         }
+
+        // Selection lives here, not on the TreeView: WinUI offers Single or a checkbox per row and
+        // nothing in between, so ctrl/shift selection is tracked by MainWindow and drawn from this.
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected == value) return;
+                _isSelected = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectionVisibility)));
+            }
+        }
+
+        public Visibility SelectionVisibility => _isSelected ? Visibility.Visible : Visibility.Collapsed;
 
         public bool IsExpanded
         {

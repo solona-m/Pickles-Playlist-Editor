@@ -31,8 +31,9 @@ namespace Pickles_Playlist_Editor
 
         private void PlaylistTreeView_Collapsed(Microsoft.UI.Xaml.Controls.TreeView _, Microsoft.UI.Xaml.Controls.TreeViewCollapsedEventArgs e)
         {
-            if (!_dragInProgress && e.Item is PlaylistNodeContent node && node.Level == 1)
-                _playlistExpandedStates[node.Name] = false;
+            if (_dragInProgress || e.Item is not PlaylistNodeContent node || node.Level != 1) return;
+            _playlistExpandedStates[node.Name] = false;
+            DeselectHiddenChildren(node);
         }
 
         public void LoadPlaylists() => LoadPlaylists(string.Empty);
@@ -142,6 +143,8 @@ namespace Pickles_Playlist_Editor
 
                     rootContent.AddChild(playlistContent);
                 }
+
+                PruneSelection();
             }
             catch (Exception ex)
             {
@@ -262,6 +265,7 @@ namespace Pickles_Playlist_Editor
                         songNodes.Add(CreateSongNode(song));
             node.ReplaceChildren(songNodes);
             SetNodeDisplayText(node, (playlist.Name ?? "") + GetTimeString(SumPlaylistDuration(playlist)));
+            PruneSelection();
         }
 
         // Reorder the existing Level-1 playlist nodes to match the given name order,
@@ -282,7 +286,7 @@ namespace Pickles_Playlist_Editor
             if (RootPlaylistItems.Count > 0)
             {
                 var node = FindPlaylistNode(name);
-                if (node != null) RootPlaylistItems[0].RemoveChild(node);
+                if (node != null) { RootPlaylistItems[0].RemoveChild(node); PruneSelection(); }
             }
             _playlistExpandedStates.Remove(name);
         }
@@ -292,24 +296,28 @@ namespace Pickles_Playlist_Editor
             var playlistNode = FindPlaylistNode(playlist.Name);
             if (playlistNode == null) return;
             var songNode = FindSongNode(playlistNode, songName);
-            if (songNode != null) playlistNode.RemoveChild(songNode);
+            if (songNode != null) { playlistNode.RemoveChild(songNode); PruneSelection(); }
             SetNodeDisplayText(playlistNode, (playlist.Name ?? "") + GetTimeString(SumPlaylistDuration(playlist)));
         }
 
         // After a cancelled or no-op drag, restore the dragged node only if WinUI actually removed it
         // from ItemsSource. A no-op when the node is still present, so normal cancels don't flicker.
-        private void RepairDraggedNode(PlaylistNodeContent? dragged)
+        private void RepairDraggedNodes(IEnumerable<PlaylistNodeContent> dragged)
         {
-            if (dragged == null || RootPlaylistItems.Count == 0) return;
-            if (dragged.Level == 2 && dragged.Parent != null)
+            if (RootPlaylistItems.Count == 0) return;
+            foreach (var node in dragged)
             {
-                if (!dragged.Parent.Children.Contains(dragged) &&
-                    Playlists.TryGetValue(dragged.Parent.Name, out var pl))
-                    SyncPlaylistNode(pl);
-            }
-            else if (dragged.Level == 1 && !RootPlaylistItems[0].Children.Contains(dragged))
-            {
-                LoadPlaylists();
+                if (node.Level == 2 && node.Parent != null)
+                {
+                    if (!node.Parent.Children.Contains(node) &&
+                        Playlists.TryGetValue(node.Parent.Name, out var pl))
+                        SyncPlaylistNode(pl);
+                }
+                else if (node.Level == 1 && !RootPlaylistItems[0].Children.Contains(node))
+                {
+                    LoadPlaylists();
+                    return;
+                }
             }
         }
 
@@ -355,8 +363,7 @@ namespace Pickles_Playlist_Editor
             if (node != null)
             {
                 node.IsExpanded = true;
-                PlaylistTreeView.SelectedItems.Clear();
-                PlaylistTreeView.SelectedItems.Add(node);
+                SelectOnly(node);
                 _selectedNode = node;
             }
         }
@@ -543,7 +550,7 @@ namespace Pickles_Playlist_Editor
 
                 if (result != ContentDialogResult.Primary) return false;
 
-                var selectedItems = PlaylistTreeView.SelectedItems.OfType<PlaylistNodeContent>().ToList();
+                var selectedItems = SelectedNodes();
                 foreach (var item in selectedItems)
                 {
                     if (item.Level == 1 && Playlists.TryGetValue(item.Name, out var pl))
@@ -590,10 +597,8 @@ namespace Pickles_Playlist_Editor
                     }
                 }
 
-                DeleteButton.IsEnabled = false;
-                ShuffleButton.IsEnabled = false;
-                SortByBPMButton.IsEnabled = false;
-                MergeButton.IsEnabled = false;
+                ClearSelection();
+                UpdateSelectionCommands();
                 if (IsFilterActive) LoadPlaylists(SearchTextBox.Text);
             }
             catch (Exception ex)
