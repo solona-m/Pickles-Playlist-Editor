@@ -1,3 +1,5 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -12,6 +14,9 @@ namespace Pickles_Playlist_Editor
     {
         private string _displayText = "";
         private bool _isExpanded;
+        private string _camelotText = "";
+        private SolidColorBrush? _camelotBrush;
+        private Visibility _camelotVisibility = Visibility.Collapsed;
 
         public string Name { get; set; } = "";
 
@@ -22,6 +27,37 @@ namespace Pickles_Playlist_Editor
             {
                 _displayText = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayText)));
+            }
+        }
+
+        // Camelot chip, songs only. Collapsed unless the key is cached and maps to the wheel.
+        public string CamelotText
+        {
+            get => _camelotText;
+            set
+            {
+                _camelotText = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CamelotText)));
+            }
+        }
+
+        public SolidColorBrush? CamelotBrush
+        {
+            get => _camelotBrush;
+            set
+            {
+                _camelotBrush = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CamelotBrush)));
+            }
+        }
+
+        public Visibility CamelotVisibility
+        {
+            get => _camelotVisibility;
+            set
+            {
+                _camelotVisibility = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CamelotVisibility)));
             }
         }
 

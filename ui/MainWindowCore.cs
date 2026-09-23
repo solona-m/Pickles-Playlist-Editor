@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Dispatching;
@@ -188,13 +189,33 @@ namespace Pickles_Playlist_Editor
         // to a filtered rebuild instead.
         private bool IsFilterActive => !string.IsNullOrWhiteSpace(SearchTextBox?.Text);
 
-        private static PlaylistNodeContent CreateSongNode(Option song) => new PlaylistNodeContent
+        private static PlaylistNodeContent CreateSongNode(Option song)
         {
-            Name = song.Name,
-            DisplayText = song.Name,
-            Level = 2,
-            IconGlyph = PlaylistNodeContent.SongGlyph
-        };
+            var node = new PlaylistNodeContent
+            {
+                Name = song.Name,
+                DisplayText = song.Name,
+                Level = 2,
+                IconGlyph = PlaylistNodeContent.SongGlyph
+            };
+            ApplyCamelotChip(node, song);
+            return node;
+        }
+
+        // Cache-only: this runs for every song on every load, and GetKeyFromSCD would drag an FFT
+        // analysis onto the UI thread per uncached song. No cached key simply means no chip.
+        private static void ApplyCamelotChip(PlaylistNodeContent node, Option song)
+        {
+            var scd = Playlist.GetScdPath(song);
+            if (string.IsNullOrEmpty(scd)) return;
+
+            string? key = KeyDetector.TryGetCachedKey(scd);
+            if (Camelot.Code(key) is not string code || Camelot.Background(key) is not { } colour) return;
+
+            node.CamelotText = code;
+            node.CamelotBrush = new SolidColorBrush(colour);
+            node.CamelotVisibility = Visibility.Visible;
+        }
 
         private static TimeSpan SumPlaylistDuration(Playlist playlist)
         {

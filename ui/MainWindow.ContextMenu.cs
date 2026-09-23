@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml.Controls;
+﻿using Microsoft.UI.Xaml.Controls;
 using Pickles_Playlist_Editor.Tools;
 using Pickles_Playlist_Editor.Utils;
 using System;
@@ -79,7 +79,8 @@ namespace Pickles_Playlist_Editor
                         string outputDir = node.Level == 1
                             ? Path.Combine(outputFolder, SanitizeFileName(playlist.Name))
                             : outputFolder;
-                        string outPath = GetUniquePath(outputDir, SanitizeFileName(option.Name), ".ogg");
+                        // Base name only — the stats suffix is for display, not for filenames.
+                        string outPath = GetUniquePath(outputDir, SanitizeFileName(OptionStatsNaming.StripSuffix(option.Name)), ".ogg");
                         string fullScdPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, Playlist.GetScdPath(option));
                         ScdOggExtractor.ExtractOgg(fullScdPath, outPath);
                         extracted++;
@@ -138,6 +139,7 @@ namespace Pickles_Playlist_Editor
             int processed = 0;
             var errors = new List<string>();
             var touchedPlaylists = new HashSet<Playlist>();
+            var nameParts = OptionStatsNaming.Parts.FromSettings();
             await Task.Run(() =>
             {
                 foreach (var (playlist, option) in targetSongs)
@@ -148,7 +150,7 @@ namespace Pickles_Playlist_Editor
                         int bpm = BPMDetector.GetBPMFromSCD(scdPath);
                         string key = KeyDetector.GetKeyFromSCD(scdPath);
                         TimeSpan duration = BPMDetector.GetDuration(scdPath);
-                        OptionStatsNaming.UpdateName(option, bpm, key, duration);
+                        OptionStatsNaming.UpdateName(option, bpm, key, duration, nameParts);
                         touchedPlaylists.Add(playlist);
                         processed++;
                     }

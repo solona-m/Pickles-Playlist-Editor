@@ -753,6 +753,53 @@ namespace Pickles_Playlist_Editor
         }
 
         /// <summary>
+        /// Which parts of the detected stats are appended to a song's name — the name Penumbra
+        /// displays. All default to true. Changing any of them rewrites existing song names.
+        /// </summary>
+        public static bool ShowBpmInName
+        {
+            get => ReadNameFlag("ShowBpmInName");
+            set => WriteNameFlag("ShowBpmInName", value);
+        }
+
+        public static bool ShowKeyInName
+        {
+            get => ReadNameFlag("ShowKeyInName");
+            set => WriteNameFlag("ShowKeyInName", value);
+        }
+
+        public static bool ShowCamelotInName
+        {
+            get => ReadNameFlag("ShowCamelotInName");
+            set => WriteNameFlag("ShowCamelotInName", value);
+        }
+
+        public static bool ShowLengthInName
+        {
+            get => ReadNameFlag("ShowLengthInName");
+            set => WriteNameFlag("ShowLengthInName", value);
+        }
+
+        private static bool ReadNameFlag(string name)
+        {
+            try
+            {
+                var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue(name, 1);
+                if (value is int iv) return iv != 0;
+                if (value is long lv) return lv != 0;
+                if (value is string sv && int.TryParse(sv, out var parsed)) return parsed != 0;
+            }
+            catch { }
+            return true;
+        }
+
+        private static void WriteNameFlag(string name, bool value)
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(s_subKey);
+            key?.SetValue(name, value ? 1 : 0, RegistryValueKind.DWord);
+        }
+
+        /// <summary>
         /// Playback volume for the bottom player bar (0–100). Default: 100.
         /// Distinct from <see cref="ScdVolumePercentage"/>, which controls exported SCD loudness.
         /// </summary>

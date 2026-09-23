@@ -48,7 +48,7 @@
                     <MenuFlyout>
                         <MenuFlyoutItem x:Name="SortByBPMMenuItem" x:Uid="SortByBPMMenuItem" Text="Sort by BPM" Click="SortByBPM_Click"/>
                         <MenuFlyoutItem x:Name="SortByBPMZigZagMenuItem" x:Uid="SortByBPMZigZagMenuItem" Text="Alternate Fast/Slow" Click="SortByBPMZigZag_Click"/>
-                        <MenuFlyoutItem x:Name="SortByKeyMenuItem" x:Uid="SortByKeyMenuItem" Text="Sort by Key" Click="SortByKey_Click"/>
+                        <MenuFlyoutItem x:Name="SortByKeyMenuItem" x:Uid="SortByKeyMenuItem" Text="Sort by Key (Harmonic)" Click="SortByCamelot_Click"/>
                         <MenuFlyoutItem x:Name="SortByNameMenuItem" x:Uid="SortByNameMenuItem" Text="Sort by Name" Click="SortByName_Click"/>
                     </MenuFlyout>
                 </AppBarButton.Flyout>
@@ -118,7 +118,18 @@
                 <DataTemplate x:DataType="local:PlaylistNodeContent">
                     <TreeViewItem ItemsSource="{x:Bind Children}"
                                   IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}">
-                        <TextBlock Text="{x:Bind DisplayText, Mode=OneWay}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Camelot chip. Its own opaque background, since the tree sits over a
+                                 user-supplied image, and black text against every wheel colour. -->
+                            <Border Visibility="{x:Bind CamelotVisibility, Mode=OneWay}"
+                                    Background="{x:Bind CamelotBrush, Mode=OneWay}"
+                                    CornerRadius="4" Padding="6,1,6,1" Margin="0,0,8,0"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind CamelotText, Mode=OneWay}"
+                                           Foreground="Black" FontSize="12" FontWeight="SemiBold"/>
+                            </Border>
+                            <TextBlock Text="{x:Bind DisplayText, Mode=OneWay}" VerticalAlignment="Center"/>
+                        </StackPanel>
                     </TreeViewItem>
                 </DataTemplate>
             </TreeView.ItemTemplate>

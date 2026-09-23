@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -638,7 +638,11 @@ namespace Pickles_Playlist_Editor
             var dialog = new SettingsDialog { XamlRoot = this.Content.XamlRoot };
             await dialog.ShowAsync();
             RefreshBackground();
-            LoadPlaylists();
+
+            if (dialog.NamingOptionsChanged)
+                await ApplyNamingOptionsAsync();
+            else
+                LoadPlaylists();
 
             // On a first run the boot capture necessarily no-opped: there was no configured mod
             // until the user filled this dialog in. This is the only point on that path where the
@@ -652,6 +656,22 @@ namespace Pickles_Playlist_Editor
             // swallows that into the log, so the update prompt would silently never appear.
             if (dialog.UpdateChannelChanged)
                 await CheckForUpdatesAsync();
+        }
+
+        /// <summary>
+        /// Rewrites every song's name for the current display settings and rebuilds the tree from
+        /// the new names. Shared, because Settings can be closed by Hide() rather than by OK — the
+        /// sound-path and SoundCloud buttons do exactly that — and the reopened dialog's OK then
+        /// lands after OpenSettingsAsync has already returned and read the flag.
+        /// </summary>
+        internal async Task ApplyNamingOptionsAsync()
+        {
+            var failed = await Task.Run(() => Library.RefreshStatNames());
+            Playlists = Playlist.GetAll();
+            if (failed.Count > 0)
+                Utils.Logger.LogWarn("Song names: {Count} playlist(s) could not be saved: {Names}",
+                    failed.Count, string.Join(", ", failed));
+            LoadPlaylists();
         }
 
         internal void RefreshBackground()
@@ -783,7 +803,7 @@ namespace Pickles_Playlist_Editor
         }
 
         // Kept separate from _currentSortDirection so toggling the zig-zag's starting end doesn't
-        // silently flip the direction of the next plain BPM/Key sort.
+        // silently flip the direction of the next plain BPM/Camelot sort.
         private SortDirection _zigZagSortDirection = SortDirection.Ascending;
 
         private void SortByBPMZigZag_Click(object sender, RoutedEventArgs e)
@@ -801,12 +821,12 @@ namespace Pickles_Playlist_Editor
             RunPlaylistReorder(pl => pl.SortByName());
         }
 
-        private void SortByKey_Click(object sender, RoutedEventArgs e)
+        private void SortByCamelot_Click(object sender, RoutedEventArgs e)
         {
             var direction = _currentSortDirection == SortDirection.Ascending
                 ? SortDirection.Descending
                 : SortDirection.Ascending;
-            RunPlaylistReorder(pl => pl.SortByKey(direction));
+            RunPlaylistReorder(pl => pl.SortByCamelot(direction));
             _currentSortDirection = direction;
         }
 

@@ -1,4 +1,4 @@
-using Pickles_Playlist_Editor.Utils;
+﻿using Pickles_Playlist_Editor.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -28,6 +28,52 @@ namespace Pickles_Playlist_Editor
             if (failed.Count > 0)
                 Utils.Logger.LogWarn("Cleanup: skipped {Count} playlist(s) that could not be saved: {Names}",
                     failed.Count, string.Join(", ", failed));
+        }
+
+        // Rewrites every song's name suffix to match the current display settings. Reads the
+        // BPM/key/duration caches only — never re-detects — so this stays fast enough to run
+        // straight after the settings dialog closes. Songs with nothing cached keep a bare name.
+        public static List<string> RefreshStatNames()
+        {
+            var errors = new List<string>();
+            var parts = OptionStatsNaming.Parts.FromSettings();
+
+            foreach (var playlist in Playlist.GetAll().Values)
+            {
+                bool touched = false;
+                foreach (var option in playlist.Options)
+                {
+                    // string.Equals, not option.Name.Equals: Name comes straight from the manifest
+                    // and a missing key leaves it null, which must not abort the whole pass.
+                    if (option == null) continue;
+                    if (string.Equals(option.Name, "Off", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (string.Equals(option.Name, "Default", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    string rel = Playlist.GetScdPath(option);
+                    if (string.IsNullOrEmpty(rel)) continue;
+
+                    string before = option.Name;
+                    OptionStatsNaming.UpdateName(
+                        option,
+                        BPMDetector.TryGetCachedBpm(rel),
+                        KeyDetector.TryGetCachedKey(rel),
+                        BPMDetector.TryGetCachedDuration(rel),
+                        parts);
+                    touched |= option.Name != before;
+                }
+
+                if (!touched) continue;
+
+                // As in Cleanup: one unsaveable playlist must not abort the pass for the rest.
+                try { playlist.Save(); }
+                catch (Exception ex)
+                {
+                    Utils.Logger.LogError("RefreshStatNames skipped '{Name}': {Error}", playlist.Name, ex);
+                    errors.Add(playlist.Name);
+                }
+            }
+
+            return errors;
         }
 
         // Rebuilds every library SCD's headers from the canonical default.scd plus the app's

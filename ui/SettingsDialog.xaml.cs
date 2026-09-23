@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Newtonsoft.Json.Linq;
 using System;
@@ -36,6 +36,10 @@ namespace Pickles_Playlist_Editor
                 FadeWithDistanceCheckBox.IsChecked = Settings.FadeWithDistance;
                 AutoReloadCheckBox.IsChecked = Settings.AutoReloadMod;
                 FadeBackgroundMusicCheckBox.IsChecked = Settings.FadeBackgroundMusic;
+                ShowBpmInNameCheckBox.IsChecked = Settings.ShowBpmInName;
+                ShowKeyInNameCheckBox.IsChecked = Settings.ShowKeyInName;
+                ShowCamelotInNameCheckBox.IsChecked = Settings.ShowCamelotInName;
+                ShowLengthInNameCheckBox.IsChecked = Settings.ShowLengthInName;
                 BusNumberComboBox.SelectedIndex = BusNumberToIndex(Settings.BusNumber);
                 SelectCurrentLanguage();
                 UpdateCookieStatus();
@@ -189,6 +193,12 @@ namespace Pickles_Playlist_Editor
 
             // That reopen was a second ShowAsync, so OpenSettingsAsync already returned when Hide()
             // completed the first one. A channel change made in this second pass is ours to act on.
+            // Same reasoning as the channel flag: OpenSettingsAsync already read and acted on
+            // these when Hide() completed the first ShowAsync, so a change made in this second
+            // pass is ours to apply.
+            if (NamingOptionsChanged)
+                await App.MainWindow.ApplyNamingOptionsAsync();
+
             if (UpdateChannelChanged)
                 await App.MainWindow.CheckForUpdatesAsync();
         }
@@ -316,6 +326,12 @@ namespace Pickles_Playlist_Editor
         /// </summary>
         internal bool UpdateChannelChanged { get; private set; }
 
+        /// <summary>
+        /// True when OK changed which stats appear in song names, so every song's name needs
+        /// rewriting. Read by <see cref="MainWindow.OpenSettingsAsync"/> after the dialog closes.
+        /// </summary>
+        internal bool NamingOptionsChanged { get; private set; }
+
         private void UpdateCookieStatus()
         {
             var status = Pickles_Playlist_Editor.Tools.YtDlpService.GetCookieStatus();
@@ -389,6 +405,12 @@ namespace Pickles_Playlist_Editor
             // UpdateChannelChanged back when Hide() completed the first one. A channel change made
             // in this second pass is ours to act on. The dialog is closed by now, so the update
             // prompt has the field to itself.
+            // Same reasoning as the channel flag: OpenSettingsAsync already read and acted on
+            // these when Hide() completed the first ShowAsync, so a change made in this second
+            // pass is ours to apply.
+            if (NamingOptionsChanged)
+                await App.MainWindow.ApplyNamingOptionsAsync();
+
             if (UpdateChannelChanged)
                 await App.MainWindow.CheckForUpdatesAsync();
         }
@@ -414,6 +436,20 @@ namespace Pickles_Playlist_Editor
             Settings.AutoReloadMod = AutoReloadCheckBox.IsChecked == true;
             Settings.FadeBackgroundMusic = FadeBackgroundMusicCheckBox.IsChecked == true;
             Settings.BusNumber = IndexToBusNumber(BusNumberComboBox.SelectedIndex);
+
+            // Every song's name has to be rewritten when these change, which is a write across the
+            // whole library — too slow for a PrimaryButtonClick handler. Flagged here, run by the
+            // caller once the dialog is down.
+            NamingOptionsChanged =
+                Settings.ShowBpmInName != (ShowBpmInNameCheckBox.IsChecked == true)
+                || Settings.ShowKeyInName != (ShowKeyInNameCheckBox.IsChecked == true)
+                || Settings.ShowCamelotInName != (ShowCamelotInNameCheckBox.IsChecked == true)
+                || Settings.ShowLengthInName != (ShowLengthInNameCheckBox.IsChecked == true);
+
+            Settings.ShowBpmInName = ShowBpmInNameCheckBox.IsChecked == true;
+            Settings.ShowKeyInName = ShowKeyInNameCheckBox.IsChecked == true;
+            Settings.ShowCamelotInName = ShowCamelotInNameCheckBox.IsChecked == true;
+            Settings.ShowLengthInName = ShowLengthInNameCheckBox.IsChecked == true;
 
             // Written only on a real change. With nothing stored, Settings.UpdateChannel derives
             // the channel from the running build, and that derived state is worth preserving: a
