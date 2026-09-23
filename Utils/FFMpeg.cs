@@ -34,16 +34,18 @@ namespace Pickles_Playlist_Editor.Utils
             string filter;
             if (TryParseMeasuredLoudness(measure, out double inputI))
             {
-                // Apply the exact gain to reach the target loudness, then pin any
-                // resulting peaks with a brickwall limiter at the ceiling. loudnorm
-                // protects true-peak and so can't make an already-0dBFS master louder;
-                // driving gain into a limiter raises the actual loudness (matching
-                // Audacity's "normalize + amplify into limiting") while every track
-                // still lands on the same target level for a consistent playlist.
+                // Apply the exact gain to reach the target loudness, then take the overshoot
+                // off in two stages. The clipper is memoryless, so it shaves transients
+                // without the ducking a limiter's release causes at this much gain; the
+                // limiter behind it pins the ceiling the clipper only approaches.
                 double gain = targetLufs - inputI;
                 string g = gain.ToString("0.##", ci);
                 string limit = Math.Pow(10, ceilingDb / 20.0).ToString("0.####", ci);
-                filter = $"volume={g}dB,alimiter=limit={limit}:level=disabled";
+                string clip = Math.Pow(10, Settings.NormalizationSoftClipDb / 20.0).ToString("0.####", ci);
+                // oversample stays at 1: any higher costs ~6 dB in this ffmpeg build
+                // (measured), silently undoing the gain above.
+                filter = $"volume={g}dB,asoftclip=type=tanh:threshold={clip}:oversample=1,"
+                       + $"alimiter=limit={limit}:level=disabled";
             }
             else
             {
