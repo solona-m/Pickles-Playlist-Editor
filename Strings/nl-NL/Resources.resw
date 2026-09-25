@@ -11,7 +11,7 @@
   <data name="SortByBPMButton.Label" xml:space="preserve"><value>Sorteren</value></data>
   <data name="SortByBPMMenuItem.Text" xml:space="preserve"><value>Sorteren op BPM</value></data>
   <data name="SortByBPMZigZagMenuItem.Text" xml:space="preserve"><value>Snel/langzaam afwisselen</value></data>
-  <data name="SortByKeyMenuItem.Text" xml:space="preserve"><value>Sorteren op toonsoort</value></data>
+  <data name="SortByKeyMenuItem.Text" xml:space="preserve"><value>Sorteren op toonsoort (harmonisch)</value></data>
   <data name="SortByNameMenuItem.Text" xml:space="preserve"><value>Sorteren op naam</value></data>
   <data name="PreviousButton.Label" xml:space="preserve"><value>Vorige</value></data>
   <data name="PlayButton.Label" xml:space="preserve"><value>Afspelen</value></data>
@@ -52,6 +52,11 @@
   <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Vervagen met afstand</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Mod automatisch herladen</value></data>
   <data name="FadeBackgroundMusicCheckBox.Content" xml:space="preserve"><value>Achtergrondmuziek dempen</value></data>
+  <data name="SongNameDetailsLabel.Text" xml:space="preserve"><value>Tonen in songnamen</value></data>
+  <data name="ShowBpmInNameCheckBox.Content" xml:space="preserve"><value>BPM</value></data>
+  <data name="ShowKeyInNameCheckBox.Content" xml:space="preserve"><value>Toonsoort</value></data>
+  <data name="ShowCamelotInNameCheckBox.Content" xml:space="preserve"><value>Camelot-nummer</value></data>
+  <data name="ShowLengthInNameCheckBox.Content" xml:space="preserve"><value>Lengte</value></data>
 
   <data name="BusNumberLabel.Text" xml:space="preserve"><value>Afspeelkanaal</value></data>
   <data name="BusNumberItem_BGM.Content" xml:space="preserve"><value>Achtergrondmuziek</value></data>
@@ -291,4 +296,51 @@ Wil je doorgaan?</value></data>
   <data name="Merge_DiscardWarningOne" xml:space="preserve"><value>1 nummer zit al met deze naam in de samenvoeging en vervalt, audio inbegrepen: {1}</value></data>
   <data name="Merge_CompleteWithDiscards" xml:space="preserve"><value>{0} nummer(s) naar "{1}" verplaatst. {2} duplicaat/duplicaten vervallen.</value></data>
   <data name="Error_Merge" xml:space="preserve"><value>De afspeellijsten konden niet worden samengevoegd: {0}</value></data>
+  <data name="TexturesButton.Label" xml:space="preserve"><value>Afbeeldingen</value></data>
+  <data name="TexturesDlg.Title" xml:space="preserve"><value>Tafelafbeeldingen</value></data>
+  <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX-mod</value></data>
+  <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Wijzigen</value></data>
+  <data name="TextureModPickerHint.Text" xml:space="preserve"><value>Deze mods hebben een dj-tafel waar je afbeeldingen op kunt zetten. Kies degene die je gebruikt.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Sleep een afbeelding op een van deze, of gebruik de knop eronder. Er wordt niets weggeschreven tot je op Toepassen drukt.</value></data>
+  <data name="TableCardTitle.Text" xml:space="preserve"><value>Tafelpaneel</value></data>
+  <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptopscherm</value></data>
+  <data name="FitFill.Content" xml:space="preserve"><value>Vullen</value></data>
+  <data name="FitWhole.Content" xml:space="preserve"><value>Geheel</value></data>
+  <data name="FitStretch.Content" xml:space="preserve"><value>Uitrekken</value></data>
+  <data name="FitFill2.Content" xml:space="preserve"><value>Vullen</value></data>
+  <data name="FitWhole2.Content" xml:space="preserve"><value>Geheel</value></data>
+  <data name="FitStretch2.Content" xml:space="preserve"><value>Uitrekken</value></data>
+  <data name="ChooseTablePictureButton.Content" xml:space="preserve"><value>Afbeelding kiezen…</value></data>
+  <data name="ChooseLaptopPictureButton.Content" xml:space="preserve"><value>Afbeelding kiezen…</value></data>
+  <data name="RestoreTablePictureButton.Content" xml:space="preserve"><value>Origineel terugzetten</value></data>
+  <data name="RestoreLaptopPictureButton.Content" xml:space="preserve"><value>Origineel terugzetten</value></data>
+  <data name="Dlg_Textures_Title" xml:space="preserve"><value>Tafelafbeeldingen</value></data>
+  <data name="Textures_Apply" xml:space="preserve"><value>Toepassen</value></data>
+  <data name="Textures_NotInThisMod" xml:space="preserve"><value>Deze mod heeft deze afbeelding niet.</value></data>
+  <data name="Textures_ScanRunning" xml:space="preserve"><value>Je mods worden doorzocht…</value></data>
+  <data name="Textures_NoModsFound" xml:space="preserve"><value>Geen mods met een dj-tafel gevonden in je Penumbra-map.</value></data>
+  <data name="Textures_PickTitle" xml:space="preserve"><value>Afbeelding kiezen</value></data>
+  <data name="Textures_DropCaption" xml:space="preserve"><value>Hierop zetten</value></data>
+  <data name="Textures_Composing" xml:space="preserve"><value>Afbeelding wordt klaargemaakt…</value></data>
+  <data name="Textures_Applying" xml:space="preserve"><value>Afbeeldingen worden weggeschreven…</value></data>
+  <data name="Textures_Restoring" xml:space="preserve"><value>Origineel wordt teruggezet…</value></data>
+  <data name="Textures_Restored" xml:space="preserve"><value>De meegeleverde afbeelding staat er weer op.</value></data>
+  <data name="Textures_ConfirmRestore" xml:space="preserve"><value>De meegeleverde afbeelding terugzetten?</value></data>
+  <data name="Textures_ModNoPictures" xml:space="preserve"><value>“{0}” heeft geen dj-tafelafbeeldingen die hier te wijzigen zijn.</value></data>
+  <data name="Textures_Candidate" xml:space="preserve"><value>{0} — {1} afbeeldingen</value></data>
+  <data name="Textures_CandidateOne" xml:space="preserve"><value>{0} — 1 afbeelding</value></data>
+  <data name="Textures_ModsFound" xml:space="preserve"><value>{0} mods met een dj-tafel gevonden.</value></data>
+  <data name="Textures_ModsFoundOne" xml:space="preserve"><value>1 mod met een dj-tafel gevonden.</value></data>
+  <data name="Textures_Unreadable" xml:space="preserve"><value>“{0}” kon niet als afbeelding gelezen worden.</value></data>
+  <data name="Textures_Shipped" xml:space="preserve"><value>Meegeleverde afbeelding — getoond op {0} × {1}</value></data>
+  <data name="Textures_Yours" xml:space="preserve"><value>Jouw afbeelding — getoond op {0} × {1}</value></data>
+  <data name="Textures_Pending" xml:space="preserve"><value>“{0}” — nog niet weggeschreven</value></data>
+  <data name="Textures_Applied" xml:space="preserve"><value>{0} afbeeldingen weggeschreven. Bekijk de tafel in het spel.</value></data>
+  <data name="Textures_AppliedOne" xml:space="preserve"><value>1 afbeelding weggeschreven. Bekijk de tafel in het spel.</value></data>
+  <data name="LidCardTitle.Text" xml:space="preserve"><value>Laptopklep-logo</value></data>
+  <data name="FitFill3.Content" xml:space="preserve"><value>Vullen</value></data>
+  <data name="FitWhole3.Content" xml:space="preserve"><value>Geheel</value></data>
+  <data name="FitStretch3.Content" xml:space="preserve"><value>Uitrekken</value></data>
+  <data name="ChooseLidPictureButton.Content" xml:space="preserve"><value>Afbeelding kiezen…</value></data>
+  <data name="RestoreLidPictureButton.Content" xml:space="preserve"><value>Origineel terugzetten</value></data>
 </root>

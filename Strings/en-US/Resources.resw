@@ -11,7 +11,7 @@
   <data name="SortByBPMButton.Label" xml:space="preserve"><value>Sort</value></data>
   <data name="SortByBPMMenuItem.Text" xml:space="preserve"><value>Sort by BPM</value></data>
   <data name="SortByBPMZigZagMenuItem.Text" xml:space="preserve"><value>Alternate Fast/Slow</value></data>
-  <data name="SortByKeyMenuItem.Text" xml:space="preserve"><value>Sort by Key</value></data>
+  <data name="SortByKeyMenuItem.Text" xml:space="preserve"><value>Sort by Key (Harmonic)</value></data>
   <data name="SortByNameMenuItem.Text" xml:space="preserve"><value>Sort by Name</value></data>
   <data name="PreviousButton.Label" xml:space="preserve"><value>Previous</value></data>
   <data name="PlayButton.Label" xml:space="preserve"><value>Play</value></data>
@@ -52,6 +52,11 @@
   <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Fade With Distance</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Auto Reload Mod</value></data>
   <data name="FadeBackgroundMusicCheckBox.Content" xml:space="preserve"><value>Fade background music</value></data>
+  <data name="SongNameDetailsLabel.Text" xml:space="preserve"><value>Show In Song Names</value></data>
+  <data name="ShowBpmInNameCheckBox.Content" xml:space="preserve"><value>BPM</value></data>
+  <data name="ShowKeyInNameCheckBox.Content" xml:space="preserve"><value>Musical key</value></data>
+  <data name="ShowCamelotInNameCheckBox.Content" xml:space="preserve"><value>Camelot number</value></data>
+  <data name="ShowLengthInNameCheckBox.Content" xml:space="preserve"><value>Length</value></data>
 
   <data name="BusNumberLabel.Text" xml:space="preserve"><value>Playback Channel</value></data>
   <data name="BusNumberItem_BGM.Content" xml:space="preserve"><value>BGM</value></data>
@@ -291,4 +296,51 @@ Do you want to proceed?</value></data>
   <data name="Merge_DiscardWarningOne" xml:space="preserve"><value>1 song is already in the merge by name and will be discarded, audio included: {1}</value></data>
   <data name="Merge_CompleteWithDiscards" xml:space="preserve"><value>Moved {0} song(s) into "{1}". {2} duplicate(s) were discarded.</value></data>
   <data name="Error_Merge" xml:space="preserve"><value>The playlists could not be merged: {0}</value></data>
+  <data name="TexturesButton.Label" xml:space="preserve"><value>Pictures</value></data>
+  <data name="TexturesDlg.Title" xml:space="preserve"><value>Table Pictures</value></data>
+  <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX Mod</value></data>
+  <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Change</value></data>
+  <data name="TextureModPickerHint.Text" xml:space="preserve"><value>These mods have a DJ table you can put pictures on. Pick the one you use.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Drop a picture onto one of these, or use the button underneath. Nothing is written until you press Apply.</value></data>
+  <data name="TableCardTitle.Text" xml:space="preserve"><value>Table panel</value></data>
+  <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptop screen</value></data>
+  <data name="FitFill.Content" xml:space="preserve"><value>Fill</value></data>
+  <data name="FitWhole.Content" xml:space="preserve"><value>Whole</value></data>
+  <data name="FitStretch.Content" xml:space="preserve"><value>Stretch</value></data>
+  <data name="FitFill2.Content" xml:space="preserve"><value>Fill</value></data>
+  <data name="FitWhole2.Content" xml:space="preserve"><value>Whole</value></data>
+  <data name="FitStretch2.Content" xml:space="preserve"><value>Stretch</value></data>
+  <data name="ChooseTablePictureButton.Content" xml:space="preserve"><value>Choose a picture…</value></data>
+  <data name="ChooseLaptopPictureButton.Content" xml:space="preserve"><value>Choose a picture…</value></data>
+  <data name="RestoreTablePictureButton.Content" xml:space="preserve"><value>Put the original back</value></data>
+  <data name="RestoreLaptopPictureButton.Content" xml:space="preserve"><value>Put the original back</value></data>
+  <data name="Dlg_Textures_Title" xml:space="preserve"><value>Table Pictures</value></data>
+  <data name="Textures_Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Textures_NotInThisMod" xml:space="preserve"><value>This mod does not have this picture.</value></data>
+  <data name="Textures_ScanRunning" xml:space="preserve"><value>Looking through your mods…</value></data>
+  <data name="Textures_NoModsFound" xml:space="preserve"><value>No mods with a DJ table were found in your Penumbra folder.</value></data>
+  <data name="Textures_PickTitle" xml:space="preserve"><value>Choose a picture</value></data>
+  <data name="Textures_DropCaption" xml:space="preserve"><value>Put this on the panel</value></data>
+  <data name="Textures_Composing" xml:space="preserve"><value>Getting the picture ready…</value></data>
+  <data name="Textures_Applying" xml:space="preserve"><value>Writing the pictures…</value></data>
+  <data name="Textures_Restoring" xml:space="preserve"><value>Putting the original back…</value></data>
+  <data name="Textures_Restored" xml:space="preserve"><value>The picture that came with the mod is back.</value></data>
+  <data name="Textures_ConfirmRestore" xml:space="preserve"><value>Put the picture that came with the mod back?</value></data>
+  <data name="Textures_ModNoPictures" xml:space="preserve"><value>“{0}” has no DJ table pictures this can change.</value></data>
+  <data name="Textures_Candidate" xml:space="preserve"><value>{0} — {1} pictures</value></data>
+  <data name="Textures_CandidateOne" xml:space="preserve"><value>{0} — 1 picture</value></data>
+  <data name="Textures_ModsFound" xml:space="preserve"><value>{0} mods with a DJ table found.</value></data>
+  <data name="Textures_ModsFoundOne" xml:space="preserve"><value>1 mod with a DJ table found.</value></data>
+  <data name="Textures_Unreadable" xml:space="preserve"><value>“{0}” could not be read as a picture.</value></data>
+  <data name="Textures_Shipped" xml:space="preserve"><value>The picture that came with the mod — shown at {0} × {1}</value></data>
+  <data name="Textures_Yours" xml:space="preserve"><value>Your picture — shown at {0} × {1}</value></data>
+  <data name="Textures_Pending" xml:space="preserve"><value>“{0}” — not written yet</value></data>
+  <data name="Textures_Applied" xml:space="preserve"><value>{0} pictures written. Have a look at the table in game.</value></data>
+  <data name="Textures_AppliedOne" xml:space="preserve"><value>1 picture written. Have a look at the table in game.</value></data>
+  <data name="LidCardTitle.Text" xml:space="preserve"><value>Laptop lid badge</value></data>
+  <data name="FitFill3.Content" xml:space="preserve"><value>Fill</value></data>
+  <data name="FitWhole3.Content" xml:space="preserve"><value>Whole</value></data>
+  <data name="FitStretch3.Content" xml:space="preserve"><value>Stretch</value></data>
+  <data name="ChooseLidPictureButton.Content" xml:space="preserve"><value>Choose a picture…</value></data>
+  <data name="RestoreLidPictureButton.Content" xml:space="preserve"><value>Put the original back</value></data>
 </root>

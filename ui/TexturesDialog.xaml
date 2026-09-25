@@ -1,0 +1,187 @@
+﻿<ContentDialog
+    x:Class="Pickles_Playlist_Editor.TexturesDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Uid="TexturesDlg"
+    Title="Table Pictures"
+    CloseButtonText="Close"
+    PrimaryButtonClick="PrimaryButton_Click"
+    DefaultButton="Primary">
+
+    <!-- Two previews side by side do not fit the 548 a ContentDialog caps itself at, and content
+         wider than the cap is clipped rather than widening the dialog. Raising it is the supported
+         way to widen one; see DancesDialog, which hit the same wall. -->
+    <ContentDialog.Resources>
+        <x:Double x:Key="ContentDialogMaxWidth">1120</x:Double>
+    </ContentDialog.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="560">
+    <StackPanel Spacing="10" Width="1060">
+
+        <!-- The pictures live in the VFX mod, not the music mod this app otherwise edits. Named at
+             the top for the same reason the dances dialog names it: editing the wrong mod is the
+             worst thing this feature can do, and it is silent when it happens. -->
+        <TextBlock x:Uid="TextureModLabel" Text="VFX Mod" FontWeight="SemiBold"/>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="ModText" Grid.Column="0" VerticalAlignment="Center"
+                       TextWrapping="Wrap" Margin="0,0,8,0"/>
+            <Button x:Name="ChangeModButton" x:Uid="ChangeTextureModButton" Grid.Column="1" Content="Change"
+                    Click="ChangeModButton_Click"/>
+        </Grid>
+
+        <!-- Shown until a mod is chosen. Unlike the dances picker this list is not a guess: a mod
+             either ships a texture of the right name, size and format or it does not. -->
+        <StackPanel x:Name="PickerSection" Spacing="4" Visibility="Collapsed">
+            <TextBlock x:Uid="TextureModPickerHint" TextWrapping="Wrap" Opacity="0.7"
+                       Text="These mods have a DJ table you can put pictures on. Pick the one you use."/>
+            <ListView x:Name="CandidateList" MaxHeight="200" SelectionMode="Single"
+                      SelectionChanged="CandidateList_SelectionChanged"/>
+        </StackPanel>
+
+        <StackPanel x:Name="CardsSection" Spacing="10" Visibility="Collapsed">
+            <TextBlock x:Uid="TexturesHint" TextWrapping="Wrap" Opacity="0.7"
+                       Text="Drop a picture onto one of these, or use the button underneath. Nothing is written until you press Apply."/>
+
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Table panel -->
+                <Border Grid.Column="0" Padding="12" CornerRadius="6" BorderThickness="1"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Uid="TableCardTitle" Text="Table panel" FontWeight="SemiBold"/>
+
+                        <!-- Black behind the preview, not the theme background: these are VFX
+                             textures and their unlit parts really are black in game, so a light
+                             card behind them would show a picture nobody will ever see. -->
+                        <Border x:Name="TableDropTarget" Tag="table" AllowDrop="True"
+                                DragOver="Preview_DragOver" Drop="Preview_Drop"
+                                Height="190" CornerRadius="4" BorderThickness="1"
+                                Background="#FF0B0B0B"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                            <Image x:Name="TablePreview" Stretch="Uniform" Margin="6"/>
+                        </Border>
+
+                        <TextBlock x:Name="TableState" TextWrapping="Wrap" Opacity="0.8"/>
+
+                        <Grid ColumnSpacing="6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- No IsSelected in markup: setting it raises SelectionChanged DURING
+                                 InitializeComponent, before the controls the handler touches exist.
+                                 The constructor selects the default instead. -->
+                            <ComboBox x:Name="TableFit" Grid.Column="0" Width="104" Tag="table"
+                                      SelectionChanged="Fit_SelectionChanged">
+                                <ComboBoxItem x:Uid="FitFill" Content="Fill"/>
+                                <ComboBoxItem x:Uid="FitWhole" Content="Whole"/>
+                                <ComboBoxItem x:Uid="FitStretch" Content="Stretch"/>
+                            </ComboBox>
+                            <Button x:Name="TableChoose" x:Uid="ChooseTablePictureButton" Grid.Column="1" Tag="table"
+                                    Click="Choose_Click" HorizontalAlignment="Stretch"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Content="Choose a picture…"/>
+                        </Grid>
+
+                        <Button x:Name="TableRestore" x:Uid="RestoreTablePictureButton" Tag="table"
+                                Click="Restore_Click" HorizontalAlignment="Stretch"
+                                Content="Put the original back"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Laptop screen -->
+                <Border Grid.Column="1" Padding="12" CornerRadius="6" BorderThickness="1"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Uid="LaptopCardTitle" Text="Laptop screen" FontWeight="SemiBold"/>
+
+                        <Border x:Name="LaptopDropTarget" Tag="laptop" AllowDrop="True"
+                                DragOver="Preview_DragOver" Drop="Preview_Drop"
+                                Height="190" CornerRadius="4" BorderThickness="1"
+                                Background="#FF0B0B0B"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                            <Image x:Name="LaptopPreview" Stretch="Uniform" Margin="6"/>
+                        </Border>
+
+                        <TextBlock x:Name="LaptopState" TextWrapping="Wrap" Opacity="0.8"/>
+
+                        <Grid ColumnSpacing="6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="LaptopFit" Grid.Column="0" Width="104" Tag="laptop"
+                                      SelectionChanged="Fit_SelectionChanged">
+                                <ComboBoxItem x:Uid="FitFill2" Content="Fill"/>
+                                <ComboBoxItem x:Uid="FitWhole2" Content="Whole"/>
+                                <ComboBoxItem x:Uid="FitStretch2" Content="Stretch"/>
+                            </ComboBox>
+                            <Button x:Name="LaptopChoose" x:Uid="ChooseLaptopPictureButton" Grid.Column="1" Tag="laptop"
+                                    Click="Choose_Click" HorizontalAlignment="Stretch"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Content="Choose a picture…"/>
+                        </Grid>
+
+                        <Button x:Name="LaptopRestore" x:Uid="RestoreLaptopPictureButton" Tag="laptop"
+                                Click="Restore_Click" HorizontalAlignment="Stretch"
+                                Content="Put the original back"/>
+                    </StackPanel>
+                </Border>
+                <!-- Lid badge -->
+                <Border Grid.Column="2" Padding="12" CornerRadius="6" BorderThickness="1"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Uid="LidCardTitle" Text="Laptop lid badge" FontWeight="SemiBold"/>
+
+                        <Border x:Name="LidDropTarget" Tag="lidlogo" AllowDrop="True"
+                                DragOver="Preview_DragOver" Drop="Preview_Drop"
+                                Height="190" CornerRadius="4" BorderThickness="1"
+                                Background="#FF0B0B0B"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                            <Image x:Name="LidPreview" Stretch="Uniform" Margin="6"/>
+                        </Border>
+
+                        <TextBlock x:Name="LidState" TextWrapping="Wrap" Opacity="0.8"/>
+
+                        <Grid ColumnSpacing="6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="LidFit" Grid.Column="0" Width="104" Tag="lidlogo"
+                                      SelectionChanged="Fit_SelectionChanged">
+                                <ComboBoxItem x:Uid="FitFill3" Content="Fill"/>
+                                <ComboBoxItem x:Uid="FitWhole3" Content="Whole"/>
+                                <ComboBoxItem x:Uid="FitStretch3" Content="Stretch"/>
+                            </ComboBox>
+                            <Button x:Name="LidChoose" x:Uid="ChooseLidPictureButton" Grid.Column="1" Tag="lidlogo"
+                                    Click="Choose_Click" HorizontalAlignment="Stretch"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Content="Choose a picture…"/>
+                        </Grid>
+
+                        <Button x:Name="LidRestore" x:Uid="RestoreLidPictureButton" Tag="lidlogo"
+                                Click="Restore_Click" HorizontalAlignment="Stretch"
+                                Content="Put the original back"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+
+        <TextBlock x:Name="StatusText" TextWrapping="Wrap" Opacity="0.9"/>
+
+    </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

@@ -11,7 +11,7 @@
   <data name="SortByBPMButton.Label" xml:space="preserve"><value>Sortera</value></data>
   <data name="SortByBPMMenuItem.Text" xml:space="preserve"><value>Sortera efter BPM</value></data>
   <data name="SortByBPMZigZagMenuItem.Text" xml:space="preserve"><value>Växla snabb/långsam</value></data>
-  <data name="SortByKeyMenuItem.Text" xml:space="preserve"><value>Sortera efter tonart</value></data>
+  <data name="SortByKeyMenuItem.Text" xml:space="preserve"><value>Sortera efter tonart (harmoniskt)</value></data>
   <data name="SortByNameMenuItem.Text" xml:space="preserve"><value>Sortera efter namn</value></data>
   <data name="PreviousButton.Label" xml:space="preserve"><value>Föregående</value></data>
   <data name="PlayButton.Label" xml:space="preserve"><value>Spela</value></data>
@@ -52,6 +52,11 @@
   <data name="FadeWithDistanceCheckBox.Content" xml:space="preserve"><value>Tona ut med avstånd</value></data>
   <data name="AutoReloadCheckBox.Content" xml:space="preserve"><value>Ladda om mod automatiskt</value></data>
   <data name="FadeBackgroundMusicCheckBox.Content" xml:space="preserve"><value>Tona ned bakgrundsmusik</value></data>
+  <data name="SongNameDetailsLabel.Text" xml:space="preserve"><value>Visa i låtnamn</value></data>
+  <data name="ShowBpmInNameCheckBox.Content" xml:space="preserve"><value>BPM</value></data>
+  <data name="ShowKeyInNameCheckBox.Content" xml:space="preserve"><value>Tonart</value></data>
+  <data name="ShowCamelotInNameCheckBox.Content" xml:space="preserve"><value>Camelot-nummer</value></data>
+  <data name="ShowLengthInNameCheckBox.Content" xml:space="preserve"><value>Längd</value></data>
 
   <data name="BusNumberLabel.Text" xml:space="preserve"><value>Uppspelningskanal</value></data>
   <data name="BusNumberItem_BGM.Content" xml:space="preserve"><value>Bakgrundsmusik</value></data>
@@ -291,4 +296,51 @@ Vill du fortsätta?</value></data>
   <data name="Merge_DiscardWarningOne" xml:space="preserve"><value>1 låt finns redan med i sammanslagningen med samma namn och slängs, ljudet med: {1}</value></data>
   <data name="Merge_CompleteWithDiscards" xml:space="preserve"><value>Flyttade {0} låt(ar) till "{1}". {2} dubblett(er) slängdes.</value></data>
   <data name="Error_Merge" xml:space="preserve"><value>Det gick inte att slå ihop spellistorna: {0}</value></data>
+  <data name="TexturesButton.Label" xml:space="preserve"><value>Bilder</value></data>
+  <data name="TexturesDlg.Title" xml:space="preserve"><value>Bordsbilder</value></data>
+  <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX-mod</value></data>
+  <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Ändra</value></data>
+  <data name="TextureModPickerHint.Text" xml:space="preserve"><value>De här modden har ett dj-bord du kan sätta bilder på. Välj det du använder.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Släpp en bild på någon av dem, eller använd knappen under. Inget skrivs förrän du trycker Använd.</value></data>
+  <data name="TableCardTitle.Text" xml:space="preserve"><value>Bordspanel</value></data>
+  <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptopskärm</value></data>
+  <data name="FitFill.Content" xml:space="preserve"><value>Fyll</value></data>
+  <data name="FitWhole.Content" xml:space="preserve"><value>Hela</value></data>
+  <data name="FitStretch.Content" xml:space="preserve"><value>Sträck</value></data>
+  <data name="FitFill2.Content" xml:space="preserve"><value>Fyll</value></data>
+  <data name="FitWhole2.Content" xml:space="preserve"><value>Hela</value></data>
+  <data name="FitStretch2.Content" xml:space="preserve"><value>Sträck</value></data>
+  <data name="ChooseTablePictureButton.Content" xml:space="preserve"><value>Välj en bild…</value></data>
+  <data name="ChooseLaptopPictureButton.Content" xml:space="preserve"><value>Välj en bild…</value></data>
+  <data name="RestoreTablePictureButton.Content" xml:space="preserve"><value>Sätt tillbaka originalet</value></data>
+  <data name="RestoreLaptopPictureButton.Content" xml:space="preserve"><value>Sätt tillbaka originalet</value></data>
+  <data name="Dlg_Textures_Title" xml:space="preserve"><value>Bordsbilder</value></data>
+  <data name="Textures_Apply" xml:space="preserve"><value>Använd</value></data>
+  <data name="Textures_NotInThisMod" xml:space="preserve"><value>Den här modden har inte den här bilden.</value></data>
+  <data name="Textures_ScanRunning" xml:space="preserve"><value>Söker igenom dina modd…</value></data>
+  <data name="Textures_NoModsFound" xml:space="preserve"><value>Inga modd med dj-bord hittades i din Penumbra-mapp.</value></data>
+  <data name="Textures_PickTitle" xml:space="preserve"><value>Välj en bild</value></data>
+  <data name="Textures_DropCaption" xml:space="preserve"><value>Sätt den här</value></data>
+  <data name="Textures_Composing" xml:space="preserve"><value>Förbereder bilden…</value></data>
+  <data name="Textures_Applying" xml:space="preserve"><value>Skriver bilderna…</value></data>
+  <data name="Textures_Restoring" xml:space="preserve"><value>Sätter tillbaka originalet…</value></data>
+  <data name="Textures_Restored" xml:space="preserve"><value>Bilden som följde med modden är tillbaka.</value></data>
+  <data name="Textures_ConfirmRestore" xml:space="preserve"><value>Sätta tillbaka bilden som följde med modden?</value></data>
+  <data name="Textures_ModNoPictures" xml:space="preserve"><value>”{0}” har inga dj-bordsbilder som går att ändra här.</value></data>
+  <data name="Textures_Candidate" xml:space="preserve"><value>{0} — {1} bilder</value></data>
+  <data name="Textures_CandidateOne" xml:space="preserve"><value>{0} — 1 bild</value></data>
+  <data name="Textures_ModsFound" xml:space="preserve"><value>{0} modd med dj-bord hittades.</value></data>
+  <data name="Textures_ModsFoundOne" xml:space="preserve"><value>1 modd med dj-bord hittades.</value></data>
+  <data name="Textures_Unreadable" xml:space="preserve"><value>”{0}” gick inte att läsa som bild.</value></data>
+  <data name="Textures_Shipped" xml:space="preserve"><value>Bilden som följde med modden — visas i {0} × {1}</value></data>
+  <data name="Textures_Yours" xml:space="preserve"><value>Din bild — visas i {0} × {1}</value></data>
+  <data name="Textures_Pending" xml:space="preserve"><value>”{0}” — inte skriven än</value></data>
+  <data name="Textures_Applied" xml:space="preserve"><value>{0} bilder skrivna. Titta på bordet i spelet.</value></data>
+  <data name="Textures_AppliedOne" xml:space="preserve"><value>1 bild skriven. Titta på bordet i spelet.</value></data>
+  <data name="LidCardTitle.Text" xml:space="preserve"><value>Lockets emblem</value></data>
+  <data name="FitFill3.Content" xml:space="preserve"><value>Fyll</value></data>
+  <data name="FitWhole3.Content" xml:space="preserve"><value>Hela</value></data>
+  <data name="FitStretch3.Content" xml:space="preserve"><value>Sträck</value></data>
+  <data name="ChooseLidPictureButton.Content" xml:space="preserve"><value>Välj en bild…</value></data>
+  <data name="RestoreLidPictureButton.Content" xml:space="preserve"><value>Sätt tillbaka originalet</value></data>
 </root>

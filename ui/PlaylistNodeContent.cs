@@ -1,3 +1,5 @@
+﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -12,6 +14,10 @@ namespace Pickles_Playlist_Editor
     {
         private string _displayText = "";
         private bool _isExpanded;
+        private bool _isSelected;
+        private string _camelotText = "";
+        private SolidColorBrush? _camelotBrush;
+        private Visibility _camelotVisibility = Visibility.Collapsed;
 
         public string Name { get; set; } = "";
 
@@ -24,6 +30,53 @@ namespace Pickles_Playlist_Editor
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayText)));
             }
         }
+
+        // Camelot chip, songs only. Collapsed unless the key is cached and maps to the wheel.
+        public string CamelotText
+        {
+            get => _camelotText;
+            set
+            {
+                _camelotText = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CamelotText)));
+            }
+        }
+
+        public SolidColorBrush? CamelotBrush
+        {
+            get => _camelotBrush;
+            set
+            {
+                _camelotBrush = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CamelotBrush)));
+            }
+        }
+
+        public Visibility CamelotVisibility
+        {
+            get => _camelotVisibility;
+            set
+            {
+                _camelotVisibility = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CamelotVisibility)));
+            }
+        }
+
+        // Selection lives here, not on the TreeView: WinUI offers Single or a checkbox per row and
+        // nothing in between, so ctrl/shift selection is tracked by MainWindow and drawn from this.
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected == value) return;
+                _isSelected = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsSelected)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectionVisibility)));
+            }
+        }
+
+        public Visibility SelectionVisibility => _isSelected ? Visibility.Visible : Visibility.Collapsed;
 
         public bool IsExpanded
         {

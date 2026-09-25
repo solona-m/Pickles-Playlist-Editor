@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Pickles_Playlist_Editor.Utils;
 using System;
@@ -400,16 +400,31 @@ namespace Pickles_Playlist_Editor
                             continue;
                         }
 
-                        // Sanitize the desired filename so it is valid on Windows
-                        var safeName = SanitizeFileName(song.Name);
+                        // Filenames carry the song's base name only — the BPM/key/length suffix is
+                        // for display, not for disk.
+                        var safeName = SanitizeFileName(OptionStatsNaming.StripSuffix(song.Name));
                         if (string.IsNullOrWhiteSpace(safeName))
                             safeName = "audio";
 
                         // Ensure extension is .scd
                         string fileName = safeName.EndsWith(".scd", StringComparison.OrdinalIgnoreCase) ? safeName : safeName + ".scd";
 
-                        string newPath = Path.Combine(outDir, fileName);
+                        // Whether the song's base name changed at all. Files written before the
+                        // suffix was dropped compare equal here and so keep the names they have,
+                        // which is what stops this churning an entire existing library. The
+                        // collision suffix has to come off first or the anchored strip misses.
+                        string currentBase = OptionStatsNaming.StripSuffix(
+                            Regex.Replace(Path.GetFileNameWithoutExtension(oldPath), @"_\d+$", ""));
+                        bool baseChanged = !string.Equals(currentBase, safeName, StringComparison.OrdinalIgnoreCase);
 
+                        // On a pure move — a renamed playlist relocating its songs — the file keeps
+                        // the filename it has rather than being retitled on the way.
+                        string newPath = Path.Combine(outDir, baseChanged ? fileName : Path.GetFileName(oldPath));
+
+                        // Compared as whole paths, which already carry the directory, so a relocated
+                        // song still moves. Testing the parts separately instead would let a target
+                        // equal to the source through, and GetNonCollidingPath would then rename the
+                        // file to <name>_1 to dodge a collision with itself.
                         if (oldPath != newPath)
                         {
                             // If target file already exists, append a numeric suffix to avoid collision
@@ -1609,13 +1624,30 @@ namespace Pickles_Playlist_Editor
             return Rejoin(off, zigzag);
         });
 
-        internal void SortByKey(SortDirection direction) => ReorderOptions(options =>
+        /// <summary>
+        /// Orders songs so the set walks the Camelot wheel — every neighbouring pair is a valid
+        /// harmonic move. Sorting on the key string instead would only be alphabetical, which puts
+        /// Am next to A# and makes the order musically meaningless. Undetected keys go last.
+        /// </summary>
+        internal void SortByCamelot(SortDirection direction) => ReorderOptions(options =>
         {
             var (off, songs) = SplitOff(options);
-            songs = direction == SortDirection.Ascending
-                ? songs.OrderBy(o => KeyDetector.GetKeyFromSCD(GetScdPath(o))).ToList()
-                : songs.OrderByDescending(o => KeyDetector.GetKeyFromSCD(GetScdPath(o))).ToList();
-            return Rejoin(off, songs);
+
+            var scored = songs
+                .Select(o => (Option: o, Index: Camelot.SortIndex(KeyDetector.GetKeyFromSCD(GetScdPath(o)))))
+                .ToList();
+
+            // Undetected keys are unknowns, not a 25th position — reversing the order must not
+            // sweep them to the front, so they are held out and re-appended either way.
+            var known = scored.Where(x => x.Index != int.MaxValue);
+            var unknown = scored.Where(x => x.Index == int.MaxValue).Select(x => x.Option);
+
+            var ordered = (direction == SortDirection.Ascending
+                ? known.OrderBy(x => x.Index)
+                : known.OrderByDescending(x => x.Index)).Select(x => x.Option).ToList();
+            ordered.AddRange(unknown);
+
+            return Rejoin(off, ordered);
         });
 
         internal void SortByName() => ReorderOptions(options =>

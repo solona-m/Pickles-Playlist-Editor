@@ -718,6 +718,15 @@ namespace Pickles_Playlist_Editor
             => -1.5 + (NormalizationLoudness - 1) * 1.2 / 99.0;
 
         /// <summary>
+        /// Threshold (dBFS) for the soft clipper that precedes the limiter during
+        /// normalization, held 1 dB under <see cref="NormalizationTruePeak"/>. Shallow on
+        /// purpose: the clipper trades distortion for the peaks it removes, so it takes
+        /// the first dB and the limiter takes the rest.
+        /// </summary>
+        public static double NormalizationSoftClipDb
+            => NormalizationTruePeak - 1.0;
+
+        /// <summary>
         /// When true, volume normalization also trims leading and trailing digital
         /// silence from the audio so tracks start (and end) on the first/last audible
         /// sample. Default: true.
@@ -741,6 +750,53 @@ namespace Pickles_Playlist_Editor
                 using var key = Registry.CurrentUser.CreateSubKey(s_subKey);
                 key?.SetValue("TrimSilence", value ? 1 : 0, RegistryValueKind.DWord);
             }
+        }
+
+        /// <summary>
+        /// Which parts of the detected stats are appended to a song's name — the name Penumbra
+        /// displays. All default to true. Changing any of them rewrites existing song names.
+        /// </summary>
+        public static bool ShowBpmInName
+        {
+            get => ReadNameFlag("ShowBpmInName");
+            set => WriteNameFlag("ShowBpmInName", value);
+        }
+
+        public static bool ShowKeyInName
+        {
+            get => ReadNameFlag("ShowKeyInName");
+            set => WriteNameFlag("ShowKeyInName", value);
+        }
+
+        public static bool ShowCamelotInName
+        {
+            get => ReadNameFlag("ShowCamelotInName");
+            set => WriteNameFlag("ShowCamelotInName", value);
+        }
+
+        public static bool ShowLengthInName
+        {
+            get => ReadNameFlag("ShowLengthInName");
+            set => WriteNameFlag("ShowLengthInName", value);
+        }
+
+        private static bool ReadNameFlag(string name)
+        {
+            try
+            {
+                var value = Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue(name, 1);
+                if (value is int iv) return iv != 0;
+                if (value is long lv) return lv != 0;
+                if (value is string sv && int.TryParse(sv, out var parsed)) return parsed != 0;
+            }
+            catch { }
+            return true;
+        }
+
+        private static void WriteNameFlag(string name, bool value)
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(s_subKey);
+            key?.SetValue(name, value ? 1 : 0, RegistryValueKind.DWord);
         }
 
         /// <summary>
