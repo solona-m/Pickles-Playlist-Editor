@@ -343,4 +343,8 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="FitStretch3.Content" xml:space="preserve"><value>Estirar</value></data>
   <data name="ChooseLidPictureButton.Content" xml:space="preserve"><value>Elegir una imagen…</value></data>
   <data name="RestoreLidPictureButton.Content" xml:space="preserve"><value>Devolver la original</value></data>
+  <data name="Textures_FitCropped" xml:space="preserve"><value>se recorta el {0}% de tu imagen</value></data>
+  <data name="Textures_FitLetterboxed" xml:space="preserve"><value>el {0}% del panel queda en negro</value></data>
+  <data name="Textures_FitSquashed" xml:space="preserve"><value>deformada un {0}% para encajar</value></data>
+  <data name="Textures_FitExact" xml:space="preserve"><value>encaja exactamente</value></data>
 </root>

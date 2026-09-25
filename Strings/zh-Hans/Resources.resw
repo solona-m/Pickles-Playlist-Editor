@@ -343,4 +343,8 @@
   <data name="FitStretch3.Content" xml:space="preserve"><value>拉伸</value></data>
   <data name="ChooseLidPictureButton.Content" xml:space="preserve"><value>选择图片…</value></data>
   <data name="RestoreLidPictureButton.Content" xml:space="preserve"><value>恢复原图</value></data>
+  <data name="Textures_FitCropped" xml:space="preserve"><value>你的图片有 {0}% 被裁掉</value></data>
+  <data name="Textures_FitLetterboxed" xml:space="preserve"><value>面板有 {0}% 留黑</value></data>
+  <data name="Textures_FitSquashed" xml:space="preserve"><value>拉伸了 {0}% 以适应</value></data>
+  <data name="Textures_FitExact" xml:space="preserve"><value>刚好合适</value></data>
 </root>

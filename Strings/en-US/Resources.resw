@@ -343,4 +343,8 @@ Do you want to proceed?</value></data>
   <data name="FitStretch3.Content" xml:space="preserve"><value>Stretch</value></data>
   <data name="ChooseLidPictureButton.Content" xml:space="preserve"><value>Choose a picture…</value></data>
   <data name="RestoreLidPictureButton.Content" xml:space="preserve"><value>Put the original back</value></data>
+  <data name="Textures_FitCropped" xml:space="preserve"><value>{0}% of your picture is cropped off</value></data>
+  <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% of the panel is left black</value></data>
+  <data name="Textures_FitSquashed" xml:space="preserve"><value>squashed {0}% to fit</value></data>
+  <data name="Textures_FitExact" xml:space="preserve"><value>fits the panel exactly</value></data>
 </root>

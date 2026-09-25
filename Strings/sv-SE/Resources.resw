@@ -343,4 +343,8 @@ Vill du fortsätta?</value></data>
   <data name="FitStretch3.Content" xml:space="preserve"><value>Sträck</value></data>
   <data name="ChooseLidPictureButton.Content" xml:space="preserve"><value>Välj en bild…</value></data>
   <data name="RestoreLidPictureButton.Content" xml:space="preserve"><value>Sätt tillbaka originalet</value></data>
+  <data name="Textures_FitCropped" xml:space="preserve"><value>{0}% av din bild beskärs bort</value></data>
+  <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% av ytan lämnas svart</value></data>
+  <data name="Textures_FitSquashed" xml:space="preserve"><value>förvrängd {0}% för att passa</value></data>
+  <data name="Textures_FitExact" xml:space="preserve"><value>passar exakt</value></data>
 </root>

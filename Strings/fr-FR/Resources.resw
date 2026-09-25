@@ -343,4 +343,8 @@ Voulez-vous continuer ?</value></data>
   <data name="FitStretch3.Content" xml:space="preserve"><value>Étirer</value></data>
   <data name="ChooseLidPictureButton.Content" xml:space="preserve"><value>Choisir une image…</value></data>
   <data name="RestoreLidPictureButton.Content" xml:space="preserve"><value>Remettre l’originale</value></data>
+  <data name="Textures_FitCropped" xml:space="preserve"><value>{0} % de ton image est rogné</value></data>
+  <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0} % du panneau reste noir</value></data>
+  <data name="Textures_FitSquashed" xml:space="preserve"><value>déformée de {0} % pour tenir</value></data>
+  <data name="Textures_FitExact" xml:space="preserve"><value>tient exactement</value></data>
 </root>

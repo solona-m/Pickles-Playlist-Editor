@@ -281,6 +281,24 @@ namespace Pickles_Playlist_Editor
             string.Format(_r.GetString("Textures_Yours"), width, height);
         public static string TexturesPending(string file) =>
             string.Format(_r.GetString("Textures_Pending"), file);
+
+        /// <summary>
+        /// What the chosen fit is doing, in words and a number.
+        ///
+        /// Worth spelling out because the three fits can look identical: on a panel whose shape is
+        /// close to the picture's, Whole leaves a few percent of black against an already black
+        /// card, and the control reads as doing nothing at all.
+        /// </summary>
+        public static string TexturesFitEffect(Utils.Tex.FitEffect effect) => effect.Kind switch
+        {
+            Utils.Tex.FitEffectKind.Cropped =>
+                string.Format(_r.GetString("Textures_FitCropped"), effect.Percent),
+            Utils.Tex.FitEffectKind.Letterboxed =>
+                string.Format(_r.GetString("Textures_FitLetterboxed"), effect.Percent),
+            Utils.Tex.FitEffectKind.Squashed =>
+                string.Format(_r.GetString("Textures_FitSquashed"), effect.Percent),
+            _ => _r.GetString("Textures_FitExact"),
+        };
         public static string TexturesApplied(int count) =>
             string.Format(_r.GetString(count == 1 ? "Textures_AppliedOne" : "Textures_Applied"), count);
     }

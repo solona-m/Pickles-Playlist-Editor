@@ -343,4 +343,8 @@ Möchtest du fortfahren?</value></data>
   <data name="FitStretch3.Content" xml:space="preserve"><value>Dehnen</value></data>
   <data name="ChooseLidPictureButton.Content" xml:space="preserve"><value>Bild wählen…</value></data>
   <data name="RestoreLidPictureButton.Content" xml:space="preserve"><value>Original zurücksetzen</value></data>
+  <data name="Textures_FitCropped" xml:space="preserve"><value>{0}% deines Bildes werden abgeschnitten</value></data>
+  <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% der Fläche bleiben schwarz</value></data>
+  <data name="Textures_FitSquashed" xml:space="preserve"><value>{0}% verzerrt, damit es passt</value></data>
+  <data name="Textures_FitExact" xml:space="preserve"><value>passt genau</value></data>
 </root>
