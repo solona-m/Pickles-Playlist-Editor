@@ -146,6 +146,126 @@ internal static class CodecCheck
     }
 
     /// <summary>
+    /// Checks that Fill, Whole and Stretch actually produce different pictures.
+    ///
+    /// They are the one control in the dialog whose whole job is visible change, so "it looks the
+    /// same whichever I pick" is the symptom worth having a check for.
+    /// </summary>
+    public static int FitModesDiffer(string? dumpDirectory)
+    {
+        // Deliberately the wrong shape for the panel: tall and thin against a wide panel, so every
+        // mode has something to do.
+        var source = new BgraImage(300, 900);
+        for (int y = 0; y < 900; y++)
+        {
+            for (int x = 0; x < 300; x++)
+            {
+                int i = (y * 300 + x) * 4;
+                source.Pixels[i] = (byte)(x * 255 / 300);
+                source.Pixels[i + 1] = (byte)(y * 255 / 900);
+                source.Pixels[i + 2] = (byte)((x / 30 + y / 30) % 2 == 0 ? 230 : 40);
+                source.Pixels[i + 3] = 255;
+            }
+        }
+
+        const int W = 440, H = 289;
+        var results = new Dictionary<FitMode, BgraImage>();
+        foreach (var mode in new[] { FitMode.Fill, FitMode.Fit, FitMode.Stretch })
+        {
+            var fitted = ImageOps.FitTo(source, W, H, mode);
+            results[mode] = fitted;
+            if (fitted.Width != W || fitted.Height != H)
+                Console.WriteLine($"   FAIL {mode} produced {fitted.Width}x{fitted.Height}, expected {W}x{H}");
+            if (dumpDirectory != null)
+            {
+                Directory.CreateDirectory(dumpDirectory);
+                Bmp.Write(Path.Combine(dumpDirectory, $"fit-{mode}.bmp"), fitted);
+            }
+        }
+
+        int bad = 0;
+        foreach (var (a, b) in new[]
+                 {
+                     (FitMode.Fill, FitMode.Fit),
+                     (FitMode.Fill, FitMode.Stretch),
+                     (FitMode.Fit, FitMode.Stretch),
+                 })
+        {
+            long differing = 0;
+            for (int i = 0; i < results[a].Pixels.Length; i += 4)
+                if (results[a].Pixels[i] != results[b].Pixels[i]
+                    || results[a].Pixels[i + 1] != results[b].Pixels[i + 1]
+                    || results[a].Pixels[i + 2] != results[b].Pixels[i + 2]) differing++;
+
+            double share = 100.0 * differing / (W * H);
+            if (differing == 0)
+            {
+                Console.WriteLine($"   FAIL {a} and {b} produced identical pictures");
+                bad++;
+            }
+            else
+            {
+                Console.WriteLine($"   ok   {a} vs {b}: {share:0.#}% of pixels differ");
+            }
+        }
+
+        // Whole must letterbox: the panel is wider than the source is, so the sides go black.
+        var whole = results[FitMode.Fit];
+        bool leftEdgeBlack = true;
+        for (int y = 0; y < H; y++)
+        {
+            int i = (y * W) * 4;
+            if (whole.Pixels[i] != 0 || whole.Pixels[i + 1] != 0 || whole.Pixels[i + 2] != 0)
+                leftEdgeBlack = false;
+        }
+        if (!leftEdgeBlack)
+        {
+            Console.WriteLine("   FAIL Whole did not letterbox a source narrower than the panel");
+            bad++;
+        }
+        else
+        {
+            Console.WriteLine("   ok   Whole letterboxes a source of the wrong shape");
+        }
+
+        // And the readout beside the control has to agree with what the modes actually did.
+        foreach (var (mode, kind) in new[]
+                 {
+                     (FitMode.Fill, FitEffectKind.Cropped),
+                     (FitMode.Fit, FitEffectKind.Letterboxed),
+                     (FitMode.Stretch, FitEffectKind.Squashed),
+                 })
+        {
+            var effect = ImageOps.DescribeFit(300, 900, W, H, mode);
+            if (effect.Kind != kind || effect.Percent <= 0)
+            {
+                Console.WriteLine($"   FAIL {mode} described as {effect.Kind} {effect.Percent}%");
+                bad++;
+            }
+        }
+
+        // Whole's number is the share of the panel left black, so it must match the measurement.
+        var whole16x9 = ImageOps.DescribeFit(1920, 1080, 656, 387, FitMode.Fit);
+        if (whole16x9.Kind != FitEffectKind.Letterboxed || Math.Abs(whole16x9.Percent - 5) > 2)
+        {
+            Console.WriteLine($"   FAIL 16:9 on the laptop panel described as "
+                + $"{whole16x9.Kind} {whole16x9.Percent}%, measured 4.7% black");
+            bad++;
+        }
+
+        // A picture already the right shape must not claim an effect it does not have.
+        var exact = ImageOps.DescribeFit(880, 578, 440, 289, FitMode.Fill);
+        if (exact.Kind != FitEffectKind.Exact)
+        {
+            Console.WriteLine($"   FAIL a correctly shaped picture described as {exact.Kind}");
+            bad++;
+        }
+
+        if (bad == 0) Console.WriteLine("   ok   the fit readout matches what the modes do");
+        return bad;
+    }
+
+    /// <summary>
     /// Checks that the BC3 encoder never emits a block with c0 &lt;= c1.
     ///
     /// That ordering is out of spec for BC3 and is the one case where independent decoders

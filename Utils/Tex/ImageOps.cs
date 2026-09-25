@@ -15,6 +15,25 @@ namespace Pickles_Playlist_Editor.Utils.Tex
         Stretch,
     }
 
+    /// <summary>What a fit mode will visibly do to a picture on a panel.</summary>
+    internal enum FitEffectKind
+    {
+        /// <summary>The picture already suits the panel; the mode changes nothing worth saying.</summary>
+        Exact,
+
+        /// <summary>Part of the picture is cut off.</summary>
+        Cropped,
+
+        /// <summary>Part of the panel is left black.</summary>
+        Letterboxed,
+
+        /// <summary>The picture is distorted to fit.</summary>
+        Squashed,
+    }
+
+    /// <summary>A fit mode's effect, and how much of it there is, as a percentage.</summary>
+    internal readonly record struct FitEffect(FitEffectKind Kind, int Percent);
+
     /// <summary>
     /// Scaling, rotating and cropping on a plain <see cref="BgraImage"/>.
     ///
@@ -121,6 +140,52 @@ namespace Pickles_Playlist_Editor.Utils.Tex
                                  padded.Pixels, (destinationY * width + left) * 4, scaledWidth * 4);
             }
             return padded;
+        }
+
+        /// <summary>
+        /// How much this mode will visibly change the picture, without doing the work.
+        ///
+        /// Worth saying out loud in the UI, because the difference between the three modes can be
+        /// genuinely invisible: the laptop panel is 1.70 wide to 1 tall and an ordinary 16:9 photo
+        /// is 1.78, so Whole leaves under 5% of the panel black — and those bars are black drawn on
+        /// a black card. Without a number beside it the control looks like it does nothing at all.
+        /// </summary>
+        public static FitEffect DescribeFit(int sourceWidth, int sourceHeight,
+            int width, int height, FitMode mode)
+        {
+            if (sourceWidth <= 0 || sourceHeight <= 0 || width <= 0 || height <= 0)
+                return new FitEffect(FitEffectKind.Exact, 0);
+
+            double sourceAspect = (double)sourceWidth / sourceHeight;
+            double panelAspect = (double)width / height;
+
+            if (mode == FitMode.Stretch)
+            {
+                double distortion = Math.Abs(sourceAspect - panelAspect) / panelAspect;
+                return Describe(FitEffectKind.Squashed, distortion);
+            }
+
+            double cover = Math.Max((double)width / sourceWidth, (double)height / sourceHeight);
+            double contain = Math.Min((double)width / sourceWidth, (double)height / sourceHeight);
+
+            if (mode == FitMode.Fill)
+            {
+                // Everything the cover scale pushes outside the panel is cut off.
+                double shown = (width * height) / (sourceWidth * cover * (sourceHeight * cover));
+                return Describe(FitEffectKind.Cropped, 1 - shown);
+            }
+
+            double filled = (sourceWidth * contain * (sourceHeight * contain)) / (width * height);
+            return Describe(FitEffectKind.Letterboxed, 1 - filled);
+        }
+
+        private static FitEffect Describe(FitEffectKind kind, double fraction)
+        {
+            int percent = (int)Math.Round(Math.Clamp(fraction, 0, 1) * 100);
+
+            // Below a percent there is nothing to report, and saying "0%" of anything reads as a
+            // fault rather than as "this picture already fits".
+            return percent < 1 ? new FitEffect(FitEffectKind.Exact, 0) : new FitEffect(kind, percent);
         }
 
         // ---- resampling ------------------------------------------------------------------------

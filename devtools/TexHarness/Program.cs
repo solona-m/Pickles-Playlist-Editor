@@ -39,12 +39,16 @@ internal static class Program
 
         if (scanRoot != null) return Scan(scanRoot);
 
+        string? fitDemo = ValueAfter(args, "--fitdemo");
+        if (fitDemo != null && dump != null) return FitDemo(fitDemo, dump);
+
         if (codecOut != null)
         {
             // The table cross-check first: if it fails, the decode that follows would walk off the
             // end of a block and the exception would say nothing about which entry is wrong.
             if (CodecCheck.AnchorsAgreeWithPartitions() != 0) return 1;
             if (CodecCheck.PictureLoadPlanIsSane() != 0) return 1;
+            if (CodecCheck.FitModesDiffer(codecOut) != 0) return 1;
             if (CodecCheck.Bc3EncoderOrdersEndpoints(20000, seed: 20260924) != 0) return 1;
 
             CodecCheck.EmitBc3(codecOut, 20000, seed: 20260924);
@@ -81,6 +85,48 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine($"{_checked} checks, {_failed} failed.");
         return _failed == 0 ? 0 : 1;
+    }
+
+    /// <summary>
+    /// Writes what each fit mode does to a real picture at each panel's real size.
+    ///
+    /// For answering "the fit control does not seem to change anything" with something you can look
+    /// at rather than an assurance that the code is fine.
+    /// </summary>
+    private static int FitDemo(string picture, string outputDirectory)
+    {
+        if (!File.Exists(picture))
+        {
+            Console.Error.WriteLine($"No such picture: {picture}");
+            return 2;
+        }
+
+        Directory.CreateDirectory(outputDirectory);
+        var source = Bmp.Read(picture);
+        Console.WriteLine($"source {source.Width}x{source.Height} "
+            + $"(aspect {(double)source.Width / source.Height:0.00})");
+
+        foreach (var surface in Surfaces)
+        {
+            int w = surface.QuarterTurns % 2 == 0 ? surface.Rect.Width : surface.Rect.Height;
+            int h = surface.QuarterTurns % 2 == 0 ? surface.Rect.Height : surface.Rect.Width;
+            Console.WriteLine($"\n{surface.Label}: panel {w}x{h} (aspect {(double)w / h:0.00})");
+
+            foreach (var mode in new[] { FitMode.Fill, FitMode.Fit, FitMode.Stretch })
+            {
+                var fitted = ImageOps.FitTo(source, w, h, mode);
+                string name = surface.Label.Replace(' ', '-') + "-" + mode + ".bmp";
+                Bmp.Write(Path.Combine(outputDirectory, name), fitted);
+
+                // How much of the panel this mode leaves black tells you whether Whole will read as
+                // letterboxing or as an imperceptible nudge.
+                long black = 0;
+                for (int i = 0; i < fitted.Pixels.Length; i += 4)
+                    if (fitted.Pixels[i] < 8 && fitted.Pixels[i + 1] < 8 && fitted.Pixels[i + 2] < 8) black++;
+                Console.WriteLine($"   {mode,-8} {100.0 * black / (w * h),5:0.#}% of the panel is black");
+            }
+        }
+        return 0;
     }
 
     /// <summary>

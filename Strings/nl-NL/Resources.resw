@@ -343,4 +343,8 @@ Wil je doorgaan?</value></data>
   <data name="FitStretch3.Content" xml:space="preserve"><value>Uitrekken</value></data>
   <data name="ChooseLidPictureButton.Content" xml:space="preserve"><value>Afbeelding kiezen…</value></data>
   <data name="RestoreLidPictureButton.Content" xml:space="preserve"><value>Origineel terugzetten</value></data>
+  <data name="Textures_FitCropped" xml:space="preserve"><value>{0}% van je afbeelding wordt afgesneden</value></data>
+  <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% van het paneel blijft zwart</value></data>
+  <data name="Textures_FitSquashed" xml:space="preserve"><value>{0}% vervormd om te passen</value></data>
+  <data name="Textures_FitExact" xml:space="preserve"><value>past precies</value></data>
 </root>

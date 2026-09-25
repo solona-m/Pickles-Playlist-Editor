@@ -420,7 +420,10 @@ namespace Pickles_Playlist_Editor
             // SetBusy ran above with Picked already set, so Restore has picked up its second
             // job: with a picture pending but unwritten, that button cancels the choice rather
             // than undoing anything on disk.
-            card.State.Text = AppStrings.TexturesPending(card.PickedName);
+            var effect = ImageOps.DescribeFit(picture.Width, picture.Height,
+                target.Surface.UprightWidth, target.Surface.UprightHeight, fit);
+            card.State.Text = AppStrings.TexturesPending(card.PickedName)
+                + "\n" + AppStrings.TexturesFitEffect(effect);
         }
 
         private void PrimaryButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
