@@ -6,7 +6,7 @@ Guide written by Cat with Keyboard
 
 BACKUP YOUR DJ MOD BEFORE USING THIS EDITOR!  I AM NOT RESPONSIBLE FOR ANY CORRUPTION OF FILES OR LOSS OF DATA!
 
-Tired of hearing ads and talking over the music at your venues? Become a mare dj! This program gives you drag and drop addition of new songs to your dj mod. It automatically encodes from mp3, ogg, flac and m4a to scd, imports to your mod and refreshes it. Or you can import from youtube directly. The program will optionally automatically normalize volume, saving you a step in audacity. You can shuffle, sort and organize your songs, with aid of automatic song length and beats per minute detection. Playback your scd files directly in the program without booting the game.
+Tired of hearing ads and talking over the music at your venues? Become a mare dj! This program gives you drag and drop addition of new songs to your dj mod. It automatically encodes from mp3, ogg, flac and m4a to scd, imports to your mod and refreshes it. Or you can import from youtube directly. The program will optionally automatically normalize volume, saving you a step in audacity. You can shuffle, sort and organize your songs, with aid of automatic song length and beats per minute detection. Playback your scd files directly in the program without booting the game. You can also put your own pictures on the DJ table and the laptop.
 
 
 You'll need a dj mod first. Here are the two publically available ones. The original dj mod by pickles is available to friends upon request:
@@ -43,6 +43,9 @@ WARNING THIS CAN NOT BE UNDONE!!!
 8)	PREVIOUS: will go back 1 song
 9)	NEXT: will skip ahead one song
 10)	SETTINGS: will allow you to locate the directory of your mod if you aren't using pickles dj mod, set the scd being replaced, disable normalization of songs on import and optionally, reorganize your scds so they're all stored in folders named for each playlist with the file name as the song name (backup your mod before you press this!)
+11)	MERGE: combines two playlists into one, discarding any duplicate songs
+12)	DANCES: adds a dance you already have installed in Penumbra to your VFX mod, preparing the animation so it reacts to the music
+13)	PICTURES: puts your own pictures on the DJ table and the laptop (see below)
 
 Adding Playlists
 1)	Click on “NEW” on the top left of the screen. 
@@ -71,6 +74,24 @@ Sort by BPM (Beats per minute) will shift all the songs between either highest t
 Alternate Fast/Slow does the opposite: instead of running straight up or down, it interleaves the two ends of the BPM range — fastest, slowest, second fastest, second slowest, and so on — so the set keeps swinging between peaks and breathers rather than climbing once and staying there.  A playlist of 85, 95, 105, 120, 128, 140, 150 BPM comes out as 150, 85, 140, 95, 128, 105, 120.  Clicking it again flips which end it opens on, giving you 85, 150, 95, 140, 105, 128, 120.  Any song whose BPM could not be detected is placed at the end rather than mixed in.
 
 Sort by Key orders the songs by their detected musical key, which helps you avoid clashing transitions between back to back songs.  Like Sort by BPM, clicking it again reverses the order.
+
+Table Pictures
+
+Click PICTURES to put your own artwork on the DJ table. There are three spots:
+
+* The table panel — the glowing sign on the front of the booth, the bit the crowd is looking at. 440 x 289.
+* The laptop screen — what is on the laptop in front of you. 656 x 387.
+* The laptop lid badge — the round logo on the back of the laptop lid, where the stock mod has a Dell badge. 196 x 196.
+
+Drop a picture onto one of the previews, or use the button underneath. The sizes above are what the game actually shows, so a huge photo gets scaled down to fit — a 4000 pixel wide photo will look softer in game than it does on your screen, and there is nothing to be done about that beyond picking a picture that still reads small. Fill crops the picture to fit the shape, Whole shows all of it with black bars, and Stretch squashes it to fit.
+
+Nothing is written to your mod until you press Apply. The preview shows the real compressed result rather than a flattering version of it, so if it looks like mush in the preview it will look like mush in game.
+
+Put the original back does what it says. The first time you change a picture, the editor keeps a pristine copy of the untouched texture outside your mod folder (in your AppData, not in the mod, so it never ends up inside a .pmp you export). That copy is what Restore puts back, so you can change your mind later even if you have long since forgotten what was there. If you update the mod, the editor notices the file changed and takes a fresh copy rather than overwriting your update.
+
+These pictures live in your VFX mod, which is usually NOT the same mod as your music. The mod is named at the top of the window, and if it has guessed wrong click Change and pick from the list. Only mods that actually have a DJ table are offered. It works with DJ Pickles and DJ Solona; Thunderdome has the laptop but not the table panel.
+
+One thing worth knowing: the table picture is shared by all four table sizes (Lala, Small, Medium and Tall), because they all use the same texture file. Changing it changes every size at once.
 
 Thanks to 0ceal0t for VFXEditor: https://github.com/0ceal0t/Dalamud-VFXEditor. Thanks to Meo for finding the fixed_position flag which was the missing piece to enable stereo and for the new baseline scd settings.
 

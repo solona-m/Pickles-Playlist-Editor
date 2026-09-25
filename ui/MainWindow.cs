@@ -627,6 +627,41 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        private void TexturesButton_Click(object sender, RoutedEventArgs e) => _ = OpenTexturesAsync();
+
+        /// <summary>
+        /// The pictures on the DJ table and the laptop screen, which live in the VFX mod.
+        ///
+        /// Not gated on first-run setup, for the same reason the dances dialog is not: the dialog
+        /// finds the mod itself, and most users have no VFX mod configured until they open it.
+        /// </summary>
+        private async Task OpenTexturesAsync()
+        {
+            // Inside a try because the caller discards the task. An exception building or showing the
+            // dialog would otherwise be an unobserved fault: no log line, no message, and a toolbar
+            // button that simply does nothing when clicked.
+            try
+            {
+                var dialog = new TexturesDialog { XamlRoot = this.Content.XamlRoot };
+                await dialog.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                Utils.Logger.LogError("Opening the table pictures dialog failed: {Error}", ex);
+                try
+                {
+                    await new ContentDialog
+                    {
+                        XamlRoot = this.Content.XamlRoot,
+                        Title = AppStrings.Dlg_Textures_Title,
+                        Content = ex.Message,
+                        CloseButtonText = "OK",
+                    }.ShowAsync();
+                }
+                catch { /* the failure is already in the log; never fail while reporting a failure */ }
+            }
+        }
+
         private async Task OpenSettingsAsync()
         {
             var dialog = new SettingsDialog { XamlRoot = this.Content.XamlRoot };

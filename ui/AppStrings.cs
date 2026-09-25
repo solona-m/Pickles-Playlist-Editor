@@ -244,5 +244,44 @@ namespace Pickles_Playlist_Editor
             string.Format(_r.GetString("Revert_RestoreFailed"), message);
         public static string ReloadPausedMessage(int failures, int minutes) =>
             string.Format(_r.GetString("Reload_PausedMessage"), failures, minutes);
+
+        // ---- table pictures -------------------------------------------------------------------
+        public static string Dlg_Textures_Title => _r.GetString("Dlg_Textures_Title");
+        public static string Textures_Apply => _r.GetString("Textures_Apply");
+        public static string Textures_NotInThisMod => _r.GetString("Textures_NotInThisMod");
+        public static string Textures_ScanRunning => _r.GetString("Textures_ScanRunning");
+        public static string Textures_NoModsFound => _r.GetString("Textures_NoModsFound");
+        public static string Textures_PickTitle => _r.GetString("Textures_PickTitle");
+        public static string Textures_DropCaption => _r.GetString("Textures_DropCaption");
+        public static string Textures_Composing => _r.GetString("Textures_Composing");
+        public static string Textures_Applying => _r.GetString("Textures_Applying");
+        public static string Textures_Restoring => _r.GetString("Textures_Restoring");
+        public static string Textures_Restored => _r.GetString("Textures_Restored");
+        public static string Textures_ConfirmRestore => _r.GetString("Textures_ConfirmRestore");
+
+        public static string TextureModNoPictures(string mod) =>
+            string.Format(_r.GetString("Textures_ModNoPictures"), mod);
+        public static string TextureModCandidate(string mod, int pictures) =>
+            string.Format(_r.GetString(pictures == 1 ? "Textures_CandidateOne" : "Textures_Candidate"),
+                mod, pictures);
+        public static string TextureModsFound(int count) =>
+            string.Format(_r.GetString(count == 1 ? "Textures_ModsFoundOne" : "Textures_ModsFound"), count);
+        public static string TexturesUnreadable(string file) =>
+            string.Format(_r.GetString("Textures_Unreadable"), file);
+
+        /// <summary>
+        /// Says the size the picture will be USED at, not the size of the file chosen.
+        ///
+        /// These panels are small — the table is 440 across — and a user who has just picked a 4000
+        /// pixel photograph has no other way to find out why it looks softer in game than on screen.
+        /// </summary>
+        public static string TexturesShipped(int width, int height) =>
+            string.Format(_r.GetString("Textures_Shipped"), width, height);
+        public static string TexturesYours(int width, int height) =>
+            string.Format(_r.GetString("Textures_Yours"), width, height);
+        public static string TexturesPending(string file) =>
+            string.Format(_r.GetString("Textures_Pending"), file);
+        public static string TexturesApplied(int count) =>
+            string.Format(_r.GetString(count == 1 ? "Textures_AppliedOne" : "Textures_Applied"), count);
     }
 }

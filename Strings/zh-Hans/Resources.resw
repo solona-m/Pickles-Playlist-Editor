@@ -296,4 +296,51 @@
   <data name="Merge_DiscardWarningOne" xml:space="preserve"><value>有 1 首歌曲的名称已存在于本次合并中，将连同音频一并丢弃：{1}</value></data>
   <data name="Merge_CompleteWithDiscards" xml:space="preserve"><value>已将 {0} 首歌曲移入“{1}”。丢弃了 {2} 首重复歌曲。</value></data>
   <data name="Error_Merge" xml:space="preserve"><value>无法合并播放列表：{0}</value></data>
+  <data name="TexturesButton.Label" xml:space="preserve"><value>图片</value></data>
+  <data name="TexturesDlg.Title" xml:space="preserve"><value>桌面图片</value></data>
+  <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX 模组</value></data>
+  <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>更改</value></data>
+  <data name="TextureModPickerHint.Text" xml:space="preserve"><value>这些模组有可以放图片的 DJ 桌。选择你在用的那个。</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>把图片拖到其中一个上，或用下面的按钮。在你点应用之前不会写入任何东西。</value></data>
+  <data name="TableCardTitle.Text" xml:space="preserve"><value>桌面面板</value></data>
+  <data name="LaptopCardTitle.Text" xml:space="preserve"><value>笔记本屏幕</value></data>
+  <data name="FitFill.Content" xml:space="preserve"><value>填满</value></data>
+  <data name="FitWhole.Content" xml:space="preserve"><value>完整</value></data>
+  <data name="FitStretch.Content" xml:space="preserve"><value>拉伸</value></data>
+  <data name="FitFill2.Content" xml:space="preserve"><value>填满</value></data>
+  <data name="FitWhole2.Content" xml:space="preserve"><value>完整</value></data>
+  <data name="FitStretch2.Content" xml:space="preserve"><value>拉伸</value></data>
+  <data name="ChooseTablePictureButton.Content" xml:space="preserve"><value>选择图片…</value></data>
+  <data name="ChooseLaptopPictureButton.Content" xml:space="preserve"><value>选择图片…</value></data>
+  <data name="RestoreTablePictureButton.Content" xml:space="preserve"><value>恢复原图</value></data>
+  <data name="RestoreLaptopPictureButton.Content" xml:space="preserve"><value>恢复原图</value></data>
+  <data name="Dlg_Textures_Title" xml:space="preserve"><value>桌面图片</value></data>
+  <data name="Textures_Apply" xml:space="preserve"><value>应用</value></data>
+  <data name="Textures_NotInThisMod" xml:space="preserve"><value>这个模组没有这张图片。</value></data>
+  <data name="Textures_ScanRunning" xml:space="preserve"><value>正在查找你的模组…</value></data>
+  <data name="Textures_NoModsFound" xml:space="preserve"><value>在你的 Penumbra 文件夹里没找到带 DJ 桌的模组。</value></data>
+  <data name="Textures_PickTitle" xml:space="preserve"><value>选择图片</value></data>
+  <data name="Textures_DropCaption" xml:space="preserve"><value>放到这块面板上</value></data>
+  <data name="Textures_Composing" xml:space="preserve"><value>正在准备图片…</value></data>
+  <data name="Textures_Applying" xml:space="preserve"><value>正在写入图片…</value></data>
+  <data name="Textures_Restoring" xml:space="preserve"><value>正在恢复原图…</value></data>
+  <data name="Textures_Restored" xml:space="preserve"><value>模组自带的图片已恢复。</value></data>
+  <data name="Textures_ConfirmRestore" xml:space="preserve"><value>要恢复模组自带的图片吗？</value></data>
+  <data name="Textures_ModNoPictures" xml:space="preserve"><value>“{0}”没有可以在这里更改的 DJ 桌图片。</value></data>
+  <data name="Textures_Candidate" xml:space="preserve"><value>{0} — {1} 张图片</value></data>
+  <data name="Textures_CandidateOne" xml:space="preserve"><value>{0} — 1 张图片</value></data>
+  <data name="Textures_ModsFound" xml:space="preserve"><value>找到 {0} 个带 DJ 桌的模组。</value></data>
+  <data name="Textures_ModsFoundOne" xml:space="preserve"><value>找到 1 个带 DJ 桌的模组。</value></data>
+  <data name="Textures_Unreadable" xml:space="preserve"><value>无法把“{0}”读作图片。</value></data>
+  <data name="Textures_Shipped" xml:space="preserve"><value>模组自带的图片 — 显示为 {0} × {1}</value></data>
+  <data name="Textures_Yours" xml:space="preserve"><value>你的图片 — 显示为 {0} × {1}</value></data>
+  <data name="Textures_Pending" xml:space="preserve"><value>“{0}” — 尚未写入</value></data>
+  <data name="Textures_Applied" xml:space="preserve"><value>已写入 {0} 张图片。去游戏里看看桌子吧。</value></data>
+  <data name="Textures_AppliedOne" xml:space="preserve"><value>已写入 1 张图片。去游戏里看看桌子吧。</value></data>
+  <data name="LidCardTitle.Text" xml:space="preserve"><value>笔记本外壳标志</value></data>
+  <data name="FitFill3.Content" xml:space="preserve"><value>填满</value></data>
+  <data name="FitWhole3.Content" xml:space="preserve"><value>完整</value></data>
+  <data name="FitStretch3.Content" xml:space="preserve"><value>拉伸</value></data>
+  <data name="ChooseLidPictureButton.Content" xml:space="preserve"><value>选择图片…</value></data>
+  <data name="RestoreLidPictureButton.Content" xml:space="preserve"><value>恢复原图</value></data>
 </root>

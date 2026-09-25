@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Offline exercise rig for the .atex / BC3 format code, built the same way TmbHarness is and for
+    the same reason: the app is a self-contained win-x86 WinUI build, which is a slow and awkward
+    thing to run a byte-level round-trip check inside.
+
+    The files under Utils\Tex depend on nothing but System precisely so they can be linked into a
+    plain console project and run over a real Penumbra mod folder. This project is excluded from the
+    app build; it is not shipped and nothing in the app references it.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>TexHarness</RootNamespace>
+    <AssemblyName>TexHarness</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Utils\Tex\*.cs" LinkBase="Tex" />
+
+    <!-- The REAL detection the dialog runs, not a copy of it. DjTextureScan was split out of
+         DjTextures precisely so it could be linked here: the header bug that made the dialog report
+         no mod in the whole Penumbra folder had a DJ table passed every check this harness had,
+         because the harness was reading whole files and the dialog was reading 80 bytes. -->
+    <Compile Include="..\..\Utils\PenumbraOptions.cs" Link="PenumbraOptions.cs" />
+    <Compile Include="..\..\Utils\DjTextureScan.cs" Link="DjTextureScan.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+</Project>
