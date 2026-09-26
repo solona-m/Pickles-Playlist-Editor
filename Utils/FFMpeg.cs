@@ -34,18 +34,28 @@ namespace Pickles_Playlist_Editor.Utils
             string filter;
             if (TryParseMeasuredLoudness(measure, out double inputI))
             {
-                // Apply the exact gain to reach the target loudness, then take the overshoot
-                // off in two stages. The clipper is memoryless, so it shaves transients
-                // without the ducking a limiter's release causes at this much gain; the
-                // limiter behind it pins the ceiling the clipper only approaches.
+                // Apply the exact gain to reach the target loudness, then let the limiter take
+                // the overshoot off. The limiter only acts on what exceeds its ceiling, so
+                // everything below is passed through untouched.
+                //
+                // There used to be an asoftclip=type=tanh stage in front of this, on the
+                // understanding that its "threshold" was a knee it would clip above and leave
+                // alone below. It is not. asoftclip is a waveshaper: it applies
+                // threshold*tanh(x/threshold) to EVERY sample, so with the threshold this app
+                // used the curve departed from unity at -16 dBFS, cost 0.9 dB at -6 dBFS and
+                // 2.4 dB at the threshold itself. Measured against a clean reference on real
+                // music it added 9.3 dB of distortion and swallowed 1.3 dB of the gain the
+                // stage above had just applied; a 50 Hz tone peaking at -5 dBFS, which needs
+                // no limiting at all, came out with 4% THD. Bass has the largest excursions,
+                // so bass is what it wrecked most audibly.
+                //
+                // The "oversample stays at 1, any higher costs ~6 dB" note that used to sit
+                // here was the same misunderstanding seen from the other end: oversampling was
+                // not losing level, the waveshaper was.
                 double gain = targetLufs - inputI;
                 string g = gain.ToString("0.##", ci);
                 string limit = Math.Pow(10, ceilingDb / 20.0).ToString("0.####", ci);
-                string clip = Math.Pow(10, Settings.NormalizationSoftClipDb / 20.0).ToString("0.####", ci);
-                // oversample stays at 1: any higher costs ~6 dB in this ffmpeg build
-                // (measured), silently undoing the gain above.
-                filter = $"volume={g}dB,asoftclip=type=tanh:threshold={clip}:oversample=1,"
-                       + $"alimiter=limit={limit}:level=disabled";
+                filter = $"volume={g}dB,alimiter=limit={limit}:level=disabled";
             }
             else
             {
