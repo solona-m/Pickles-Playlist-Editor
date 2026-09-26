@@ -718,15 +718,6 @@ namespace Pickles_Playlist_Editor
             => -1.5 + (NormalizationLoudness - 1) * 1.2 / 99.0;
 
         /// <summary>
-        /// Threshold (dBFS) for the soft clipper that precedes the limiter during
-        /// normalization, held 1 dB under <see cref="NormalizationTruePeak"/>. Shallow on
-        /// purpose: the clipper trades distortion for the peaks it removes, so it takes
-        /// the first dB and the limiter takes the rest.
-        /// </summary>
-        public static double NormalizationSoftClipDb
-            => NormalizationTruePeak - 1.0;
-
-        /// <summary>
         /// When true, volume normalization also trims leading and trailing digital
         /// silence from the audio so tracks start (and end) on the first/last audible
         /// sample. Default: true.
