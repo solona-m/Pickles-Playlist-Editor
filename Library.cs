@@ -14,11 +14,15 @@ namespace Pickles_Playlist_Editor
         public static void Cleanup()
         {
             var failed = new List<string>();
+            // Counted once for the pass, not once per playlist. If that read fails, each playlist counts for itself.
+            Dictionary<string, int>? referenceCounts = null;
+            try { referenceCounts = Playlist.ScdReferenceCounts(MainWindow.Playlists.Values); }
+            catch (Exception ex) { Utils.Logger.LogWarn("Cleanup: could not count shared audio up front: {Error}", ex.Message); }
             foreach (var playlist in MainWindow.Playlists.Values)
             {
                 // One unsaveable playlist must not abort the organize pass for every other one,
                 // nor escape into the void event handler that invokes this and crash the app.
-                try { playlist.Cleanup(); }
+                try { playlist.Cleanup(referenceCounts); }
                 catch (Exception ex)
                 {
                     Utils.Logger.LogError("Cleanup skipped '{Name}': {Error}", playlist.Name, ex);
