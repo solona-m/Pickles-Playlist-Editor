@@ -163,12 +163,28 @@ namespace VfxEditor.ScdFormat.Music.Data {
 
         // =======================
 
-        public static ScdAudioEntry ImportOgg( string path, ScdAudioEntry oldEntry) 
+        public static ScdAudioEntry ImportOgg( string path, ScdAudioEntry oldEntry)
         {
-            if (Settings.NormalizeVolume)
+            if (!Settings.NormalizeVolume) return ImportOggAsIs(path, oldEntry);
+
+            // Normalize a copy: path may be the user's own file.
+            string tempDir = Path.Combine(Path.GetTempPath(), "pickles-normalize", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            try
             {
-                FFMpeg.NormalizeVolume(path);
+                string copy = Path.Combine(tempDir, "source.ogg");
+                File.Copy(path, copy);
+                FFMpeg.NormalizeVolume(copy);
+                return ImportOggAsIs(copy, oldEntry);
             }
+            finally
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
+        }
+
+        private static ScdAudioEntry ImportOggAsIs( string path, ScdAudioEntry oldEntry )
+        {
             using (FileStream fs = File.OpenRead(path))
             {
                 using var oggReader = new NVorbis.VorbisReader(fs, false);
@@ -203,15 +219,15 @@ namespace VfxEditor.ScdFormat.Music.Data {
         }
 
         public static ScdAudioEntry ImportWav( string path, ScdAudioEntry oldEntry ) {
-            string oggPath = ScdUtils.ConvertWavToOgg(path);
-            try { return ImportOgg(oggPath, oldEntry); }
+            string oggPath = ScdUtils.ConvertWavToOgg(path, Settings.NormalizeVolume);
+            try { return ImportOggAsIs(oggPath, oldEntry); }
             finally { DeleteIntermediateOgg(oggPath); }
         }
 
         public static ScdAudioEntry Importmp3(string mp3Path, ScdAudioEntry oldEntry)
         {
-            string oggPath = ScdUtils.Convertmp3toOgg(mp3Path);
-            try { return ImportOgg(oggPath, oldEntry); }
+            string oggPath = ScdUtils.Convertmp3toOgg(mp3Path, Settings.NormalizeVolume);
+            try { return ImportOggAsIs(oggPath, oldEntry); }
             finally { DeleteIntermediateOgg(oggPath); }
         }
 

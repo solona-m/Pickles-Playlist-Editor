@@ -7,9 +7,48 @@ namespace Pickles_Playlist_Editor.Utils
 {
     internal static class FFMpeg
     {
-        public static void ConvertMp3ToOgg(string mp3Path, string oggName)
+        // One encode: padding and (optionally) normalization share the same filter chain.
+        // Tags are dropped: large ones (e.g. Serato DJ data) bloat the Vorbis header and play silent in game.
+        // The loop tags ImportOgg reads are carried over.
+        public static void ConvertToOgg(string sourcePath, string oggName, bool normalize)
         {
-            Run("-i " + '"' + mp3Path + '"' + " -vn -acodec libvorbis -f ogg -q 7 -af \"apad=pad_dur=5\" " + '"' + oggName + '"');
+            // Padding goes last, or Trim Silence strips it straight back off.
+            string filter = "apad=pad_dur=5";
+            if (normalize) filter = BuildNormalizeFilter(sourcePath) + "," + filter;
+            Run($"-i \"{sourcePath}\" -vn -map_metadata -1{LoopTagArgs(sourcePath)} -acodec libvorbis -f ogg -q:a 7 -af \"{filter}\" \"{oggName}\"");
+        }
+
+        // " -metadata LoopStart=N -metadata LoopEnd=N" for whichever the source has, else "".
+        private static string LoopTagArgs(string sourcePath)
+        {
+            string meta = Path.Combine(Path.GetTempPath(), "pickles-meta-" + Guid.NewGuid().ToString("N") + ".txt");
+            try
+            {
+                Run($"-y -i \"{sourcePath}\" -f ffmetadata \"{meta}\"");
+                string args = "";
+                foreach (string line in File.ReadLines(meta))
+                {
+                    int eq = line.IndexOf('=');
+                    if (eq <= 0) continue;
+                    string key = line[..eq].Trim();
+                    if (!long.TryParse(line[(eq + 1)..].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long samples))
+                        continue;
+                    if (key.Equals("LoopStart", StringComparison.OrdinalIgnoreCase))
+                        args += $" -metadata LoopStart={samples}";
+                    else if (key.Equals("LoopEnd", StringComparison.OrdinalIgnoreCase))
+                        args += $" -metadata LoopEnd={samples}";
+                }
+                return args;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarn("Could not read loop tags from '{File}': {Error}", sourcePath, ex.Message);
+                return "";
+            }
+            finally
+            {
+                try { File.Delete(meta); } catch { }
+            }
         }
 
         public static void StripVideo(string oggName)
@@ -22,6 +61,12 @@ namespace Pickles_Playlist_Editor.Utils
         public static void NormalizeVolume(string oggName)
         {
             string tmp = Path.Combine(Path.GetDirectoryName(oggName), "tmp_" + Path.GetFileName(oggName));
+            Run($"-i \"{oggName}\" -af {BuildNormalizeFilter(oggName)} -acodec libvorbis -q:a 7 \"{tmp}\"");
+            File.Move(tmp, oggName, true);
+        }
+
+        private static string BuildNormalizeFilter(string inputPath)
+        {
             var ci = CultureInfo.InvariantCulture;
             double targetLufs = Settings.NormalizationLoudnessLufs;
             double ceilingDb = Settings.NormalizationTruePeak;
@@ -29,7 +74,7 @@ namespace Pickles_Playlist_Editor.Utils
             // Pass 1: measure the input's integrated loudness (LUFS). loudnorm with
             // print_format=json emits the measurements on stderr; we only need input_i.
             string measure = Run(
-                $"-i \"{oggName}\" -af loudnorm=I=-5:LRA=11:TP=-0.3:print_format=json -f null -");
+                $"-i \"{inputPath}\" -vn -af loudnorm=I=-5:LRA=11:TP=-0.3:print_format=json -f null -");
 
             string filter;
             if (TryParseMeasuredLoudness(measure, out double inputI))
@@ -76,8 +121,7 @@ namespace Pickles_Playlist_Editor.Utils
                 filter = $"{trim},areverse,{trim},areverse,{filter}";
             }
 
-            Run($"-i \"{oggName}\" -af {filter} -acodec libvorbis -q:a 7 \"{tmp}\"");
-            File.Move(tmp, oggName, true);
+            return filter;
         }
 
         private static bool TryParseMeasuredLoudness(string ffmpegStderr, out double inputI)

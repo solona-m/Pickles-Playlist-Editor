@@ -12,20 +12,18 @@ namespace VfxEditor.Formats.ScdFormat.Utils {
     public static class ScdUtils {
         public static string VorbisHeader => Path.Combine( Plugin.RootLocation, "Files", "vorbis_header.bin" );
 
-        public static string ConvertWavToOgg( string wavPath ) {
+        public static string ConvertWavToOgg( string wavPath, bool normalize ) {
             string oggName = GetOggPath(wavPath);
 
-            FFMpeg.ConvertMp3ToOgg(wavPath, oggName);
+            FFMpeg.ConvertToOgg(wavPath, oggName, normalize);
             return oggName;
         }
 
-        public static string Convertmp3toOgg(string mp3Path)
+        public static string Convertmp3toOgg(string mp3Path, bool normalize)
         {
             string oggName = GetOggPath(mp3Path);
 
-            FFMpeg.ConvertMp3ToOgg(mp3Path, oggName);
-
-            FFMpeg.StripVideo(oggName);
+            FFMpeg.ConvertToOgg(mp3Path, oggName, normalize);
 
             return oggName;
         }

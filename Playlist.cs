@@ -337,10 +337,17 @@ namespace Pickles_Playlist_Editor
             return directories ?? GetDefaultPlaylistDirectoryName(playlistName);
         }
 
-        internal string GetScdDirectoryForNewFiles() => ResolvePlaylistScdDirectory(Name, this);
+        // Where this playlist's audio currently lives (the folder most of its songs are in).
+        internal string GetCurrentScdDirectory() => ResolvePlaylistScdDirectory(Name, this);
 
-        private static string GetDefaultPlaylistDirectoryName(string playlistName) =>
-            playlistName.Replace("/", "_");
+        // Where audio added to this playlist goes: its own folder, the same one Cleanup organizes into.
+        internal string GetScdDirectoryForNewFiles() => GetDefaultPlaylistDirectoryName(Name);
+
+        private static string GetDefaultPlaylistDirectoryName(string playlistName)
+        {
+            string dir = SanitizeFileName(playlistName);
+            return string.IsNullOrWhiteSpace(dir) ? "playlist" : dir;
+        }
 
         internal static string NormalizeRelativeModPath(string? path) =>
             (path ?? string.Empty)
@@ -349,7 +356,9 @@ namespace Pickles_Playlist_Editor
                 .Replace('\\', Path.DirectorySeparatorChar)
                 .TrimStart(Path.DirectorySeparatorChar);
 
-        public void Cleanup()
+        // referenceCounts: from ScdReferenceCounts, when organizing many playlists at once (counting
+        // reads every playlist). Still valid after earlier Cleanups: they only move unshared files.
+        public void Cleanup(IReadOnlyDictionary<string, int>? referenceCounts = null)
         {
             Playlist playlist = this;
 
@@ -360,7 +369,11 @@ namespace Pickles_Playlist_Editor
             if (!ExistsInManifest())
                 throw new PlaylistSaveException(Name);
 
-            string playlistScdDirectory = playlist.GetScdDirectoryForNewFiles();
+            // The playlist's own folder, not GetCurrentScdDirectory: that follows wherever most
+            // songs already are, so a library kept in sound/ was "organized" into sound/.
+            string playlistScdDirectory = GetScdDirectoryForNewFiles();
+            // Files other options also point at stay put; moving one would orphan the others.
+            referenceCounts ??= ScdReferenceCounts(new[] { this });
             // Pinned here, before any renaming, so the save at the end can verify it is still writing
             // to the mod those renames happened in.
             string modAtStart = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
@@ -372,7 +385,7 @@ namespace Pickles_Playlist_Editor
             // catches the common case, but it cannot rule out the file becoming unwritable in between —
             // and without this, a failed save would leave every renamed .scd stranded under a name the
             // group file doesn't know about.
-            var renamed = new List<(Option song, string key, string oldRel, string newRel, string oldPath, string newPath)>();
+            var renamed = new List<(Option song, List<(string key, string oldRel)> keys, string oldPath, string newPath)>();
 
             // Options dropped for missing audio, with the index each sat at, so a rollback can put
             // them back where they were rather than at the end.
@@ -382,14 +395,18 @@ namespace Pickles_Playlist_Editor
             {
                 foreach (Option song in playlist.Options)
                 {
-                    if (song.Name.Equals("Off", StringComparison.OrdinalIgnoreCase))
+                    // string.Equals: a manifest missing the key leaves Name null.
+                    if (string.Equals(song.Name, "Off", StringComparison.OrdinalIgnoreCase))
                         continue;
-                    if (song.Name.Equals("Default", StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(song.Name, "Default", StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     if (song.Files != null && song.Files.Count > 0)
                     {
-                        string oldPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, song.Files[song.Files.Keys.First()]);
+                        string primaryKey = GetScdKey(song) ?? song.Files.Keys.First();
+                        string oldRelNorm = NormalizeRelativeModPath(song.Files[primaryKey]);
+                        // Normalized so a "/"-separated manifest path still compares equal to newPath below.
+                        string oldPath = Path.GetFullPath(Path.Combine(modAtStart, oldRelNorm));
                         if (!File.Exists(oldPath))
                         {
                             optionsToRemove.Add(song);
@@ -419,37 +436,49 @@ namespace Pickles_Playlist_Editor
 
                         // On a pure move — a renamed playlist relocating its songs — the file keeps
                         // the filename it has rather than being retitled on the way.
-                        string newPath = Path.Combine(outDir, baseChanged ? fileName : Path.GetFileName(oldPath));
+                        string newPath = Path.GetFullPath(Path.Combine(outDir, baseChanged ? fileName : Path.GetFileName(oldPath)));
 
                         // Compared as whole paths, which already carry the directory, so a relocated
                         // song still moves. Testing the parts separately instead would let a target
                         // equal to the source through, and GetNonCollidingPath would then rename the
                         // file to <name>_1 to dodge a collision with itself.
-                        if (oldPath != newPath)
+                        if (!string.Equals(oldPath, newPath, StringComparison.OrdinalIgnoreCase)
+                            && referenceCounts.TryGetValue(oldRelNorm, out int refs) && refs > 1)
+                        {
+                            Logger.LogInfo("Organize of '{Name}': '{File}' is shared with other options, so it stays put.",
+                                Name, oldRelNorm);
+                        }
+                        else if (!string.Equals(oldPath, newPath, StringComparison.OrdinalIgnoreCase))
                         {
                             // If target file already exists, append a numeric suffix to avoid collision
                             newPath = GetNonCollidingPath(newPath);
 
-                            string key = song.Files.Keys.First();
-                            string oldRel = song.Files[key];
                             string newRel = Path.Combine(playlistScdDirectory, Path.GetFileName(newPath));
+
+                            // Every game path mapped to this file follows it, not just the first,
+                            // or the others are left pointing at a file that has gone.
+                            var keys = song.Files
+                                .Where(kv => string.Equals(NormalizeRelativeModPath(kv.Value), oldRelNorm,
+                                    StringComparison.OrdinalIgnoreCase))
+                                .Select(kv => (kv.Key, kv.Value))
+                                .ToList();
 
                             File.Move(oldPath, newPath);
                             BPMDetector.UpdateCacheForSCD(oldPath, newPath);
                             KeyDetector.UpdateCacheForSCD(oldPath, newPath);
-                            song.Files[key] = newRel;
-                            renamed.Add((song, key, oldRel, newRel, oldPath, newPath));
+                            foreach (var (key, _) in keys)
+                                song.Files[key] = newRel;
+                            renamed.Add((song, keys, oldPath, newPath));
                         }
                     }
+                }
 
-                    // delete empty folders
-                    string playlistFolder = outDir;
-                    foreach (string subDir in Directory.GetDirectories(playlistFolder))
+                // delete empty folders
+                foreach (string subDir in Directory.GetDirectories(outDir))
+                {
+                    if (Directory.GetFiles(subDir).Length == 0 && Directory.GetDirectories(subDir).Length == 0)
                     {
-                        if (Directory.GetFiles(subDir).Length == 0 && Directory.GetDirectories(subDir).Length == 0)
-                        {
-                            Directory.Delete(subDir);
-                        }
+                        Directory.Delete(subDir);
                     }
                 }
 
@@ -478,7 +507,7 @@ namespace Pickles_Playlist_Editor
 
                 for (int i = renamed.Count - 1; i >= 0; i--)
                 {
-                    var (song, key, oldRel, _, oldPath, newPath) = renamed[i];
+                    var (song, keys, oldPath, newPath) = renamed[i];
                     try
                     {
                         if (File.Exists(newPath) && !File.Exists(oldPath))
@@ -487,7 +516,8 @@ namespace Pickles_Playlist_Editor
                             BPMDetector.UpdateCacheForSCD(newPath, oldPath);
                             KeyDetector.UpdateCacheForSCD(newPath, oldPath);
                         }
-                        song.Files[key] = oldRel;
+                        foreach (var (key, oldRel) in keys)
+                            song.Files[key] = oldRel;
                     }
                     catch (Exception ex)
                     {
@@ -870,9 +900,19 @@ namespace Pickles_Playlist_Editor
             // playlist name — post-merge/repair playlists can store their audio in a differently
             // named folder, and the old name-guess would move the wrong (or no) folder and repoint
             // paths that never matched, orphaning every song.
-            string oldScdDir = GetScdDirectoryForNewFiles();
+            string oldScdDir = GetCurrentScdDirectory();
             string newScdDir = GetDefaultPlaylistDirectoryName(newName);
             bool scdDirChanged = !string.Equals(oldScdDir, newScdDir, StringComparison.OrdinalIgnoreCase);
+
+            // A folder other playlists also use (a library kept in sound/, say) must not move with
+            // this one, or every other playlist in it loses its audio. Leave it; Cleanup later moves
+            // this playlist's unshared files out one at a time.
+            if (scdDirChanged && IsScdDirectoryShared(oldScdDir))
+            {
+                Logger.LogInfo("Rename of '{Old}': folder '{Dir}' is shared with other playlists, so its audio stays put.",
+                    oldName, oldScdDir);
+                scdDirChanged = false;
+            }
 
             string oldFolder = Path.Combine(modDirectory, NormalizeRelativeModPath(oldScdDir));
             string newFolder = Path.Combine(modDirectory, NormalizeRelativeModPath(newScdDir));
@@ -958,6 +998,48 @@ namespace Pickles_Playlist_Editor
             return true;
         }
 
+        // Whether any other playlist points at a file under scdDir.
+        private bool IsScdDirectoryShared(string scdDir)
+        {
+            string prefix = NormalizeRelativeModPath(scdDir) + Path.DirectorySeparatorChar;
+            return GetAll().Values
+                .Where(p => !IsSamePlaylist(p) && p.Options != null)
+                .SelectMany(p => p.Options)
+                .Where(o => o?.Files != null)
+                .SelectMany(o => o.Files.Values)
+                .Any(rel => NormalizeRelativeModPath(rel).StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Whether p, read from disk, is this playlist. By name when there is no Id: v3 group files
+        // carry none, so every playlist read from one has Guid.Empty.
+        private bool IsSamePlaylist(Playlist p) =>
+            (Id != Guid.Empty && p.Id == Id)
+            || string.Equals(p.Name, PersistedName ?? Name, StringComparison.Ordinal);
+
+        // How many options point at each file, across every playlist. The live ones are counted from
+        // memory in place of their saved copies, since their unsaved edits are what is about to be written:
+        // their options, or liveOptions when the caller knows better (a merge drops its duplicates).
+        internal static Dictionary<string, int> ScdReferenceCounts(IEnumerable<Playlist> live,
+            IEnumerable<Option>? liveOptions = null)
+        {
+            var liveList = live.ToList();
+            var options = GetAll().Values
+                .Where(p => !liveList.Any(l => l.IsSamePlaylist(p)) && p.Options != null)
+                .SelectMany(p => p.Options)
+                .Concat(liveOptions ?? liveList.Where(p => p.Options != null).SelectMany(p => p.Options));
+
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var option in options)
+            {
+                if (option?.Files == null) continue;
+                // Distinct: one option mapping several game paths to the same file is one reference.
+                foreach (var rel in option.Files.Values.Select(NormalizeRelativeModPath)
+                             .Distinct(StringComparer.OrdinalIgnoreCase))
+                    counts[rel] = counts.TryGetValue(rel, out int n) ? n + 1 : 1;
+            }
+            return counts;
+        }
+
         /// <summary>
         /// What a merge did, so the UI can report it without re-deriving any of it.
         /// </summary>
@@ -1026,7 +1108,7 @@ namespace Pickles_Playlist_Editor
             // Capture each source's audio folder BEFORE anything is repointed. After the move the
             // moved Options are the same instances now held by this playlist and point at OUR folder,
             // so asking a source for its folder afterwards would answer with the target's.
-            var sourceFolders = sources.ToDictionary(s => s, s => s.GetScdDirectoryForNewFiles());
+            var sourceFolders = sources.ToDictionary(s => s, s => s.GetCurrentScdDirectory());
 
             var (off, targetSongs) = SplitOff(Options);
 
@@ -1076,34 +1158,51 @@ namespace Pickles_Playlist_Editor
             Directory.CreateDirectory(targetFolder);
 
             // Every physical move, so a failed commit can be undone completely.
-            var moves = new List<(Option song, string key, string oldRel, string newRel,
-                                  string oldFull, string newFull)>();
+            var moves = new List<(Option song, List<(string key, string oldValue)> keys, string oldRel,
+                                  string newRel, string oldFull, string newFull)>();
             var snapshot = new List<Option>(Options);
             var mintedIds = new List<(Option song, Guid oldId)>();
+
+            // The discarded duplicates go with their sources, so only the songs that survive count.
+            var referenceCounts = ScdReferenceCounts(sources.Append(this),
+                Options.Concat(plan.Select(p => p.song)));
 
             try
             {
                 int done = 0;
                 foreach (var (source, song) in plan)
                 {
-                    // Three kinds of song have nothing to move and must NOT abort the merge:
+                    // Four kinds of song have nothing to move and must NOT abort the merge:
                     //   - no .scd key at all (the "Off" placeholder shape, or a swap-only option),
                     //   - a path whose file is gone — dead pointers are common enough that Cleanup()
                     //     exists to reap them, and File.Move would throw and roll back the whole merge,
                     //   - a song already stored in this playlist's own folder, where a move would be a
-                    //     GetNonCollidingPath rename to "name_1.scd" and nothing else.
-                    // All three are carried across untouched, keeping their existing path.
+                    //     GetNonCollidingPath rename to "name_1.scd" and nothing else,
+                    //   - a file other options also point at, which moving would orphan.
+                    // All four are carried across untouched, keeping their existing path.
                     var scdKey = GetScdKey(song);
                     string oldRel = scdKey != null ? NormalizeRelativeModPath(song.Files[scdKey]) : "";
                     string oldFull = scdKey != null ? Path.Combine(modAtStart, oldRel) : "";
                     bool alreadyHere = scdKey != null && string.Equals(
                         Path.GetDirectoryName(oldRel) ?? "", targetScdDir, StringComparison.OrdinalIgnoreCase);
+                    bool shared = scdKey != null && referenceCounts.TryGetValue(oldRel, out int refs) && refs > 1;
 
-                    if (scdKey != null && !alreadyHere && File.Exists(oldFull))
+                    if (scdKey != null && !alreadyHere && shared)
+                    {
+                        Logger.LogInfo("Merge into '{Target}': '{Path}' is shared with other options, so it stays put.",
+                            Name, oldRel);
+                    }
+                    else if (scdKey != null && !alreadyHere && File.Exists(oldFull))
                     {
                         string newFull = GetNonCollidingPath(
                             Path.Combine(targetFolder, Path.GetFileName(oldRel)));
                         string newRel = Path.Combine(targetScdDir, Path.GetFileName(newFull));
+                        // Every game path mapped to this file follows it, not just the .scd key.
+                        var keys = song.Files
+                            .Where(kv => string.Equals(NormalizeRelativeModPath(kv.Value), oldRel,
+                                StringComparison.OrdinalIgnoreCase))
+                            .Select(kv => (kv.Key, kv.Value))
+                            .ToList();
 
                         // Physical move first: if it throws, nothing has been mutated yet.
                         File.Move(oldFull, newFull);
@@ -1111,8 +1210,9 @@ namespace Pickles_Playlist_Editor
                         // song's entries. Migrate them or every moved song reads 0:00 and the merged
                         // playlist's displayed duration collapses.
                         MigrateStatsCache(oldRel, newRel);
-                        song.Files[scdKey] = newRel;
-                        moves.Add((song, scdKey, oldRel, newRel, oldFull, newFull));
+                        foreach (var (key, _) in keys)
+                            song.Files[key] = newRel;
+                        moves.Add((song, keys, oldRel, newRel, oldFull, newFull));
                     }
                     else if (scdKey != null && !alreadyHere)
                     {
@@ -1147,7 +1247,7 @@ namespace Pickles_Playlist_Editor
                     song.Id = oldId;
                 for (int i = moves.Count - 1; i >= 0; i--)
                 {
-                    var (song, key, oldRel, newRel, oldFull, newFull) = moves[i];
+                    var (song, keys, oldRel, newRel, oldFull, newFull) = moves[i];
                     try
                     {
                         File.Move(newFull, oldFull);
@@ -1158,7 +1258,8 @@ namespace Pickles_Playlist_Editor
                         Logger.LogError("Merge rollback: could not restore '{File}' to '{Dest}': {Error}",
                             newFull, oldFull, moveBack);
                     }
-                    song.Files[key] = oldRel;
+                    foreach (var (key, oldValue) in keys)
+                        song.Files[key] = oldValue;
                 }
                 throw;
             }
@@ -1450,7 +1551,7 @@ namespace Pickles_Playlist_Editor
             // Derive the audio folder from the songs rather than guessing it from the name — a
             // post-merge playlist can store its audio in a differently named folder, and the old
             // name-guess would either miss it or, worse, delete a folder belonging to someone else.
-            string scdDir = GetScdDirectoryForNewFiles();
+            string scdDir = GetCurrentScdDirectory();
 
             DeleteGroupOnly();
             ReclaimUnusedAudioDirectories(new[] { scdDir });
