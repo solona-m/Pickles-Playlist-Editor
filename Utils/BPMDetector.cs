@@ -117,11 +117,9 @@ namespace Pickles_Playlist_Editor.Utils
                 }
                 else
                 {
-                    string tmpOgg = UniqueTempOgg();
                     try
                     {
-                        ScdOggExtractor.ExtractOgg(path, tmpOgg);
-                        SongAttributes retval = GetAttribtesFromFile(tmpOgg);
+                        SongAttributes retval = ScdOggExtractor.WithExtractedOgg(path, GetAttribtesFromFile);
                         bpmCache[path] = retval.BPM;
                         durationCache[path] = (int)retval.Duration.TotalSeconds;
 
@@ -130,10 +128,6 @@ namespace Pickles_Playlist_Editor.Utils
                     catch
                     {
                         return new TimeSpan(0);
-                    }
-                    finally
-                    {
-                        try { File.Delete(tmpOgg); } catch { }
                     }
                 }
             }
@@ -176,29 +170,16 @@ namespace Pickles_Playlist_Editor.Utils
                     return bpmCache[path];
                 }
 
-                string tmpOgg = UniqueTempOgg();
-                try
-                {
-                    ScdOggExtractor.ExtractOgg(path, tmpOgg);
-                    SongAttributes retval = GetAttribtesFromFile(tmpOgg);
-                    bpmCache[path] = retval.BPM;
-                    durationCache[path] = (int)retval.Duration.TotalSeconds;
-                    return retval.BPM;
-                }
-                finally
-                {
-                    try { File.Delete(tmpOgg); } catch { }
-                }
+                SongAttributes retval = ScdOggExtractor.WithExtractedOgg(path, GetAttribtesFromFile);
+                bpmCache[path] = retval.BPM;
+                durationCache[path] = (int)retval.Duration.TotalSeconds;
+                return retval.BPM;
             }
             catch (Exception ex)
             {
                 return 0;
             }
         }
-
-        // Unique per call: an ADPCM transcode takes seconds, and a shared name races.
-        private static string UniqueTempOgg() =>
-            Path.Combine(Path.GetTempPath(), $"pickles-bpm-{Guid.NewGuid():N}.ogg");
 
         internal static int? TryGetCachedBpm(string scdFile)
         {

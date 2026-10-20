@@ -91,17 +91,24 @@ namespace Pickles_Playlist_Editor.Tools {
         }
 
         /// <summary>
-        /// Returns the OGG bytes for the specified audio entry.
+        /// Extracts to a temp .ogg unique to this call, hands its path to <paramref name="use"/>, then deletes it.
+        /// Unique because an ADPCM transcode takes seconds, and a shared name lets concurrent callers collide.
         /// </summary>
-        public static byte[] GetOggBytes(string scdPath, int audioIndex = 0) {
+        public static T WithExtractedOgg<T>(string scdPath, Func<string, T> use, int audioIndex = 0) {
             string oggPath = Path.Combine(Path.GetTempPath(), $"pickles-ogg-{Guid.NewGuid():N}.ogg");
             try {
                 ExtractOgg(scdPath, oggPath, audioIndex);
-                return File.ReadAllBytes(oggPath);
+                return use(oggPath);
             }
             finally {
                 try { if (File.Exists(oggPath)) File.Delete(oggPath); } catch { }
             }
         }
+
+        /// <summary>
+        /// Returns the OGG bytes for the specified audio entry.
+        /// </summary>
+        public static byte[] GetOggBytes(string scdPath, int audioIndex = 0) =>
+            WithExtractedOgg(scdPath, File.ReadAllBytes, audioIndex);
     }
 }

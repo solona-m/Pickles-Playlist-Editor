@@ -67,19 +67,9 @@ namespace Pickles_Playlist_Editor.Utils
                     return keyCache[path];
                 }
 
-                // Unique per call: an ADPCM transcode takes seconds, and a shared name races.
-                string tmpOgg = Path.Combine(Path.GetTempPath(), $"pickles-key-{Guid.NewGuid():N}.ogg");
-                try
-                {
-                    ScdOggExtractor.ExtractOgg(path, tmpOgg);
-                    string key = DetectKeyFromFile(tmpOgg);
-                    keyCache[path] = key;
-                    return key;
-                }
-                finally
-                {
-                    try { File.Delete(tmpOgg); } catch { }
-                }
+                string key = ScdOggExtractor.WithExtractedOgg(path, DetectKeyFromFile);
+                keyCache[path] = key;
+                return key;
             }
             catch (Exception ex)
             {

@@ -237,9 +237,14 @@ public sealed class ScdOggExtractorTests : IDisposable
     {
         var (fmt, data) = fx.MakeAdpcm(2, 44100);
         var (_, old) = AdpcmScdFixture.LoadDefault();
+        return AdpcmScdFixture.AdpcmEntry(old, fmt, data, 2, 44100, waveHeaderOverride: UndecodableHeader(fmt));
+    }
+
+    private static byte[] UndecodableHeader(byte[] fmt)
+    {
         byte[] bad = (byte[])fmt.Clone();
         bad[0] = 0xFF; bad[1] = 0xFF; // format tag 0xFFFF: ffmpeg has no decoder for it
-        return AdpcmScdFixture.AdpcmEntry(old, fmt, data, 2, 44100, waveHeaderOverride: bad);
+        return bad;
     }
 
     [Fact]
@@ -258,13 +263,15 @@ public sealed class ScdOggExtractorTests : IDisposable
     public void ExtractOgg_Adpcm_LeavesNoTempFiles() // [EDGE-adpcm-songs-5]
     {
         string scd = fx.MakeAdpcmScd();
-        var bad = UndecodableEntry(fx);
+        var (fmt, data) = fx.MakeAdpcm(2, 44100);
+        string badScd = fx.WriteAdpcmScd(fmt, data, 2, 44100, waveHeaderOverride: UndecodableHeader(fmt));
         var wavBefore = TempFiles("pickles-adpcm-*.wav");
         var scdBefore = TempFiles("pickles-scd-*.scd");
 
         ScdOggExtractor.ExtractOgg(scd, fx.PathFor("ok.ogg"));
-        Assert.Throws<InvalidOperationException>(() => ScdOggExtractor.WriteEntryAsOgg(bad, fx.PathFor("bad.ogg")));
+        var ex = Assert.Throws<InvalidOperationException>(() => ScdOggExtractor.ExtractOgg(badScd, fx.PathFor("bad.ogg")));
 
+        Assert.StartsWith("Couldn't convert this ADPCM track", ex.Message);
         Assert.Empty(TempFiles("pickles-adpcm-*.wav").Except(wavBefore));
         Assert.Empty(TempFiles("pickles-scd-*.scd").Except(scdBefore));
     }
@@ -385,6 +392,39 @@ public sealed class ScdOggExtractorTests : IDisposable
 
         if (ex == null) Assert.True(new FileInfo(ogg).Length > 0);
         else Assert.StartsWith("Couldn't convert this ADPCM track", Assert.IsType<InvalidOperationException>(ex).Message);
+    }
+
+    [Fact]
+    public void WithExtractedOgg_UsesUniqueTempAndDeletesIt() // [EDGE-adpcm-songs-14]
+    {
+        string scd = fx.MakeAdpcmScd();
+        var seen = new System.Collections.Concurrent.ConcurrentBag<string>();
+
+        Parallel.For(0, 4, _ => ScdOggExtractor.WithExtractedOgg(scd, ogg =>
+        {
+            seen.Add(ogg);
+            Assert.InRange(Probe(ogg).Seconds, 2.9, 3.1);
+            return 0;
+        }));
+
+        Assert.Equal(4, seen.Distinct().Count());
+        Assert.All(seen, p => Assert.False(File.Exists(p)));
+    }
+
+    [Fact]
+    public void WithExtractedOgg_DeletesTempWhenCallbackThrows() // [EDGE-adpcm-songs-14]
+    {
+        string scd = fx.MakeAdpcmScd();
+        string? used = null;
+
+        Assert.Throws<InvalidDataException>(() => ScdOggExtractor.WithExtractedOgg<int>(scd, ogg =>
+        {
+            used = ogg;
+            throw new InvalidDataException("boom");
+        }));
+
+        Assert.NotNull(used);
+        Assert.False(File.Exists(used));
     }
 
     [Fact]

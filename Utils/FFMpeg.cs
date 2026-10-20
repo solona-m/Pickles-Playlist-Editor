@@ -18,8 +18,8 @@ namespace Pickles_Playlist_Editor.Utils
             Run($"-i \"{sourcePath}\" -vn -map_metadata -1{LoopTagArgs(sourcePath)} -acodec libvorbis -f ogg -q:a 7 -af \"{filter}\" \"{oggName}\"");
         }
 
-        // Plain decode to Vorbis for preview/analysis: no padding or normalization, so it plays what the game plays.
-        // -y because the detectors' temp names may already exist.
+        // Plain transcode to Vorbis: no padding or normalization, so it plays what the game plays.
+        // -y: the destination may already exist.
         public static void TranscodeToOgg(string sourcePath, string oggName, long? loopStartSamples, long? loopEndSamples)
         {
             string loopArgs = "";

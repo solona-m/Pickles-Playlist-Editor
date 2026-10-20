@@ -74,10 +74,11 @@ public sealed class AdpcmScdFixture : IDisposable
     }
 
     /// <summary>Writes an .scd whose only audio entry is the given ADPCM audio.</summary>
-    public string WriteAdpcmScd(byte[] fmt, byte[] data, int channels, int rate, int loopStart = 0, int loopEnd = 0)
+    public string WriteAdpcmScd(byte[] fmt, byte[] data, int channels, int rate, int loopStart = 0, int loopEnd = 0,
+        byte[]? waveHeaderOverride = null)
     {
         var (scd, old) = LoadDefault();
-        scd.Replace(old, AdpcmEntry(old, fmt, data, channels, rate, loopStart, loopEnd));
+        scd.Replace(old, AdpcmEntry(old, fmt, data, channels, rate, loopStart, loopEnd, waveHeaderOverride));
         string path = PathFor($"adpcm-{Guid.NewGuid():N}.scd");
         using (var fs = File.Create(path))
         using (var bw = new BinaryWriter(fs))

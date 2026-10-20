@@ -13,7 +13,7 @@ public class DetectorTempPathTests
     }
 
     // The detectors open persistent caches in the user's Documents, so they are checked at source level:
-    // a shared fixed temp name lets a slow ADPCM transcode in one call be read half-written by another.
+    // they must go through WithExtractedOgg (tested in ScdOggExtractorTests) rather than a temp path of their own.
     [Theory] // [EDGE-adpcm-songs-14]
     [InlineData("Utils/BPMDetector.cs")]
     [InlineData("Utils/KeyDetector.cs")]
@@ -21,8 +21,8 @@ public class DetectorTempPathTests
     {
         string source = File.ReadAllText(Path.Combine(RepoRoot(), file));
 
-        Assert.DoesNotContain("\"temp_extracted.ogg\"", source);
-        Assert.DoesNotContain("\"temp_extracted_key.ogg\"", source);
-        Assert.Contains("Guid.NewGuid()", source);
+        Assert.DoesNotContain("temp_extracted", source);
+        Assert.DoesNotContain("ScdOggExtractor.ExtractOgg(", source);
+        Assert.Contains("ScdOggExtractor.WithExtractedOgg(", source);
     }
 }

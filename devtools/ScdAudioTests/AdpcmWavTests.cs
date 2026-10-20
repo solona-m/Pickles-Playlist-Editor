@@ -91,6 +91,15 @@ public class AdpcmWavTests
     }
 
     [Fact]
+    public void BytesToSamples_CbSizeZero_IgnoresOffset18() // [EDGE-adpcm-songs-10]
+    {
+        // 20-byte header with cbSize 0 and junk where wSamplesPerBlock would sit: must derive, not read it.
+        byte[] fmt = AdpcmFmt(1, 256, 0, withExtra: false).Concat(new byte[] { 0, 0, 0x99, 0x01 }).ToArray();
+        int derived = (256 - 7) * 2 + 2;
+        Assert.Equal(2L * derived, AdpcmWav.BytesToSamples(fmt, 512));
+    }
+
+    [Fact]
     public void BytesToSamples_InvalidHeader_Throws() // [EDGE-adpcm-songs-12]
     {
         Assert.Throws<InvalidDataException>(() => AdpcmWav.BytesToSamples(new byte[10], 100));
