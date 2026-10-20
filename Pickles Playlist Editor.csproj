@@ -36,6 +36,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ScdAudioTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="pickle.ico" />
     <Content Include="Resources\pickle.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

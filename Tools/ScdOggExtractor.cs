@@ -1,12 +1,13 @@
 using System;
 using System.IO;
+using Pickles_Playlist_Editor.Utils;
 using VfxEditor.ScdFormat;
 using VfxEditor.ScdFormat.Music.Data;
 
 namespace Pickles_Playlist_Editor.Tools {
     public static class ScdOggExtractor {
         /// <summary>
-        /// Extracts the specified audio entry from an SCD as an OGG file.
+        /// Extracts the specified audio entry from an SCD as an OGG file (Vorbis as stored, ADPCM transcoded).
         /// </summary>
         /// <param name="scdPath">Path to the .scd file (or another audio file path accepted by ScdFile.Import).</param>
         /// <param name="outOggPath">Destination .ogg path to write.</param>
@@ -30,37 +31,77 @@ namespace Pickles_Playlist_Editor.Tools {
 
                 if (audioIndex < 0 || audioIndex >= scd.Audio.Count) throw new ArgumentOutOfRangeException(nameof(audioIndex));
 
-                var entry = scd.Audio[audioIndex];
-
-                // Ensure it's a Vorbis entry with data we can write
-                if (!(entry.Data is ScdVorbis vorbis) || vorbis == null) {
-                    throw new InvalidOperationException(
-                        $"This track isn't Vorbis audio (found {entry.Data?.GetType().Name ?? "no data"}) and can't be played or extracted.");
-                }
-
-                if (vorbis.Data == null || vorbis.Data.Length == 0) {
-                    throw new InvalidOperationException("Vorbis data is empty.");
-                }
-
-                // Ensure destination directory exists
-                var dir = Path.GetDirectoryName(outOggPath);
-                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-
-                File.WriteAllBytes(outOggPath, vorbis.Data);
+                WriteEntryAsOgg(scd.Audio[audioIndex], outOggPath);
             }
             finally {
                 try { if (File.Exists(temppath)) File.Delete(temppath); } catch { }
             }
         }
 
+        internal static void WriteEntryAsOgg(ScdAudioEntry entry, string outOggPath) {
+            switch (entry.Data) {
+                case ScdVorbis vorbis:
+                    if (vorbis.Data == null || vorbis.Data.Length == 0) {
+                        throw new InvalidOperationException("Vorbis data is empty.");
+                    }
+                    CreateParentDirectory(outOggPath);
+                    File.WriteAllBytes(outOggPath, vorbis.Data);
+                    break;
+                case ScdAdpcm adpcm:
+                    TranscodeAdpcm(adpcm, entry, outOggPath);
+                    break;
+                case null when entry.DataLength == 0:
+                    throw new InvalidOperationException("This track has no audio data.");
+                default:
+                    throw new InvalidOperationException(
+                        $"This track's audio format ({entry.Format}) isn't supported; only Vorbis and ADPCM can be played or extracted.");
+            }
+        }
+
+        private static void TranscodeAdpcm(ScdAdpcm adpcm, ScdAudioEntry entry, string outOggPath) {
+            if (adpcm.Data == null || adpcm.Data.Length == 0) throw new InvalidOperationException("ADPCM data is empty.");
+
+            CreateParentDirectory(outOggPath);
+            string wavPath = Path.Combine(Path.GetTempPath(), $"pickles-adpcm-{Guid.NewGuid():N}.wav");
+            try {
+                File.WriteAllBytes(wavPath, AdpcmWav.Build(adpcm.WaveHeader, adpcm.Data));
+
+                long? loopStart = null, loopEnd = null;
+                if (entry.LoopEnd > 0) {
+                    loopStart = AdpcmWav.BytesToSamples(adpcm.WaveHeader, entry.LoopStart);
+                    loopEnd = AdpcmWav.BytesToSamples(adpcm.WaveHeader, entry.LoopEnd);
+                }
+
+                try {
+                    FFMpeg.TranscodeToOgg(wavPath, outOggPath, loopStart, loopEnd);
+                }
+                catch (InvalidOperationException ex) {
+                    try { if (File.Exists(outOggPath)) File.Delete(outOggPath); } catch { }
+                    throw new InvalidOperationException("Couldn't convert this ADPCM track: " + ex.Message, ex);
+                }
+            }
+            finally {
+                try { if (File.Exists(wavPath)) File.Delete(wavPath); } catch { }
+            }
+        }
+
+        private static void CreateParentDirectory(string path) {
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+        }
+
         /// <summary>
-        /// Returns the raw OGG bytes for the specified audio entry.
+        /// Returns the OGG bytes for the specified audio entry.
         /// </summary>
         public static byte[] GetOggBytes(string scdPath, int audioIndex = 0) {
-            var scd = ScdFile.Import(scdPath);
-            var entry = scd.Audio[audioIndex];
-            if (!(entry.Data is ScdVorbis vorbis)) throw new InvalidOperationException("Selected audio entry is not Vorbis or has no data.");
-            return vorbis.Data;
+            string oggPath = Path.Combine(Path.GetTempPath(), $"pickles-ogg-{Guid.NewGuid():N}.ogg");
+            try {
+                ExtractOgg(scdPath, oggPath, audioIndex);
+                return File.ReadAllBytes(oggPath);
+            }
+            finally {
+                try { if (File.Exists(oggPath)) File.Delete(oggPath); } catch { }
+            }
         }
     }
 }

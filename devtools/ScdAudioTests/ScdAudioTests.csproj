@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Automated tests for the SCD audio extraction path (ScdOggExtractor and the ffmpeg calls behind it).
+
+    References the app project directly so the tests run the real ScdFile / ScdVorbis / FFMpeg code.
+    Mirrors the app's x86, self-contained Windows App SDK settings: without WindowsAppSDKSelfContained
+    the SDK's bootstrapper runs in the test host and needs a machine-wide Windows App Runtime.
+    Excluded from the app build (devtools\**) and not in the solution.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <PlatformTarget>x86</PlatformTarget>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Pickles Playlist Editor.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\ffmpeg.exe" Link="ffmpeg.exe" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\default.scd" Link="default.scd" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
