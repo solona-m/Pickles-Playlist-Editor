@@ -435,6 +435,13 @@ public sealed class ScdOggExtractorTests : IDisposable
     }
 
     [Fact]
+    public void GetOggBytes_IndexOutOfRange_Throws() // [EDGE-adpcm-songs-13]
+    {
+        string scd = fx.MakeAdpcmScd();
+        Assert.Throws<ArgumentOutOfRangeException>(() => ScdOggExtractor.GetOggBytes(scd, 5));
+    }
+
+    [Fact]
     public void ExtractOgg_MissingFile_Throws() // [EDGE-adpcm-songs-13]
     {
         Assert.Throws<FileNotFoundException>(() => ScdOggExtractor.ExtractOgg(fx.PathFor("nope.scd"), fx.PathFor("m.ogg")));
