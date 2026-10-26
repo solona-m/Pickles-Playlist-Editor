@@ -4,9 +4,10 @@
 # `test` is next merged into `main`. After that merge, check Insights -> Dependency graph -> Dependabot
 # that each ecosystem's update job succeeded.
 #
-# PRs get no CI build (CodeQL scans without building; the only other workflows are the tag-triggered
-# releases), so build the app and try a bump before merging. Security-update PRs stay off: GitHub always
-# opens them against main.
+# workflows/dependabot-automerge.yml builds and tests each PR and merges minor and patch updates into
+# test by itself; majors stay open — build the app and try those before merging. Every merge on GitHub
+# moves origin/test: pull before the next local merge into it. Security-update PRs stay off: GitHub
+# always opens them against main.
 
 version: 2
 updates:
@@ -20,6 +21,9 @@ updates:
     target-branch: "test"
     schedule:
       interval: weekly
+    # A version is proposed only once it has been public for 3 days: most hijacked releases are pulled by then.
+    cooldown:
+      default-days: 3
     ignore:
       # The Velopack library must match the vpk CLI the release workflows install (VPK_VERSION), which
       # Dependabot cannot see: bump both together by hand.
@@ -33,6 +37,9 @@ updates:
     target-branch: "test"
     schedule:
       interval: weekly
+    # A version is proposed only once it has been public for 3 days: most hijacked releases are pulled by then.
+    cooldown:
+      default-days: 3
     groups:
       actions-minor-patch:
         update-types: [ minor, patch ]
