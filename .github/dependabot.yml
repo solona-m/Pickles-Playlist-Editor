@@ -4,9 +4,10 @@
 # `test` is next merged into `main`. After that merge, check Insights -> Dependency graph -> Dependabot
 # that each ecosystem's update job succeeded.
 #
-# PRs get no CI build (CodeQL scans without building; the only other workflows are the tag-triggered
-# releases), so build the app and try a bump before merging. Security-update PRs stay off: GitHub always
-# opens them against main.
+# workflows/dependabot-automerge.yml builds and tests each PR and merges minor and patch updates into
+# test by itself; majors stay open — build the app and try those before merging. Every merge on GitHub
+# moves origin/test: pull before the next local merge into it. Security-update PRs stay off: GitHub
+# always opens them against main.
 
 version: 2
 updates:
