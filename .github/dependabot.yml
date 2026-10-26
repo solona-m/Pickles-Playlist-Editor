@@ -1,0 +1,38 @@
+# Dependabot version updates. Every PR targets `test`, never `main` (the release branch).
+#
+# GitHub reads this file from the DEFAULT branch only, which is `main`: nothing here takes effect until
+# `test` is next merged into `main`. After that merge, check Insights -> Dependency graph -> Dependabot
+# that each ecosystem's update job succeeded.
+#
+# PRs get no CI build (CodeQL scans without building; the only other workflows are the tag-triggered
+# releases), so build the app and try a bump before merging. Security-update PRs stay off: GitHub always
+# opens them against main.
+
+version: 2
+updates:
+  - package-ecosystem: nuget
+    # The app and the three devtools harnesses, listed explicitly so none is missed.
+    directories:
+      - "/"
+      - "/devtools/ScdAudioTests"
+      - "/devtools/TexHarness"
+      - "/devtools/TmbHarness"
+    target-branch: "test"
+    schedule:
+      interval: weekly
+    ignore:
+      # The Velopack library must match the vpk CLI the release workflows install (VPK_VERSION), which
+      # Dependabot cannot see: bump both together by hand.
+      - dependency-name: "Velopack"
+    groups:
+      nuget-minor-patch:
+        update-types: [ minor, patch ]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    target-branch: "test"
+    schedule:
+      interval: weekly
+    groups:
+      actions-minor-patch:
+        update-types: [ minor, patch ]
