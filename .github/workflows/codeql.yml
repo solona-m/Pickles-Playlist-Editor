@@ -1,0 +1,47 @@
+name: CodeQL
+
+# Report-only code scanning: results land under Security -> Code scanning and nothing else happens. It
+# may write security events and nothing more — no release, no upload, no push.
+
+on:
+  push:
+    branches: [ main, test ]
+  pull_request:
+    branches: [ main, test ]
+  # Weekly, so new queries catch old code. GitHub only runs schedules from the default branch (main).
+  schedule:
+    - cron: '41 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+      packages: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # No builds: the app is WinUI on the Windows App SDK, and a build-free C# scan needs neither
+        # Windows nor a green build. The trade is less precise dataflow through unresolved types.
+        language: [ csharp, python, actions ]
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: /language:${{ matrix.language }}
