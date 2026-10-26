@@ -5,9 +5,12 @@ name: Dependabot auto-merge
 # here releases anything: the release workflows run on tags only, and the merge itself, made with the
 # workflow token, starts no other workflow.
 #
-# pull_request, not pull_request_target: the PR's code runs with a token scoped to this workflow, and
-# only the merge job — which runs no PR code — can write. Every job is gated on the PR's author being
-# Dependabot, so other PRs into test run nothing here.
+# pull_request, not pull_request_target, and every job gated on the PR's author being Dependabot. Only the
+# merge job can write, and it runs no action at all — just gh from the runner image. That matters because
+# on a pull_request the workflow runs as the PR has it, and Dependabot's github-actions PRs rewrite the
+# uses: lines here: an action in the writing job would run whatever version the PR picked, with the write
+# token (which could publish a release the updater installs). fetch-metadata therefore runs in its own
+# read-only job. The merge names the commit that was tested, and a newer push cancels the older run.
 
 on:
   pull_request:
@@ -15,6 +18,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: dependabot-automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -38,22 +45,31 @@ jobs:
           dotnet build devtools/TexHarness/TexHarness.csproj -c Release
           dotnet build devtools/TmbHarness/TmbHarness.csproj -c Release
 
-  merge:
-    needs: test
+  meta:
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
+      pull-requests: read
+    outputs:
+      update-type: ${{ steps.meta.outputs.update-type }}
     steps:
       - name: Read the update
         id: meta
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
 
-      # Only an explicit minor or patch merges; a major, or a grouped PR holding one, never matches.
-      - name: Merge a minor or patch update
-        if: contains(fromJSON('["version-update:semver-minor", "version-update:semver-patch"]'), steps.meta.outputs.update-type)
+  # Only an explicit minor or patch merges; a major, or a grouped PR holding one, never matches.
+  merge:
+    needs: [ test, meta ]
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && contains(fromJSON('["version-update:semver-minor", "version-update:semver-patch"]'), needs.meta.outputs.update-type)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge the tested commit
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GH_TOKEN: ${{ github.token }}
-        run: gh pr merge "$PR_URL" --merge
+        run: gh pr merge "$PR_URL" --merge --match-head-commit "$HEAD_SHA"

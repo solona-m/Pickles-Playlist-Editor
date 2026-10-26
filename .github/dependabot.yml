@@ -21,6 +21,9 @@ updates:
     target-branch: "test"
     schedule:
       interval: weekly
+    # A version is proposed only once it has been public for 3 days: most hijacked releases are pulled by then.
+    cooldown:
+      default-days: 3
     ignore:
       # The Velopack library must match the vpk CLI the release workflows install (VPK_VERSION), which
       # Dependabot cannot see: bump both together by hand.
@@ -34,6 +37,9 @@ updates:
     target-branch: "test"
     schedule:
       interval: weekly
+    # A version is proposed only once it has been public for 3 days: most hijacked releases are pulled by then.
+    cooldown:
+      default-days: 3
     groups:
       actions-minor-patch:
         update-types: [ minor, patch ]
