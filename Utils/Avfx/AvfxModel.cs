@@ -51,7 +51,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
                 string name = Encoding.ASCII.GetString(modlData, o, 4).Trim('\0');
                 name = new string(name.Reverse().ToArray());
                 int size = BitConverter.ToInt32(modlData, o + 4);
-                if (size < 0 || o + 8 + size > modlData.Length) { error = "A model chunk runs past its end."; return null; }
+                if (size < 0 || size > modlData.Length - o - 8) { error = "A model chunk runs past its end."; return null; }
                 chunks.Add((name, modlData[(o + 8)..(o + 8 + size)]));
                 o += 8 + ((size + 3) & ~3);
             }

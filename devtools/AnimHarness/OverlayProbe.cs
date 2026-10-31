@@ -37,6 +37,12 @@ internal static class OverlayProbe
         try { source = Fixtures.PicklesShippedSource(picklesRoot, backupsRoot); }
         catch (InvalidDataException ex) { Console.WriteLine("Refusing: " + ex.Message); return 1; }
 
+        try { return BuildAndWrite(folder, source); }
+        finally { try { Directory.Delete(Path.GetDirectoryName(source)!, true); } catch { } }
+    }
+
+    private static int BuildAndWrite(string folder, string source)
+    {
         var option = Fixtures.SmallOption(source);
         string avfxRel = option.Files[AvfxGamePath];
         byte[] baseline = File.ReadAllBytes(Path.Combine(source, avfxRel));
@@ -82,6 +88,33 @@ internal static class OverlayProbe
 
         string staging = folder.TrimEnd('\\', '/') + ".tmp-" + Guid.NewGuid().ToString("N")[..8];
         Directory.CreateDirectory(staging);
+        try
+        {
+            WriteMod(staging, source, option, avfx, textures);
+            if (Directory.Exists(folder)) Directory.Delete(folder, true);
+            string? parent = Path.GetDirectoryName(Path.GetFullPath(folder));
+            if (parent != null) Directory.CreateDirectory(parent);
+            Directory.Move(staging, folder);
+        }
+        catch
+        {
+            try { Directory.Delete(staging, true); } catch { }
+            throw;
+        }
+        Console.WriteLine($"Wrote {folder}");
+        Console.WriteLine("Options: " + string.Join(" | ", OptionNames));
+        Console.WriteLine($"Window {plan.Window.X},{plan.Window.Y} {plan.Window.Width}x{plan.Window.Height}; clip region " +
+            $"{plan.ClipRegion.X},{plan.ClipRegion.Y} {plan.ClipRegion.Width}x{plan.ClipRegion.Height}");
+        var m = PanelUvMap.Calibrated;
+        Console.WriteLine($"Map ({m.ScaleU}u+{m.OffsetU}, {m.ScaleV}v+{m.OffsetV}); coverage of the panel {plan.Coverage.ToString("P1", System.Globalization.CultureInfo.InvariantCulture)}");
+        Console.WriteLine($"eq55 SHA-256 {AvfxTableAnimation.Sha(eq55)}");
+        Console.WriteLine($"Per-frame bytes: full atlas {textures[1][0].Length.ToString("N0", System.Globalization.CultureInfo.InvariantCulture)}, overlay {textures[2][0].Length.ToString("N0", System.Globalization.CultureInfo.InvariantCulture)}");
+        Console.WriteLine(DeleteReminder);
+        return 0;
+    }
+
+    private static void WriteMod(string staging, string source, ModOption option, byte[][] avfx, List<byte[]>[] textures)
+    {
         var shared = option.Files.Where(f => f.Key != AvfxGamePath).ToList();
         foreach (var (_, rel) in shared) Copy(Path.Combine(source, rel), Path.Combine(staging, rel));
 
@@ -121,21 +154,6 @@ internal static class OverlayProbe
         }.ToString());
         File.WriteAllText(Path.Combine(staging, Marker), "Written by AnimHarness --overlay-probe.\n");
 
-        if (Directory.Exists(folder)) Directory.Delete(folder, true);
-        string? parent = Path.GetDirectoryName(Path.GetFullPath(folder));
-        if (parent != null) Directory.CreateDirectory(parent);
-        Directory.Move(staging, folder);
-
-        Console.WriteLine($"Wrote {folder}");
-        Console.WriteLine("Options: " + string.Join(" | ", OptionNames));
-        Console.WriteLine($"Window {plan.Window.X},{plan.Window.Y} {plan.Window.Width}x{plan.Window.Height}; clip region " +
-            $"{plan.ClipRegion.X},{plan.ClipRegion.Y} {plan.ClipRegion.Width}x{plan.ClipRegion.Height}");
-        var m = PanelUvMap.Calibrated;
-        Console.WriteLine($"Map ({m.ScaleU}u+{m.OffsetU}, {m.ScaleV}v+{m.OffsetV}); coverage of the panel {plan.Coverage.ToString("P1", System.Globalization.CultureInfo.InvariantCulture)}");
-        Console.WriteLine($"eq55 SHA-256 {AvfxTableAnimation.Sha(eq55)}");
-        Console.WriteLine($"Per-frame bytes: full atlas {textures[1][0].Length.ToString("N0", System.Globalization.CultureInfo.InvariantCulture)}, overlay {textures[2][0].Length.ToString("N0", System.Globalization.CultureInfo.InvariantCulture)}");
-        Console.WriteLine(DeleteReminder);
-        return 0;
     }
 
     private static void Copy(string from, string to)

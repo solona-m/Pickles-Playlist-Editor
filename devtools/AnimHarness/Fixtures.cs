@@ -79,6 +79,7 @@ internal static class Fixtures
     }
 
     public const string PicklesEq55 = @"common\4\eq55.atex";
+    public const string PicklesSmall = @"common\59\alinasexy.avfx";
 
     /// <summary>The app's own backups folder; only ever read here.</summary>
     public static readonly string AppBackups = Path.Combine(
@@ -342,13 +343,21 @@ internal static class Fixtures
         if (!Directory.Exists(picklesRoot)) throw new SkipException("Pickles base pack not found");
         string root = Path.Combine(Temp, "runs", Guid.NewGuid().ToString("N")[..8], Path.GetFileName(picklesRoot));
         Directory.CreateDirectory(root);
-        File.Copy(Path.Combine(picklesRoot, "meta.json"), Path.Combine(root, "meta.json"));
-        foreach (var (game, rel) in SmallOption(picklesRoot).Files)
-            if (!game.StartsWith(AvfxTableAnimation.FramePrefix, StringComparison.OrdinalIgnoreCase) && !File.Exists(Path.Combine(root, rel)))
-                CopyFile(picklesRoot, root, rel);
-        UndoAppAnimation(picklesRoot, root, backupsRoot);
-        RestoreShippedTexture(Path.Combine(backupsRoot, "textures", Path.GetFileName(picklesRoot)), root, PicklesEq55);
-        return root;
+        try
+        {
+            File.Copy(Path.Combine(picklesRoot, "meta.json"), Path.Combine(root, "meta.json"));
+            foreach (var (game, rel) in SmallOption(picklesRoot).Files)
+                if (!game.StartsWith(AvfxTableAnimation.FramePrefix, StringComparison.OrdinalIgnoreCase) && !File.Exists(Path.Combine(root, rel)))
+                    CopyFile(picklesRoot, root, rel);
+            UndoAppAnimation(picklesRoot, root, backupsRoot);
+            RestoreShippedTexture(Path.Combine(backupsRoot, "textures", Path.GetFileName(picklesRoot)), root, PicklesEq55);
+            return root;
+        }
+        catch
+        {
+            try { Directory.Delete(Path.GetDirectoryName(root)!, true); } catch { }
+            throw;
+        }
     }
 
     public static ModOption SmallOption(string modRoot) =>

@@ -28,6 +28,8 @@ namespace Pickles_Playlist_Editor.Utils.Tex
         private static int? Place(int start, int length, int size, int limit)
         {
             int lo = Math.Max(0, start + length + 4 - size), hi = Math.Min(start - 4, limit - size);
+            lo = (lo + 3) & ~3;
+            hi &= ~3;
             if (lo > hi) return null;
             int centred = (int)Math.Round((start + length / 2.0 - size / 2.0) / 64.0) * 64;
             return Math.Clamp(centred, lo, hi);

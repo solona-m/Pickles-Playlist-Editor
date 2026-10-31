@@ -105,7 +105,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
             root.Children.Insert(lastModl + 1, AvfxChunk.Leaf("Modl", plan.ModlData));
             root.SetInt("MdCn", root.ReadInt("MdCn") + 1);
             foreach (var clone in root.All("Ptcl").TakeLast(n))
-                clone.Child("Data")!.Child("MdNo")!.Data = new[] { (byte)plan.NewModel };
+                clone.Child("Data")!.Child("MdNo")!.Data![0] = (byte)plan.NewModel;
             return root.ToBytes();
         }
     }

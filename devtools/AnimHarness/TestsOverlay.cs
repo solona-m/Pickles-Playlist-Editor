@@ -21,7 +21,7 @@ internal static partial class Program
         public void Dispose() => Mod.Dispose();
     }
 
-    private static SmallSetup Small(string rel = Fixtures.MoonCat)
+    private static SmallSetup Small(string rel = Fixtures.PicklesSmall)
     {
         var mod = Fixtures.Pickles();
         byte[] baseline = mod.Read(rel), atlas = mod.Read(Fixtures.PicklesEq55);
@@ -121,6 +121,11 @@ internal static partial class Program
         return img;
     }
 
+    private static bool Same(BgraImage a, BgraImage b) =>
+        a.Width == b.Width && a.Height == b.Height && a.Pixels.AsSpan().SequenceEqual(b.Pixels);
+
+    private static bool White(BgraImage img, int x, int y) { var c = Rgb(img, x, y); return c.R > 200 && c.G > 200 && c.B > 200; }
+
     private static (int R, int G, int B) Rgb(BgraImage img, int x, int y)
     {
         int i = (y * img.Width + x) * 4;
@@ -150,6 +155,8 @@ internal static partial class Program
         if (_probe != null) return _probe;
         string folder = Path.Combine(Path.GetTempPath(), "AnimHarness", "runs", "probe-" + Guid.NewGuid().ToString("N")[..8], "PPE overlay probe");
         _probe = RunProbe(folder);
+        string probeBase = Path.GetDirectoryName(folder)!;
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => { try { Directory.Delete(probeBase, true); } catch { } };
         if (_probe.Exit != 0) throw new InvalidOperationException("probe failed: " + _probe.Output);
         return _probe;
     }
@@ -171,7 +178,7 @@ internal static partial class Program
             Check(options.All(o => o.Files.All(f => File.Exists(Path.Combine(probe.Folder, f.Value)))), "every mapped file exists");
 
             byte[] pristine;
-            using (var mod = Fixtures.Pickles()) pristine = mod.Read(Fixtures.MoonCat);
+            using (var mod = Fixtures.Pickles()) pristine = mod.Read(Fixtures.PicklesSmall);
             Check(File.ReadAllBytes(Path.Combine(probe.Folder, options[0].Files[OverlayProbe.AvfxGamePath])).AsSpan().SequenceEqual(pristine),
                 "option 0 is the pristine Small effect");
             string shipped = ShippedEq55Sha();
@@ -493,7 +500,7 @@ internal static partial class Program
             var full = TexPaste.PasteRect(s.Atlas, TableSurface.Rect, picture, out _)!;
             var over = TexPaste.PasteRect(crop, r, picture, out _)!;
             Check(full.Length == 1_398_176, $"full-atlas frame {full.Length} bytes");
-            Check(Fixtures.Psnr(TexPaste.ReadRect(full, w, out _)!, TexPaste.ReadRect(over, new TexRect(0, 0, 512, 512), out _)!) >= 99,
+            Check(Same(TexPaste.ReadRect(full, w, out _)!, TexPaste.ReadRect(over, new TexRect(0, 0, 512, 512), out _)!),
                 "overlay frame = full-atlas frame over the window");
         });
 
@@ -693,6 +700,75 @@ internal static partial class Program
             using var s = Small();
             var map = PanelUvMap.Calibrated with { OffsetU = 5 };
             Check(PlanRefusal(s.Baseline, s.Atlas, map) == OverlayRefusal.NoPanelGeometry, "map OffsetU 5 → NoPanelGeometry");
+            var model = SyntheticModel(new List<(double, double, double, double, double)> { (0, 0, 0, 0.3, 0.3), (1, 0, 0, 0.35, 0.3), (0, 1, 0, 0.3, 0.35) },
+                new List<(int, int, int)> { (0, 1, 2) });
+            var clipped = AvfxModel.ClipToWindow(model, new PanelUvMap(1, 0, 1, 0), new TexRect(0, 0, 1024, 1024), 4,
+                new TexRect(700, 700, 50, 50), 1024, 1024, out double coverage, out var r);
+            Check(clipped == null && coverage == 0 && r == OverlayRefusal.NoPanelGeometry, $"triangles kept but none on the panel → NoPanelGeometry ({r})");
+        });
+
+        Add("OverlayRefusesUnreadableAtlas", OTag("A-6"), () =>
+        {
+            using var s = Small();
+            Check(PlanRefusal(s.Baseline, s.Atlas[..40]) == OverlayRefusal.AtlasUnreadable, "truncated header → AtlasUnreadable");
+            var bgra = (byte[])s.Atlas.Clone();
+            BitConverter.GetBytes((uint)TexFormat.Bgra8).CopyTo(bgra, 4);
+            Check(PlanRefusal(s.Baseline, bgra) == OverlayRefusal.AtlasUnreadable, "uncompressed atlas → AtlasUnreadable");
+            Check(PlanRefusal(s.Baseline, s.Atlas, rect: new TexRect(900, 900, 440, 289)) == OverlayRefusal.AtlasUnreadable, "rect off the atlas → AtlasUnreadable");
+            var md = EditEffect(s.Baseline, root => PanelOf(root).Child("Data")!.Child("MdNo")!.Data![0] = 200);
+            Check(PlanRefusal(md, s.Atlas) == OverlayRefusal.ModelUnreadable, "MdNo past the models → ModelUnreadable");
+        });
+
+        Add("CropRefusals", OTag("A-3"), () =>
+        {
+            using var s = Small();
+            var w = new TexRect(128, 256, 512, 512);
+            var array = (byte[])s.Atlas.Clone();
+            array[15] = 2;
+            Check(TexCrop.Crop(array, w, out _) == null, "array texture refused");
+            Check(TexCrop.Crop(s.Atlas, new TexRect(130, 256, 512, 512), out _) == null, "window off the block grid refused");
+            Check(TexCrop.Crop(s.Atlas, new TexRect(600, 600, 512, 512), out _) == null, "window off the atlas refused");
+            // Eight mips, the last cut short: every offset still lies inside the file.
+            var shortMip = (byte[])s.Atlas.Clone();
+            shortMip[14] = 8;
+            int mip7 = BitConverter.ToInt32(shortMip, 0x1C + 7 * 4);
+            Check(TexCrop.Crop(shortMip[..(mip7 + 4)], w, out string e) == null && e.Contains("truncated"), "truncated mip refused: " + e);
+            Check(!TexCrop.BlackOutside(s.Atlas[..1000], TableSurface.Rect), "truncated atlas is not black outside");
+            foreach (var r in new[] { new TexRect(101, 100, 500, 100), new TexRect(8, 8, 440, 289), new TexRect(377, 211, 301, 333) })
+                if (TexCrop.Window(1024, 1024, r) is { } v)
+                    Check(v.X % 4 == 0 && v.Y % 4 == 0 && TexCrop.Crop(s.Atlas, v, out _) != null, $"{r}: window {v} crops");
+        });
+
+        Add("ProbeRefusalWritesNothing", OTag("A-6"), () =>
+        {
+            if (!Directory.Exists(Fixtures.PicklesRoot)) throw new SkipException("Pickles base pack not found");
+            string temp = Path.Combine(Path.GetTempPath(), "AnimHarness", "runs", "refuse-" + Guid.NewGuid().ToString("N")[..8]);
+            try
+            {
+                string pack = Path.Combine(temp, "glow pack");
+                string shipped = Fixtures.PicklesShippedSource(Fixtures.PicklesRoot, Fixtures.AppBackups);
+                foreach (string f in Directory.GetFiles(shipped, "*", SearchOption.AllDirectories))
+                {
+                    string t = Path.Combine(pack, Path.GetRelativePath(shipped, f));
+                    Directory.CreateDirectory(Path.GetDirectoryName(t)!);
+                    File.Copy(f, t);
+                }
+                Directory.Delete(Path.GetDirectoryName(shipped)!, true);
+                var patch = new BgraImage(8, 8);
+                Array.Fill(patch.Pixels, (byte)255);
+                string eq55 = Path.Combine(pack, Fixtures.PicklesEq55);
+                File.WriteAllBytes(eq55, TexPaste.PasteRect(File.ReadAllBytes(eq55), new TexRect(20, 20, 8, 8), patch, out _)!);
+                string folder = Path.Combine(temp, "probe");
+                var old = Console.Out;
+                var sw = new StringWriter();
+                Console.SetOut(sw);
+                int exit;
+                try { exit = OverlayProbe.Run(folder, pack, Path.Combine(temp, "no backups")); }
+                finally { Console.SetOut(old); }
+                Check(exit == 1 && sw.ToString().Contains("Overlay refused: GlowOutsidePanel") && !Directory.Exists(folder)
+                    && !Directory.GetDirectories(temp).Any(d => d.Contains(".tmp-")), "refused by name, nothing written: " + sw.ToString().Trim());
+            }
+            finally { try { Directory.Delete(temp, true); } catch { } }
         });
 
         Add("OverlayRefusesGlow", OTag("A-6 E-11"), () =>
@@ -716,6 +792,10 @@ internal static partial class Program
                 $"8 px from the edge → clamped window ({w})");
             Check(TexCrop.Window(1024, 1024, new TexRect(0, 398, 440, 289)) == null, "touching the edge → NoWindow");
             Check(TexCrop.Window(1024, 1024, new TexRect(100, 100, 505, 100)) == null, "505 wide → NoWindow");
+            Check(TexCrop.Window(1024, 1024, new TexRect(100, 100, 100, 505)) == null, "505 tall → NoWindow");
+            Check(TexCrop.Window(1024, 1024, new TexRect(100, 100, 504, 100)) is { Width: 512 } at && at.X % 4 == 0, "504 wide still fits");
+            var odd = TexCrop.Window(1024, 1024, new TexRect(101, 100, 500, 100));
+            Check(odd is { X: 96 }, $"clamped origin stays on the block grid ({odd})");
         });
 
         Add("OverlayRefusesModelCount", OTag("A-6 E-16"), () =>
@@ -837,14 +917,28 @@ internal static partial class Program
                 Check(Math.Abs(lit - expect) <= 6, $"frame {k}: bar {lit} px (expect {expect})");
 
                 var r2 = TexPaste.ReadRect(OptionFile(2, k), inWindow, out _)!;
-                Check(Fixtures.Psnr(r1, r2) >= 99, $"frame {k}: overlay = full atlas on the panel");
+                Check(Same(r1, r2), $"frame {k}: overlay = full atlas on the panel");
             }
 
             var grid = OptionFile(3, 0);
             var full = DecodeLevel(grid, 0);
-            bool outline = Enumerable.Range(rect.X + 2, rect.Width - 4).All(x => Rgb(full, x, rect.Y).R > 200 && Rgb(full, x, rect.Bottom - 1).G > 200);
-            Check(outline, "grid: R outlined in white");
-            Check(Rgb(full, rect.X + 16, rect.Y + 10).R > 200 && Rgb(full, rect.X + 4, rect.Y + 4).R > 200, "grid: ticks inward");
+            bool outline = Enumerable.Range(rect.X, rect.Width).All(x => White(full, x, rect.Y) && White(full, x, rect.Bottom - 1))
+                && Enumerable.Range(rect.Y, rect.Height).All(y => White(full, rect.X, y) && White(full, rect.Right - 1, y));
+            Check(outline, "grid: R outlined in white on all four edges");
+            // Every texel of the 16 px band inside R's edges is white exactly where the grid draws the
+            // outline, a tick or a label: ticks every 4 px, 6 px long and 12 px every 16 px.
+            var expectGrid = Fixtures.GridImage(TableSurface);
+            int bandTexels = 0, wrong = 0;
+            for (int y = rect.Y; y < rect.Bottom; y++)
+                for (int x = rect.X; x < rect.Right; x++)
+                {
+                    if (x >= rect.X + 16 && x < rect.Right - 16 && y >= rect.Y + 16 && y < rect.Bottom - 16) continue;
+                    bandTexels++;
+                    if (White(full, x, y) != White(expectGrid, x, y)) wrong++;
+                }
+            bool tickShape = Enumerable.Range(0, 12).All(t => White(expectGrid, rect.X + 16, rect.Y + t)) && !White(expectGrid, rect.X + 20, rect.Y + 8)
+                && White(expectGrid, rect.X + 20, rect.Y + 5);
+            Check(tickShape && wrong <= bandTexels / 50, $"grid: ticks every 4 px, 6 or 12 px long, on all four edges ({wrong}/{bandTexels} texels differ)");
             var label = Fixtures.CellLabel(5, 7);
             var labelTex = TexPaste.ReadRect(grid, new TexRect(5 * 64 + (64 - label.Width) / 2, 7 * 64 + (64 - label.Height) / 2, label.Width, label.Height), out _)!;
             var upright = ImageOps.Rotate(labelTex, TableSurface.QuarterTurns);
@@ -853,7 +947,7 @@ internal static partial class Program
                 if ((label.Pixels[i + 3] != 0) == (upright.Pixels[i] > 200 && upright.Pixels[i + 1] > 200 && upright.Pixels[i + 2] > 200)) agree++;
             Check(agree >= label.Pixels.Length / 4 * 0.9, $"grid: labels read upright ({agree}/{label.Pixels.Length / 4})");
             var crop4 = OptionFile(4, 0);
-            Check(Fixtures.Psnr(TexPaste.ReadRect(grid, win, out _)!, TexPaste.ReadRect(crop4, new TexRect(0, 0, 512, 512), out _)!) >= 99,
+            Check(Same(TexPaste.ReadRect(grid, win, out _)!, TexPaste.ReadRect(crop4, new TexRect(0, 0, 512, 512), out _)!),
                 "option 4's crop = option 3's atlas window");
         });
     }
