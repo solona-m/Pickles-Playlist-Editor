@@ -11,7 +11,7 @@ internal static partial class Program
 
     private static void RegisterApply()
     {
-        Add("PicklesApplyEndToEnd", "AC-animated-table-2 EDGE-animated-table-11 EDGE-animated-table-21", () =>
+        Add("PicklesApplyEndToEnd", "AC-animated-table-2 EDGE-animated-table-11 EDGE-animated-table-21 " + AppTag("A-1"), () =>
         {
             using var mod = Fixtures.Pickles();
             var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
@@ -21,16 +21,20 @@ internal static partial class Program
             {
                 var bytes = mod.Read(rel);
                 var root = AvfxChunk.Parse(bytes);
-                Check(root.ReadInt("PrCn") == 21 && root.ReadInt("TxCn") == 39, $"{rel} counts 21/39");
+                Check(root.ReadInt("PrCn") == 21 && root.ReadInt("TxCn") == 39 && root.ReadInt("MdCn") == 10, $"{rel} counts 21/39, MdCn 10");
                 var particles = root.All("Ptcl").ToList();
                 var texs = root.All("Tex").Select(t => t.Text()).ToList();
                 for (int k = 0; k < 12; k++)
                 {
                     int tlst = AvfxTableAnimation.Tlst(particles[9 + k]);
-                    Check(tlst == 27 + k && texs[tlst] == $"vfx/atex/ppe_t0000001_1_{k:D2}.atex", $"{rel} clone {k}");
+                    Check(tlst == 27 + k && texs[tlst] == $"vfx/atex/ppe_t0000001_1_{k:D2}.atex"
+                        && particles[9 + k].Child("Data")!.Child("MdNo")!.Data![0] == 8, $"{rel} clone {k}");
                 }
-                Check(Fixtures.AlphaKeys(particles[7]).AsSpan().SequenceEqual(AvfxTableAnimation.HiddenKeys()), $"{rel} panel hidden");
                 var pristine = Fixtures.Particles(before[rel]);
+                var panel = particles[7].Clone();
+                Check(panel.Child("Data")!.Child("MdNo")!.Data![0] == 9, $"{rel} panel draws the shell part");
+                panel.Child("Data")!.Child("MdNo")!.Data![0] = 6;
+                Check(Fixtures.ParticleBytes(panel).AsSpan().SequenceEqual(Fixtures.ParticleBytes(pristine[7])), $"{rel} panel = shipped but MdNo");
                 foreach (int i in new[] { 0, 1, 2, 3, 4, 5, 6, 8 })
                     Check(Fixtures.ParticleBytes(particles[i]).AsSpan().SequenceEqual(Fixtures.ParticleBytes(pristine[i])), $"{rel} particle {i} untouched");
 
@@ -54,14 +58,19 @@ internal static partial class Program
 
             var atlas = mod.Read(mod.Table.Relative);
             var frames = Fixtures.Frames(12);
+            var state = site.State!;
+            Check(state.FrameRect == new TexRect(37, 142, 440, 289), $"FrameRect ({state.FrameRect})");
+            var window = TexCrop.Window(1024, 1024, mod.Table.Surface.Rect)!.Value;
             for (int k = 0; k < 12; k += 5)
             {
                 var frame = mod.Read($@"ppe-table-animation\t0000001_1_{k:D2}.atex");
-                var rect = TexPaste.ReadRect(frame, mod.Table.Surface.Rect, out _)!;
+                Check(frame.Length == 349_600, $"frame {k} is a 512x512 crop ({frame.Length})");
+                var rect = TexPaste.ReadRect(frame, state.FrameRect ?? mod.Table.Surface.Rect, out _)!;
                 var expect = mod.Table.Surface.ToTextureSpace(frames[k], FitMode.Fill);
                 Check(Fixtures.Psnr(rect, expect) > 30, $"frame {k} PSNR {Fixtures.Psnr(rect, expect):F1}");
                 var corner = new TexRect(0, 0, 64, 64);
-                Check(Fixtures.Psnr(TexPaste.ReadRect(frame, corner, out _)!, TexPaste.ReadRect(atlas, corner, out _)!) >= 99, $"frame {k} outside rect");
+                var atlasCorner = new TexRect(window.X, window.Y, 64, 64);
+                Check(Fixtures.Psnr(TexPaste.ReadRect(frame, corner, out _)!, TexPaste.ReadRect(atlas, atlasCorner, out _)!) >= 99, $"frame {k} outside rect");
             }
 
             var status = DjTableAnimationCore.Status(site);
@@ -118,7 +127,7 @@ internal static partial class Program
             Check(status.Kind == AnimationStatusKind.Ours && status.Frames == 48, $"Ours(48) ({status})");
         });
 
-        Add("RestoreIsExact", "AC-animated-table-4 EDGE-animated-table-21", () =>
+        Add("RestoreIsExact", "AC-animated-table-4 EDGE-animated-table-21" + " " + AppTag("A-7"), () =>
         {
             foreach (var make in new Func<TempMod>[] { () => Fixtures.Pickles(), () => Fixtures.Moon() })
             {
@@ -133,7 +142,7 @@ internal static partial class Program
             }
         });
 
-        Add("ReapplyReplaces", "AC-animated-table-5 EDGE-animated-table-22", () =>
+        Add("ReapplyReplaces", "AC-animated-table-5 EDGE-animated-table-22 " + AppTag("A-7 E-7"), () =>
         {
             using var mod = Fixtures.Pickles();
             Check(ApplyFrames(mod, 10, out string error), "gen 1: " + error);
@@ -169,15 +178,17 @@ internal static partial class Program
 
             var final = mod.Scan();
             var info = final.Animatable.First();
-            var expected = AvfxTableAnimation.Build(info.Baseline!, info.Inspect!.Info!,
-                Enumerable.Range(0, 5).Select(k => $"vfx/atex/ppe_t0000001_2_{k:D2}.atex").ToList(), Fixtures.Timeline(5), out _);
-            Check(expected != null && mod.Read(info.Relative).AsSpan().SequenceEqual(expected), "avfx == Build(pristine, 5)");
+            var oplan = AvfxTableOverlay.Plan(info.Baseline!, info.Inspect!.Info!, mod.Table.Surface.Rect, mod.Read(mod.Table.Relative), PanelUvMap.Calibrated, out _)!;
+            var expected = AvfxTableOverlay.Build(info.Baseline!, info.Inspect!.Info!, oplan,
+                Enumerable.Range(0, 5).Select(k => $"vfx/atex/ppe_t0000001_2_{k:D2}.atex").ToList(), Fixtures.Timeline(5), out _, out _, FramePlan.MaxFrames);
+            Check(expected != null && mod.Read(info.Relative).AsSpan().SequenceEqual(expected), "avfx == overlay Build(pristine, 5)");
+            Check(applying.FrameRect == gen1.FrameRect && gen1.FrameRect != null && applied.FrameRect != null, "FrameRect carried at step 4, set at step 8");
             var files = Directory.GetFiles(mod.Full(DjAnimationScan.FrameFolder));
             Check(files.Length == 5 && files.All(f => Path.GetFileName(f).StartsWith("t0000001_2_")), "5 gen-2 files only");
             Check(!mod.Groups().Any(g => g.ToString().Contains("_1_0")), "no gen-1 keys");
         });
 
-        Add("PreviewFramesMatchFit", "AC-animated-table-1", () =>
+        Add("PreviewFramesMatchFit", "AC-animated-table-1 " + AppTag("A-2"), () =>
         {
             using var mod = Fixtures.Pickles();
             var snap = mod.Snapshot();
@@ -195,7 +206,7 @@ internal static partial class Program
             var plan = FramePlan.Plan(Enumerable.Repeat(4, 120).ToList(), 48);
             var sum = DjTableAnimationCore.Summarise(site, 48, plan.Timeline, plan.Thinned);
             Check(sum.Frames == 48 && Math.Abs(sum.Seconds - plan.Timeline.LoopTicks / 30.0) < 1e-9
-                && sum.AddedBytes == 48 * atlas.Length && sum.CapNote, "summary");
+                && sum.AddedBytes == 48 * 349_600 && sum.CapNote, $"summary ({sum.AddedBytes})");
             Check(mod.Snapshot().SequenceEqual(snap), "nothing written");
         });
 
@@ -273,7 +284,7 @@ internal static partial class Program
             Check(mod.Read(mod.Table.Relative).AsSpan().SequenceEqual(eq55), "eq55 untouched");
         });
 
-        Add("StillOnOurs", "AC-animated-table-8", () =>
+        Add("StillOnOurs", "AC-animated-table-8" + " " + AppTag("A-9"), () =>
         {
             using var mod = Fixtures.Pickles();
             var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
@@ -345,7 +356,7 @@ internal static partial class Program
             Check(mod.Scan().Problem?.StartsWith("DefaultData") == true, "default data problem");
         });
 
-        Add("SharedAvfxOnce", "EDGE-animated-table-11", () =>
+        Add("SharedAvfxOnce", "EDGE-animated-table-11" + " " + AppTag("E-15"), () =>
         {
             using var mod = Fixtures.Pickles();
             var meta = JObject.Parse(File.ReadAllText(mod.Full("meta.json")));
@@ -502,7 +513,7 @@ internal static partial class Program
             Check(texs[AvfxTableAnimation.Tlst(parts[20])] == tex20, "20's texture unchanged");
         });
 
-        Add("TextureIndexCap", "EDGE-animated-table-8", () =>
+        Add("TextureIndexCap", "EDGE-animated-table-8" + " " + AppTag("A-8"), () =>
         {
             using var mod = Fixtures.Pickles();
             foreach (var rel in Fixtures.PicklesAvfx)
@@ -520,7 +531,7 @@ internal static partial class Program
             Check(built == null, "48 frames refused");
         });
 
-        Add("RestoreUndoesBoth", "EDGE-animated-table-18", () =>
+        Add("RestoreUndoesBoth", "EDGE-animated-table-18" + " " + AppTag("E-6"), () =>
         {
             using var mod = Fixtures.Pickles();
             var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
@@ -567,7 +578,7 @@ internal static partial class Program
             Check(mod.Snapshot().SequenceEqual(snap), "nothing written");
         });
 
-        Add("ApplyNeverThrows", "EDGE-animated-table-14", () =>
+        Add("ApplyNeverThrows", "EDGE-animated-table-14" + " " + AppTag("A-10"), () =>
         {
             using var mod = Fixtures.Pickles();
             var snap = mod.Snapshot();
