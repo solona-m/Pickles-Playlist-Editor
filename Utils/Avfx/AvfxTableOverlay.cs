@@ -13,7 +13,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
     }
 
     internal sealed record OverlayPlan(int PanelModel, int NewModel, TexRect Window, TexRect ClipRegion,
-        TexRect RectInWindow, byte[] ModlData, double Coverage);
+        TexRect RectInWindow, byte[] ModlData, double Coverage, int OutsideModel, byte[]? OutsideModlData);
 
     /// <summary>
     /// The Append animation with small frames: one extra model, the panel shell clipped to a
@@ -68,20 +68,26 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
 
             if (TexCrop.Window(header.Width, header.Height, rect) is not { } window) { refusal = OverlayRefusal.NoWindow; return null; }
 
-            var clipped = AvfxModel.ClipToWindow(model, map, window, FilterMargin, rect, header.Width, header.Height,
+            var split = AvfxModel.SplitAtWindow(model, map, window, FilterMargin, rect, header.Width, header.Height,
                 out double coverage, out refusal);
-            if (clipped == null) return null;
+            if (split == null) return null;
+            var (clipped, outside) = split.Value;
+            bool hasOutside = outside.Triangles.Count > 0;
 
-            if (models.Count >= 255) { refusal = OverlayRefusal.TooManyModels; return null; }
+            if (models.Count + (hasOutside ? 2 : 1) > 255) { refusal = OverlayRefusal.TooManyModels; return null; }
             if (info.TextureCount >= 255) { refusal = OverlayRefusal.TooManyTextures; return null; }
 
             var region = new TexRect(window.X + FilterMargin, window.Y + FilterMargin,
                 window.Width - 2 * FilterMargin, window.Height - 2 * FilterMargin);
             var inWindow = new TexRect(rect.X - window.X, rect.Y - window.Y, rect.Width, rect.Height);
-            return new OverlayPlan(panelModel, models.Count, window, region, inWindow, clipped.ToData(), coverage);
+            return new OverlayPlan(panelModel, models.Count, window, region, inWindow, clipped.ToData(), coverage,
+                hasOutside ? models.Count + 1 : -1, hasOutside ? outside.ToData() : null);
         }
 
-        /// <summary>The unchanged Append build, then the overlay model added and drawn by every frame particle.</summary>
+        /// <summary>
+        /// The unchanged Append build, then the overlay model added and drawn by every frame particle.
+        /// The panel particle comes back as shipped and draws the rest of the shell.
+        /// </summary>
         public static byte[]? Build(byte[] baseline, TableAvfxInfo info, OverlayPlan plan,
             System.Collections.Generic.IReadOnlyList<string> frameGamePaths, FrameTimeline timeline,
             out OverlayRefusal refusal, out string problem, int maxFrames = MaxFrames)
@@ -103,9 +109,20 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
             var root = AvfxChunk.Parse(appended);
             int lastModl = root.Children!.FindLastIndex(c => c.Name == "Modl");
             root.Children.Insert(lastModl + 1, AvfxChunk.Leaf("Modl", plan.ModlData));
-            root.SetInt("MdCn", root.ReadInt("MdCn") + 1);
+            if (plan.OutsideModlData != null) root.Children.Insert(lastModl + 2, AvfxChunk.Leaf("Modl", plan.OutsideModlData));
+            root.SetInt("MdCn", root.ReadInt("MdCn") + (plan.OutsideModlData != null ? 2 : 1));
             foreach (var clone in root.All("Ptcl").TakeLast(n))
                 clone.Child("Data")!.Child("MdNo")!.Data![0] = (byte)plan.NewModel;
+
+            if (plan.OutsideModlData != null)
+            {
+                // Undo the Append hide (it only touches Col) and draw the shell outside the window.
+                var panel = root.All("Ptcl").ElementAt(info.PanelParticle);
+                var shippedCol = AvfxChunk.Parse(baseline).All("Ptcl").ElementAt(info.PanelParticle).Child("Col")!;
+                int col = panel.Children!.FindIndex(c => c.Name == "Col");
+                panel.Children[col] = shippedCol.Clone();
+                panel.Child("Data")!.Child("MdNo")!.Data![0] = (byte)plan.OutsideModel;
+            }
             return root.ToBytes();
         }
     }

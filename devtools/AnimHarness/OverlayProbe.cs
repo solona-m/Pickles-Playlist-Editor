@@ -140,7 +140,7 @@ internal static class OverlayProbe
         File.WriteAllText(Path.Combine(staging, "meta.json"), new JObject
         {
             ["FileVersion"] = 3, ["Name"] = "PPE overlay probe", ["Author"] = "Pickles Playlist Editor",
-            ["Description"] = "In-game check for the overlay panel (GitHub #12).", ["Version"] = "1",
+            ["Description"] = "In-game check for the overlay panel (GitHub #12).", ["Version"] = "2",
             ["Website"] = "", ["Image"] = "", ["ModTags"] = new JArray(),
         }.ToString());
         File.WriteAllText(Path.Combine(staging, "default_mod.json"), new JObject
