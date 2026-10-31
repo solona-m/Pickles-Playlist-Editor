@@ -27,6 +27,19 @@ namespace Pickles_Playlist_Editor.Utils
         public int UprightWidth => QuarterTurns % 2 == 0 ? Rect.Width : Rect.Height;
 
         public int UprightHeight => QuarterTurns % 2 == 0 ? Rect.Height : Rect.Width;
+
+        /// <summary>
+        /// Fits the picture to the panel and turns it into the texture's own orientation.
+        ///
+        /// Fitted upright first — the orientation the user chose it in — and rotated afterwards. The
+        /// other order would crop to the wrong aspect ratio on anything stored on its side, which
+        /// both the laptop screen and the lid badge are.
+        /// </summary>
+        public BgraImage ToTextureSpace(BgraImage picture, FitMode fit)
+        {
+            var upright = ImageOps.FitTo(picture, UprightWidth, UprightHeight, fit);
+            return ImageOps.Rotate(upright, -QuarterTurns);
+        }
     }
 
     /// <summary>A surface located in a real mod, with the file backing it.</summary>

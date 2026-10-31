@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Offline rig for the animated table: AVFX surgery, GIF decoding and compositing, and the
+    apply/restore write ordering, run over temporary copies of real DJ packs. Not shipped; the app
+    csproj excludes devtools\**. Windows TFM so the WinRT GIF decoder is available.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>AnimHarness</RootNamespace>
+    <AssemblyName>AnimHarness</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Utils\Tex\*.cs" LinkBase="Tex" />
+    <Compile Include="..\..\Utils\Avfx\*.cs" LinkBase="Avfx" />
+    <Compile Include="..\..\Utils\PenumbraOptions.cs" Link="PenumbraOptions.cs" />
+    <Compile Include="..\..\Utils\DjTextureScan.cs" Link="DjTextureScan.cs" />
+    <Compile Include="..\..\Utils\DjAnimationScan.cs" Link="DjAnimationScan.cs" />
+    <Compile Include="..\..\Utils\DjTableAnimationCore.cs" Link="DjTableAnimationCore.cs" />
+    <Compile Include="..\..\Utils\PictureLoader.cs" Link="PictureLoader.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+</Project>

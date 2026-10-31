@@ -138,7 +138,7 @@ namespace Pickles_Playlist_Editor.Utils
             }
         }
 
-        private static JObject? Load(DanceGroupRef group)
+        internal static JObject? Load(DanceGroupRef group)
         {
             if (group.Format == ModFormat.V3)
                 return group.FilePath == null
