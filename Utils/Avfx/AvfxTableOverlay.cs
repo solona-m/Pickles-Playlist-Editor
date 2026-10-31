@@ -10,6 +10,18 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
     {
         None, InPlace, UvSetNotCalibrated, ModelUnreadable, UvPairsDiffer, NoPanelGeometry, AtlasUnreadable,
         GlowOutsidePanel, NoWindow, TooManyModels, TooManyTextures, DrawSetupNotCalibrated, TooManyFrames, AppendFailed,
+        WindowCoversSurface,
+    }
+
+    /// <summary>What a surface's overlay is calibrated for: its UV set, map, glow gate, window cap and keep-out rects.</summary>
+    internal sealed record OverlayProfile(string UvStSha, PanelUvMap Map, bool GlowGate, int MaxWindow,
+        IReadOnlyList<TexRect> KeepOut)
+    {
+        public static readonly OverlayProfile Table =
+            new(AvfxTableOverlay.CalibratedUvStSha, PanelUvMap.Calibrated, true, 512, Array.Empty<TexRect>());
+
+        public static OverlayProfile Laptop(IReadOnlyList<TexRect> keepOut) =>
+            new(AvfxTableOverlay.LaptopUvStSha, PanelUvMap.Laptop, false, 1024, keepOut);
     }
 
     internal sealed record OverlayPlan(int PanelModel, int NewModel, TexRect Window, TexRect ClipRegion,
@@ -26,21 +38,33 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         public const int FilterMargin = 4;
 
         // The Pickles panel particle's UvSt chunk (scale 1.5 on both axes), the only one the map is calibrated for.
-        private const string CalibratedUvStSha = "ECE1016B93B12B232DD6945B444A11B383CDD4E1B7CB077A0586DFE8F08A5445";
+        public const string CalibratedUvStSha = "ECE1016B93B12B232DD6945B444A11B383CDD4E1B7CB077A0586DFE8F08A5445";
+
+        // The laptop particle's UvSt chunk (scale 0.5), shared by Pickles, Moon Base and DJ Solona V4.
+        public const string LaptopUvStSha = "683CC8ECEF6CBC1BBF7AF6548AFED3ADEBAF3CD2C7A9495A3B026FD2D587B880";
+
+        // The largest effect proven in game until #13: Moon Base's 57/74/56, and 75 textures from the
+        // app's own Pickles table at 48 frames.
+        public const int TestedParticles = 57, TestedTextures = 75, TestedItems = 56;
 
         public static int Capacity(TableAvfxInfo info, int maxFrames = MaxFrames) =>
             Math.Max(0, Math.Min(maxFrames, 255 - info.TextureCount));
 
         public static OverlayPlan? Plan(byte[] baseline, TableAvfxInfo info, TexRect rect, byte[] atlas,
-            PanelUvMap map, out OverlayRefusal refusal)
+            PanelUvMap map, out OverlayRefusal refusal) =>
+            Plan(baseline, info, rect, atlas, OverlayProfile.Table with { Map = map }, out refusal);
+
+        public static OverlayPlan? Plan(byte[] baseline, TableAvfxInfo info, TexRect rect, byte[] atlas,
+            OverlayProfile profile, out OverlayRefusal refusal)
         {
+            var map = profile.Map;
             refusal = OverlayRefusal.None;
             if (info.Mode == AnimationMode.InPlace) { refusal = OverlayRefusal.InPlace; return null; }
 
             var root = AvfxChunk.Parse(baseline);
             var panel = root.All("Ptcl").ElementAt(info.PanelParticle);
             var uvSt = panel.Child("UvSt")?.Data;
-            if (uvSt == null || Convert.ToHexString(SHA256.HashData(uvSt)) != CalibratedUvStSha
+            if (uvSt == null || Convert.ToHexString(SHA256.HashData(uvSt)) != profile.UvStSha
                 || panel.ReadInt("UvSN") != 1 || panel.Child("TC1")?.ReadInt("UvSN") != 0)
             {
                 refusal = OverlayRefusal.UvSetNotCalibrated;
@@ -64,9 +88,15 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
                 refusal = OverlayRefusal.AtlasUnreadable;
                 return null;
             }
-            if (!TexCrop.BlackOutside(atlas, rect)) { refusal = OverlayRefusal.GlowOutsidePanel; return null; }
+            if (profile.GlowGate && !TexCrop.BlackOutside(atlas, rect)) { refusal = OverlayRefusal.GlowOutsidePanel; return null; }
 
-            if (TexCrop.Window(header.Width, header.Height, rect) is not { } window) { refusal = OverlayRefusal.NoWindow; return null; }
+            if (TexCrop.Window(header.Width, header.Height, rect, profile.MaxWindow) is not { } window) { refusal = OverlayRefusal.NoWindow; return null; }
+            // Frames freeze the window's texels, so another picture inside it would stop updating.
+            if (profile.KeepOut.Any(k => k.X < window.Right && window.X < k.Right && k.Y < window.Bottom && window.Y < k.Bottom))
+            {
+                refusal = OverlayRefusal.WindowCoversSurface;
+                return null;
+            }
 
             var split = AvfxModel.SplitAtWindow(model, map, window, FilterMargin, rect, header.Width, header.Height,
                 out double coverage, out refusal);
@@ -90,7 +120,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         /// </summary>
         public static byte[]? Build(byte[] baseline, TableAvfxInfo info, OverlayPlan plan,
             System.Collections.Generic.IReadOnlyList<string> frameGamePaths, FrameTimeline timeline,
-            out OverlayRefusal refusal, out string problem, int maxFrames = MaxFrames)
+            out OverlayRefusal refusal, out string problem, int maxFrames = MaxFrames, uint visible = AvfxTableAnimation.MoonVisible)
         {
             refusal = OverlayRefusal.None;
             problem = string.Empty;
@@ -103,7 +133,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
                 return null;
             }
 
-            var appended = AvfxTableAnimation.Build(baseline, info with { Capacity = capacity }, frameGamePaths, timeline, out problem);
+            var appended = AvfxTableAnimation.Build(baseline, info with { Capacity = capacity }, frameGamePaths, timeline, out problem, visible);
             if (appended == null) { refusal = OverlayRefusal.AppendFailed; return null; }
 
             var root = AvfxChunk.Parse(appended);

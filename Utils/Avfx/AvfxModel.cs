@@ -15,6 +15,9 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
     {
         public static readonly PanelUvMap Calibrated = new(1.5, 0.5, -1, 0.5);
 
+        // The laptop: pinned by eq3's bezel art and corroborated by Moon Base's frames (same UvSt bytes).
+        public static readonly PanelUvMap Laptop = new(0.5, 0.5, 0.5, 0.5);
+
         public (double S, double T) ToTexture(double u, double v) => (ScaleU * u + OffsetU, ScaleV * v + OffsetV);
 
         public (double U, double V) ToModel(double s, double t) => ((s - OffsetU) / ScaleU, (t - OffsetV) / ScaleV);
@@ -330,14 +333,22 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         /// <summary>Share of the rect's texel centres some kept triangle covers.</summary>
         private static double Coverage(List<(double X, double Y)[]> triangles, TexRect rect)
         {
+            // Each triangle marks the texels of its bounding box inside the rect; same test, far fewer calls.
+            var mask = new bool[rect.Width * rect.Height];
             int hit = 0;
-            for (int y = rect.Y; y < rect.Bottom; y++)
-                for (int x = rect.X; x < rect.Right; x++)
-                {
-                    double px = x + 0.5, py = y + 0.5;
-                    foreach (var t in triangles)
-                        if (Contains(t, px, py)) { hit++; break; }
-                }
+            foreach (var t in triangles)
+            {
+                int x0 = Math.Max(rect.X, (int)Math.Floor(t.Min(p => p.X) - 1)), x1 = Math.Min(rect.Right, (int)Math.Ceiling(t.Max(p => p.X) + 1));
+                int y0 = Math.Max(rect.Y, (int)Math.Floor(t.Min(p => p.Y) - 1)), y1 = Math.Min(rect.Bottom, (int)Math.Ceiling(t.Max(p => p.Y) + 1));
+                // A triangle collapsed to a point passes Contains everywhere.
+                if (t[0] == t[1] && t[1] == t[2]) { x0 = rect.X; x1 = rect.Right; y0 = rect.Y; y1 = rect.Bottom; }
+                for (int y = y0; y < y1; y++)
+                    for (int x = x0; x < x1; x++)
+                    {
+                        int i = (y - rect.Y) * rect.Width + (x - rect.X);
+                        if (!mask[i] && Contains(t, x + 0.5, y + 0.5)) { mask[i] = true; hit++; }
+                    }
+            }
             return (double)hit / (rect.Width * rect.Height);
         }
 
