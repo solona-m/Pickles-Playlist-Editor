@@ -365,8 +365,8 @@ namespace Pickles_Playlist_Editor.Utils
             }
             catch (Exception ex)
             {
-                Failed?.Invoke(ex);
-                OverlaySkipped?.Invoke("exception: " + ex.Message);
+                // Not Failed: the apply goes on with full-atlas frames.
+                OverlaySkipped?.Invoke("exception: " + ex);
                 return null;
             }
         }

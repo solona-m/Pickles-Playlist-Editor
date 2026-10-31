@@ -127,7 +127,7 @@ internal static partial class Program
             Check(status.Kind == AnimationStatusKind.Ours && status.Frames == 48, $"Ours(48) ({status})");
         });
 
-        Add("RestoreIsExact", "AC-animated-table-4 EDGE-animated-table-21", () =>
+        Add("RestoreIsExact", "AC-animated-table-4 EDGE-animated-table-21" + " " + AppTag("A-7"), () =>
         {
             foreach (var make in new Func<TempMod>[] { () => Fixtures.Pickles(), () => Fixtures.Moon() })
             {
@@ -284,7 +284,7 @@ internal static partial class Program
             Check(mod.Read(mod.Table.Relative).AsSpan().SequenceEqual(eq55), "eq55 untouched");
         });
 
-        Add("StillOnOurs", "AC-animated-table-8", () =>
+        Add("StillOnOurs", "AC-animated-table-8" + " " + AppTag("A-9"), () =>
         {
             using var mod = Fixtures.Pickles();
             var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
@@ -356,7 +356,7 @@ internal static partial class Program
             Check(mod.Scan().Problem?.StartsWith("DefaultData") == true, "default data problem");
         });
 
-        Add("SharedAvfxOnce", "EDGE-animated-table-11", () =>
+        Add("SharedAvfxOnce", "EDGE-animated-table-11" + " " + AppTag("E-15"), () =>
         {
             using var mod = Fixtures.Pickles();
             var meta = JObject.Parse(File.ReadAllText(mod.Full("meta.json")));
@@ -513,7 +513,7 @@ internal static partial class Program
             Check(texs[AvfxTableAnimation.Tlst(parts[20])] == tex20, "20's texture unchanged");
         });
 
-        Add("TextureIndexCap", "EDGE-animated-table-8", () =>
+        Add("TextureIndexCap", "EDGE-animated-table-8" + " " + AppTag("A-8"), () =>
         {
             using var mod = Fixtures.Pickles();
             foreach (var rel in Fixtures.PicklesAvfx)
@@ -531,7 +531,7 @@ internal static partial class Program
             Check(built == null, "48 frames refused");
         });
 
-        Add("RestoreUndoesBoth", "EDGE-animated-table-18", () =>
+        Add("RestoreUndoesBoth", "EDGE-animated-table-18" + " " + AppTag("E-6"), () =>
         {
             using var mod = Fixtures.Pickles();
             var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
@@ -578,7 +578,7 @@ internal static partial class Program
             Check(mod.Snapshot().SequenceEqual(snap), "nothing written");
         });
 
-        Add("ApplyNeverThrows", "EDGE-animated-table-14", () =>
+        Add("ApplyNeverThrows", "EDGE-animated-table-14" + " " + AppTag("A-10"), () =>
         {
             using var mod = Fixtures.Pickles();
             var snap = mod.Snapshot();

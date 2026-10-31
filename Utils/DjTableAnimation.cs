@@ -69,9 +69,12 @@ namespace Pickles_Playlist_Editor.Utils
         {
             var host = new Host(site.ModRoot, site.Table.ModName);
             bool ok = DjTableAnimationCore.Apply(host, site, frames, timeline, fit, progress, out warnings, out error);
-            string route = "unknown";
-            try { route = AnimationState.Parse(File.ReadAllBytes(DjAnimationScan.StatePath(host.StateFolder))).FrameRect != null ? "overlay" : "full-atlas"; }
-            catch { }
+            string route = "none";
+            if (ok)
+            {
+                try { route = AnimationState.Parse(File.ReadAllBytes(DjAnimationScan.StatePath(host.StateFolder))).FrameRect != null ? "overlay" : "full-atlas"; }
+                catch { route = "unknown"; }
+            }
             Logger.LogInfo("Animated table in {Mod}: {Frames} frames, ok={Ok}, route={Route}.", site.Table.ModName, frames.Count, ok, route);
             if (!ok) Logger.LogWarn("Animating the table in {Mod} failed: {Error}", site.Table.ModName, error);
             warnings = Settle(site, warnings);

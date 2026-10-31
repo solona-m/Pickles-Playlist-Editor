@@ -117,7 +117,7 @@ internal static partial class Program
             Check(!Directory.Exists(mod.StateFolder) && !Directory.Exists(mod.Full(DjAnimationScan.FrameFolder)), "no state, no frames");
         });
 
-        Add("RollbackOnFailure", "EDGE-animated-table-14", () =>
+        Add("RollbackOnFailure", "EDGE-animated-table-14" + " " + AppTag("A-10"), () =>
         {
             foreach (bool live in new[] { false, true })
                 foreach (string fault in new[] { "edit", "avfx2" })
@@ -142,7 +142,7 @@ internal static partial class Program
                 }
         });
 
-        Add("RestoreAfterCrash", "EDGE-animated-table-15", () =>
+        Add("RestoreAfterCrash", "EDGE-animated-table-15" + " " + AppTag("A-10"), () =>
         {
             using (var mod = Fixtures.Pickles())
             {
@@ -172,7 +172,7 @@ internal static partial class Program
             }
         });
 
-        Add("RestoreKeepsEditedFrames", "EDGE-animated-table-17", () =>
+        Add("RestoreKeepsEditedFrames", "EDGE-animated-table-17" + " " + AppTag("E-11"), () =>
         {
             using var mod = Fixtures.Pickles();
             Check(ApplyFrames(mod, 4, out _), "apply");
@@ -230,7 +230,7 @@ internal static partial class Program
             CheckPristine(mod, before, groups, "after restore");
         });
 
-        Add("CrashBeforeAvfxKeepsOldAnimation", "EDGE-animated-table-38", () =>
+        Add("CrashBeforeAvfxKeepsOldAnimation", "EDGE-animated-table-38" + " " + AppTag("A-10"), () =>
         {
             using var mod = Fixtures.Pickles();
             var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
