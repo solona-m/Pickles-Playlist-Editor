@@ -350,7 +350,7 @@ Wil je doorgaan?</value></data>
   <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animatie, {1} frames, lus van {2:0.0} s. Maakt de mod ongeveer {3} MB groter.</value></data>
   <data name="Textures_AnimCapped" xml:space="preserve"><value>Uitgedund van {1} naar {0} frames zodat het past; de lus blijft even lang.</value></data>
   <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Deze animatie is te groot om te animeren, dus het eerste frame wordt gebruikt.</value></data>
-  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Alleen het tafelpaneel kan worden geanimeerd, dus het eerste frame van deze animatie wordt gebruikt.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Alleen het tafelpaneel en het laptopscherm kunnen worden geanimeerd, dus het eerste frame van deze animatie wordt gebruikt.</value></data>
   <data name="Textures_YourAnimation" xml:space="preserve"><value>Jouw animatie — {0} frames</value></data>
   <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Deze mod animeert de tafel al ({0} frames). Een geanimeerde GIF, WebP of APNG of een korte video vervangt die animatie; een afbeelding bedekt het hele paneel.</value></data>
   <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Deze app heeft de tafel geanimeerd, maar de back-up is weg (is de modmap hernoemd?). Installeer de mod opnieuw om de tafel te wijzigen.</value></data>
@@ -379,4 +379,8 @@ Wil je doorgaan?</value></data>
   <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: de eigen animatie van de mod heeft geen frame dat deze app kan hergebruiken</value></data>
   <data name="Anim_Unparseable" xml:space="preserve"><value>{0} kon niet als effectbestand worden gelezen</value></data>
   <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Alleen de eerste {0} s van deze clip worden gebruikt.</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>Dit laptopscherm kan niet worden geanimeerd, dus het eerste frame van deze animatie wordt gebruikt.</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Het laptopscherm terugzetten zoals de mod het levert? Dit verwijdert je laptopanimatie en elke afbeelding die je op het scherm hebt gezet.</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>De tafel en het laptopscherm terugzetten zoals de mod ze levert? Dit verwijdert beide animaties.</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>De andere animatie in deze mod kon niet worden behouden ({0}), dus er is niets geschreven.</value></data>
 </root>

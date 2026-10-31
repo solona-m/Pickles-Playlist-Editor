@@ -350,7 +350,7 @@ Voulez-vous continuer ?</value></data>
   <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animation, {1} images, boucle de {2:0.0} s. Ajoute environ {3} Mo au mod.</value></data>
   <data name="Textures_AnimCapped" xml:space="preserve"><value>Réduit de {1} à {0} images pour tenir ; la boucle garde sa durée.</value></data>
   <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Cette animation est trop grande pour être animée, sa première image est donc utilisée.</value></data>
-  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Seul le panneau de la table peut être animé, la première image de cette animation est donc utilisée.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Seuls le panneau de la table et l’écran du portable peuvent être animés, la première image de cette animation est donc utilisée.</value></data>
   <data name="Textures_YourAnimation" xml:space="preserve"><value>Ton animation — {0} images</value></data>
   <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Ce mod anime déjà la table ({0} images). Un GIF, WebP ou APNG animé ou une courte vidéo remplace cette animation ; une image couvre tout le panneau.</value></data>
   <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Cette app a animé la table, mais sa sauvegarde a disparu (le dossier du mod a-t-il été renommé ?). Réinstalle le mod pour changer la table.</value></data>
@@ -379,4 +379,8 @@ Voulez-vous continuer ?</value></data>
   <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0} : l’animation du mod n’a aucune image que cette app peut réutiliser</value></data>
   <data name="Anim_Unparseable" xml:space="preserve"><value>{0} n’a pas pu être lu comme fichier d’effet</value></data>
   <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Seules les {0} premières secondes de ce clip sont utilisées.</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>Cet écran de portable ne peut pas être animé, la première image de cette animation est donc utilisée.</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Remettre l’écran du portable tel que le mod le fournit ? Cela retire ton animation du portable et toute image que tu as mise sur l’écran.</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>Remettre la table et l’écran du portable tels que le mod les fournit ? Cela retire les deux animations.</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>L’autre animation de ce mod n’a pas pu être conservée ({0}), rien n’a donc été écrit.</value></data>
 </root>

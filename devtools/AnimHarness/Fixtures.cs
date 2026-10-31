@@ -15,6 +15,7 @@ internal sealed class TempMod : IDisposable
     public required string Root { get; init; }
     public required string StateFolder { get; set; }
     public required DjTextureTarget Table { get; init; }
+    public DjTextureTarget? Laptop { get; init; }
     public required string Base { get; init; }
     public TempModHost Host { get; set; } = null!;
 
@@ -23,7 +24,7 @@ internal sealed class TempMod : IDisposable
     public string Full(string relative) => Path.Combine(Root, relative);
 
     public DjTableAnimationSite Scan(TempModHost? host = null) =>
-        DjAnimationScan.Inspect(Root, Table, StateFolder, (host ?? Host).ReadFile);
+        DjAnimationScan.Inspect(Root, Table, StateFolder, (host ?? Host).ReadFile, Laptop);
 
     public byte[] Read(string relative) => File.ReadAllBytes(Full(relative));
 
@@ -67,18 +68,26 @@ internal static class Fixtures
     public const string MoonCat2 = @"common\67\alinasexy2.avfx";
     public const string MoonPlain = @"vfx 02\dj table - plain\vfx\alinasexy.avfx";
 
-    public static TempMod Pickles(string folderName = "pickles")
+    public static TempMod Pickles(string folderName = "pickles", bool withLaptop = false)
     {
         if (!Directory.Exists(PicklesRoot)) throw new SkipException("Pickles base pack not found");
         var (root, baseDir) = NewRoot(folderName);
         File.Copy(Path.Combine(PicklesRoot, "meta.json"), Path.Combine(root, "meta.json"));
         foreach (var rel in PicklesAvfx.Append(PicklesEq55)) CopyFile(PicklesRoot, root, rel);
         UndoAppAnimation(PicklesRoot, root, AppBackups);
-        RestoreShippedTexture(Path.Combine(AppBackups, "textures", Path.GetFileName(PicklesRoot)), root, PicklesEq55);
-        return Make(root, baseDir, folderName);
+        string textures = Path.Combine(AppBackups, "textures", Path.GetFileName(PicklesRoot));
+        RestoreShippedTexture(textures, root, PicklesEq55);
+        if (withLaptop)
+        {
+            CopyFile(PicklesRoot, root, PicklesEq3);
+            RestoreShippedTexture(textures, root, PicklesEq3);
+        }
+        return Make(root, baseDir, folderName, withLaptop);
     }
 
     public const string PicklesEq55 = @"common\4\eq55.atex";
+    public const string PicklesEq3 = @"common\7\eq3.atex";
+    public const string MoonEq3 = @"common\5\eq3.atex";
     public const string PicklesSmall = @"common\59\alinasexy.avfx";
 
     /// <summary>The app's own backups folder; only ever read here.</summary>
@@ -124,13 +133,14 @@ internal static class Fixtures
         File.WriteAllText(meta, root.ToString());
     }
 
-    public static TempMod Moon(string folderName = "moon")
+    public static TempMod Moon(string folderName = "moon", bool withLaptop = false)
     {
         string source = MoonSource();
         var (root, baseDir) = NewRoot(folderName);
         foreach (string json in Directory.GetFiles(source, "*.json")) File.Copy(json, Path.Combine(root, Path.GetFileName(json)));
         foreach (var rel in new[] { MoonCat, MoonCat2, @"common\68\alinasexy2.avfx", MoonPlain, @"common\56\eq55.atex" })
             CopyFile(source, root, rel);
+        if (withLaptop) CopyFile(source, root, MoonEq3);
 
         // Other textures only need a header and a length; the scan never reads their pixels.
         foreach (string atex in Directory.GetFiles(Path.Combine(source, "common"), "*.atex", SearchOption.AllDirectories))
@@ -146,7 +156,7 @@ internal static class Fixtures
             dst.Write(head);
             dst.SetLength(length);
         }
-        return Make(root, baseDir, folderName);
+        return Make(root, baseDir, folderName, withLaptop);
     }
 
     private static string MoonSource()
@@ -174,9 +184,10 @@ internal static class Fixtures
         File.Copy(Path.Combine(from, rel), target);
     }
 
-    private static TempMod Make(string root, string baseDir, string folderName)
+    private static TempMod Make(string root, string baseDir, string folderName, bool withLaptop = false)
     {
-        var table = DjTextureScan.Locate(root, folderName, out _).FirstOrDefault(t => t.Surface.Key == "table")
+        var targets = DjTextureScan.Locate(root, folderName, out _);
+        var table = targets.FirstOrDefault(t => t.Surface.Key == "table")
             ?? throw new InvalidOperationException("No table surface in the temp mod.");
         var mod = new TempMod
         {
@@ -184,6 +195,8 @@ internal static class Fixtures
             Base = baseDir,
             StateFolder = Path.Combine(baseDir, "state", folderName, "animation"),
             Table = table,
+            Laptop = withLaptop ? targets.FirstOrDefault(t => t.Surface.Key == "laptop")
+                ?? throw new InvalidOperationException("No laptop surface in the temp mod.") : null,
         };
         mod.NewHost();
         return mod;
@@ -383,7 +396,7 @@ internal static class Fixtures
     /// A copy of the user's real Pickles animation as the previous version left it (live effects,
     /// frames and manifest, its state and pristine copies), or null when there is none.
     /// </summary>
-    public static TempMod? LivePicklesAnimation()
+    public static TempMod? LivePicklesAnimation(bool withLaptop = false)
     {
         if (!Directory.Exists(PicklesRoot)) throw new SkipException("Pickles base pack not found");
         string backup = Path.Combine(AppBackups, "textures", Path.GetFileName(PicklesRoot), "animation");
@@ -392,9 +405,11 @@ internal static class Fixtures
 
         var (root, baseDir) = NewRoot("live");
         File.Copy(Path.Combine(PicklesRoot, "meta.json"), Path.Combine(root, "meta.json"));
-        foreach (var rel in PicklesAvfx.Append(PicklesEq55).Concat(state.Frames.Select(f => f.Relative)))
+        var frames = state.Frames.Concat(state.Laptop?.Frames ?? new List<AnimationFrame>()).Select(f => f.Relative);
+        foreach (var rel in PicklesAvfx.Append(PicklesEq55).Concat(withLaptop ? new[] { PicklesEq3 } : Array.Empty<string>()).Concat(frames))
             if (File.Exists(Path.Combine(PicklesRoot, rel))) CopyFile(PicklesRoot, root, rel);
-        var mod = Make(root, baseDir, "live");
+        if (withLaptop) RestoreShippedTexture(Path.Combine(AppBackups, "textures", Path.GetFileName(PicklesRoot)), root, PicklesEq3);
+        var mod = Make(root, baseDir, "live", withLaptop);
         foreach (string f in Directory.GetFiles(backup, "*", SearchOption.AllDirectories))
         {
             string target = Path.Combine(mod.StateFolder, Path.GetRelativePath(backup, f));

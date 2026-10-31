@@ -31,7 +31,8 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
     internal static class AvfxTableAnimation
     {
         // Moon Base's own key values, bit for bit.
-        private const uint Visible = 0x3FAB28EB;     // 1.337
+        public const uint MoonVisible = 0x3FAB28EB;  // 1.337
+        public const uint LaptopVisible = 0x3F800000; // 1.0, untested in game; Moon's proven value is 1.337
         private const uint HiddenFirst = 0xBE24166F; // -0.16
         private const uint Hidden = 0xBDF7FE33;      // -0.121
         private const uint End = 0xBF8F8FFC;         // -1.122
@@ -101,7 +102,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         }
 
         public static byte[]? Build(byte[] baseline, TableAvfxInfo info, IReadOnlyList<string> frameGamePaths,
-            FrameTimeline timeline, out string problem)
+            FrameTimeline timeline, out string problem, uint visible = MoonVisible)
         {
             problem = string.Empty;
             int n = frameGamePaths.Count;
@@ -124,7 +125,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
                     if (k >= 0 && k < n)
                     {
                         textures[Tlst(particles[member])].Data = AvfxChunk.TextBytes(frameGamePaths[k]);
-                        SetAlpha(particles[member], AlphaKeys(k, timeline), Looping(n));
+                        SetAlpha(particles[member], AlphaKeys(k, timeline, visible), Looping(n));
                     }
                     else
                     {
@@ -148,7 +149,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
             {
                 var clone = template.Clone();
                 clone.Child("TC1")!.Child("TLst")!.Data = new[] { (byte)(info.TextureCount + k) };
-                SetAlpha(clone, AlphaKeys(k, timeline), Looping(n));
+                SetAlpha(clone, AlphaKeys(k, timeline, visible), Looping(n));
                 clones.Add(clone);
             }
             root.Children.InsertRange(lastPtcl + 1, clones);
@@ -177,7 +178,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         }
 
         /// <summary>Frame k's looping alpha curve, Moon Base's layout.</summary>
-        internal static byte[] AlphaKeys(int frame, FrameTimeline t)
+        internal static byte[] AlphaKeys(int frame, FrameTimeline t, uint visible = MoonVisible)
         {
             int n = t.StartTicks.Count;
             int loop = t.LoopTicks;
@@ -185,8 +186,8 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
 
             int end = frame + 1 < n ? t.StartTicks[frame + 1] : loop;
             if (frame == 0)
-                return Concat(Key(0, 2, Visible), Key(end, 2, Hidden), Key(loop, 1, End));
-            return Concat(Key(0, 2, HiddenFirst), Key(t.StartTicks[frame], 2, Visible),
+                return Concat(Key(0, 2, visible), Key(end, 2, Hidden), Key(loop, 1, End));
+            return Concat(Key(0, 2, HiddenFirst), Key(t.StartTicks[frame], 2, visible),
                 Key(end, 2, Hidden), Key(loop, 1, End));
         }
 
@@ -264,6 +265,13 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         private static void SetAlpha(AvfxChunk particle, byte[] keys, bool looping)
         {
             var col = particle.Child("Col") ?? throw new InvalidDataException("The panel particle has no colour curve.");
+            if (col.Children == null)
+            {
+                // An empty colour chunk (the laptop): a container holding just the alpha curve.
+                int at = particle.Children!.IndexOf(col);
+                col = AvfxChunk.Container("Col", Array.Empty<AvfxChunk>());
+                particle.Children[at] = col;
+            }
             var alpha = col.Child("A");
             if (alpha == null)
             {
@@ -307,6 +315,14 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
                 e++;
             }
             return result;
+        }
+
+        /// <summary>An effect's particles, textures and the items in one emitter's last ItPr, for the tested-size envelope.</summary>
+        internal static (int Particles, int Textures, int Items) Counts(byte[] avfx, int emitter)
+        {
+            var root = AvfxChunk.Parse(avfx);
+            var last = root.All("Emit").ElementAtOrDefault(emitter)?.All("ItPr").LastOrDefault();
+            return (root.All("Ptcl").Count(), root.All("Tex").Count(), last == null ? 0 : ItemsOf(last).Count);
         }
 
         private static List<List<AvfxChunk>> ItemsOf(AvfxChunk itpr)

@@ -22,6 +22,7 @@
     <Compile Include="..\..\Utils\DjTextureScan.cs" Link="DjTextureScan.cs" />
     <Compile Include="..\..\Utils\DjAnimationScan.cs" Link="DjAnimationScan.cs" />
     <Compile Include="..\..\Utils\DjTableAnimationCore.cs" Link="DjTableAnimationCore.cs" />
+    <Compile Include="..\..\Utils\DjAnimationLayers.cs" Link="DjAnimationLayers.cs" />
     <Compile Include="..\..\Utils\PictureLoader.cs" Link="PictureLoader.cs" />
     <Compile Include="..\..\Utils\PictureLoaderMedia.cs" Link="PictureLoaderMedia.cs" />
     <Compile Include="..\..\Utils\FfmpegFrames.cs" Link="FfmpegFrames.cs" />
