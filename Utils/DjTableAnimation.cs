@@ -52,7 +52,8 @@ namespace Pickles_Playlist_Editor.Utils
         static DjTableAnimation()
         {
             DjTableAnimationCore.Failed = ex => Logger.LogError("Changing the table animation failed: {Error}", ex);
-            DjTableAnimationCore.OverlaySkipped = reason => Logger.LogInfo("Table frames: full-atlas copies ({Reason}).", reason);
+            // The table then writes full-atlas copies; the laptop takes the first frame as a still.
+            DjTableAnimationCore.OverlaySkipped = reason => Logger.LogInfo("Overlay frames not used ({Reason}).", reason);
         }
 
         public static string StateFolderFor(string modName) => Path.Combine(
@@ -61,8 +62,8 @@ namespace Pickles_Playlist_Editor.Utils
         public static string ModRoot(DjTextureTarget table) =>
             table.FullPath[..^table.Relative.Length].TrimEnd('\\', '/');
 
-        public static DjTableAnimationSite Scan(DjTextureTarget table) =>
-            DjAnimationScan.Inspect(ModRoot(table), table, StateFolderFor(table.ModName));
+        public static DjTableAnimationSite Scan(DjTextureTarget table, DjTextureTarget? laptop = null) =>
+            DjAnimationScan.Inspect(ModRoot(table), table, StateFolderFor(table.ModName), laptop: laptop);
 
         public static bool Apply(DjTableAnimationSite site, IReadOnlyList<BgraImage> frames, FrameTimeline timeline,
             FitMode fit, IProgress<int>? progress, out IReadOnlyList<string> warnings, out string error)
@@ -81,25 +82,59 @@ namespace Pickles_Playlist_Editor.Utils
             return ok;
         }
 
-        public static bool Restore(DjTableAnimationSite site, out IReadOnlyList<string> warnings, out string error)
+        /// <summary>The laptop's animation, or its first frame as a still when the overlay refuses it.</summary>
+        public static bool ApplyLaptop(DjTableAnimationSite site, IReadOnlyList<BgraImage> frames, FrameTimeline timeline,
+            FitMode fit, IProgress<int>? progress, out IReadOnlyList<string> warnings, out string error, out bool fellBack)
         {
             var host = new Host(site.ModRoot, site.Table.ModName);
-            bool ok = DjTableAnimationCore.Restore(host, site, out warnings, out error);
-            Logger.LogInfo("Restored the table animation in {Mod}: ok={Ok}.", site.Table.ModName, ok);
-            if (!ok) Logger.LogWarn("Restoring the table in {Mod} failed: {Error}", site.Table.ModName, error);
+            bool ok = DjTableAnimationCore.ApplyLaptopOrStill(host, site, frames, timeline, fit, progress,
+                still => DjTextures.Apply(site.Laptop!, still, fit, out _, out string pasteError) ? null : pasteError,
+                out warnings, out error, out fellBack);
+            Logger.LogInfo("Animated laptop in {Mod}: {Frames} frames, ok={Ok}, route={Route}.",
+                site.Table.ModName, frames.Count, ok, ok ? fellBack ? "still" : "overlay" : "none");
+            if (!ok) Logger.LogWarn("Animating the laptop in {Mod} failed: {Error}", site.Table.ModName, error);
             warnings = Settle(site, warnings);
             return ok;
         }
 
-        /// <summary>A still on a table this app animated by appending: paste into eq55, then remove the animation.</summary>
+        public static bool Restore(DjTableAnimationSite site, out IReadOnlyList<string> warnings, out string error) =>
+            Restore(site, AnimatedSurface.Table, out warnings, out error);
+
+        public static bool Restore(DjTableAnimationSite site, AnimatedSurface surface, out IReadOnlyList<string> warnings, out string error)
+        {
+            var host = new Host(site.ModRoot, site.Table.ModName);
+            bool ok = DjTableAnimationCore.Restore(host, site, surface, out warnings, out error);
+            Logger.LogInfo("Restored the {Surface} animation in {Mod}: ok={Ok}.", surface, site.Table.ModName, ok);
+            if (!ok) Logger.LogWarn("Restoring the {Surface} in {Mod} failed: {Error}", surface, site.Table.ModName, error);
+            warnings = Settle(site, warnings);
+            return ok;
+        }
+
+        /// <summary>Removes both animations, whatever state they are in; the way out when one cannot be kept.</summary>
+        public static bool RestoreAll(DjTableAnimationSite site, out IReadOnlyList<string> warnings, out string error)
+        {
+            var host = new Host(site.ModRoot, site.Table.ModName);
+            bool ok = DjTableAnimationCore.RestoreAll(host, site, out warnings, out error);
+            Logger.LogInfo("Restored both animations in {Mod}: ok={Ok}.", site.Table.ModName, ok);
+            if (!ok) Logger.LogWarn("Restoring both animations in {Mod} failed: {Error}", site.Table.ModName, error);
+            warnings = Settle(site, warnings);
+            return ok;
+        }
+
+        /// <summary>A still on a surface this app animated by appending: paste into its texture, then remove the animation.</summary>
         public static bool PasteThenRestore(DjTableAnimationSite site, BgraImage picture, FitMode fit,
+            out IReadOnlyList<string> warnings, out string error) =>
+            PasteThenRestore(site, AnimatedSurface.Table, picture, fit, out warnings, out error);
+
+        public static bool PasteThenRestore(DjTableAnimationSite site, AnimatedSurface surface, BgraImage picture, FitMode fit,
             out IReadOnlyList<string> warnings, out string error)
         {
             var host = new Host(site.ModRoot, site.Table.ModName);
-            bool ok = DjTableAnimationCore.PasteThenRestore(host, site,
-                () => DjTextures.Apply(site.Table, picture, fit, out _, out string pasteError) ? null : pasteError,
+            var target = surface == AnimatedSurface.Table ? site.Table : site.Laptop!;
+            bool ok = DjTableAnimationCore.PasteThenRestore(host, site, surface,
+                () => DjTextures.Apply(target, picture, fit, out _, out string pasteError) ? null : pasteError,
                 out warnings, out error);
-            if (!ok) Logger.LogWarn("A picture on the animated table in {Mod} failed: {Error}", site.Table.ModName, error);
+            if (!ok) Logger.LogWarn("A picture on the animated {Surface} in {Mod} failed: {Error}", surface, site.Table.ModName, error);
             warnings = Settle(site, warnings);
             return ok;
         }
@@ -114,13 +149,13 @@ namespace Pickles_Playlist_Editor.Utils
             try
             {
                 var state = DjAnimationScan.TryReadState(site.StateFolder);
-                if (state is { Phase: AnimationState.Applied } && state.Frames.Count > 0)
+                var keys = state is { Phase: AnimationState.Applied } ? DjTableAnimationCore.LiveFrameKeys(state) : null;
+                if (keys is { Count: > 0 })
                 {
                     var groups = DanceGroupIO.ListGroups(site.ModRoot, site.Table.ModName)
                         .Select(DanceGroupIO.Load).OfType<JObject>().ToList();
-                    var relatives = new HashSet<string>(state.Avfx.Select(a => a.Relative), StringComparer.OrdinalIgnoreCase);
-                    string? lost = DjTableAnimationCore.VerifyManifest(groups, relatives,
-                        state.Frames.ToDictionary(f => f.GamePath, f => f.Relative));
+                    var relatives = new HashSet<string>(state!.Avfx.Select(a => a.Relative), StringComparer.OrdinalIgnoreCase);
+                    string? lost = DjTableAnimationCore.VerifyManifest(groups, relatives, keys);
                     if (lost != null) result.Add(lost);
                 }
             }

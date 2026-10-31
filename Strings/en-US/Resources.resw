@@ -350,7 +350,7 @@ Do you want to proceed?</value></data>
   <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animation, {1} frames, {2:0.0} s loop. Adds about {3} MB to the mod.</value></data>
   <data name="Textures_AnimCapped" xml:space="preserve"><value>Thinned from {1} to {0} frames to fit; the loop keeps its length.</value></data>
   <data name="Textures_AnimTooLarge" xml:space="preserve"><value>This animation is too large to animate, so its first frame is used as a picture.</value></data>
-  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Only the table panel can be animated, so the first frame of this animation is used.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Only the table panel and the laptop screen can be animated, so the first frame of this animation is used.</value></data>
   <data name="Textures_YourAnimation" xml:space="preserve"><value>Your animation — {0} frames</value></data>
   <data name="Textures_AuthorAnimation" xml:space="preserve"><value>This mod already animates the table ({0} frames). An animated GIF, WebP, APNG or short video replaces that animation; a picture covers the whole panel.</value></data>
   <data name="Textures_AnimOrphaned" xml:space="preserve"><value>This app animated this table, but its backup is gone (was the mod folder renamed?). Reinstall the mod to change the table.</value></data>
@@ -379,4 +379,8 @@ Do you want to proceed?</value></data>
   <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: the mod’s own animation has no frame this app can reuse</value></data>
   <data name="Anim_Unparseable" xml:space="preserve"><value>{0} could not be read as an effect file</value></data>
   <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Only the first {0} s of this clip is used.</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>This laptop screen can’t be animated, so the first frame of this animation is used.</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Put the laptop screen back the way the mod shipped it? This removes your laptop animation and any picture you put on the screen.</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>Put the table and the laptop screen back the way the mod shipped them? This removes both animations.</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>The other animation in this mod could not be kept ({0}), so nothing was written.</value></data>
 </root>

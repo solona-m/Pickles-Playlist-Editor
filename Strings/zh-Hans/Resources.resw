@@ -350,7 +350,7 @@
   <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — 动画，{1} 帧，循环 {2:0.0} 秒。模组会增大约 {3} MB。</value></data>
   <data name="Textures_AnimCapped" xml:space="preserve"><value>为了放得下，已从 {1} 帧精简到 {0} 帧；循环时长不变。</value></data>
   <data name="Textures_AnimTooLarge" xml:space="preserve"><value>这个动画太大，无法做成动画，所以使用它的第一帧。</value></data>
-  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>只有桌面板可以做成动画，所以使用这个动画的第一帧。</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>只有桌面板和笔记本屏幕可以做成动画，所以使用这个动画的第一帧。</value></data>
   <data name="Textures_YourAnimation" xml:space="preserve"><value>你的动画 — {0} 帧</value></data>
   <data name="Textures_AuthorAnimation" xml:space="preserve"><value>这个模组已经让桌子动起来了（{0} 帧）。动态 GIF、WebP、APNG 或短视频会替换这段动画；图片会覆盖整个面板。</value></data>
   <data name="Textures_AnimOrphaned" xml:space="preserve"><value>这个应用曾给这张桌子做过动画，但备份不见了（模组文件夹被改名了吗？）。重新安装模组才能修改桌子。</value></data>
@@ -379,4 +379,8 @@
   <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}：模组自带的动画没有可以重用的帧</value></data>
   <data name="Anim_Unparseable" xml:space="preserve"><value>无法把 {0} 读取为特效文件</value></data>
   <data name="Textures_AnimTrimmed" xml:space="preserve"><value>只使用这个片段的前 {0} 秒。</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>这个笔记本屏幕无法做成动画，所以使用这个动画的第一帧。</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>把笔记本屏幕恢复成模组自带的样子吗？这会移除你的笔记本动画以及你放在屏幕上的任何图片。</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>把桌子和笔记本屏幕恢复成模组自带的样子吗？这会移除两个动画。</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>无法保留这个模组里的另一个动画（{0}），所以没有写入任何内容。</value></data>
 </root>

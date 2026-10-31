@@ -350,7 +350,7 @@ Vill du fortsätta?</value></data>
   <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animation, {1} bildrutor, {2:0.0} s loop. Gör modden ungefär {3} MB större.</value></data>
   <data name="Textures_AnimCapped" xml:space="preserve"><value>Glesad från {1} till {0} bildrutor för att få plats; loopen behåller sin längd.</value></data>
   <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Den här animationen är för stor att animera, så dess första bildruta används.</value></data>
-  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Bara bordspanelen kan animeras, så den första bildrutan i den här animationen används.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Bara bordspanelen och laptopskärmen kan animeras, så den första bildrutan i den här animationen används.</value></data>
   <data name="Textures_YourAnimation" xml:space="preserve"><value>Din animation — {0} bildrutor</value></data>
   <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Den här modden animerar redan bordet ({0} bildrutor). En animerad GIF, WebP eller APNG eller en kort video ersätter den animationen; en bild täcker hela panelen.</value></data>
   <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Den här appen animerade bordet, men dess säkerhetskopia saknas (har moddmappen bytt namn?). Installera om modden för att ändra bordet.</value></data>
@@ -379,4 +379,8 @@ Vill du fortsätta?</value></data>
   <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: moddens egen animation har ingen bildruta som appen kan återanvända</value></data>
   <data name="Anim_Unparseable" xml:space="preserve"><value>{0} kunde inte läsas som en effektfil</value></data>
   <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Bara de första {0} s av klippet används.</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>Den här laptopskärmen kan inte animeras, så den första bildrutan i den här animationen används.</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Återställa laptopskärmen som modden levererades? Det tar bort din laptopanimation och alla bilder du har lagt på skärmen.</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>Återställa bordet och laptopskärmen som modden levererades? Det tar bort båda animationerna.</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>Den andra animationen i den här modden kunde inte behållas ({0}), så ingenting skrevs.</value></data>
 </root>

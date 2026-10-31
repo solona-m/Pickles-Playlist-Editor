@@ -350,7 +350,7 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animación, {1} fotogramas, bucle de {2:0.0} s. Añade unos {3} MB al mod.</value></data>
   <data name="Textures_AnimCapped" xml:space="preserve"><value>Reducido de {1} a {0} fotogramas para que quepa; el bucle mantiene su duración.</value></data>
   <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Esta animación es demasiado grande para animarla, así que se usa su primer fotograma.</value></data>
-  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Solo se puede animar el panel de la mesa, así que se usa el primer fotograma de esta animación.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Solo se pueden animar el panel de la mesa y la pantalla del portátil, así que se usa el primer fotograma de esta animación.</value></data>
   <data name="Textures_YourAnimation" xml:space="preserve"><value>Tu animación — {0} fotogramas</value></data>
   <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Este mod ya anima la mesa ({0} fotogramas). Un GIF, WebP o APNG animado o un vídeo corto reemplaza esa animación; una imagen cubre todo el panel.</value></data>
   <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Esta app animó la mesa, pero su copia de seguridad ya no está (¿cambiaste el nombre de la carpeta del mod?). Reinstala el mod para cambiar la mesa.</value></data>
@@ -379,4 +379,8 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: la animación del propio mod no tiene ningún fotograma que esta app pueda reutilizar</value></data>
   <data name="Anim_Unparseable" xml:space="preserve"><value>No se pudo leer {0} como archivo de efecto</value></data>
   <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Solo se usan los primeros {0} s de este clip.</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>Esta pantalla de portátil no se puede animar, así que se usa el primer fotograma de esta animación.</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>¿Dejar la pantalla del portátil como venía en el mod? Esto quita tu animación del portátil y cualquier imagen que pusieras en la pantalla.</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>¿Dejar la mesa y la pantalla del portátil como venían en el mod? Esto quita las dos animaciones.</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>No se pudo conservar la otra animación de este mod ({0}), así que no se escribió nada.</value></data>
 </root>

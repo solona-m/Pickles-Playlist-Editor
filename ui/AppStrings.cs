@@ -324,6 +324,16 @@ namespace Pickles_Playlist_Editor
         public static string TexturesEncodingFrame(int frame, int count) =>
             string.Format(_r.GetString("Textures_EncodingFrame"), frame, count);
         public static string Textures_ConfirmRestoreAnimation => _r.GetString("Textures_ConfirmRestoreAnimation");
+        public static string Textures_ConfirmRestoreLaptopAnimation => _r.GetString("Textures_ConfirmRestoreLaptopAnimation");
+        public static string Textures_ConfirmRestoreAllAnimations => _r.GetString("Textures_ConfirmRestoreAllAnimations");
+        public static string TexturesAnimationLaptopStill => _r.GetString("Textures_AnimLaptopStill");
+
+        /// <summary>True for the sentence the core writes when one animation could not be kept beside the other.</summary>
+        public static bool IsLayerNotKept(string text)
+        {
+            var parts = _r.GetString("Anim_LayerNotKept").Split("{0}");
+            return parts.Length == 2 && text.StartsWith(parts[0], StringComparison.Ordinal) && text.EndsWith(parts[1], StringComparison.Ordinal);
+        }
 
         /// <summary>The sentence for a message from the animation core.</summary>
         public static string TexturesAnimationMessage(Utils.AnimationMessage message, string arg) =>

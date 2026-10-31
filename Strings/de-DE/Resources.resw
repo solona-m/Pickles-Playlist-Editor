@@ -350,7 +350,7 @@ Möchtest du fortfahren?</value></data>
   <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — Animation, {1} Bilder, {2:0.0} s Schleife. Macht die Mod etwa {3} MB größer.</value></data>
   <data name="Textures_AnimCapped" xml:space="preserve"><value>Von {1} auf {0} Bilder ausgedünnt; die Schleife bleibt gleich lang.</value></data>
   <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Diese Animation ist zu groß zum Animieren, darum wird ihr erstes Bild verwendet.</value></data>
-  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Nur das Tischpanel kann animiert werden, darum wird das erste Bild dieser Animation verwendet.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Nur das Tischpanel und der Laptopbildschirm können animiert werden, darum wird das erste Bild dieser Animation verwendet.</value></data>
   <data name="Textures_YourAnimation" xml:space="preserve"><value>Deine Animation — {0} Bilder</value></data>
   <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Diese Mod animiert den Tisch schon ({0} Bilder). Ein animiertes GIF, WebP, APNG oder ein kurzes Video ersetzt diese Animation; ein Bild deckt das ganze Panel ab.</value></data>
   <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Diese App hat den Tisch animiert, aber ihre Sicherung fehlt (wurde der Mod-Ordner umbenannt?). Installiere die Mod neu, um den Tisch zu ändern.</value></data>
@@ -379,4 +379,8 @@ Möchtest du fortfahren?</value></data>
   <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: die Animation der Mod hat kein Bild, das diese App wiederverwenden kann</value></data>
   <data name="Anim_Unparseable" xml:space="preserve"><value>{0} konnte nicht als Effektdatei gelesen werden</value></data>
   <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Nur die ersten {0} s dieses Clips werden verwendet.</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>Dieser Laptopbildschirm kann nicht animiert werden, darum wird das erste Bild dieser Animation verwendet.</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Den Laptopbildschirm so wiederherstellen, wie die Mod ihn liefert? Das entfernt deine Laptop-Animation und jedes Bild, das du auf den Bildschirm gelegt hast.</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>Den Tisch und den Laptopbildschirm so wiederherstellen, wie die Mod sie liefert? Das entfernt beide Animationen.</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>Die andere Animation in dieser Mod konnte nicht erhalten werden ({0}), darum wurde nichts geschrieben.</value></data>
 </root>

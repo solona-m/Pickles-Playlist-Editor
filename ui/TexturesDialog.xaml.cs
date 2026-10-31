@@ -58,7 +58,7 @@ namespace Pickles_Playlist_Editor
 
             public bool HasPending => Picked != null;
 
-            // Table card only, and set only by RescanTableAsync: the last scan of the table effect.
+            // Table and laptop cards, set only by RescanTableAsync: the last scan of the effect they share.
             public DjTableAnimationSite? Site { get; set; }
             public AnimationStatus? Animation { get; set; }
             public TableCardView? View { get; set; }
@@ -223,9 +223,10 @@ namespace Pickles_Playlist_Editor
                     card.Picked = null;
                     card.PickedName = string.Empty;
                     card.PickedAnimation = null;
-                    await RescanTableAsync(card);
-                    await RefreshCardAsync(card);
                 }
+                // The laptop is animated through the table's effect files, so both scan together.
+                await RescanTableAsync(_cards["table"]);
+                foreach (var card in _cards.Values) await RefreshCardAsync(card);
             }
             finally
             {
@@ -374,9 +375,10 @@ namespace Pickles_Playlist_Editor
         {
             try
             {
-                bool table = card.Key == "table";
-                bool animate = table && card.View?.AnimationAllowed == true;
-                int maxFrames = card.Site is { Capacity: > 0 } site ? site.Capacity : FramePlan.MaxFrames;
+                bool table = card.Key == "table", laptop = card.Key == "laptop";
+                bool animate = (table || laptop) && card.View?.AnimationAllowed == true;
+                int capacity = card.Site is not { } site ? 0 : laptop ? site.LaptopCapacity : site.Capacity;
+                int maxFrames = capacity > 0 ? capacity : FramePlan.MaxFrames;
 
                 // Decoding a long GIF composites every frame, so it stays off the UI thread.
                 LoadedPicture? loaded;
@@ -408,6 +410,7 @@ namespace Pickles_Playlist_Editor
                         AppStrings.TexturesAnimationUnsupported(reason),
                     PictureNote.TableOnly when table && card.View?.StateKey == TableText.ScanFailed =>
                         AppStrings.TexturesAnimationScanFailed(card.ScanError ?? string.Empty),
+                    PictureNote.TableOnly when laptop && card.Site != null => AppStrings.TexturesAnimationLaptopStill,
                     PictureNote.TableOnly => AppStrings.TexturesAnimationTableOnly,
                     _ => null,
                 };
@@ -499,18 +502,40 @@ namespace Pickles_Playlist_Editor
             SetBusy(true);
             StatusText.Text = AppStrings.Textures_Composing;
 
-            List<BgraImage> previews;
-            AnimationSummary summary;
+            bool laptop = card.Key == "laptop";
+            List<BgraImage>? previews;
+            AnimationSummary? summary;
+            string? refusal;
             try
             {
-                // The summary plans the overlay, so it stays off the UI thread too.
-                (previews, summary) = await Task.Run(() =>
-                    (DjTableAnimationCore.PreviewFrames(File.ReadAllBytes(target.FullPath), target.Surface, frames, fit),
-                     DjTableAnimationCore.Summarise(site, frames.Count, timeline, animation.Thinned)));
+                // The summary plans the overlay, so it stays off the UI thread too. The laptop has no
+                // full-atlas route: a laptop the overlay refuses takes the first frame as a still.
+                (previews, summary, refusal) = await Task.Run<(List<BgraImage>?, AnimationSummary?, string?)>(() =>
+                {
+                    byte[] atlas = File.ReadAllBytes(target.FullPath);
+                    if (laptop)
+                    {
+                        string why = string.Empty;
+                        try { if (AnimationLayers.PlanLaptop(site, atlas, out why) == null) return (null, null, why); }
+                        catch (Exception ex) { return (null, null, "exception: " + ex.Message); }
+                    }
+                    return (DjTableAnimationCore.PreviewFrames(atlas, target.Surface, frames, fit),
+                        DjTableAnimationCore.Summarise(site, frames.Count, timeline, animation.Thinned,
+                            laptop ? AnimatedSurface.Laptop : AnimatedSurface.Table), null);
+                });
             }
             finally
             {
                 SetBusy(false);
+            }
+
+            if (previews == null || summary == null)
+            {
+                Logger.LogInfo("Laptop frames: first frame as a still ({Reason}).", refusal ?? string.Empty);
+                card.PickedAnimation = null;
+                card.PickedNote = AppStrings.TexturesAnimationLaptopStill;
+                await RefreshPreviewAsync(card);
+                return;
             }
 
             StatusText.Text = string.Empty;
@@ -553,16 +578,18 @@ namespace Pickles_Playlist_Editor
                 var picture = card.Picked!;
                 var fit = SelectedFit(card);
 
-                if (card.Key == "table")
+                if (card.Key == "table" || card.Key == "laptop" && card.Site != null
+                    && (card.PickedAnimation != null || card.View?.StillRoute == StillRoute.PasteThenRestore))
                 {
-                    // The table card rescans after any write attempt and redraws from disk.
+                    // The table and laptop cards rescan after any write attempt and redraw from disk.
                     try
                     {
                         var (ok, warnings, error) = await ApplyTableAsync(card, target, picture, fit);
                         notes.AddRange(warnings);
                         if (!ok)
                         {
-                            failures.Add(error);
+                            if (AppStrings.IsLayerNotKept(error)) await OfferRestoreAllAsync(card, error, null);
+                            else failures.Add(error);
                             continue;
                         }
                         written++;
@@ -621,18 +648,25 @@ namespace Pickles_Playlist_Editor
             }
         }
 
-        /// <summary>The table's write, routed by what is on the table now.</summary>
+        /// <summary>The table's or laptop's write, routed by what is on that surface now.</summary>
         private async Task<(bool Ok, IReadOnlyList<string> Warnings, string Error)> ApplyTableAsync(
             Card card, DjTextureTarget target, BgraImage picture, FitMode fit)
         {
             var site = card.Site;
             var animation = card.PickedAnimation;
+            bool laptop = card.Key == "laptop";
 
             if (animation is { Frames: { } frames, Timeline: { } timeline } && site != null)
             {
                 var progress = new Progress<int>(k => StatusText.Text = AppStrings.TexturesEncodingFrame(k, frames.Count));
                 return await Task.Run(() =>
                 {
+                    if (laptop)
+                    {
+                        bool done = DjTableAnimation.ApplyLaptop(site, frames, timeline, fit, progress, out var lw, out string le, out bool fellBack);
+                        if (done && fellBack) lw = lw.Append(AppStrings.TexturesAnimationLaptopStill).ToList();
+                        return (done, lw, le);
+                    }
                     bool ok = DjTableAnimation.Apply(site, frames, timeline, fit, progress, out var w, out string e);
                     return (ok, w, e);
                 });
@@ -653,7 +687,8 @@ namespace Pickles_Playlist_Editor
             {
                 return await Task.Run(() =>
                 {
-                    bool ok = DjTableAnimation.PasteThenRestore(site, picture, fit, out var w, out string e);
+                    bool ok = DjTableAnimation.PasteThenRestore(site, laptop ? AnimatedSurface.Laptop : AnimatedSurface.Table,
+                        picture, fit, out var w, out string e);
                     return (ok, w, e);
                 });
             }
@@ -684,11 +719,18 @@ namespace Pickles_Playlist_Editor
 
             if (!CanRestore(card)) return;
 
-            bool animated = card.Site?.HasState == true || card.View?.StateKey == TableText.ScanFailed;
+            string confirm = AppStrings.Textures_ConfirmRestore;
+            if (card.Key == "laptop" && card.Site is { } lapSite && DjTableAnimationCore.HasLayer(lapSite, AnimatedSurface.Laptop))
+                confirm = AppStrings.Textures_ConfirmRestoreLaptopAnimation;
+            else if (card.Key == "table" && card.View?.StateKey == TableText.ScanFailed)
+                confirm = AppStrings.Textures_ConfirmRestoreAnimation;
+            else if (card.Key == "table" && card.Site is { } site && DjTableAnimationCore.HasLayer(site, AnimatedSurface.Table))
+                // Cleaning up an interrupted run takes the laptop's animation too.
+                confirm = !DjTableAnimationCore.IsLive(site) && site.State?.Laptop != null
+                    ? AppStrings.Textures_ConfirmRestoreAllAnimations
+                    : AppStrings.Textures_ConfirmRestoreAnimation;
             const uint YesNo = 0x00000004 | 0x00000020;  // MB_YESNO | MB_ICONQUESTION
-            if (MessageBox(OwnerWindow(),
-                    animated ? AppStrings.Textures_ConfirmRestoreAnimation : AppStrings.Textures_ConfirmRestore,
-                    AppStrings.Dlg_Textures_Title, YesNo) != 6) // IDYES
+            if (MessageBox(OwnerWindow(), confirm, AppStrings.Dlg_Textures_Title, YesNo) != 6) // IDYES
                 return;
 
             Start(() => RestoreAsync(card, target), "Restoring the shipped picture");
@@ -700,6 +742,7 @@ namespace Pickles_Playlist_Editor
             StatusText.Text = AppStrings.Textures_Restoring;
 
             bool table = card.Key == "table";
+            var surface = card.Key == "laptop" ? AnimatedSurface.Laptop : AnimatedSurface.Table;
             try
             {
                 // After a failed scan there is no site to act on: scan again, and write nothing if that fails too.
@@ -714,15 +757,15 @@ namespace Pickles_Playlist_Editor
                     }
                 }
 
-                var site = table ? card.Site : null;
+                var site = card.Key is "table" or "laptop" ? card.Site : null;
                 var (ok, error, warnings) = await Task.Run(() =>
                 {
                     var notes = new List<string>();
                     string message = string.Empty;
                     bool restored = true;
-                    if (site is { HasState: true })
+                    if (site != null && DjTableAnimationCore.HasLayer(site, surface))
                     {
-                        restored = DjTableAnimation.Restore(site, out var w, out message);
+                        restored = DjTableAnimation.Restore(site, surface, out var w, out message);
                         notes.AddRange(w);
                     }
                     if (restored && target.IsCustomised)
@@ -734,14 +777,39 @@ namespace Pickles_Playlist_Editor
                 });
 
                 if (ok) StatusText.Text = string.Join("\n", warnings.Prepend(AppStrings.Textures_Restored));
+                else if (site != null && AppStrings.IsLayerNotKept(error)) await OfferRestoreAllAsync(card, error, target);
                 else MessageBox(OwnerWindow(), string.Join("\n\n", warnings.Prepend(error)), AppStrings.Dlg_Textures_Title, 0x00000010);
             }
             finally
             {
-                if (table) await RescanTableAsync(card);
-                await RefreshCardAsync(card);
+                await RescanTableAsync(card);
+                foreach (var c in _cards.Values.Where(c => c == card || c.Key is "table" or "laptop")) await RefreshCardAsync(c);
                 SetBusy(false);
             }
+        }
+
+        /// <summary>
+        /// The way out when one animation cannot be kept beside the other: remove both, if the user
+        /// agrees, then the still of the card that asked.
+        /// </summary>
+        private async Task OfferRestoreAllAsync(Card card, string error, DjTextureTarget? still)
+        {
+            const uint YesNo = 0x00000004 | 0x00000030;  // MB_YESNO | MB_ICONWARNING
+            if (card.Site is not { } site
+                || MessageBox(OwnerWindow(), error + "\n\n" + AppStrings.Textures_ConfirmRestoreAllAnimations, AppStrings.Dlg_Textures_Title, YesNo) != 6)
+                return;
+            var (ok, message) = await Task.Run(() =>
+            {
+                bool done = DjTableAnimation.RestoreAll(site, out _, out string e);
+                if (done && still is { IsCustomised: true })
+                {
+                    done = DjTextures.Restore(still, out e);
+                    if (done) DjTextures.Reload(_modFolder);
+                }
+                return (done, e);
+            });
+            if (ok) StatusText.Text = AppStrings.Textures_Restored;
+            else MessageBox(OwnerWindow(), message, AppStrings.Dlg_Textures_Title, 0x00000010);
         }
 
         // ---- drawing the cards ---------------------------------------------------------------------
@@ -755,17 +823,21 @@ namespace Pickles_Playlist_Editor
                 return;
             }
 
-            // The table plays back what this app put on it, read from the frame files themselves.
+            // The table and laptop play back what this app put on them, read from the frame files themselves.
+            var layer = card.Site?.State is not { } state ? null
+                : card.Key == "laptop" ? AnimationLayers.LaptopOf(state) : AnimationLayers.TableOf(state);
+            var layerFrames = card.Site?.State is not { } st ? null : card.Key == "laptop" ? st.Laptop?.Frames : st.Frames;
             if (card.View?.StateKey is TableText.YourAnimation or TableText.YourStill
-                && card.Site is { State: { } state } site && state.Frames.Count > 0)
+                && card.Site is { } site && layerFrames is { Count: > 0 })
             {
-                var timeline = DjTableAnimationCore.LiveTimeline(state);
-                var frames = await Task.Run(() => state.Frames.Select(f =>
+                var timeline = layer?.Timeline;
+                var frameRect = layer?.FrameRect;
+                var frames = await Task.Run(() => layerFrames.Select(f =>
                 {
                     try
                     {
                         var bytes = File.ReadAllBytes(Path.Combine(site.ModRoot, f.Relative));
-                        return DjTableAnimationCore.ReadFrame(bytes, state, target.Surface);
+                        return DjTableAnimationCore.ReadFrame(bytes, frameRect, target.Surface);
                     }
                     catch
                     {
@@ -853,7 +925,7 @@ namespace Pickles_Playlist_Editor
         }
 
         private static string WarningsLine(Card card) =>
-            card.Site is { Warnings.Count: > 0 } site ? "\n" + string.Join("\n", site.Warnings) : string.Empty;
+            card.Key == "table" && card.Site is { Warnings.Count: > 0 } site ? "\n" + string.Join("\n", site.Warnings) : string.Empty;
 
         private static bool CanChoose(Card card) => card.View?.TableChangeAllowed ?? true;
 
@@ -866,33 +938,46 @@ namespace Pickles_Playlist_Editor
         /// </summary>
         private async Task RescanTableAsync(Card card)
         {
-            if (card.Key != "table" || card.Target is not { } target)
+            if (card.Key == "lidlogo") return;
+            var tableCard = _cards["table"];
+            var laptopCard = _cards["laptop"];
+            laptopCard.Site = null;
+            laptopCard.Animation = null;
+            laptopCard.View = null;
+            if (tableCard.Target is not { } target)
             {
-                card.Site = null;
-                card.Animation = null;
-                card.View = null;
+                tableCard.Site = null;
+                tableCard.Animation = null;
+                tableCard.View = null;
                 return;
             }
 
             try
             {
+                var laptop = laptopCard.Target;
                 var (site, status) = await Task.Run(() =>
                 {
-                    var scanned = DjTableAnimation.Scan(target);
+                    var scanned = DjTableAnimation.Scan(target, laptop);
                     return (scanned, DjTableAnimationCore.Status(scanned));
                 });
-                card.Site = site;
-                card.Animation = status;
-                card.ScanError = null;
-                card.View = TableCard.Describe(status, site.Mode, site.HasState, target.IsCustomised);
+                tableCard.Site = site;
+                tableCard.Animation = status;
+                tableCard.ScanError = null;
+                tableCard.View = TableCard.Describe(status, site.Mode, DjTableAnimationCore.HasLayer(site, AnimatedSurface.Table), target.IsCustomised);
+                if (laptop != null)
+                {
+                    laptopCard.Site = site;
+                    laptopCard.Animation = DjTableAnimationCore.Status(site, AnimatedSurface.Laptop);
+                    laptopCard.View = LaptopCard.Describe(site, laptop.IsCustomised);
+                }
             }
             catch (Exception ex)
             {
                 Logger.LogWarn("Reading the table effect failed: {Error}", ex.Message);
-                card.Site = null;
-                card.Animation = null;
-                card.ScanError = ex.Message;
-                card.View = TableCard.ScanFailed(
+                tableCard.Site = null;
+                tableCard.Animation = null;
+                tableCard.ScanError = ex.Message;
+                tableCard.View = TableCard.ScanFailed(
                     DjAnimationScan.TryReadState(DjTableAnimation.StateFolderFor(target.ModName)) != null);
             }
         }
