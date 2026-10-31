@@ -117,11 +117,9 @@ namespace Pickles_Playlist_Editor.Utils
                 }
                 else
                 {
-                    string tmpOgg = Path.Combine(System.IO.Path.GetTempPath(), "temp_extracted.ogg");
                     try
                     {
-                        ScdOggExtractor.ExtractOgg(path, tmpOgg);
-                        SongAttributes retval = GetAttribtesFromFile(tmpOgg);
+                        SongAttributes retval = ScdOggExtractor.WithExtractedOgg(path, GetAttribtesFromFile);
                         bpmCache[path] = retval.BPM;
                         durationCache[path] = (int)retval.Duration.TotalSeconds;
 
@@ -130,10 +128,6 @@ namespace Pickles_Playlist_Editor.Utils
                     catch
                     {
                         return new TimeSpan(0);
-                    }
-                    finally
-                    {
-                        try { File.Delete(tmpOgg); } catch { }
                     }
                 }
             }
@@ -176,9 +170,7 @@ namespace Pickles_Playlist_Editor.Utils
                     return bpmCache[path];
                 }
 
-                string tmpOgg = Path.Combine(System.IO.Path.GetTempPath(), "temp_extracted.ogg");
-                ScdOggExtractor.ExtractOgg(path, tmpOgg);
-                SongAttributes retval = GetAttribtesFromFile(tmpOgg);
+                SongAttributes retval = ScdOggExtractor.WithExtractedOgg(path, GetAttribtesFromFile);
                 bpmCache[path] = retval.BPM;
                 durationCache[path] = (int)retval.Duration.TotalSeconds;
                 return retval.BPM;

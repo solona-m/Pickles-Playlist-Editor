@@ -67,18 +67,9 @@ namespace Pickles_Playlist_Editor.Utils
                     return keyCache[path];
                 }
 
-                string tmpOgg = Path.Combine(Path.GetTempPath(), "temp_extracted_key.ogg");
-                try
-                {
-                    ScdOggExtractor.ExtractOgg(path, tmpOgg);
-                    string key = DetectKeyFromFile(tmpOgg);
-                    keyCache[path] = key;
-                    return key;
-                }
-                finally
-                {
-                    try { File.Delete(tmpOgg); } catch { }
-                }
+                string key = ScdOggExtractor.WithExtractedOgg(path, DetectKeyFromFile);
+                keyCache[path] = key;
+                return key;
             }
             catch (Exception ex)
             {
