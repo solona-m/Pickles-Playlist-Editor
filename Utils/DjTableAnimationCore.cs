@@ -354,6 +354,11 @@ namespace Pickles_Playlist_Editor.Utils
                 }
 
                 // A live laptop goes back on top of the new table layer, within the tested size.
+                if (carriedLaptop != null && site.Laptop == null)
+                {
+                    error = AnimationText.Format(AnimationMessage.LayerNotKept, "NoLaptop");
+                    return false;
+                }
                 if (carriedLaptop != null)
                     for (int i = 0; i < builds.Count; i++)
                     {
@@ -591,7 +596,6 @@ namespace Pickles_Playlist_Editor.Utils
                     Refuse("exception: " + ex);
                     return null;
                 }
-        
             }
         }
 

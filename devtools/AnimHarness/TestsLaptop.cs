@@ -73,7 +73,7 @@ internal static partial class Program
         AvfxModel.Parse(AvfxChunk.Parse(avfx).All("Modl").ElementAt(LaptopModel).Data!, out _)!;
 
     private static void PadParticles(TempMod mod, int extra) =>
-        foreachEffect(mod, root =>
+        ForEachEffect(mod, root =>
         {
             int last = root.Children!.FindLastIndex(c => c.Name == "Ptcl");
             var copy = root.All("Ptcl").First();
@@ -82,7 +82,7 @@ internal static partial class Program
         });
 
     private static void PadTextures(TempMod mod, int extra) =>
-        foreachEffect(mod, root =>
+        ForEachEffect(mod, root =>
         {
             int last = root.Children!.FindLastIndex(c => c.Name == "Tex");
             for (int i = 0; i < extra; i++) root.Children.Insert(last + 1, AvfxChunk.Leaf("Tex", AvfxChunk.TextBytes($"vfx/pad{i}.atex")));
@@ -90,7 +90,7 @@ internal static partial class Program
         });
 
     private static void PadItems(TempMod mod, int extra) =>
-        foreachEffect(mod, root =>
+        ForEachEffect(mod, root =>
         {
             var last = root.All("Emit").First().All("ItPr").Last();
             var first = new List<AvfxChunk>();
@@ -98,7 +98,7 @@ internal static partial class Program
             for (int i = 0; i < extra; i++) last.Children.AddRange(first.Select(c => c.Clone()));
         });
 
-    private static void foreachEffect(TempMod mod, Action<AvfxChunk> edit)
+    private static void ForEachEffect(TempMod mod, Action<AvfxChunk> edit)
     {
         foreach (var rel in Fixtures.PicklesAvfx) EditAvfx(mod, rel, edit);
     }
@@ -622,16 +622,16 @@ internal static partial class Program
                 Check(!ok && refused && failed == 0 && skipped.Count == 1 && skipped[0].StartsWith(expect) && mod.Snapshot().SequenceEqual(snap),
                     $"{label}: refused as {expect}, nothing written ({string.Join("; ", skipped)})");
             }
-            Refused("UvSt", "UvSetNotCalibrated", m => foreachEffect(m, r => r.All("Ptcl").ElementAt(LaptopParticle).Child("UvSt")!.Data![^1] ^= 1));
-            Refused("RMT", "DrawSetupNotCalibrated", m => foreachEffect(m, r => r.All("Ptcl").ElementAt(LaptopParticle).SetInt("RMT", 9)));
-            Refused("VIdx", "ModelUnreadable", m => foreachEffect(m, r =>
+            Refused("UvSt", "UvSetNotCalibrated", m => ForEachEffect(m, r => r.All("Ptcl").ElementAt(LaptopParticle).Child("UvSt")!.Data![^1] ^= 1));
+            Refused("RMT", "DrawSetupNotCalibrated", m => ForEachEffect(m, r => r.All("Ptcl").ElementAt(LaptopParticle).SetInt("RMT", 9)));
+            Refused("VIdx", "ModelUnreadable", m => ForEachEffect(m, r =>
             {
                 var modl = r.All("Modl").ElementAt(LaptopModel);
                 var d = modl.Data!;
                 int vdrw = BitConverter.ToInt32(d, 4), at = 8 + ((vdrw + 3) & ~3);
                 BitConverter.GetBytes(BitConverter.ToInt32(d, at + 4) - 2).CopyTo(d, at + 4);
             }));
-            Refused("UV pair", "UvPairsDiffer", m => foreachEffect(m, r => r.All("Modl").ElementAt(LaptopModel).Data![8 + 24] ^= 1));
+            Refused("UV pair", "UvPairsDiffer", m => ForEachEffect(m, r => r.All("Modl").ElementAt(LaptopModel).Data![8 + 24] ^= 1));
             Refused("models", "TooManyModels", m => { foreach (var rel in Fixtures.PicklesAvfx) PadModels(m, rel, 254); });
             Refused("throw", "exception:", planner: (_, _) => throw new InvalidOperationException("boom"));
             Refused("crop", "encode:", planner: (s, a) => AnimationLayers.PlanLaptop(s, a, out _)! with { Crop = a[..80] });
@@ -665,12 +665,12 @@ internal static partial class Program
                 option["Files"]!["vfx/atex/eq3.atex"] = @"common\7\eq3b.atex";
                 File.WriteAllText(meta, root.ToString());
             });
-            NotOffered("two eq3 particles", () => Fixtures.Pickles(withLaptop: true), m => foreachEffect(m, r =>
+            NotOffered("two eq3 particles", () => Fixtures.Pickles(withLaptop: true), m => ForEachEffect(m, r =>
             {
                 var tex = r.All("Tex").Select(t => t.Text()).ToList().FindIndex(t => t == "vfx/atex/eq3.atex");
                 r.All("Ptcl").ElementAt(0).Child("TC1")!.Child("TLst")!.Data = new[] { (byte)tex };
             }));
-            NotOffered("laptop item twice", () => Fixtures.Pickles(withLaptop: true), m => foreachEffect(m, r =>
+            NotOffered("laptop item twice", () => Fixtures.Pickles(withLaptop: true), m => ForEachEffect(m, r =>
             {
                 var last = r.All("Emit").First().All("ItPr").Last();
                 var items = new List<List<AvfxChunk>>();
@@ -678,13 +678,13 @@ internal static partial class Program
                 var lap = items.First(i => BitConverter.ToInt32(i.First(c => c.Name == "TgtB").Data!) == LaptopParticle);
                 last.Children.AddRange(lap.Select(c => c.Clone()));
             }));
-            NotOffered("orphaned", () => Fixtures.Pickles(withLaptop: true), m => foreachEffect(m, r =>
+            NotOffered("orphaned", () => Fixtures.Pickles(withLaptop: true), m => ForEachEffect(m, r =>
             {
                 int last = r.Children!.FindLastIndex(c => c.Name == "Tex");
                 r.Children.Insert(last + 1, AvfxChunk.Leaf("Tex", AvfxChunk.TextBytes("vfx/atex/ppe_zzzz_1_00.atex")));
                 r.SetInt("TxCn", r.ReadInt("TxCn") + 1);
             }));
-            NotOffered("site problem", () => Fixtures.Pickles(withLaptop: true), m => foreachEffect(m, r => r.All("Ptcl").ElementAt(7).Children!.RemoveAll(c => c.Name == "Col")));
+            NotOffered("site problem", () => Fixtures.Pickles(withLaptop: true), m => ForEachEffect(m, r => r.All("Ptcl").ElementAt(7).Children!.RemoveAll(c => c.Name == "Col")));
             NotOffered("no laptop target", () => Fixtures.Pickles());
         });
 
@@ -966,6 +966,95 @@ internal static partial class Program
                 var ip = AvfxChunk.Parse(inPlace).All("Ptcl").ToList();
                 var both = AvfxChunk.Parse(b!).All("Ptcl").ToList();
                 Check(avfx.Inspect.Info.AnimationSet.All(i => i == LaptopParticle || Fixtures.ParticleBytes(both[i]).AsSpan().SequenceEqual(Fixtures.ParticleBytes(ip[i]))), $"{avfx.Relative}: InPlace particles kept");
+            }
+        });
+
+        Add("LaptopNoTargetExit", LTag("A-4 E-5 E-27"), () =>
+        {
+            using var mod = Fixtures.Pickles(withLaptop: true);
+            var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
+            var groups = mod.Groups();
+            Check(ApplyFrames(mod, 4, out string e) && ApplyLaptop(mod, 3, out e, mod.NewHost()), e);
+            // The laptop texture can no longer be found, but its layer is live in the effects.
+            DjTableAnimationSite Blind(TempModHost h) => DjAnimationScan.Inspect(mod.Root, mod.Table, mod.StateFolder, h.ReadFile, null);
+            var snap = mod.Snapshot();
+            var host = mod.NewHost();
+            Check(!DjTableAnimationCore.Apply(host, Blind(host), Fixtures.Frames(2), Fixtures.Timeline(2), FitMode.Fill, null, out _, out e)
+                && e.StartsWith(nameof(AnimationMessage.LayerNotKept)), "table re-apply: LayerNotKept " + e);
+            host = mod.NewHost();
+            Check(!DjTableAnimationCore.Restore(host, Blind(host), AnimatedSurface.Table, out _, out e)
+                && e.StartsWith(nameof(AnimationMessage.LayerNotKept)), "table restore: LayerNotKept " + e);
+            host = mod.NewHost();
+            bool pasted = false;
+            Check(!DjTableAnimationCore.PasteThenRestore(host, Blind(host), AnimatedSurface.Table, () => { pasted = true; return null; }, out _, out e)
+                && e.StartsWith(nameof(AnimationMessage.LayerNotKept)) && !pasted, "table still: LayerNotKept, no paste " + e);
+            Check(mod.Snapshot().SequenceEqual(snap), "nothing written");
+            host = mod.NewHost();
+            Check(DjTableAnimationCore.RestoreAll(host, Blind(host), out _, out e), "RestoreAll " + e);
+            CheckPristine(mod, before, groups, "exit");
+        });
+
+        Add("LaptopStillFallbackOnLive", LTag("A-5 A-6 E-9 E-13"), () =>
+        {
+            using var mod = Fixtures.Pickles(withLaptop: true);
+            Check(ApplyFrames(mod, 4, out string e) && ApplyLaptop(mod, 3, out e, mod.NewHost()), e);
+            var tableFrames = ReadState(mod).Frames.Select(f => f.Relative).ToList();
+            int pastes = 0;
+            var host = mod.NewHost();
+            bool fell = false;
+            bool ok = WithLaptopPlanner((_, _) => null, () => DjTableAnimationCore.ApplyLaptopOrStill(host, mod.Scan(host), Fixtures.Frames(5),
+                Fixtures.Timeline(5), FitMode.Fill, null, _ => { pastes++; return null; }, out _, out e, out fell));
+            Check(ok && fell && pastes == 1, $"refused re-apply: one still pasted ({e})");
+            var st = ReadState(mod);
+            Check(st.Laptop == null && st.Frames.Select(f => f.Relative).SequenceEqual(tableFrames), "laptop layer gone, table kept");
+            CheckComposed(mod, "after the still");
+        });
+
+        Add("CarriedLayerNotKeptInterrupted", LTag("A-4 E-5 E-26"), () =>
+        {
+            using var mod = Fixtures.Pickles(withLaptop: true);
+            Check(ApplyFrames(mod, 4, out string e) && ApplyLaptop(mod, 3, out e, mod.NewHost()), e);
+            mod.NewHost().KillAfter = IsAvfxWrite;
+            ApplyFrames(mod, 5, out _, mod.Host);
+            Check(StatusOf(mod) == AnimationStatusKind.Interrupted, "interrupted table re-apply");
+            // An interrupted state is not live, so no live check runs: the carried layer's own rebuild must refuse.
+            void EditState(Action<JObject> edit)
+            {
+                var json = JObject.Parse(StateText(mod));
+                edit(json);
+                File.WriteAllText(DjAnimationScan.StatePath(mod.StateFolder), json.ToString());
+            }
+            EditState(j => j["Laptop"]!["FrameRect"] = JObject.FromObject(new { X = 0, Y = 0, Width = 387, Height = 656 }));
+            var snap = mod.Snapshot();
+            var host = mod.NewHost();
+            Check(!DjTableAnimationCore.Apply(host, mod.Scan(host), Fixtures.Frames(2), Fixtures.Timeline(2), FitMode.Fill, null, out _, out e)
+                && e.StartsWith(nameof(AnimationMessage.LayerNotKept)) && mod.Snapshot().SequenceEqual(snap), "table re-apply: carried laptop refused, nothing written " + e);
+
+            EditState(j => { j["Laptop"]!["FrameRect"] = JObject.FromObject(LapRectInWindow); j["FrameRect"] = JObject.FromObject(new { X = 0, Y = 0, Width = 440, Height = 289 }); });
+            snap = mod.Snapshot();
+            host = mod.NewHost();
+            bool lapOk = DjTableAnimationCore.Apply(host, mod.Scan(host), AnimatedSurface.Laptop, Fixtures.Frames(2), Fixtures.Timeline(2), FitMode.Fill, null, out _, out e, out bool refused);
+            Check(!lapOk && !refused && e.StartsWith(nameof(AnimationMessage.LayerNotKept)) && mod.Snapshot().SequenceEqual(snap), "laptop re-apply: carried table refused, nothing written " + e);
+        });
+
+        Add("PartialRestoreRollback", LTag("A-4 A-10 E-8"), () =>
+        {
+            foreach (var surface in new[] { AnimatedSurface.Table, AnimatedSurface.Laptop })
+            {
+                using var mod = Fixtures.Pickles(withLaptop: true);
+                Check(ApplyFrames(mod, 4, out string e) && ApplyLaptop(mod, 3, out e, mod.NewHost()), e);
+                var effects = AvfxBytes(mod, Fixtures.PicklesAvfx);
+                var groups = mod.Groups();
+                var state = ReadState(mod);
+                var host = mod.NewHost();
+                host.ThrowOn = c => IsAvfxWrite(c) && host.Log.Count(IsAvfxWrite) == 2;
+                Check(!DjTableAnimationCore.Restore(host, mod.Scan(host), surface, out _, out e), $"{surface} restore fails");
+                Check(effects.All(kv => mod.Read(kv.Key).AsSpan().SequenceEqual(kv.Value)) && mod.Groups().Zip(groups).All(z => JToken.DeepEquals(z.First, z.Second)), $"{surface}: effects and groups as before");
+                var st = ReadState(mod);
+                Check(st.Frames.Count == state.Frames.Count && st.Laptop?.Frames.Count == state.Laptop!.Frames.Count, $"{surface}: state as before");
+                var site = mod.Scan(mod.NewHost());
+                Check(DjTableAnimationCore.Status(site, AnimatedSurface.Table).Kind == AnimationStatusKind.Ours
+                    && DjTableAnimationCore.Status(site, AnimatedSurface.Laptop).Kind == AnimationStatusKind.Ours, $"{surface}: both still Ours");
             }
         });
 

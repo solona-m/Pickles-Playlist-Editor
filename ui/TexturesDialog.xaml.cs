@@ -623,6 +623,8 @@ namespace Pickles_Playlist_Editor
             }
 
             if (written > 0) await Task.Run(() => DjTextures.Reload(_modFolder));
+            // A laptop still changes what the laptop card offers, so read the shared effect again.
+            if (results.Keys.Any(c => c.Key == "laptop")) await RescanTableAsync(_cards["laptop"]);
 
             // Written cards redraw from what the apply handed back; only the untouched ones are
             // worth a read from disk. A write that somehow could not be read back falls through to
@@ -798,17 +800,17 @@ namespace Pickles_Playlist_Editor
             if (card.Site is not { } site
                 || MessageBox(OwnerWindow(), error + "\n\n" + AppStrings.Textures_ConfirmRestoreAllAnimations, AppStrings.Dlg_Textures_Title, YesNo) != 6)
                 return;
-            var (ok, message) = await Task.Run(() =>
+            var (ok, message, warnings) = await Task.Run(() =>
             {
-                bool done = DjTableAnimation.RestoreAll(site, out _, out string e);
+                bool done = DjTableAnimation.RestoreAll(site, out var w, out string e);
                 if (done && still is { IsCustomised: true })
                 {
                     done = DjTextures.Restore(still, out e);
                     if (done) DjTextures.Reload(_modFolder);
                 }
-                return (done, e);
+                return (done, e, w);
             });
-            if (ok) StatusText.Text = AppStrings.Textures_Restored;
+            if (ok) StatusText.Text = string.Join("\n", warnings.Prepend(AppStrings.Textures_Restored));
             else MessageBox(OwnerWindow(), message, AppStrings.Dlg_Textures_Title, 0x00000010);
         }
 
@@ -929,8 +931,10 @@ namespace Pickles_Playlist_Editor
 
         private static bool CanChoose(Card card) => card.View?.TableChangeAllowed ?? true;
 
+        // The laptop's still is read live: a plain still write does not rescan its view.
         private static bool CanRestore(Card card) =>
-            card.HasPending || (card.View?.RestoreEnabled ?? card.Target?.IsCustomised ?? false);
+            card.HasPending || (card.View?.RestoreEnabled ?? card.Target?.IsCustomised ?? false)
+            || card.Key == "laptop" && card.Target?.IsCustomised == true;
 
         /// <summary>
         /// Reads the table effect again. The only place Site, Animation and View are set, so the
