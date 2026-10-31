@@ -978,6 +978,7 @@ internal static partial class Program
 
         RegisterOverlayShell();
         RegisterOverlayApp();
+        RegisterLaptop();
     }
 
     // ---- sampling ---------------------------------------------------------------------------------

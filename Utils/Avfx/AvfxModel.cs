@@ -331,7 +331,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         }
 
         /// <summary>Share of the rect's texel centres some kept triangle covers.</summary>
-        private static double Coverage(List<(double X, double Y)[]> triangles, TexRect rect)
+        internal static double Coverage(List<(double X, double Y)[]> triangles, TexRect rect)
         {
             // Each triangle marks the texels of its bounding box inside the rect; same test, far fewer calls.
             var mask = new bool[rect.Width * rect.Height];
@@ -352,7 +352,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
             return (double)hit / (rect.Width * rect.Height);
         }
 
-        private static bool Contains((double X, double Y)[] t, double x, double y)
+        internal static bool Contains((double X, double Y)[] t, double x, double y)
         {
             double d1 = Cross(t[0], t[1], x, y), d2 = Cross(t[1], t[2], x, y), d3 = Cross(t[2], t[0], x, y);
             bool neg = d1 < 0 || d2 < 0 || d3 < 0, pos = d1 > 0 || d2 > 0 || d3 > 0;
