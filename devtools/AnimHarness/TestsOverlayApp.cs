@@ -105,6 +105,20 @@ internal static partial class Program
         Check(!StateText(mod).Contains("FrameRect"), $"{label}: no FrameRect");
     }
 
+    private static void CheckFullAtlas2(TempMod mod, Dictionary<string, byte[]> baselines, int n)
+    {
+        var keys = FrameKeys(2, n);
+        foreach (var (rel, baseline) in baselines)
+        {
+            var built = AvfxTableAnimation.Build(baseline, Fixtures.Inspect(baseline), keys, Fixtures.Timeline(n), out _);
+            Check(built != null && mod.Read(rel).AsSpan().SequenceEqual(built), $"gen 2: {rel} is the full-atlas build");
+        }
+        var files = Directory.GetFiles(mod.Full(DjAnimationScan.FrameFolder));
+        long atlas = mod.Read(mod.Table.Relative).Length;
+        Check(files.Length == n && files.All(f => Path.GetFileName(f).StartsWith("t0000001_2_") && new FileInfo(f).Length == atlas), "gen-2 full-atlas files only");
+        Check(!StateText(mod).Contains("FrameRect"), "no FrameRect");
+    }
+
     private static void RegisterOverlayApp()
     {
         Add("AppOverlayApplyPickles", AppTag("A-1 E-15"), () =>
@@ -188,6 +202,7 @@ internal static partial class Program
             {
                 Check(ApplyFrames(mod, 3, out string e), e);
                 var state = ReadState(mod);
+                Check(state.FrameRect == new TexRect(37, 142, 440, 289), $"overlay state ({state.FrameRect})");
                 var s = mod.Table.Surface;
                 var img = DjTableAnimationCore.ReadFrame(FrameFile(mod, 1, 0), state, s);
                 Check(img != null && img.Width == s.UprightWidth && img.Height == s.UprightHeight, "overlay frame reads back upright");
@@ -248,11 +263,15 @@ internal static partial class Program
             BreakUvSt(mod, @"common\59\medium.avfx");
             var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
             var atlas = mod.Read(mod.Table.Relative);
-            Check(ApplyFrames(mod, 4, out string e), e);
+            string e = string.Empty;
+            var (ok, skipped, failed) = Watching(() => ApplyFrames(mod, 4, out e));
+            Check(ok, e);
+            Check(failed == 0 && skipped.Count == 1 && skipped[0].StartsWith("UvSetNotCalibrated") && skipped[0].Contains("medium.avfx"),
+                $"logged the one refusal ({string.Join("; ", skipped)})");
             CheckFullAtlas(mod, before, atlas, 4, "one refuses");
         });
 
-        Add("AppFallbackOnException", AppTag("A-5 E-4"), () =>
+        Add("AppFallbackOnException", AppTag("A-5 E-4 E-5"), () =>
         {
             var reference = FullAtlasOutputs(4);
             var cases = new (string Name, Func<DjTableAnimationSite, byte[], OverlayRoute?> Planner)[]
@@ -278,11 +297,11 @@ internal static partial class Program
             var reference = FullAtlasOutputs(4);
             using var mod = Fixtures.Pickles();
             string e = string.Empty;
-            var (ok, skipped, _) = Watching(() => WithPlanner(
+            var (ok, skipped, failed) = Watching(() => WithPlanner(
                 (site, atlas) => DjTableAnimationCore.PlanOverlay(site, atlas, out _)! with { Crop = atlas[..80] },
                 () => ApplyFrames(mod, 4, out e)));
             Check(ok, "applies " + e);
-            Check(skipped.Count == 1 && skipped[0].StartsWith("encode:"), $"logged encode ({string.Join("; ", skipped)})");
+            Check(failed == 0 && skipped.Count == 1 && skipped[0].StartsWith("encode:"), $"logged encode, not a failure ({string.Join("; ", skipped)})");
             Check(SameOutputs(Outputs(mod), reference), "output = the full-atlas run, state included");
             Check(!StateText(mod).Contains("FrameRect"), "no FrameRect");
         });
@@ -314,6 +333,40 @@ internal static partial class Program
                         Fixtures.Timeline(site.Capacity), out var r, out string p, FramePlan.MaxFrames);
                     Check(built != null, $"crowded={crowded}: {avfx.Relative} builds at capacity ({r} {p})");
                 }
+            }
+        });
+
+        Add("AppFullAtlasReapplyAndRollback", AppTag("A-5 A-7 A-10"), () =>
+        {
+            // The full-atlas route on an Append table still re-applies and rolls back cleanly.
+            using (var mod = Fixtures.Pickles())
+            {
+                var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
+                var groups = mod.Groups();
+                string e = string.Empty;
+                Check(WithoutOverlay(() => ApplyFrames(mod, 10, out e)), "gen 1 " + e);
+                Check(WithoutOverlay(() => ApplyFrames(mod, 5, out e, mod.NewHost())), "gen 2 " + e);
+                CheckFullAtlas2(mod, before, 5);
+                Check(Restore(mod, out _, out e, mod.NewHost()), e);
+                CheckPristine(mod, before, groups, "full-atlas restore");
+            }
+            foreach (bool live in new[] { false, true })
+            {
+                using var mod = Fixtures.Pickles();
+                string e = string.Empty;
+                if (live) Check(WithoutOverlay(() => ApplyFrames(mod, 4, out e)), "gen 1 " + e);
+                var snap = mod.Snapshot();
+                var groups = mod.Groups();
+                var host = mod.NewHost();
+                host.ThrowOn = c => IsAvfxWrite(c) && host.Log.Count(IsAvfxWrite) == 2;
+                Check(!WithoutOverlay(() => ApplyFrames(mod, 3, out e, host)), $"live={live}: fails");
+                var now = mod.Snapshot();
+                bool Mod(string f) => !f.StartsWith(mod.StateFolder) && !f.EndsWith(".json");
+                Check(snap.Where(kv => Mod(kv.Key)).All(kv => now.GetValueOrDefault(kv.Key) == kv.Value)
+                    && now.Keys.Where(Mod).All(snap.ContainsKey), $"live={live}: mod files as before");
+                Check(mod.Groups().Zip(groups).All(z => JToken.DeepEquals(z.First, z.Second)), $"live={live}: groups as before");
+                if (live) Check(StatusOf(mod) == AnimationStatusKind.Ours && ReadState(mod).FrameRect == null, "gen 1 still ours, full-atlas");
+                else Check(!Directory.Exists(mod.StateFolder), "no state folder");
             }
         });
 
@@ -400,7 +453,9 @@ internal static partial class Program
             var gen1 = ReadState(mod);
             PatchGlow(mod);
             long atlas = mod.Read(mod.Table.Relative).Length;
-            Check(ApplyFrames(mod, 4, out e, mod.NewHost()), "gen 2 " + e);
+            var (ok, skipped, failed) = Watching(() => ApplyFrames(mod, 4, out e, mod.NewHost()));
+            Check(ok, "gen 2 " + e);
+            Check(failed == 0 && skipped.Count == 1 && skipped[0].StartsWith("GlowOutsidePanel"), $"logged GlowOutsidePanel ({string.Join("; ", skipped)})");
             var gen2 = ReadState(mod);
             Check(gen1.FrameRect != null && gen2.FrameRect == null && !StateText(mod).Contains("FrameRect"), "FrameRect gone");
             Check(gen2.Frames.All(f => new FileInfo(mod.Full(f.Relative)).Length == atlas), "full-atlas frames");
