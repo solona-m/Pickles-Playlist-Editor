@@ -38,6 +38,10 @@ namespace Pickles_Playlist_Editor.Utils
 
     internal sealed record AnimationSummary(int Frames, double Seconds, long AddedBytes, bool CapNote);
 
+    /// <summary>Overlay frames for a site: one crop of the atlas window, one plan per table effect.</summary>
+    internal sealed record OverlayRoute(TexRect Window, TexRect RectInWindow, byte[] Crop,
+        IReadOnlyDictionary<string, OverlayPlan> Plans);
+
     /// <summary>What the table card offers, as one ordered set of rules.</summary>
     internal static class TableCard
     {
@@ -100,6 +104,40 @@ namespace Pickles_Playlist_Editor.Utils
         /// <summary>Where a caught failure's exception goes; the app points this at its log.</summary>
         public static Action<Exception>? Failed { get; set; }
 
+        /// <summary>Where a fall back to full-atlas frames is reported; the app points this at its log.</summary>
+        public static Action<string>? OverlaySkipped { get; set; }
+
+        /// <summary>Test seam: replaces <see cref="PlanOverlay"/> in Apply and Summarise when set.</summary>
+        internal static Func<DjTableAnimationSite, byte[], OverlayRoute?>? OverlayPlanner { get; set; }
+
+        /// <summary>Plans every animatable effect against the atlas; null, with the reason, when any refuses.</summary>
+        public static OverlayRoute? PlanOverlay(DjTableAnimationSite site, byte[] atlas, out string refusal)
+        {
+            refusal = string.Empty;
+            var plans = new Dictionary<string, OverlayPlan>(StringComparer.OrdinalIgnoreCase);
+            OverlayPlan? first = null;
+            foreach (var avfx in site.Animatable)
+            {
+                var plan = AvfxTableOverlay.Plan(avfx.Baseline!, avfx.Inspect!.Info!, site.Table.Surface.Rect, atlas,
+                    PanelUvMap.Calibrated, out var r);
+                if (plan == null) { refusal = $"{r} {avfx.Relative}"; return null; }
+                first ??= plan;
+                if (plan.Window != first.Window || plan.RectInWindow != first.RectInWindow) { refusal = $"NoWindow {avfx.Relative}"; return null; }
+                plans[DjAnimationScan.Normalise(avfx.Relative)] = plan;
+            }
+            if (first == null) { refusal = "NoPanelGeometry"; return null; }
+            var crop = TexCrop.Crop(atlas, first.Window, out string e);
+            if (crop == null) { refusal = "AtlasUnreadable crop: " + e; return null; }
+            return new OverlayRoute(first.Window, first.RectInWindow, crop, plans);
+        }
+
+        /// <summary>One written frame as the card shows it (upright), or null when it cannot be read.</summary>
+        public static BgraImage? ReadFrame(byte[] frameFile, AnimationState state, DjTextureSurface surface)
+        {
+            var rect = TexPaste.ReadRect(frameFile, state.FrameRect ?? surface.Rect, out _);
+            return rect == null ? null : ImageOps.Rotate(rect, surface.QuarterTurns);
+        }
+
         public static FrameTimeline? LiveTimeline(AnimationState? state) =>
             state == null || state.Frames.Count == 0 || state.StartTicks.Count != state.Frames.Count
                 ? null
@@ -157,29 +195,40 @@ namespace Pickles_Playlist_Editor.Utils
             // Precompute everything before the first write.
             byte[] atlas = host.ReadFile(site.Table.FullPath);
             var surface = site.Table.Surface;
-            var encoded = new byte[n][];
-            int done = 0;
-            string? encodeError = null;
-            Parallel.For(0, n, k =>
-            {
-                var bytes = TexPaste.PasteRect(atlas, surface.Rect, surface.ToTextureSpace(frames[k], fit), out string e);
-                if (bytes == null) encodeError = e;
-                else encoded[k] = bytes;
-                progress?.Report(System.Threading.Interlocked.Increment(ref done));
-            });
-            if (encodeError != null) { error = encodeError; return false; }
-            for (int k = 0; k < n; k++) planned[k].Sha = AvfxTableAnimation.Sha(encoded[k]);
-
             var gamePaths = planned.Select(f => f.GamePath).ToList();
+            string Original(SiteAvfx avfx) =>
+                avfx.Ours && previous?.Find(avfx.Relative) is { } entry ? entry.OriginalSha : avfx.CurrentSha!;
+
+            var overlay = site.Mode == AnimationMode.Append ? TryOverlay(site, atlas, frames, timeline, fit, gamePaths, progress) : null;
+            byte[][] encoded;
             var builds = new List<(SiteAvfx Avfx, byte[] Bytes, string OriginalSha)>();
-            foreach (var avfx in site.Animatable)
+            if (overlay is { } o)
             {
-                var built = AvfxTableAnimation.Build(avfx.Baseline!, avfx.Inspect!.Info!, gamePaths, timeline, out string problem);
-                if (built == null) { error = problem; return false; }
-                var entry = previous?.Find(avfx.Relative);
-                string original = avfx.Ours && entry != null ? entry.OriginalSha : avfx.CurrentSha!;
-                builds.Add((avfx, built, original));
+                encoded = o.Encoded;
+                builds.AddRange(o.Builds.Select(b => (b.Avfx, b.Bytes, Original(b.Avfx))));
             }
+            else
+            {
+                encoded = new byte[n][];
+                int done = 0;
+                string? encodeError = null;
+                Parallel.For(0, n, k =>
+                {
+                    var bytes = TexPaste.PasteRect(atlas, surface.Rect, surface.ToTextureSpace(frames[k], fit), out string e);
+                    if (bytes == null) encodeError = e;
+                    else encoded[k] = bytes;
+                    progress?.Report(System.Threading.Interlocked.Increment(ref done));
+                });
+                if (encodeError != null) { error = encodeError; return false; }
+
+                foreach (var avfx in site.Animatable)
+                {
+                    var built = AvfxTableAnimation.Build(avfx.Baseline!, avfx.Inspect!.Info!, gamePaths, timeline, out string problem);
+                    if (built == null) { error = problem; return false; }
+                    builds.Add((avfx, built, Original(avfx)));
+                }
+            }
+            for (int k = 0; k < n; k++) planned[k].Sha = AvfxTableAnimation.Sha(encoded[k]);
 
             // Collisions: a planned file or key that already exists is an anomaly, not something to overwrite.
             foreach (var frame in planned)
@@ -255,6 +304,7 @@ namespace Pickles_Playlist_Editor.Utils
                 applied.PendingFrames = new List<AnimationFrame>();
                 applied.StartTicks = timeline.StartTicks.ToList();
                 applied.LoopTicks = timeline.LoopTicks;
+                applied.FrameRect = overlay?.Route.RectInWindow;
                 foreach (var entry in applied.Avfx.Where(a => rewritten.Contains(DjAnimationScan.Normalise(a.Relative))))
                 {
                     entry.AppliedSha = entry.PendingSha;
@@ -274,6 +324,51 @@ namespace Pickles_Playlist_Editor.Utils
             Cleanup(host, site, applying, notes);
             error = string.Empty;
             return true;
+        }
+
+        /// <summary>
+        /// The overlay route, built and encoded in memory; null (reported) when anything refuses or
+        /// fails, and the caller writes full-atlas frames instead.
+        /// </summary>
+        private static (OverlayRoute Route, byte[][] Encoded, List<(SiteAvfx Avfx, byte[] Bytes)> Builds)? TryOverlay(
+            DjTableAnimationSite site, byte[] atlas, IReadOnlyList<BgraImage> frames, FrameTimeline timeline, FitMode fit,
+            IReadOnlyList<string> gamePaths, IProgress<int>? progress)
+        {
+            try
+            {
+                string refusal = string.Empty;
+                var route = OverlayPlanner != null ? OverlayPlanner(site, atlas) : PlanOverlay(site, atlas, out refusal);
+                if (route == null) { OverlaySkipped?.Invoke(refusal.Length > 0 ? refusal : "refused"); return null; }
+
+                var builds = new List<(SiteAvfx, byte[])>();
+                foreach (var avfx in site.Animatable)
+                {
+                    var built = AvfxTableOverlay.Build(avfx.Baseline!, avfx.Inspect!.Info!, route.Plans[DjAnimationScan.Normalise(avfx.Relative)],
+                        gamePaths, timeline, out var r, out string problem, FramePlan.MaxFrames);
+                    if (built == null) { OverlaySkipped?.Invoke($"{r} {avfx.Relative}: {problem}"); return null; }
+                    builds.Add((avfx, built));
+                }
+
+                var surface = site.Table.Surface;
+                var encoded = new byte[frames.Count][];
+                int done = 0;
+                string? encodeError = null;
+                Parallel.For(0, frames.Count, k =>
+                {
+                    var bytes = TexPaste.PasteRect(route.Crop, route.RectInWindow, surface.ToTextureSpace(frames[k], fit), out string e);
+                    if (bytes == null) encodeError = e;
+                    else encoded[k] = bytes;
+                    progress?.Report(System.Threading.Interlocked.Increment(ref done));
+                });
+                if (encodeError != null) { OverlaySkipped?.Invoke("encode: " + encodeError); return null; }
+                return (route, encoded, builds);
+            }
+            catch (Exception ex)
+            {
+                Failed?.Invoke(ex);
+                OverlaySkipped?.Invoke("exception: " + ex.Message);
+                return null;
+            }
         }
 
         private static string Rollback(IAnimationHost host, DjTableAnimationSite site, AnimationState? previous, string token, int gen,
@@ -561,7 +656,18 @@ namespace Pickles_Playlist_Editor.Utils
         {
             long atlas = 0;
             try { atlas = new FileInfo(site.Table.FullPath).Length; } catch { }
-            return new(frames, timeline.LoopTicks / (double)FramePlan.TicksPerSecond, atlas * frames, thinned);
+            long perFrame = atlas;
+            try
+            {
+                if (site.Mode == AnimationMode.Append && site.Problem == null)
+                {
+                    byte[] bytes = File.ReadAllBytes(site.Table.FullPath);
+                    var route = OverlayPlanner != null ? OverlayPlanner(site, bytes) : PlanOverlay(site, bytes, out _);
+                    if (route != null) perFrame = route.Crop.Length;
+                }
+            }
+            catch { }
+            return new(frames, timeline.LoopTicks / (double)FramePlan.TicksPerSecond, perFrame * frames, thinned);
         }
 
         // ---- manifest ----------------------------------------------------------------------------

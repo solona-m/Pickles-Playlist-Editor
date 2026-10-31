@@ -855,18 +855,19 @@ internal static partial class Program
             Check(AvfxModel.Parse(data, out _)?.Triangles.Count == 1, "padded model re-parses");
         });
 
-        Add("FullAtlasUnchanged", OTag("A-7") + " " + Shell("A-6"), () =>
+        Add("FullAtlasUnchanged", OTag("A-7") + " " + Shell("A-6") + " " + AppTag("A-5 A-6"), () =>
         {
             var now = CurrentGoldens();
             foreach (var (key, sha) in Goldens)
                 Check(now.TryGetValue(key, out var got) && got == sha, $"golden {key}");
         });
 
-        Add("PreviousVersionAnimationRestores", OTag("A-7 E-22"), () =>
+        Add("PreviousVersionAnimationRestores", OTag("A-7 E-22") + " " + AppTag("A-7 E-8"), () =>
         {
             using var live = Fixtures.LivePicklesAnimation();
             using var mod = live ?? Fixtures.Pickles();
-            if (live == null) Check(ApplyFrames(mod, 12, out string error), "fallback apply " + error);
+            string error = string.Empty;
+            if (live == null) Check(WithoutOverlay(() => ApplyFrames(mod, 12, out error)), "fallback apply " + error);
             var site = mod.Scan();
             var status = DjTableAnimationCore.Status(site);
             Check(status.Kind == AnimationStatusKind.Ours, $"{(live != null ? "live gen " + site.State?.Generation : "today's apply")} scans as Ours ({status.Kind})");
@@ -971,6 +972,7 @@ internal static partial class Program
         });
 
         RegisterOverlayShell();
+        RegisterOverlayApp();
     }
 
     // ---- sampling ---------------------------------------------------------------------------------

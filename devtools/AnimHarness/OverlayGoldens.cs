@@ -11,7 +11,8 @@ internal static partial class Program
         var result = new Dictionary<string, string>();
         using (var mod = Fixtures.Pickles())
         {
-            if (!ApplyFrames(mod, 12, out string error)) throw new InvalidOperationException("Pickles apply: " + error);
+            string error = string.Empty;
+            if (!WithoutOverlay(() => ApplyFrames(mod, 12, out error))) throw new InvalidOperationException("Pickles apply: " + error);
             foreach (var rel in Fixtures.PicklesAvfx) result["pickles " + rel] = AvfxTableAnimation.Sha(mod.Read(rel));
             for (int k = 0; k < 12; k++)
             {

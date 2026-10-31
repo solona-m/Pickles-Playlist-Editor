@@ -39,6 +39,10 @@ namespace Pickles_Playlist_Editor.Utils
         public List<AnimationFrame> StaleFrames { get; set; } = new();
         public List<AnimationAvfx> Avfx { get; set; } = new();
 
+        /// <summary>The picture rect inside each frame file; null for full-atlas frames (at the surface rect).</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TexRect? FrameRect { get; set; }
+
         public const string Applying = "Applying";
         public const string Applied = "Applied";
 

@@ -500,10 +500,13 @@ namespace Pickles_Playlist_Editor
             StatusText.Text = AppStrings.Textures_Composing;
 
             List<BgraImage> previews;
+            AnimationSummary summary;
             try
             {
-                previews = await Task.Run(() =>
-                    DjTableAnimationCore.PreviewFrames(File.ReadAllBytes(target.FullPath), target.Surface, frames, fit));
+                // The summary plans the overlay, so it stays off the UI thread too.
+                (previews, summary) = await Task.Run(() =>
+                    (DjTableAnimationCore.PreviewFrames(File.ReadAllBytes(target.FullPath), target.Surface, frames, fit),
+                     DjTableAnimationCore.Summarise(site, frames.Count, timeline, animation.Thinned)));
             }
             finally
             {
@@ -511,7 +514,6 @@ namespace Pickles_Playlist_Editor
             }
 
             StatusText.Text = string.Empty;
-            var summary = DjTableAnimationCore.Summarise(site, frames.Count, timeline, animation.Thinned);
             var effect = ImageOps.DescribeFit(frames[0].Width, frames[0].Height,
                 target.Surface.UprightWidth, target.Surface.UprightHeight, fit);
             string text = AppStrings.TexturesAnimationPending(card.PickedName, summary.Frames, summary.Seconds,
@@ -763,8 +765,7 @@ namespace Pickles_Playlist_Editor
                     try
                     {
                         var bytes = File.ReadAllBytes(Path.Combine(site.ModRoot, f.Relative));
-                        var rect = TexPaste.ReadRect(bytes, target.Surface.Rect, out _);
-                        return rect == null ? null : ImageOps.Rotate(rect, target.Surface.QuarterTurns);
+                        return DjTableAnimationCore.ReadFrame(bytes, state, target.Surface);
                     }
                     catch
                     {
