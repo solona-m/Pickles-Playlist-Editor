@@ -9,7 +9,7 @@ namespace AnimHarness;
 /// write ordering, over temporary copies of the Pickles base and DJ Moon Base packs.
 ///
 /// Usage: AnimHarness [--pickles root] [--moon .pmp] [--only tag] [--scan penumbraRoot]
-///                    [--calibration out.gif]
+///                    [--calibration out.gif] [--overlay-probe folder]
 /// </summary>
 internal static partial class Program
 {
@@ -35,12 +35,14 @@ internal static partial class Program
             return 0;
         }
         if (Value(args, "--scan") is { } scanRoot) return ScanPenumbra(scanRoot);
+        if (Value(args, "--overlay-probe") is { } probe) return OverlayProbe.Run(probe, Fixtures.PicklesRoot, Fixtures.AppBackups);
         if (Value(args, "--calibration-formats") is { } calDir) return CalibrationFormats(calDir);
 
         string? only = Value(args, "--only");
         Register();
         RegisterGif();
         RegisterMedia();
+        RegisterOverlay();
 
         int failed = 0, skipped = 0, passed = 0;
         foreach (var test in AllTests)

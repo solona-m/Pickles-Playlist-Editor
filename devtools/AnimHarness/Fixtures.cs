@@ -72,19 +72,43 @@ internal static class Fixtures
         if (!Directory.Exists(PicklesRoot)) throw new SkipException("Pickles base pack not found");
         var (root, baseDir) = NewRoot(folderName);
         File.Copy(Path.Combine(PicklesRoot, "meta.json"), Path.Combine(root, "meta.json"));
-        foreach (var rel in PicklesAvfx.Append(@"common\4\eq55.atex")) CopyFile(PicklesRoot, root, rel);
-        UndoAppAnimation(PicklesRoot, root);
+        foreach (var rel in PicklesAvfx.Append(PicklesEq55)) CopyFile(PicklesRoot, root, rel);
+        UndoAppAnimation(PicklesRoot, root, AppBackups);
+        RestoreShippedTexture(Path.Combine(AppBackups, "textures", Path.GetFileName(PicklesRoot)), root, PicklesEq55);
         return Make(root, baseDir, folderName);
+    }
+
+    public const string PicklesEq55 = @"common\4\eq55.atex";
+    public const string PicklesSmall = @"common\59\alinasexy.avfx";
+
+    /// <summary>The app's own backups folder; only ever read here.</summary>
+    public static readonly string AppBackups = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PicklesPlaylistEditor", "backups");
+
+    /// <summary>
+    /// Puts the shipped texture back when the app has pasted a still into the source pack. The backup
+    /// must hash to its recorded OriginalSha, or the copy is left alone and this throws.
+    /// </summary>
+    internal static void RestoreShippedTexture(string backupModFolder, string copyRoot, string relative)
+    {
+        string folder = Path.Combine(backupModFolder, relative.Replace('\\', '-').Replace('/', '-'));
+        string statePath = Path.Combine(folder, "state.json");
+        if (!File.Exists(statePath)) return;
+        string expected = (string?)JObject.Parse(File.ReadAllText(statePath))["OriginalSha"] ?? "";
+        byte[] original = File.ReadAllBytes(Path.Combine(folder, "original.atex"));
+        if (!string.Equals(Convert.ToHexString(SHA256.HashData(original)), expected, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"{folder}: original.atex does not match OriginalSha.");
+        string target = Path.Combine(copyRoot, relative);
+        if (!File.ReadAllBytes(target).AsSpan().SequenceEqual(original)) File.WriteAllBytes(target, original);
     }
 
     /// <summary>
     /// The source pack may have been animated with the app itself. Its pristine backups (read only)
     /// give the shipped effects back, and the copied manifest loses the frame keys.
     /// </summary>
-    private static void UndoAppAnimation(string source, string copy)
+    internal static void UndoAppAnimation(string source, string copy, string backupsRoot)
     {
-        string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "PicklesPlaylistEditor", "backups", "textures", Path.GetFileName(source), "animation");
+        string folder = Path.Combine(backupsRoot, "textures", Path.GetFileName(source), "animation");
         var state = DjAnimationScan.TryReadState(folder);
         if (state == null) return;
         foreach (var entry in state.Avfx)
@@ -189,8 +213,199 @@ internal static class Fixtures
         return frames;
     }
 
-    public static FrameTimeline Timeline(int n, int delayCs = 10) =>
-        FramePlan.Plan(Enumerable.Repeat(delayCs, n).ToList(), 48).Timeline;
+    // ---- overlay probe ------------------------------------------------------------------------------
+
+    public const string TableGamePath = "vfx/atex/eq55.atex";
+
+    /// <summary>Upright band colours per edge, outer to inner: top, bottom, left, right.</summary>
+    public static readonly (byte R, byte G, byte B)[][] Bands =
+    {
+        new (byte, byte, byte)[] { (255, 0, 0), (255, 255, 255), (255, 128, 0) },
+        new (byte, byte, byte)[] { (0, 255, 0), (255, 255, 255), (0, 255, 255) },
+        new (byte, byte, byte)[] { (0, 0, 255), (255, 255, 255), (255, 0, 255) },
+        new (byte, byte, byte)[] { (255, 255, 0), (255, 255, 255), (128, 0, 255) },
+    };
+
+    public const int BandWidth = 4;
+
+    /// <summary>
+    /// Ten upright 440x289 frames: three 4 px bands per edge, a big digit 0–9 and a progress bar,
+    /// so each edge's cut-off and the timing can be read in game.
+    /// </summary>
+    public static List<BgraImage> PanelCalibrationFrames(int w = 440, int h = 289)
+    {
+        const int Cell = 32, Edge = 3 * BandWidth;
+        var frames = new List<BgraImage>();
+        for (int d = 0; d < 10; d++)
+        {
+            var img = new BgraImage(w, h);
+            var rows = GifWriter.Digits[d].Split(',');
+            int ox = (w - 5 * Cell) / 2, oy = (h - 7 * Cell) / 2;
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    (byte R, byte G, byte B) c = (0, 0, 0);
+                    if (y < Edge) c = Bands[0][y / BandWidth];
+                    else if (y >= h - Edge) c = Bands[1][(h - 1 - y) / BandWidth];
+                    else if (x < Edge) c = Bands[2][x / BandWidth];
+                    else if (x >= w - Edge) c = Bands[3][(w - 1 - x) / BandWidth];
+                    else
+                    {
+                        int cx = (x - ox) / Cell, cy = (y - oy) / Cell;
+                        if (x >= ox && y >= oy && cx < 5 && cy < 7 && rows[cy][cx] == '1') c = (255, 255, 255);
+                        else if (y >= h - Edge - 12 && x < Edge + (w - 2 * Edge) * (d + 1) / 10) c = (255, 80, 40);
+                    }
+                    int i = (y * w + x) * 4;
+                    img.Pixels[i] = c.B; img.Pixels[i + 1] = c.G; img.Pixels[i + 2] = c.R; img.Pixels[i + 3] = 255;
+                }
+            frames.Add(img);
+        }
+        return frames;
+    }
+
+    /// <summary>"cc rr" in the 5x7 digit font at 2x, white on transparent black.</summary>
+    public static BgraImage CellLabel(int column, int row)
+    {
+        string text = $"{column:D2} {row:D2}";
+        var img = new BgraImage(text.Length * 12, 14);
+        for (int ch = 0; ch < text.Length; ch++)
+        {
+            if (text[ch] == ' ') continue;
+            var rows = GifWriter.Digits[text[ch] - '0'].Split(',');
+            for (int y = 0; y < 14; y++)
+                for (int x = 0; x < 10; x++)
+                    if (rows[y / 2][x / 2] == '1')
+                    {
+                        int i = (y * img.Width + ch * 12 + x) * 4;
+                        img.Pixels[i] = img.Pixels[i + 1] = img.Pixels[i + 2] = img.Pixels[i + 3] = 255;
+                    }
+        }
+        return img;
+    }
+
+    public static (byte R, byte G, byte B) CellColour(int column, int row) =>
+        ((byte)(40 + column * 13), (byte)(40 + row * 13), (byte)(((column + row) % 2) * 120 + 60));
+
+    /// <summary>
+    /// The whole atlas as a 16x16 grid of 64 px cells, each labelled upright, with the panel rect
+    /// outlined in white and ticked inward every 4 px (longer every 16 px).
+    /// </summary>
+    public static BgraImage GridImage(DjTextureSurface surface)
+    {
+        int w = surface.TextureWidth, h = surface.TextureHeight;
+        var img = new BgraImage(w, h);
+        void Put(int x, int y, (byte R, byte G, byte B) c)
+        {
+            if (x < 0 || y < 0 || x >= w || y >= h) return;
+            int i = (y * w + x) * 4;
+            img.Pixels[i] = c.B; img.Pixels[i + 1] = c.G; img.Pixels[i + 2] = c.R; img.Pixels[i + 3] = 255;
+        }
+        for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) Put(x, y, CellColour(x / 64, y / 64));
+
+        for (int row = 0; row < h / 64; row++)
+            for (int column = 0; column < w / 64; column++)
+            {
+                var label = ImageOps.Rotate(CellLabel(column, row), -surface.QuarterTurns);
+                int ox = column * 64 + (64 - label.Width) / 2, oy = row * 64 + (64 - label.Height) / 2;
+                for (int y = 0; y < label.Height; y++)
+                    for (int x = 0; x < label.Width; x++)
+                        if (label.Pixels[(y * label.Width + x) * 4 + 3] != 0) Put(ox + x, oy + y, (255, 255, 255));
+            }
+
+        var r = surface.Rect;
+        var white = ((byte)255, (byte)255, (byte)255);
+        for (int x = r.X; x < r.Right; x++) { Put(x, r.Y, white); Put(x, r.Bottom - 1, white); }
+        for (int y = r.Y; y < r.Bottom; y++) { Put(r.X, y, white); Put(r.Right - 1, y, white); }
+        for (int x = r.X; x < r.Right; x += 4)
+        {
+            int len = (x - r.X) % 16 == 0 ? 12 : 6;
+            for (int t = 0; t < len; t++) { Put(x, r.Y + t, white); Put(x, r.Bottom - 1 - t, white); }
+        }
+        for (int y = r.Y; y < r.Bottom; y += 4)
+        {
+            int len = (y - r.Y) % 16 == 0 ? 12 : 6;
+            for (int t = 0; t < len; t++) { Put(r.X + t, y, white); Put(r.Right - 1 - t, y, white); }
+        }
+        return img;
+    }
+
+    /// <summary>The atlas with its colour replaced by <see cref="GridImage"/>; alpha kept.</summary>
+    public static byte[] GridAtlas(byte[] atlas, DjTextureSurface surface) =>
+        TexPaste.PasteRect(atlas, new TexRect(0, 0, surface.TextureWidth, surface.TextureHeight), GridImage(surface), out string e)
+            ?? throw new InvalidDataException(e);
+
+    /// <summary>
+    /// A temp copy of the Pickles "DJ Table / Small" option as shipped: pristine effect from the
+    /// animation backup, eq55 from the texture backup, no frame keys. Returns the copy's root.
+    /// </summary>
+    public static string PicklesShippedSource(string picklesRoot, string backupsRoot)
+    {
+        if (!Directory.Exists(picklesRoot)) throw new SkipException("Pickles base pack not found");
+        string root = Path.Combine(Temp, "runs", Guid.NewGuid().ToString("N")[..8], Path.GetFileName(picklesRoot));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.Copy(Path.Combine(picklesRoot, "meta.json"), Path.Combine(root, "meta.json"));
+            foreach (var (game, rel) in SmallOption(picklesRoot).Files)
+                if (!game.StartsWith(AvfxTableAnimation.FramePrefix, StringComparison.OrdinalIgnoreCase) && !File.Exists(Path.Combine(root, rel)))
+                    CopyFile(picklesRoot, root, rel);
+            UndoAppAnimation(picklesRoot, root, backupsRoot);
+            RestoreShippedTexture(Path.Combine(backupsRoot, "textures", Path.GetFileName(picklesRoot)), root, PicklesEq55);
+            return root;
+        }
+        catch
+        {
+            try { Directory.Delete(Path.GetDirectoryName(root)!, true); } catch { }
+            throw;
+        }
+    }
+
+    public static ModOption SmallOption(string modRoot) =>
+        PenumbraOptions.Read(modRoot).First(o => o.GroupName == "DJ Table" && o.Name == "Small");
+
+    /// <summary>The effect's Append inspection, with eq55 as the table texture.</summary>
+    public static TableAvfxInfo Inspect(byte[] avfx) =>
+        AvfxTableAnimation.Inspect(avfx, new[] { TableGamePath }, _ => false).Info
+            ?? throw new InvalidDataException("The effect does not inspect as animatable.");
+
+    /// <summary>The effect padded with dummy Tex entries up to <paramref name="total"/> textures.</summary>
+    public static byte[] WithExtraTextures(byte[] avfx, int total)
+    {
+        var root = AvfxChunk.Parse(avfx);
+        int have = root.All("Tex").Count();
+        int last = root.Children!.FindLastIndex(c => c.Name == "Tex");
+        for (int i = have; i < total; i++) root.Children.Insert(++last, AvfxChunk.Leaf("Tex", AvfxChunk.TextBytes($"vfx/pad{i}.atex")));
+        root.SetInt("TxCn", total);
+        return root.ToBytes();
+    }
+
+    /// <summary>
+    /// A copy of the user's real Pickles animation as the previous version left it (live effects,
+    /// frames and manifest, its state and pristine copies), or null when there is none.
+    /// </summary>
+    public static TempMod? LivePicklesAnimation()
+    {
+        if (!Directory.Exists(PicklesRoot)) throw new SkipException("Pickles base pack not found");
+        string backup = Path.Combine(AppBackups, "textures", Path.GetFileName(PicklesRoot), "animation");
+        var state = DjAnimationScan.TryReadState(backup);
+        if (state == null || state.Frames.Count == 0) return null;
+
+        var (root, baseDir) = NewRoot("live");
+        File.Copy(Path.Combine(PicklesRoot, "meta.json"), Path.Combine(root, "meta.json"));
+        foreach (var rel in PicklesAvfx.Append(PicklesEq55).Concat(state.Frames.Select(f => f.Relative)))
+            if (File.Exists(Path.Combine(PicklesRoot, rel))) CopyFile(PicklesRoot, root, rel);
+        var mod = Make(root, baseDir, "live");
+        foreach (string f in Directory.GetFiles(backup, "*", SearchOption.AllDirectories))
+        {
+            string target = Path.Combine(mod.StateFolder, Path.GetRelativePath(backup, f));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(f, target);
+        }
+        return mod;
+    }
+
+    public static FrameTimeline Timeline(int n, int delayCs = 10, int maxFrames = FramePlan.MaxFrames) =>
+        FramePlan.Plan(Enumerable.Repeat(delayCs, n).ToList(), maxFrames).Timeline;
 
     public static double Psnr(BgraImage a, BgraImage b)
     {
