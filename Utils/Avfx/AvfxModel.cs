@@ -123,6 +123,14 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         /// kept verbatim except its UVs, one crossing the edge is clipped, one outside is dropped.
         /// </summary>
         public static AvfxModel? ClipToWindow(AvfxModel source, PanelUvMap map, TexRect window, int margin,
+            TexRect rect, int atlasWidth, int atlasHeight, out double coverage, out OverlayRefusal refusal) =>
+            SplitAtWindow(source, map, window, margin, rect, atlasWidth, atlasHeight, out coverage, out refusal)?.Inside;
+
+        /// <summary>
+        /// ClipToWindow's inside, plus the outside: the rest of the shell with its UVs unchanged, so
+        /// it samples the shipped atlas. The two share the clip lines and their seam vertices.
+        /// </summary>
+        public static (AvfxModel Inside, AvfxModel Outside)? SplitAtWindow(AvfxModel source, PanelUvMap map, TexRect window, int margin,
             TexRect rect, int atlasWidth, int atlasHeight, out double coverage, out OverlayRefusal refusal)
         {
             coverage = 0;
@@ -162,6 +170,21 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
                 return index;
             }
 
+            var outVertices = new List<byte[]>();
+            var outLookup = new Dictionary<string, ushort>();
+            var outTriangles = new List<(ushort, ushort, ushort)>();
+            ushort AddOut(byte[] bytes)
+            {
+                string key = Convert.ToHexString(bytes);
+                if (!outLookup.TryGetValue(key, out ushort index))
+                {
+                    index = (ushort)outVertices.Count;
+                    outVertices.Add(bytes);
+                    outLookup[key] = index;
+                }
+                return index;
+            }
+
             foreach (var (a, b, c) in source.Triangles)
             {
                 byte[] va = source.Vertices[a], vb = source.Vertices[b], vc = source.Vertices[c];
@@ -175,12 +198,15 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
                     continue;
                 }
 
-                var poly = new List<ClipPoint> { new(pa.X, pa.Y, 1, 0, 0), new(pb.X, pb.Y, 0, 1, 0), new(pc.X, pc.Y, 0, 0, 1) };
-                poly = ClipEdge(poly, p => p.X - x0);
-                poly = ClipEdge(poly, p => x1 - p.X);
-                poly = ClipEdge(poly, p => p.Y - y0);
-                poly = ClipEdge(poly, p => y1 - p.Y);
-                if (poly.Count < 3 || Math.Abs(Area(poly.Select(p => (p.X, p.Y)).ToList())) < 1e-6 * regionArea) continue;
+                var whole = new List<ClipPoint> { new(pa.X, pa.Y, 1, 0, 0), new(pb.X, pb.Y, 0, 1, 0), new(pc.X, pc.Y, 0, 0, 1) };
+                var pmid = ClipEdge(ClipEdge(whole, p => p.X - x0), p => x1 - p.X);
+                var q = ClipEdge(pmid, p => p.Y - y0);
+                var poly = ClipEdge(q, p => y1 - p.Y);
+                if (poly.Count < 3 || Math.Abs(Area(poly.Select(p => (p.X, p.Y)).ToList())) < 1e-6 * regionArea)
+                {
+                    outTriangles.Add((AddOut(va), AddOut(vb), AddOut(vc)));
+                    continue;
+                }
 
                 var made = poly.Select(p => Add(Blend(va, vb, vc, p), p.X, p.Y)).ToList();
                 for (int i = 1; i + 1 < poly.Count; i++)
@@ -188,12 +214,66 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
                     triangles.Add((made[0], made[i], made[i + 1]));
                     kept.Add(new[] { (poly[0].X, poly[0].Y), (poly[i].X, poly[i].Y), (poly[i + 1].X, poly[i + 1].Y) });
                 }
+
+                // The other 8 cells of the 3x3 grid; corner points reached twice resolve to one point.
+                var registry = new List<ClipPoint>(poly);
+                ClipPoint Registered(ClipPoint p)
+                {
+                    foreach (var r in registry)
+                        if (Math.Abs(r.X - p.X) <= 1e-6 && Math.Abs(r.Y - p.Y) <= 1e-6) return r;
+                    registry.Add(p);
+                    return p;
+                }
+                foreach (var cell in OuterCells(whole, pmid, q, x0, x1, y0, y1))
+                {
+                    if (cell.Count < 3 || Math.Abs(Area(cell.Select(p => (p.X, p.Y)).ToList())) < 1e-9 * regionArea) continue;
+                    var pts = cell.Select(Registered).ToList();
+                    var idx = pts.Select(p => AddOut(BlendShipped(va, vb, vc, p))).ToList();
+                    for (int i = 1; i + 1 < pts.Count; i++)
+                    {
+                        if (idx[0] == idx[i] || idx[i] == idx[i + 1] || idx[0] == idx[i + 1]) continue;
+                        if (Area(new[] { (pts[0].X, pts[0].Y), (pts[i].X, pts[i].Y), (pts[i + 1].X, pts[i + 1].Y) }) == 0) continue;
+                        outTriangles.Add((idx[0], idx[i], idx[i + 1]));
+                    }
+                }
             }
 
             coverage = Coverage(kept, rect);
             if (triangles.Count == 0 || coverage <= 0) { refusal = OverlayRefusal.NoPanelGeometry; return null; }
             var chunks = new List<(string, byte[])> { ("VDrw", Array.Empty<byte>()), ("VIdx", Array.Empty<byte>()) };
-            return new AvfxModel(chunks, vertices, triangles);
+            var outChunks = new List<(string, byte[])> { ("VDrw", Array.Empty<byte>()), ("VIdx", Array.Empty<byte>()) };
+            return (new AvfxModel(chunks, vertices, triangles), new AvfxModel(outChunks, outVertices, outTriangles));
+        }
+
+        /// <summary>Left column, right column, and the middle column's top and bottom.</summary>
+        private static IEnumerable<List<ClipPoint>> OuterCells(List<ClipPoint> whole, List<ClipPoint> pmid, List<ClipPoint> q,
+            double x0, double x1, double y0, double y1)
+        {
+            var right = ClipEdge(ClipEdge(whole, p => p.X - x0), p => p.X - x1);
+            foreach (var column in new[] { ClipEdge(whole, p => x0 - p.X), right })
+            {
+                var cq = ClipEdge(column, p => p.Y - y0);
+                yield return ClipEdge(column, p => y0 - p.Y);
+                yield return ClipEdge(cq, p => y1 - p.Y);
+                yield return ClipEdge(cq, p => p.Y - y1);
+            }
+            yield return ClipEdge(pmid, p => y0 - p.Y);
+            yield return ClipEdge(q, p => p.Y - y1);
+        }
+
+        /// <summary>Blend's position, normal, tangent and colour; the source UV interpolated.</summary>
+        private static byte[] BlendShipped(byte[] va, byte[] vb, byte[] vc, ClipPoint p)
+        {
+            var result = Blend(va, vb, vc, p);
+            var (ua, wa) = Uv(va); var (ub, wb) = Uv(vb); var (uc, wc) = Uv(vc);
+            var u = BitConverter.GetBytes((Half)(p.A * ua + p.B * ub + p.C * uc));
+            var v = BitConverter.GetBytes((Half)(p.A * wa + p.B * wb + p.C * wc));
+            for (int pair = 0; pair < 4; pair++)
+            {
+                u.CopyTo(result, UvOffset + pair * 4);
+                v.CopyTo(result, UvOffset + pair * 4 + 2);
+            }
+            return result;
         }
 
         private static List<ClipPoint> ClipEdge(List<ClipPoint> poly, Func<ClipPoint, double> inside)

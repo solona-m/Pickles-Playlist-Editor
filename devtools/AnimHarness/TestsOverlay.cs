@@ -169,7 +169,7 @@ internal static partial class Program
 
     private static void RegisterOverlay()
     {
-        Add("ProbeModLayout", OTag("A-1 E-1 E-20"), () =>
+        Add("ProbeModLayout", OTag("A-1 E-1 E-20") + " " + Shell("A-8"), () =>
         {
             var probe = SharedProbe();
             var options = PenumbraOptions.Read(probe.Folder);
@@ -194,9 +194,11 @@ internal static partial class Program
             Check(options.All(o => File.ReadAllBytes(Path.Combine(probe.Folder, o.Files[OverlayProbe.AvfxGamePath])).AsSpan().IndexOf(prefix) < 0),
                 "no probe effect holds the FramePrefix bytes");
             Check(File.Exists(Path.Combine(probe.Folder, OverlayProbe.Marker)), "marker written");
+            var meta = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(probe.Folder, "meta.json")));
+            Check((string?)meta["Version"] == "2", $"meta Version 2 ({meta["Version"]})");
         });
 
-        Add("ProbeFolderGuard", OTag("E-2"), () =>
+        Add("ProbeFolderGuard", OTag("E-2") + " " + Shell("E-13"), () =>
         {
             if (!Directory.Exists(Fixtures.PicklesRoot)) throw new SkipException("Pickles base pack not found");
             string baseDir = Path.Combine(Path.GetTempPath(), "AnimHarness", "runs", "guard-" + Guid.NewGuid().ToString("N")[..8]);
@@ -296,7 +298,7 @@ internal static partial class Program
             finally { try { Directory.Delete(temp, true); } catch { } }
         });
 
-        Add("OverlayStructure", OTag("A-2"), () =>
+        Add("OverlayStructure", OTag("A-2") + " " + Shell("A-3"), () =>
         {
             using var s = Small();
             var keys = ProbeKeys(10);
@@ -306,8 +308,8 @@ internal static partial class Program
             var append = AvfxChunk.Parse(AvfxTableAnimation.Build(s.Baseline, s.Info with { Capacity = 128 }, keys, Fixtures.Timeline(10), out _)!);
             var root = AvfxChunk.Parse(built);
             var orig = AvfxChunk.Parse(s.Baseline);
-            Check(root.ReadInt("PrCn") == 19 && root.ReadInt("TxCn") == 37 && root.ReadInt("MdCn") == 9,
-                $"counts 19/37/9 ({root.ReadInt("PrCn")}/{root.ReadInt("TxCn")}/{root.ReadInt("MdCn")})");
+            Check(root.ReadInt("PrCn") == 19 && root.ReadInt("TxCn") == 37 && root.ReadInt("MdCn") == 10,
+                $"counts 19/37/10 ({root.ReadInt("PrCn")}/{root.ReadInt("TxCn")}/{root.ReadInt("MdCn")})");
             var emit = root.All("Emit").ElementAt(s.Info.Emitter);
             Check(emit.ReadInt("PrCn") == orig.All("Emit").ElementAt(s.Info.Emitter).ReadInt("PrCn") + 10, "emitter PrCn +10");
             var targets = Fixtures.Targets(built, s.Info.Emitter);
@@ -317,13 +319,15 @@ internal static partial class Program
             var before = orig.All("Ptcl").ToList();
             foreach (int i in new[] { 0, 1, 2, 3, 4, 5, 6, 8 })
                 Check(Fixtures.ParticleBytes(particles[i]).AsSpan().SequenceEqual(Fixtures.ParticleBytes(before[i])), $"particle {i} untouched");
-            Check(Fixtures.AlphaKeys(particles[7]).AsSpan().SequenceEqual(AvfxTableAnimation.HiddenKeys()), "panel hidden");
-            Check(Fixtures.ParticleBytes(particles[7]).AsSpan().SequenceEqual(Fixtures.ParticleBytes(append.All("Ptcl").ElementAt(7))),
-                "panel differs from the shipped one only as the Append build hides it");
+            var panel = particles[7].Clone();
+            Check(panel.Child("Data")!.Child("MdNo")!.Data![0] == 9, "panel draws model 9, the shell part");
+            panel.Child("Data")!.Child("MdNo")!.Data![0] = 6;
+            Check(Fixtures.ParticleBytes(panel).AsSpan().SequenceEqual(Fixtures.ParticleBytes(before[7])), "panel = shipped but MdNo");
             var models = root.All("Modl").ToList();
             var oldModels = orig.All("Modl").ToList();
-            Check(models.Count == 9 && Enumerable.Range(0, 8).All(i => models[i].Data!.AsSpan().SequenceEqual(oldModels[i].Data)), "models 0–7 untouched");
+            Check(models.Count == 10 && Enumerable.Range(0, 8).All(i => models[i].Data!.AsSpan().SequenceEqual(oldModels[i].Data)), "models 0–7 untouched");
             Check(models[8].Data!.AsSpan().SequenceEqual(s.Plan.ModlData), "model 8 is the overlay");
+            Check(models[9].Data!.AsSpan().SequenceEqual(s.Plan.OutsideModlData), "model 9 is the shell part");
             var tex = root.All("Tex").Select(t => t.Text()).ToList();
             var oldTex = orig.All("Tex").Select(t => t.Text()).ToList();
             Check(tex.Take(27).SequenceEqual(oldTex), "Tex 0–26 untouched");
@@ -588,7 +592,7 @@ internal static partial class Program
             }
         });
 
-        Add("OverlayFrameBudget", OTag("A-5 E-17"), () =>
+        Add("OverlayFrameBudget", OTag("A-5 E-17") + " " + Shell("A-3 A-6"), () =>
         {
             using var s = Small();
             Check(AvfxTableOverlay.Capacity(s.Info) == 128, $"capacity 128 ({AvfxTableOverlay.Capacity(s.Info)})");
@@ -597,7 +601,7 @@ internal static partial class Program
             if (built != null)
             {
                 var root = AvfxChunk.Parse(built);
-                Check(root.All("Ptcl").Max(AvfxTableAnimation.Tlst) == 154 && root.ReadInt("MdCn") == 9, "max TLst 154, MdCn 9");
+                Check(root.All("Ptcl").Max(AvfxTableAnimation.Tlst) == 154 && root.ReadInt("MdCn") == 10, "max TLst 154, MdCn 10");
             }
             built = AvfxTableOverlay.Build(s.Baseline, s.Info, s.Plan, ProbeKeys(129), Fixtures.Timeline(129, maxFrames: 129), out r, out _);
             Check(built == null && r == OverlayRefusal.TooManyFrames, $"129 → TooManyFrames ({r})");
@@ -798,7 +802,7 @@ internal static partial class Program
             Check(odd is { X: 96 }, $"clamped origin stays on the block grid ({odd})");
         });
 
-        Add("OverlayRefusesModelCount", OTag("A-6 E-16"), () =>
+        Add("OverlayRefusesModelCount", OTag("A-6 E-16") + " " + Shell("A-7 E-10"), () =>
         {
             using var s = Small();
             var crowded = EditEffect(s.Baseline, root =>
@@ -809,6 +813,21 @@ internal static partial class Program
                 root.SetInt("MdCn", 255);
             });
             Check(PlanRefusal(crowded, s.Atlas) == OverlayRefusal.TooManyModels, $"255 models → TooManyModels ({PlanRefusal(crowded, s.Atlas)})");
+
+            byte[] WithModels(int count) => EditEffect(s.Baseline, root =>
+            {
+                int last = root.Children!.FindLastIndex(c => c.Name == "Modl");
+                var copy = root.Children[last];
+                for (int i = root.All("Modl").Count(); i < count; i++) root.Children.Insert(last + 1, copy.Clone());
+                root.SetInt("MdCn", count);
+            });
+            Check(PlanRefusal(WithModels(254), s.Atlas) == OverlayRefusal.TooManyModels, "254 models, two needed → TooManyModels");
+            byte[] at253 = WithModels(253);
+            var info = Fixtures.Inspect(at253);
+            var plan = AvfxTableOverlay.Plan(at253, info, TableSurface.Rect, s.Atlas, PanelUvMap.Calibrated, out var refusal);
+            Check(plan != null && plan.OutsideModel == 254, $"253 models plan ({refusal})");
+            var built = plan == null ? null : AvfxTableOverlay.Build(at253, info, plan, ProbeKeys(4), Fixtures.Timeline(4), out _, out _);
+            Check(built != null && AvfxChunk.Parse(built).ReadInt("MdCn") == 255 && AvfxChunk.Parse(built).All("Modl").Count() == 255, "253 models build to 255");
         });
 
         Add("ModlRoundTrip", OTag("E-15"), () =>
@@ -836,7 +855,7 @@ internal static partial class Program
             Check(AvfxModel.Parse(data, out _)?.Triangles.Count == 1, "padded model re-parses");
         });
 
-        Add("FullAtlasUnchanged", OTag("A-7"), () =>
+        Add("FullAtlasUnchanged", OTag("A-7") + " " + Shell("A-6"), () =>
         {
             var now = CurrentGoldens();
             foreach (var (key, sha) in Goldens)
@@ -950,6 +969,8 @@ internal static partial class Program
             Check(Same(TexPaste.ReadRect(grid, win, out _)!, TexPaste.ReadRect(crop4, new TexRect(0, 0, 512, 512), out _)!),
                 "option 4's crop = option 3's atlas window");
         });
+
+        RegisterOverlayShell();
     }
 
     // ---- sampling ---------------------------------------------------------------------------------
