@@ -526,13 +526,77 @@ internal static partial class Program
             var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
             var groups = mod.Groups();
             var shipped = mod.Read(mod.Table.Relative);
-            PasteStill(mod, Fixtures.Frames(1)[0]);           // a still in eq55 first
+            var still = Fixtures.Frames(1)[0];
+            PasteStill(mod, still);                               // a still in eq55 first
             Check(ApplyFrames(mod, 4, out string error), error);  // then animated
-            // The dialog's single Restore: the animation, then the eq55 picture (DjTextures.Restore puts the shipped bytes back).
+            // The dialog's single Restore runs the animation Restore, then DjTextures.Restore (app-only; user check U8).
             Check(Restore(mod, out _, out error, mod.NewHost()), error);
-            File.WriteAllBytes(mod.Full(mod.Table.Relative), shipped);
-            CheckPristine(mod, before, groups, "after one restore");
-            Check(mod.Read(mod.Table.Relative).AsSpan().SequenceEqual(shipped), "eq55 shipped");
+            CheckPristine(mod, before, groups, "after the animation restore");
+            var rect = TexPaste.ReadRect(mod.Read(mod.Table.Relative), mod.Table.Surface.Rect, out _)!;
+            Check(Fixtures.Psnr(rect, mod.Table.Surface.ToTextureSpace(still, FitMode.Fill)) > 30,
+                "eq55 still holds the still, left for DjTextures.Restore");
+        });
+
+        Add("OutsideModSkipped", "EDGE-animated-table-29", () =>
+        {
+            using var mod = Fixtures.Pickles();
+            string outside = Path.Combine(Path.GetDirectoryName(mod.Root)!, "outside.avfx");
+            File.Copy(mod.Full(Fixtures.PicklesAvfx[0]), outside);
+            var meta = JObject.Parse(File.ReadAllText(mod.Full("meta.json")));
+            var lala = meta["Groups"]!.First(g => g["Name"]?.ToString() == "DJ Table")["Options"]!
+                .First(o => o["Files"]?["vfx/alinasexy.avfx"]?.ToString().Contains("laladjtable") == true);
+            lala["Files"]!["vfx/alinasexy.avfx"] = @"..\outside.avfx";
+            File.WriteAllText(mod.Full("meta.json"), meta.ToString());
+            var before = File.ReadAllBytes(outside);
+            var site = mod.Scan();
+            Check(!site.Avfx.Any(a => a.Relative.Contains("outside")), "no entry for the outside file");
+            ApplyFrames(mod, 2, out _, site: site);
+            Restore(mod, out _, out _, mod.NewHost());
+            Check(!mod.Host.Log.Concat(mod.Host.Log).Any(c => c.Path.Contains("outside")), "never read or written");
+            Check(File.ReadAllBytes(outside).AsSpan().SequenceEqual(before), "outside file unchanged");
+        });
+
+        Add("ApplyOverCapacity", "EDGE-animated-table-8", () =>
+        {
+            using var mod = Fixtures.Moon();
+            foreach (var rel in MoonAvfx)
+                EditAvfx(mod, rel, root => { foreach (int i in Enumerable.Range(30, 25).Append(56)) MakeStatic(root.All("Ptcl").ElementAt(i)); });
+            var snap = mod.Snapshot();
+            Check(!ApplyFrames(mod, 24, out string e) && e.StartsWith("TooManyTextures"), "capacity + 1 refused " + e);
+            Check(mod.Snapshot().SequenceEqual(snap), "nothing written");
+        });
+
+        Add("ApplyNeverThrows", "EDGE-animated-table-14", () =>
+        {
+            using var mod = Fixtures.Pickles();
+            var snap = mod.Snapshot();
+            bool ok = DjTableAnimationCore.Apply(mod.Host, mod.Scan(), Fixtures.Frames(3), Fixtures.Timeline(2), FitMode.Fill, null, out _, out string e);
+            Check(!ok && e.StartsWith("WriteFailed"), "frames/timeline mismatch " + e);
+            foreach (string where in new[] { "pristine", "state.json" })
+            {
+                var host = mod.NewHost();
+                host.ThrowOn = c => c.Kind == CallKind.Write && c.Path.Contains(where);
+                ok = DjTableAnimationCore.Apply(host, mod.Scan(host), Fixtures.Frames(3), Fixtures.Timeline(3), FitMode.Fill, null, out _, out e);
+                Check(!ok && e.StartsWith("WriteFailed"), $"{where} write fault " + e);
+                var now = mod.Snapshot();
+                Check(snap.Where(kv => !kv.Key.Contains(@"\state\")).All(kv => now.GetValueOrDefault(kv.Key) == kv.Value), $"{where}: mod unchanged");
+            }
+            using var m2 = Fixtures.Pickles();
+            Check(ApplyFrames(m2, 2, out _), "apply");
+            var h2 = m2.NewHost();
+            h2.ThrowOn = c => c.Kind == CallKind.Read && c.Path.EndsWith("state.json");
+            var site = m2.Scan(h2);
+            var before = m2.Snapshot();
+            Check(!DjTableAnimationCore.Restore(h2, site, out _, out e) && e.StartsWith("WriteFailed"), "restore state read fault " + e);
+            Check(!h2.Log.Any(c => c.Kind != CallKind.Read) && m2.Snapshot().SequenceEqual(before), "restore wrote nothing");
+        });
+
+        Add("DuplicatePanelRefused", "EDGE-animated-table-9", () =>
+        {
+            using var mod = Fixtures.Pickles();
+            foreach (var rel in Fixtures.PicklesAvfx)
+                EditAvfx(mod, rel, root => root.All("Ptcl").ElementAt(8).Child("TC1")!.Child("TLst")!.Data = new byte[] { 26 });
+            Check(mod.Scan().Problem?.StartsWith("DuplicatePanel") == true, "two panel particles refused");
         });
 
         Add("UnparseablePanel", "EDGE-animated-table-9", () =>

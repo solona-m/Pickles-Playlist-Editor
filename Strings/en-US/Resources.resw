@@ -371,7 +371,7 @@ Do you want to proceed?</value></data>
   <data name="Anim_RollbackStopped" xml:space="preserve"><value>Applying failed and could not be fully undone ({0}). Use “Put the original back”.</value></data>
   <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} was changed by a mod update and was left as it is.</value></data>
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} was edited outside this app and was kept.</value></data>
-  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} could not be deleted yet; it will be removed next time.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} could not be deleted yet; it will be removed the next time you apply an animation.</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra did not keep the new frames in “{0}”. Reload the mod in Penumbra and check the table.</value></data>
   <data name="Anim_WriteFailed" xml:space="preserve"><value>Changing the table failed: {0}</value></data>
   <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: more than one particle shows the table picture</value></data>

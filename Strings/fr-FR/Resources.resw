@@ -371,7 +371,7 @@ Voulez-vous continuer ?</value></data>
   <data name="Anim_RollbackStopped" xml:space="preserve"><value>L’application a échoué et n’a pas pu être entièrement annulée ({0}). Utilise « Remettre l’original ».</value></data>
   <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} a été modifié par une mise à jour du mod et a été laissé tel quel.</value></data>
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} a été modifié hors de cette app et a été conservé.</value></data>
-  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} n’a pas encore pu être supprimé ; il le sera la prochaine fois.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} n’a pas encore pu être supprimé ; il le sera la prochaine fois que tu appliques une animation.</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra n’a pas gardé les nouvelles images dans « {0} ». Recharge le mod dans Penumbra et vérifie la table.</value></data>
   <data name="Anim_WriteFailed" xml:space="preserve"><value>La modification de la table a échoué : {0}</value></data>
   <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0} : plus d’une particule affiche l’image de la table</value></data>

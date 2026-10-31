@@ -371,7 +371,7 @@ Vill du fortsätta?</value></data>
   <data name="Anim_RollbackStopped" xml:space="preserve"><value>Det gick inte att använda och det kunde inte ångras helt ({0}). Använd ”Sätt tillbaka originalet”.</value></data>
   <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} ändrades av en moddsuppdatering och lämnades som den är.</value></data>
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} redigerades utanför appen och behölls.</value></data>
-  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} kunde inte tas bort ännu; den tas bort nästa gång.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} kunde inte tas bort ännu; den tas bort nästa gång du använder en animation.</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra behöll inte de nya bildrutorna i ”{0}”. Ladda om modden i Penumbra och kontrollera bordet.</value></data>
   <data name="Anim_WriteFailed" xml:space="preserve"><value>Det gick inte att ändra bordet: {0}</value></data>
   <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: mer än en partikel visar bordsbilden</value></data>

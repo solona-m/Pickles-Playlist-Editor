@@ -49,6 +49,11 @@ namespace Pickles_Playlist_Editor.Utils
             public string NewToken() => DjTableAnimationCore.RandomToken();
         }
 
+        static DjTableAnimation()
+        {
+            DjTableAnimationCore.Failed = ex => Logger.LogError("Changing the table animation failed: {Error}", ex);
+        }
+
         public static string StateFolderFor(string modName) => Path.Combine(
             Playlist.BackupDir, "textures", PenumbraMeta.SnapshotFolderNameForMod(modName), "animation");
 
@@ -64,6 +69,7 @@ namespace Pickles_Playlist_Editor.Utils
             var host = new Host(site.ModRoot, site.Table.ModName);
             bool ok = DjTableAnimationCore.Apply(host, site, frames, timeline, fit, progress, out warnings, out error);
             Logger.LogInfo("Animated table in {Mod}: {Frames} frames, ok={Ok}.", site.Table.ModName, frames.Count, ok);
+            if (!ok) Logger.LogWarn("Animating the table in {Mod} failed: {Error}", site.Table.ModName, error);
             warnings = Settle(site, warnings);
             return ok;
         }
@@ -73,6 +79,7 @@ namespace Pickles_Playlist_Editor.Utils
             var host = new Host(site.ModRoot, site.Table.ModName);
             bool ok = DjTableAnimationCore.Restore(host, site, out warnings, out error);
             Logger.LogInfo("Restored the table animation in {Mod}: ok={Ok}.", site.Table.ModName, ok);
+            if (!ok) Logger.LogWarn("Restoring the table in {Mod} failed: {Error}", site.Table.ModName, error);
             warnings = Settle(site, warnings);
             return ok;
         }
@@ -85,6 +92,7 @@ namespace Pickles_Playlist_Editor.Utils
             bool ok = DjTableAnimationCore.PasteThenRestore(host, site,
                 () => DjTextures.Apply(site.Table, picture, fit, out _, out string pasteError) ? null : pasteError,
                 out warnings, out error);
+            if (!ok) Logger.LogWarn("A picture on the animated table in {Mod} failed: {Error}", site.Table.ModName, error);
             warnings = Settle(site, warnings);
             return ok;
         }

@@ -277,7 +277,7 @@ internal static partial class Program
                     || (c.Kind == CallKind.Delete && c.Path.EndsWith("t0000001_1_00.atex"));
                 Check(!ApplyFrames(mod, 3, out _), "(b) fails");
                 var st = ReadState(mod);
-                Check(st.IsEmpty && st.StaleFrames.Count == 1, "(b) empty state holds the leftover");
+                Check(st.IsEmpty && st.StaleFrames.Count == 1 && st.ModToken == "t0000001" && st.Generation == 1, "(b) empty state holds the leftover and the token");
                 var site = mod.Scan(mod.NewHost());
                 var status = DjTableAnimationCore.Status(site);
                 Check(status.Kind == AnimationStatusKind.None && !TableCard.Describe(status, site.Mode, site.HasState, false).RestoreEnabled, "(b) None, no Restore");

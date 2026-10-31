@@ -371,7 +371,7 @@
   <data name="Anim_RollbackStopped" xml:space="preserve"><value>应用失败，且无法完全撤销（{0}）。请使用“放回原版”。</value></data>
   <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} 已被模组更新修改，保持原样。</value></data>
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} 在这个应用之外被编辑过，已保留。</value></data>
-  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>暂时无法删除 {0}；下次会移除。</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>暂时无法删除 {0}；下次应用动画时会移除。</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra 没有保留“{0}”里的新帧。请在 Penumbra 中重新加载模组并检查桌子。</value></data>
   <data name="Anim_WriteFailed" xml:space="preserve"><value>修改桌子失败：{0}</value></data>
   <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}：不止一个粒子显示桌面图片</value></data>

@@ -371,7 +371,7 @@ Möchtest du fortfahren?</value></data>
   <data name="Anim_RollbackStopped" xml:space="preserve"><value>Das Übernehmen ist fehlgeschlagen und konnte nicht ganz rückgängig gemacht werden ({0}). Nutze „Original wiederherstellen“.</value></data>
   <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} wurde durch ein Mod-Update geändert und bleibt, wie es ist.</value></data>
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} wurde außerhalb dieser App bearbeitet und bleibt erhalten.</value></data>
-  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} konnte noch nicht gelöscht werden; es wird beim nächsten Mal entfernt.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} konnte noch nicht gelöscht werden; es wird entfernt, wenn du das nächste Mal eine Animation übernimmst.</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra hat die neuen Bilder in „{0}“ nicht behalten. Lade die Mod in Penumbra neu und prüfe den Tisch.</value></data>
   <data name="Anim_WriteFailed" xml:space="preserve"><value>Den Tisch zu ändern ist fehlgeschlagen: {0}</value></data>
   <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: mehr als ein Partikel zeigt das Tischbild</value></data>

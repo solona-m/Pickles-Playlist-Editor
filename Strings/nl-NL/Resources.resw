@@ -371,7 +371,7 @@ Wil je doorgaan?</value></data>
   <data name="Anim_RollbackStopped" xml:space="preserve"><value>Toepassen is mislukt en kon niet volledig ongedaan worden gemaakt ({0}). Gebruik ‘Origineel terugzetten’.</value></data>
   <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} is door een modupdate gewijzigd en is gelaten zoals het is.</value></data>
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} is buiten deze app bewerkt en is bewaard.</value></data>
-  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} kon nog niet worden verwijderd; het wordt de volgende keer opgeruimd.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} kon nog niet worden verwijderd; het wordt opgeruimd de volgende keer dat je een animatie toepast.</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra heeft de nieuwe frames in ‘{0}’ niet bewaard. Laad de mod opnieuw in Penumbra en controleer de tafel.</value></data>
   <data name="Anim_WriteFailed" xml:space="preserve"><value>Het wijzigen van de tafel is mislukt: {0}</value></data>
   <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: meer dan één deeltje toont de tafelafbeelding</value></data>

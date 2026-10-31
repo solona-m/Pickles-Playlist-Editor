@@ -97,6 +97,9 @@ namespace Pickles_Playlist_Editor.Utils
             return live ? new(AnimationStatusKind.Ours, state.Frames.Count) : new(AnimationStatusKind.Interrupted);
         }
 
+        /// <summary>Where a caught failure's exception goes; the app points this at its log.</summary>
+        public static Action<Exception>? Failed { get; set; }
+
         public static FrameTimeline? LiveTimeline(AnimationState? state) =>
             state == null || state.Frames.Count == 0 || state.StartTicks.Count != state.Frames.Count
                 ? null
@@ -117,6 +120,7 @@ namespace Pickles_Playlist_Editor.Utils
             }
             catch (Exception ex)
             {
+                Failed?.Invoke(ex);
                 warnings = Array.Empty<string>();
                 error = AnimationText.Format(AnimationMessage.WriteFailed, ex.Message);
                 return false;
@@ -261,6 +265,7 @@ namespace Pickles_Playlist_Editor.Utils
             }
             catch (Exception ex)
             {
+                Failed?.Invoke(ex);
                 error = Rollback(host, site, previous, token, gen, written, keysAdded, plannedKeys, framesWritten, notes, ex);
                 return false;
             }
@@ -400,6 +405,7 @@ namespace Pickles_Playlist_Editor.Utils
             }
             catch (Exception ex)
             {
+                Failed?.Invoke(ex);
                 error = AnimationText.Format(AnimationMessage.WriteFailed, ex.Message);
                 return false;
             }
@@ -449,6 +455,7 @@ namespace Pickles_Playlist_Editor.Utils
             }
             catch (Exception ex)
             {
+                Failed?.Invoke(ex);
                 error = AnimationText.Format(AnimationMessage.WriteFailed, ex.Message);
                 return false;
             }

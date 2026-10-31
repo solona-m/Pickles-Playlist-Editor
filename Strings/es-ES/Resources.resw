@@ -371,7 +371,7 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="Anim_RollbackStopped" xml:space="preserve"><value>Aplicar falló y no se pudo deshacer del todo ({0}). Usa «Volver a poner el original».</value></data>
   <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} cambió con una actualización del mod y se dejó como está.</value></data>
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} se editó fuera de esta app y se conservó.</value></data>
-  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>Aún no se pudo borrar {0}; se quitará la próxima vez.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>Aún no se pudo borrar {0}; se quitará la próxima vez que apliques una animación.</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra no conservó los nuevos fotogramas en «{0}». Recarga el mod en Penumbra y revisa la mesa.</value></data>
   <data name="Anim_WriteFailed" xml:space="preserve"><value>No se pudo cambiar la mesa: {0}</value></data>
   <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: más de una partícula muestra la imagen de la mesa</value></data>
