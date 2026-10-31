@@ -44,7 +44,7 @@
 
         <StackPanel x:Name="CardsSection" Spacing="10" Visibility="Collapsed">
             <TextBlock x:Uid="TexturesHint" TextWrapping="Wrap" Opacity="0.7"
-                       Text="Drop a picture onto one of these, or use the button underneath. An animated GIF on the table panel plays as an animation. Nothing is written until you press Apply."/>
+                       Text="Drop a picture onto one of these, or use the button underneath. An animated GIF, WebP, APNG or short video on the table panel plays as an animation. Nothing is written until you press Apply."/>
 
             <Grid ColumnSpacing="12">
                 <Grid.ColumnDefinitions>

@@ -315,8 +315,7 @@ namespace Pickles_Playlist_Editor
             using var dialog = new System.Windows.Forms.OpenFileDialog
             {
                 Title = AppStrings.Textures_PickTitle,
-                Filter = "Pictures (*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff)"
-                    + "|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|All files (*.*)|*.*",
+                Filter = PictureLoader.PickerFilter,
                 CheckFileExists = true,
                 Multiselect = false,
             };
@@ -518,6 +517,7 @@ namespace Pickles_Playlist_Editor
             string text = AppStrings.TexturesAnimationPending(card.PickedName, summary.Frames, summary.Seconds,
                     (summary.AddedBytes + 524288) / 1048576)
                 + (summary.CapNote ? "\n" + AppStrings.TexturesAnimationCapped(frames.Count, animation.SourceFrameCount) : string.Empty)
+                + (animation.Trimmed ? "\n" + AppStrings.TexturesAnimationTrimmed(PictureLoader.MaxClipSeconds) : string.Empty)
                 + "\n" + AppStrings.TexturesFitEffect(effect);
             PlayCard(card, previews, timeline, text);
         }

@@ -301,7 +301,7 @@ Möchtest du fortfahren?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX-Mod</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Ändern</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>Diese Mods haben einen DJ-Tisch, auf den du Bilder legen kannst. Wähle den, den du nutzt.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Zieh ein Bild auf eines davon oder nutze den Knopf darunter. Ein animiertes GIF auf dem Tischpanel wird als Animation abgespielt. Nichts wird geschrieben, bis du auf Übernehmen drückst.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Zieh ein Bild auf eines davon oder nutze den Knopf darunter. Ein animiertes GIF, WebP, APNG oder ein kurzes Video auf dem Tischpanel wird als Animation abgespielt. Nichts wird geschrieben, bis du auf Übernehmen drückst.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Tischfront</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptop-Bildschirm</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Füllen</value></data>
@@ -349,10 +349,10 @@ Möchtest du fortfahren?</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>passt genau</value></data>
   <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — Animation, {1} Bilder, {2:0.0} s Schleife. Macht die Mod etwa {3} MB größer.</value></data>
   <data name="Textures_AnimCapped" xml:space="preserve"><value>Von {1} auf {0} Bilder ausgedünnt; die Schleife bleibt gleich lang.</value></data>
-  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Dieses GIF ist zu groß zum Animieren, darum wird sein erstes Bild verwendet.</value></data>
-  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Nur das Tischpanel kann animiert werden, darum wird das erste Bild dieses GIFs verwendet.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Diese Animation ist zu groß zum Animieren, darum wird ihr erstes Bild verwendet.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Nur das Tischpanel kann animiert werden, darum wird das erste Bild dieser Animation verwendet.</value></data>
   <data name="Textures_YourAnimation" xml:space="preserve"><value>Deine Animation — {0} Bilder</value></data>
-  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Diese Mod animiert den Tisch schon ({0} Bilder). Ein GIF ersetzt diese Animation; ein Bild deckt das ganze Panel ab.</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Diese Mod animiert den Tisch schon ({0} Bilder). Ein animiertes GIF, WebP, APNG oder ein kurzes Video ersetzt diese Animation; ein Bild deckt das ganze Panel ab.</value></data>
   <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Diese App hat den Tisch animiert, aber ihre Sicherung fehlt (wurde der Mod-Ordner umbenannt?). Installiere die Mod neu, um den Tisch zu ändern.</value></data>
   <data name="Textures_AnimInterrupted" xml:space="preserve"><value>Die letzte Änderung an der Tischanimation wurde nicht fertig. Setz das Original wieder ein, um aufzuräumen, oder übernimm erneut.</value></data>
   <data name="Textures_AnimUnsupported" xml:space="preserve"><value>Der Tisch kann in dieser Mod nicht animiert werden: {0}</value></data>
@@ -378,4 +378,5 @@ Möchtest du fortfahren?</value></data>
   <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: das Tischpanel wird nicht von genau einem Emitter-Eintrag erzeugt</value></data>
   <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: die Animation der Mod hat kein Bild, das diese App wiederverwenden kann</value></data>
   <data name="Anim_Unparseable" xml:space="preserve"><value>{0} konnte nicht als Effektdatei gelesen werden</value></data>
+  <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Nur die ersten {0} s dieses Clips werden verwendet.</value></data>
 </root>

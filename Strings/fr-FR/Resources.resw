@@ -301,7 +301,7 @@ Voulez-vous continuer ?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>Mod VFX</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Changer</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>Ces mods ont une table de DJ sur laquelle mettre des images. Choisis celui que tu utilises.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Dépose une image sur l’une d’elles, ou utilise le bouton en dessous. Un GIF animé sur le panneau de la table est joué comme une animation. Rien n’est écrit tant que tu n’appuies pas sur Appliquer.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Dépose une image sur l’une d’elles, ou utilise le bouton en dessous. Un GIF, WebP ou APNG animé ou une courte vidéo sur le panneau de la table est joué comme une animation. Rien n’est écrit tant que tu n’appuies pas sur Appliquer.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Panneau de la table</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Écran du portable</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Remplir</value></data>
@@ -349,10 +349,10 @@ Voulez-vous continuer ?</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>tient exactement</value></data>
   <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animation, {1} images, boucle de {2:0.0} s. Ajoute environ {3} Mo au mod.</value></data>
   <data name="Textures_AnimCapped" xml:space="preserve"><value>Réduit de {1} à {0} images pour tenir ; la boucle garde sa durée.</value></data>
-  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Ce GIF est trop grand pour être animé, sa première image est donc utilisée.</value></data>
-  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Seul le panneau de la table peut être animé, la première image de ce GIF est donc utilisée.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Cette animation est trop grande pour être animée, sa première image est donc utilisée.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Seul le panneau de la table peut être animé, la première image de cette animation est donc utilisée.</value></data>
   <data name="Textures_YourAnimation" xml:space="preserve"><value>Ton animation — {0} images</value></data>
-  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Ce mod anime déjà la table ({0} images). Un GIF remplace cette animation ; une image couvre tout le panneau.</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Ce mod anime déjà la table ({0} images). Un GIF, WebP ou APNG animé ou une courte vidéo remplace cette animation ; une image couvre tout le panneau.</value></data>
   <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Cette app a animé la table, mais sa sauvegarde a disparu (le dossier du mod a-t-il été renommé ?). Réinstalle le mod pour changer la table.</value></data>
   <data name="Textures_AnimInterrupted" xml:space="preserve"><value>Le dernier changement de l’animation de la table ne s’est pas terminé. Remets l’original pour nettoyer, ou applique à nouveau.</value></data>
   <data name="Textures_AnimUnsupported" xml:space="preserve"><value>La table ne peut pas être animée dans ce mod : {0}</value></data>
@@ -378,4 +378,5 @@ Voulez-vous continuer ?</value></data>
   <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0} : le panneau de la table n’est pas créé par exactement un élément d’émetteur</value></data>
   <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0} : l’animation du mod n’a aucune image que cette app peut réutiliser</value></data>
   <data name="Anim_Unparseable" xml:space="preserve"><value>{0} n’a pas pu être lu comme fichier d’effet</value></data>
+  <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Seules les {0} premières secondes de ce clip sont utilisées.</value></data>
 </root>
