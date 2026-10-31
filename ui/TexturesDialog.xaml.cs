@@ -931,7 +931,7 @@ namespace Pickles_Playlist_Editor
 
         private static bool CanChoose(Card card) => card.View?.TableChangeAllowed ?? true;
 
-        // The laptop's still is read live: a plain still write does not rescan its view.
+        // The laptop still is also read live, beside the rescan after a laptop write.
         private static bool CanRestore(Card card) =>
             card.HasPending || (card.View?.RestoreEnabled ?? card.Target?.IsCustomised ?? false)
             || card.Key == "laptop" && card.Target?.IsCustomised == true;
