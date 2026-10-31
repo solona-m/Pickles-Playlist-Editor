@@ -72,19 +72,42 @@ internal static class Fixtures
         if (!Directory.Exists(PicklesRoot)) throw new SkipException("Pickles base pack not found");
         var (root, baseDir) = NewRoot(folderName);
         File.Copy(Path.Combine(PicklesRoot, "meta.json"), Path.Combine(root, "meta.json"));
-        foreach (var rel in PicklesAvfx.Append(@"common\4\eq55.atex")) CopyFile(PicklesRoot, root, rel);
-        UndoAppAnimation(PicklesRoot, root);
+        foreach (var rel in PicklesAvfx.Append(PicklesEq55)) CopyFile(PicklesRoot, root, rel);
+        UndoAppAnimation(PicklesRoot, root, AppBackups);
+        RestoreShippedTexture(Path.Combine(AppBackups, "textures", Path.GetFileName(PicklesRoot)), root, PicklesEq55);
         return Make(root, baseDir, folderName);
+    }
+
+    public const string PicklesEq55 = @"common\4\eq55.atex";
+
+    /// <summary>The app's own backups folder; only ever read here.</summary>
+    public static readonly string AppBackups = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PicklesPlaylistEditor", "backups");
+
+    /// <summary>
+    /// Puts the shipped texture back when the app has pasted a still into the source pack. The backup
+    /// must hash to its recorded OriginalSha, or the copy is left alone and this throws.
+    /// </summary>
+    internal static void RestoreShippedTexture(string backupModFolder, string copyRoot, string relative)
+    {
+        string folder = Path.Combine(backupModFolder, relative.Replace('\\', '-').Replace('/', '-'));
+        string statePath = Path.Combine(folder, "state.json");
+        if (!File.Exists(statePath)) return;
+        string expected = (string?)JObject.Parse(File.ReadAllText(statePath))["OriginalSha"] ?? "";
+        byte[] original = File.ReadAllBytes(Path.Combine(folder, "original.atex"));
+        if (!string.Equals(Convert.ToHexString(SHA256.HashData(original)), expected, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"{folder}: original.atex does not match OriginalSha.");
+        string target = Path.Combine(copyRoot, relative);
+        if (!File.ReadAllBytes(target).AsSpan().SequenceEqual(original)) File.WriteAllBytes(target, original);
     }
 
     /// <summary>
     /// The source pack may have been animated with the app itself. Its pristine backups (read only)
     /// give the shipped effects back, and the copied manifest loses the frame keys.
     /// </summary>
-    private static void UndoAppAnimation(string source, string copy)
+    internal static void UndoAppAnimation(string source, string copy, string backupsRoot)
     {
-        string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "PicklesPlaylistEditor", "backups", "textures", Path.GetFileName(source), "animation");
+        string folder = Path.Combine(backupsRoot, "textures", Path.GetFileName(source), "animation");
         var state = DjAnimationScan.TryReadState(folder);
         if (state == null) return;
         foreach (var entry in state.Avfx)
@@ -189,8 +212,8 @@ internal static class Fixtures
         return frames;
     }
 
-    public static FrameTimeline Timeline(int n, int delayCs = 10) =>
-        FramePlan.Plan(Enumerable.Repeat(delayCs, n).ToList(), 48).Timeline;
+    public static FrameTimeline Timeline(int n, int delayCs = 10, int maxFrames = FramePlan.MaxFrames) =>
+        FramePlan.Plan(Enumerable.Repeat(delayCs, n).ToList(), maxFrames).Timeline;
 
     public static double Psnr(BgraImage a, BgraImage b)
     {
