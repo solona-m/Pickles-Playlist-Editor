@@ -25,6 +25,15 @@ namespace Pickles_Playlist_Editor.Utils
         public string? PendingSha { get; set; }
     }
 
+    /// <summary>The laptop screen's live animation, a second layer on the same effect files.</summary>
+    internal sealed class LaptopAnimation
+    {
+        public List<AnimationFrame> Frames { get; set; } = new();
+        public List<int> StartTicks { get; set; } = new();
+        public int LoopTicks { get; set; }
+        public TexRect? FrameRect { get; set; }
+    }
+
     /// <summary>What this app has done to a mod's table effect, kept in the backup folder.</summary>
     internal sealed class AnimationState
     {
@@ -43,11 +52,15 @@ namespace Pickles_Playlist_Editor.Utils
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TexRect? FrameRect { get; set; }
 
+        /// <summary>The laptop layer; absent when the laptop is not animated.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public LaptopAnimation? Laptop { get; set; }
+
         public const string Applying = "Applying";
         public const string Applied = "Applied";
 
         /// <summary>Kept only to carry the token, generation and leftovers; counts as no state.</summary>
-        [JsonIgnore] public bool IsEmpty => Avfx.Count == 0 && Frames.Count == 0;
+        [JsonIgnore] public bool IsEmpty => Avfx.Count == 0 && Frames.Count == 0 && (Laptop?.Frames.Count ?? 0) == 0;
 
         public AnimationAvfx? Find(string relative) =>
             Avfx.FirstOrDefault(a => DjAnimationScan.SameRelative(a.Relative, relative));
@@ -64,7 +77,7 @@ namespace Pickles_Playlist_Editor.Utils
     /// <summary>One table effect file as the scan found it.</summary>
     internal sealed record SiteAvfx(
         string Relative, string FullPath, string? CurrentSha, bool Unreadable,
-        byte[]? Baseline, bool Ours, InspectResult? Inspect);
+        byte[]? Baseline, bool Ours, InspectResult? Inspect, InspectResult? LaptopInspect = null);
 
     /// <summary>Everything the table animation needs to know about one mod, read in one pass.</summary>
     internal sealed class DjTableAnimationSite
@@ -84,6 +97,14 @@ namespace Pickles_Playlist_Editor.Utils
         public int ParsedCount { get; set; }
         public List<string> Warnings { get; } = new();
 
+        /// <summary>The laptop screen in the same effect files, when the mod has one.</summary>
+        public DjTextureTarget? Laptop { get; init; }
+        public IReadOnlyList<string> LaptopGamePaths { get; init; } = Array.Empty<string>();
+
+        /// <summary>Why the laptop cannot be animated; null when it can.</summary>
+        public string? LaptopProblem { get; set; }
+        public int LaptopCapacity { get; set; }
+
         /// <summary>The effect files that get frames.</summary>
         public IEnumerable<SiteAvfx> Animatable =>
             Avfx.Where(a => a.Inspect?.Kind == InspectKind.Animatable);
@@ -97,7 +118,7 @@ namespace Pickles_Playlist_Editor.Utils
         FileMissing, FileUnreadable, ModChanged, Collision, RollbackStopped, Orphaned,
         NoPanel, DefaultData, TooManyTextures, MismatchedAtlas, MixedLayouts,
         DuplicatePanel, PanelItemCount, NoUsableSlot, Unparseable,
-        LeftAlone, KeptEditedFrame, StaleNotDeleted, ManifestLost, WriteFailed,
+        LeftAlone, KeptEditedFrame, StaleNotDeleted, ManifestLost, WriteFailed, LayerNotKept,
     }
 
     /// <summary>
@@ -125,7 +146,7 @@ namespace Pickles_Playlist_Editor.Utils
             Path.Combine(stateFolder, "pristine", sha + ".avfx");
 
         public static DjTableAnimationSite Inspect(string modRoot, DjTextureTarget table, string stateFolder,
-            Func<string, byte[]>? read = null)
+            Func<string, byte[]>? read = null, DjTextureTarget? laptop = null)
         {
             read ??= File.ReadAllBytes;
             var options = PenumbraOptions.Read(modRoot);
@@ -134,6 +155,11 @@ namespace Pickles_Playlist_Editor.Utils
             string tableRelative = Normalise(table.Relative);
             var gamePaths = options.SelectMany(o => o.Files)
                 .Where(f => SameRelative(f.Value, tableRelative))
+                .Select(f => f.Key)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var laptopPaths = laptop == null ? new List<string>() : options.SelectMany(o => o.Files)
+                .Where(f => SameRelative(f.Value, laptop.Relative))
                 .Select(f => f.Key)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -156,6 +182,8 @@ namespace Pickles_Playlist_Editor.Utils
                 TextureGamePaths = gamePaths,
                 State = state,
                 StateSha = stateSha,
+                Laptop = laptop,
+                LaptopGamePaths = laptopPaths,
             };
 
             // Every effect file an option maps, plus every one state lists.
@@ -211,18 +239,89 @@ namespace Pickles_Playlist_Editor.Utils
                 var baseline = Baseline(relative, bytes, state, stateFolder);
                 if (baseline.Orphaned) site.Orphaned = true;
 
-                InspectResult? result = null;
+                InspectResult? result = null, laptopResult = null;
                 if (baseline.Bytes != null)
                 {
                     var options4 = mapping.GetValueOrDefault(relative) ?? new List<ModOption>();
                     result = AvfxTableAnimation.Inspect(baseline.Bytes, gamePaths,
                         path => IsTableShaped(path, options4, modRoot, tableHeader, headerCache));
+                    if (laptopPaths.Count > 0)
+                        laptopResult = AvfxTableAnimation.Inspect(baseline.Bytes, laptopPaths, _ => false);
                 }
-                site.Avfx.Add(new SiteAvfx(relative, full, sha, false, baseline.Bytes, ours, result));
+                site.Avfx.Add(new SiteAvfx(relative, full, sha, false, baseline.Bytes, ours, result, laptopResult));
             }
 
             DecideProblem(site, mapping, tableRelative);
+            DecideLaptop(site, mapping);
             return site;
+        }
+
+        /// <summary>Whether the laptop is offered, and both surfaces' frame caps (combined, and in the tested size).</summary>
+        private static void DecideLaptop(DjTableAnimationSite site, Dictionary<string, List<ModOption>> mapping)
+        {
+            var state = site.State;
+            int tableLive = site.Mode == AnimationMode.Append ? state?.Frames.Count ?? 0 : 0;
+            int laptopLive = state?.Laptop?.Frames.Count ?? 0;
+
+            if (site.Problem == null && !site.Orphaned && laptopLive > 0)
+            {
+                // The table shares the effect, and the tested size, with a live laptop.
+                int cap = int.MaxValue;
+                foreach (var avfx in site.Animatable)
+                {
+                    var info = avfx.Inspect!.Info!;
+                    var counts = AvfxTableAnimation.Counts(avfx.Baseline!, info.Emitter);
+                    int laptopItems = avfx.LaptopInspect?.Info?.Emitter == info.Emitter ? laptopLive : 0;
+                    cap = Math.Min(cap, Math.Min(Math.Min(FramePlan.MaxFrames - laptopLive, 255 - info.TextureCount - laptopLive),
+                        Math.Min(Math.Min(AvfxTableOverlay.TestedParticles - counts.Particles - laptopLive,
+                            AvfxTableOverlay.TestedTextures - counts.Textures - laptopLive),
+                            AvfxTableOverlay.TestedItems - counts.Items - laptopItems)));
+                }
+                if (cap != int.MaxValue) site.Capacity = Math.Max(0, Math.Min(site.Capacity, cap));
+            }
+
+            string? problem = LaptopProblemOf(site, mapping);
+            if (problem != null) { site.LaptopProblem = problem; return; }
+
+            int combined = FramePlan.MaxFrames - tableLive, tested = int.MaxValue;
+            string testedBy = string.Empty;
+            foreach (var avfx in site.Animatable)
+            {
+                var info = avfx.LaptopInspect!.Info!;
+                var counts = AvfxTableAnimation.Counts(avfx.Baseline!, info.Emitter);
+                int tableItems = avfx.Inspect!.Info!.Emitter == info.Emitter ? tableLive : 0;
+                int room = Math.Min(Math.Min(AvfxTableOverlay.TestedParticles - counts.Particles - tableLive,
+                    AvfxTableOverlay.TestedTextures - counts.Textures - tableLive), AvfxTableOverlay.TestedItems - counts.Items - tableItems);
+                if (room < tested) { tested = room; testedBy = avfx.Relative; }
+            }
+            site.LaptopCapacity = Math.Max(0, Math.Min(combined, tested));
+            if (site.LaptopCapacity < 2)
+                site.LaptopProblem = tested < combined
+                    ? "TestedSize " + testedBy
+                    : AnimationText.Format(AnimationMessage.TooManyTextures, string.Empty);
+        }
+
+        private static string? LaptopProblemOf(DjTableAnimationSite site, Dictionary<string, List<ModOption>> mapping)
+        {
+            if (site.Laptop == null) return "NoLaptop";
+            if (site.Orphaned) return AnimationText.Format(AnimationMessage.Orphaned, string.Empty);
+            if (site.Problem != null) return site.Problem;
+            foreach (var avfx in site.Animatable)
+            {
+                var inspect = avfx.LaptopInspect;
+                if (inspect?.Kind != InspectKind.Animatable)
+                    return AnimationText.Format(inspect?.Problem ?? AnimationMessage.NoPanel, avfx.Relative);
+                if (inspect.Info!.Mode != AnimationMode.Append)
+                    return AnimationText.Format(AnimationMessage.MixedLayouts, avfx.Relative);
+                foreach (var option in mapping.GetValueOrDefault(avfx.Relative) ?? new List<ModOption>())
+                {
+                    string? file = option.Files.Where(f => site.LaptopGamePaths.Contains(f.Key, StringComparer.OrdinalIgnoreCase))
+                        .Select(f => f.Value).FirstOrDefault();
+                    if (file == null || !SameRelative(file, site.Laptop.Relative))
+                        return AnimationText.Format(AnimationMessage.MismatchedAtlas, option.Name);
+                }
+            }
+            return null;
         }
 
         private static void DecideProblem(DjTableAnimationSite site, Dictionary<string, List<ModOption>> mapping,

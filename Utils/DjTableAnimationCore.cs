@@ -75,6 +75,22 @@ namespace Pickles_Playlist_Editor.Utils
             new(TableText.ScanFailed, false, stateReadable, false, false, null);
     }
 
+    /// <summary>What the laptop card offers. Interrupted and orphaned runs stay on the table card.</summary>
+    internal static class LaptopCard
+    {
+        public static TableCardView Describe(DjTableAnimationSite site, bool stillCustomised)
+        {
+            var status = DjTableAnimationCore.Status(site, AnimatedSurface.Laptop);
+            bool ours = status.Kind == AnimationStatusKind.Ours;
+            return new(ours ? status.Frames > 1 ? TableText.YourAnimation : TableText.YourStill : TableText.Default,
+                PlaysFrames: ours && status.Frames > 1,
+                RestoreEnabled: stillCustomised || ours,
+                TableChangeAllowed: true,
+                AnimationAllowed: (status.Kind is AnimationStatusKind.None or AnimationStatusKind.Ours) && site.LaptopProblem == null,
+                StillRoute: ours ? StillRoute.PasteThenRestore : StillRoute.Existing);
+        }
+    }
+
     /// <summary>
     /// Applying and removing a table animation. Every write goes through <see cref="IAnimationHost"/>
     /// in an order where each in-between state is a working mod, with the intent recorded first so
@@ -82,23 +98,58 @@ namespace Pickles_Playlist_Editor.Utils
     /// </summary>
     internal static class DjTableAnimationCore
     {
-        public static AnimationStatus Status(DjTableAnimationSite site)
+        public static AnimationStatus Status(DjTableAnimationSite site) => Status(site, AnimatedSurface.Table);
+
+        public static AnimationStatus Status(DjTableAnimationSite site, AnimatedSurface surface)
         {
             if (site.Orphaned) return new(AnimationStatusKind.Orphaned);
             if (site.Problem != null) return new(AnimationStatusKind.Unsupported, Reason: site.Problem);
+            bool table = surface == AnimatedSurface.Table;
             if (!site.HasState)
-                return site.Mode == AnimationMode.InPlace
+                return table && site.Mode == AnimationMode.InPlace
                     ? new(AnimationStatusKind.Author, site.AuthorFrames)
                     : new(AnimationStatusKind.None);
 
+            if (!IsLive(site)) return new(AnimationStatusKind.Interrupted);
             var state = site.State!;
-            bool live = state.Phase == AnimationState.Applied && state.Avfx.All(a =>
+            if (!table)
+                return state.Laptop is { Frames.Count: > 0 } lap ? new(AnimationStatusKind.Ours, lap.Frames.Count) : new(AnimationStatusKind.None);
+            if (state.Frames.Count > 0) return new(AnimationStatusKind.Ours, state.Frames.Count);
+            if (site.Mode == AnimationMode.InPlace) return new(AnimationStatusKind.Author, site.AuthorFrames);
+            // Only the laptop is animated; the table may have no room left beside it.
+            return site.Capacity < 2
+                ? new(AnimationStatusKind.Unsupported, Reason: AnimationText.Format(AnimationMessage.TooManyTextures, string.Empty))
+                : new(AnimationStatusKind.None);
+        }
+
+        /// <summary>The state was applied and every effect it lists still holds what was written.</summary>
+        public static bool IsLive(DjTableAnimationSite site)
+        {
+            var state = site.State;
+            return state != null && state.Phase == AnimationState.Applied && state.Avfx.All(a =>
             {
                 var entry = site.Avfx.FirstOrDefault(s => DjAnimationScan.SameRelative(s.Relative, a.Relative));
                 return entry?.CurrentSha != null
                     && string.Equals(entry.CurrentSha, a.AppliedSha, StringComparison.OrdinalIgnoreCase);
             });
-            return live ? new(AnimationStatusKind.Ours, state.Frames.Count) : new(AnimationStatusKind.Interrupted);
+        }
+
+        /// <summary>Whether this surface has something of ours the card can remove.</summary>
+        public static bool HasLayer(DjTableAnimationSite site, AnimatedSurface surface)
+        {
+            if (!site.HasState) return false;
+            bool live = IsLive(site);
+            return surface == AnimatedSurface.Table
+                ? !live || site.State!.Frames.Count > 0
+                : live && AnimationLayers.LaptopOf(site.State) != null;
+        }
+
+        /// <summary>Every live frame key of both surfaces, game path to file.</summary>
+        public static IReadOnlyDictionary<string, string> LiveFrameKeys(AnimationState state)
+        {
+            var keys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var f in state.Frames.Concat(state.Laptop?.Frames ?? new List<AnimationFrame>())) keys[f.GamePath] = f.Relative;
+            return keys;
         }
 
         /// <summary>Where a caught failure's exception goes; the app points this at its log.</summary>
@@ -109,6 +160,9 @@ namespace Pickles_Playlist_Editor.Utils
 
         /// <summary>Test seam: replaces <see cref="PlanOverlay"/> in Apply and Summarise when set.</summary>
         internal static Func<DjTableAnimationSite, byte[], OverlayRoute?>? OverlayPlanner { get; set; }
+
+        /// <summary>Test seam: replaces the laptop's <see cref="AnimationLayers.PlanLaptop"/> when set.</summary>
+        internal static Func<DjTableAnimationSite, byte[], OverlayRoute?>? LaptopPlanner { get; set; }
 
         /// <summary>Plans every animatable effect against the atlas; null, with the reason, when any refuses.</summary>
         public static OverlayRoute? PlanOverlay(DjTableAnimationSite site, byte[] atlas, out string refusal)
@@ -132,9 +186,12 @@ namespace Pickles_Playlist_Editor.Utils
         }
 
         /// <summary>One written frame as the card shows it (upright), or null when it cannot be read.</summary>
-        public static BgraImage? ReadFrame(byte[] frameFile, AnimationState state, DjTextureSurface surface)
+        public static BgraImage? ReadFrame(byte[] frameFile, AnimationState state, DjTextureSurface surface) =>
+            ReadFrame(frameFile, state.FrameRect, surface);
+
+        public static BgraImage? ReadFrame(byte[] frameFile, TexRect? frameRect, DjTextureSurface surface)
         {
-            var rect = TexPaste.ReadRect(frameFile, state.FrameRect ?? surface.Rect, out _);
+            var rect = TexPaste.ReadRect(frameFile, frameRect ?? surface.Rect, out _);
             return rect == null ? null : ImageOps.Rotate(rect, surface.QuarterTurns);
         }
 
@@ -149,34 +206,79 @@ namespace Pickles_Playlist_Editor.Utils
 
         public static bool Apply(IAnimationHost host, DjTableAnimationSite site, IReadOnlyList<BgraImage> frames,
             FrameTimeline timeline, FitMode fit, IProgress<int>? progress,
-            out IReadOnlyList<string> warnings, out string error)
+            out IReadOnlyList<string> warnings, out string error) =>
+            Apply(host, site, AnimatedSurface.Table, frames, timeline, fit, progress, out warnings, out error, out _);
+
+        /// <summary>
+        /// Animates one surface. The laptop has no full-atlas route: a laptop the overlay refuses comes
+        /// back with <paramref name="overlayRefused"/> set and nothing written.
+        /// </summary>
+        public static bool Apply(IAnimationHost host, DjTableAnimationSite site, AnimatedSurface surface,
+            IReadOnlyList<BgraImage> frames, FrameTimeline timeline, FitMode fit, IProgress<int>? progress,
+            out IReadOnlyList<string> warnings, out string error, out bool overlayRefused)
         {
             // Anything that throws before the mod is touched still comes back as a refusal.
             try
             {
-                return ApplyCore(host, site, frames, timeline, fit, progress, out warnings, out error);
+                return ApplyCore(host, site, surface, frames, timeline, fit, progress, out warnings, out error, out overlayRefused);
             }
             catch (Exception ex)
             {
                 Failed?.Invoke(ex);
                 warnings = Array.Empty<string>();
                 error = AnimationText.Format(AnimationMessage.WriteFailed, ex.Message);
+                overlayRefused = false;
                 return false;
             }
         }
 
-        private static bool ApplyCore(IAnimationHost host, DjTableAnimationSite site, IReadOnlyList<BgraImage> frames,
-            FrameTimeline timeline, FitMode fit, IProgress<int>? progress,
-            out IReadOnlyList<string> warnings, out string error)
+        /// <summary>Reads each surface's texture at most once.</summary>
+        private static Func<AnimatedSurface, byte[]> AtlasReader(IAnimationHost host, DjTableAnimationSite site, byte[]? table = null)
+        {
+            var cache = new Dictionary<AnimatedSurface, byte[]>();
+            if (table != null) cache[AnimatedSurface.Table] = table;
+            return s => cache.TryGetValue(s, out var b) ? b
+                : cache[s] = host.ReadFile(s == AnimatedSurface.Table ? site.Table.FullPath : site.Laptop!.FullPath);
+        }
+
+        /// <summary>Recomposing the live layers must give the live bytes; anything else is drift we must not overwrite.</summary>
+        private static string? LiveCheck(DjTableAnimationSite site, Func<AnimatedSurface, byte[]> atlas)
+        {
+            var state = site.State!;
+            AnimationLayer? table = AnimationLayers.TableOf(state), laptop = AnimationLayers.LaptopOf(state);
+            foreach (var avfx in site.Animatable)
+            {
+                var entry = state.Find(avfx.Relative);
+                if (entry?.AppliedSha == null) continue;
+                var built = AnimationLayers.Compose(avfx, site, table, laptop, atlas, out string problem);
+                if (built == null) return problem;
+                if (!string.Equals(AvfxTableAnimation.Sha(built), entry.AppliedSha, StringComparison.OrdinalIgnoreCase))
+                    return "drift " + avfx.Relative;
+            }
+            return null;
+        }
+
+        private static bool ApplyCore(IAnimationHost host, DjTableAnimationSite site, AnimatedSurface surface,
+            IReadOnlyList<BgraImage> frames, FrameTimeline timeline, FitMode fit, IProgress<int>? progress,
+            out IReadOnlyList<string> warnings, out string error, out bool overlayRefused)
         {
             var notes = new List<string>();
             warnings = notes;
+            overlayRefused = false;
             if (!CheckSite(host, site, refuseProblem: true, out error)) return false;
 
+            bool laptop = surface == AnimatedSurface.Laptop;
             int n = frames.Count;
             if (n < 1 || timeline.StartTicks.Count != n)
                 throw new ArgumentException("The frames and their timeline do not match.");
-            if (n > site.Capacity)
+            if (laptop && site.LaptopProblem != null)
+            {
+                OverlaySkipped?.Invoke(site.LaptopProblem);
+                overlayRefused = true;
+                error = site.LaptopProblem;
+                return false;
+            }
+            if (n > (laptop ? site.LaptopCapacity : site.Capacity))
             {
                 error = AnimationText.Format(AnimationMessage.TooManyTextures, string.Empty);
                 return false;
@@ -185,48 +287,91 @@ namespace Pickles_Playlist_Editor.Utils
             var previous = site.State;
             string token = previous?.ModToken is { Length: > 0 } t ? t : host.NewToken();
             int gen = (previous?.Generation ?? 0) + 1;
+            string kind = laptop ? "lap" : string.Empty;
 
             var planned = Enumerable.Range(0, n).Select(k => new AnimationFrame
             {
-                Relative = $"{DjAnimationScan.FrameFolder}\\{token}_{gen}_{k:D2}.atex",
-                GamePath = $"{AvfxTableAnimation.FramePrefix}{token}_{gen}_{k:D2}.atex",
+                Relative = $"{DjAnimationScan.FrameFolder}\\{token}_{gen}_{kind}{k:D2}.atex",
+                GamePath = $"{AvfxTableAnimation.FramePrefix}{token}_{gen}_{kind}{k:D2}.atex",
             }).ToList();
 
-            // Precompute everything before the first write.
-            byte[] atlas = host.ReadFile(site.Table.FullPath);
-            var surface = site.Table.Surface;
+            // Precompute everything before the first write. The other surface's live layer is carried.
             var gamePaths = planned.Select(f => f.GamePath).ToList();
+            var carriedTable = laptop ? AnimationLayers.TableOf(previous) : null;
+            var carriedLaptop = laptop ? null : AnimationLayers.LaptopOf(previous);
+            var atlasOf = AtlasReader(host, site, laptop ? null : host.ReadFile(site.Table.FullPath));
+            if ((carriedTable ?? carriedLaptop) != null && IsLive(site) && LiveCheck(site, atlasOf) is { } drift)
+            {
+                error = AnimationText.Format(AnimationMessage.LayerNotKept, drift);
+                return false;
+            }
+
             string Original(SiteAvfx avfx) =>
                 avfx.Ours && previous?.Find(avfx.Relative) is { } entry ? entry.OriginalSha : avfx.CurrentSha!;
 
-            var overlay = site.Mode == AnimationMode.Append ? TryOverlay(site, atlas, frames, timeline, fit, gamePaths, progress) : null;
             byte[][] encoded;
+            TexRect? frameRect;
             var builds = new List<(SiteAvfx Avfx, byte[] Bytes, string OriginalSha)>();
-            if (overlay is { } o)
+            if (laptop)
             {
-                encoded = o.Encoded;
-                builds.AddRange(o.Builds.Select(b => (b.Avfx, b.Bytes, Original(b.Avfx))));
+                var route = TryLaptop(site, atlasOf, carriedTable, frames, timeline, fit, gamePaths, progress, out error, out overlayRefused);
+                if (route is not { } r) return false;
+                encoded = r.Encoded;
+                frameRect = r.FrameRect;
+                builds.AddRange(r.Builds.Select(b => (b.Avfx, b.Bytes, Original(b.Avfx))));
             }
             else
             {
-                encoded = new byte[n][];
-                int done = 0;
-                string? encodeError = null;
-                Parallel.For(0, n, k =>
+                byte[] atlas = atlasOf(AnimatedSurface.Table);
+                var surfaceInfo = site.Table.Surface;
+                var overlay = site.Mode == AnimationMode.Append ? TryOverlay(site, atlas, frames, timeline, fit, gamePaths, progress) : null;
+                frameRect = overlay?.Route.RectInWindow;
+                if (overlay is { } o)
                 {
-                    var bytes = TexPaste.PasteRect(atlas, surface.Rect, surface.ToTextureSpace(frames[k], fit), out string e);
-                    if (bytes == null) encodeError = e;
-                    else encoded[k] = bytes;
-                    progress?.Report(System.Threading.Interlocked.Increment(ref done));
-                });
-                if (encodeError != null) { error = encodeError; return false; }
-
-                foreach (var avfx in site.Animatable)
-                {
-                    var built = AvfxTableAnimation.Build(avfx.Baseline!, avfx.Inspect!.Info!, gamePaths, timeline, out string problem);
-                    if (built == null) { error = problem; return false; }
-                    builds.Add((avfx, built, Original(avfx)));
+                    encoded = o.Encoded;
+                    builds.AddRange(o.Builds.Select(b => (b.Avfx, b.Bytes, Original(b.Avfx))));
                 }
+                else
+                {
+                    encoded = new byte[n][];
+                    int done = 0;
+                    string? encodeError = null;
+                    Parallel.For(0, n, k =>
+                    {
+                        var bytes = TexPaste.PasteRect(atlas, surfaceInfo.Rect, surfaceInfo.ToTextureSpace(frames[k], fit), out string e);
+                        if (bytes == null) encodeError = e;
+                        else encoded[k] = bytes;
+                        progress?.Report(System.Threading.Interlocked.Increment(ref done));
+                    });
+                    if (encodeError != null) { error = encodeError; return false; }
+
+                    foreach (var avfx in site.Animatable)
+                    {
+                        var built = AvfxTableAnimation.Build(avfx.Baseline!, avfx.Inspect!.Info!, gamePaths, timeline, out string problem);
+                        if (built == null) { error = problem; return false; }
+                        builds.Add((avfx, built, Original(avfx)));
+                    }
+                }
+
+                // A live laptop goes back on top of the new table layer, within the tested size.
+                if (carriedLaptop != null)
+                    for (int i = 0; i < builds.Count; i++)
+                    {
+                        var (avfx, tableBuilt, original) = builds[i];
+                        var withLaptop = AnimationLayers.Laptop(tableBuilt, site, carriedLaptop, atlasOf(AnimatedSurface.Laptop),
+                            FramePlan.MaxFrames, out var refusal, out string problem, out _);
+                        if (withLaptop == null)
+                        {
+                            error = AnimationText.Format(AnimationMessage.LayerNotKept, $"{refusal} {avfx.Relative} {problem}".Trim());
+                            return false;
+                        }
+                        if (!AnimationLayers.WithinTestedSize(withLaptop, AnimationLayers.LaptopInfo(tableBuilt, site)!))
+                        {
+                            error = AnimationText.Format(AnimationMessage.TooManyTextures, avfx.Relative);
+                            return false;
+                        }
+                        builds[i] = (avfx, withLaptop, original);
+                    }
             }
             for (int k = 0; k < n; k++) planned[k].Sha = AvfxTableAnimation.Sha(encoded[k]);
 
@@ -242,6 +387,35 @@ namespace Pickles_Playlist_Editor.Utils
             host.EditGroups(group => { keyHit ??= AllFiles(group).SelectMany(f => f.Properties()).Select(p => p.Name).FirstOrDefault(plannedKeys.Contains); return false; });
             if (keyHit != null) { error = AnimationText.Format(AnimationMessage.Collision, keyHit); return false; }
 
+            return WriteLayers(host, site, previous, token, gen, planned, encoded, builds, notes, out error, applied =>
+            {
+                if (laptop)
+                {
+                    applied.StaleFrames = (previous?.Laptop?.Frames ?? new List<AnimationFrame>()).Concat(applied.StaleFrames).ToList();
+                    applied.Laptop = new LaptopAnimation
+                    {
+                        Frames = planned, StartTicks = timeline.StartTicks.ToList(), LoopTicks = timeline.LoopTicks, FrameRect = frameRect,
+                    };
+                }
+                else
+                {
+                    applied.StaleFrames = (previous?.Frames ?? new List<AnimationFrame>()).Concat(applied.StaleFrames).ToList();
+                    applied.Frames = planned;
+                    applied.StartTicks = timeline.StartTicks.ToList();
+                    applied.LoopTicks = timeline.LoopTicks;
+                    applied.FrameRect = frameRect;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Steps 3-9: pristine copies, intent, new frames and keys, effect files, live, cleanup. With no
+        /// planned frames this removes a layer: only the effects change.
+        /// </summary>
+        private static bool WriteLayers(IAnimationHost host, DjTableAnimationSite site, AnimationState? previous, string token, int gen,
+            List<AnimationFrame> planned, byte[][] encoded, List<(SiteAvfx Avfx, byte[] Bytes, string OriginalSha)> builds,
+            List<string> notes, out string error, Action<AnimationState> live)
+        {
             // 3. Pristine copies, write-once.
             foreach (var (avfx, _, original) in builds)
             {
@@ -274,18 +448,22 @@ namespace Pickles_Playlist_Editor.Utils
             var framesWritten = new List<AnimationFrame>();
             bool keysAdded = false;
             var frameMap = planned.ToDictionary(f => f.GamePath, f => f.Relative);
+            var plannedKeys = new HashSet<string>(frameMap.Keys, StringComparer.OrdinalIgnoreCase);
             try
             {
                 // 5. Frames beside the live ones.
-                for (int k = 0; k < n; k++)
+                for (int k = 0; k < planned.Count; k++)
                 {
                     host.WriteFile(Path.Combine(site.ModRoot, planned[k].Relative), encoded[k]);
                     framesWritten.Add(planned[k]);
                 }
 
                 // 6. Add keys only, so a live animation keeps working.
-                keysAdded = true;
-                host.EditGroups(group => AddFrameKeys(group, rewritten, frameMap));
+                if (planned.Count > 0)
+                {
+                    keysAdded = true;
+                    host.EditGroups(group => AddFrameKeys(group, rewritten, frameMap));
+                }
 
                 // 7. Effect files.
                 foreach (var (avfx, built, _) in builds)
@@ -298,13 +476,10 @@ namespace Pickles_Playlist_Editor.Utils
                 // 8. Live.
                 var applied = applying.Copy();
                 applied.Phase = AnimationState.Applied;
-                applied.StaleFrames = (previous?.Frames ?? new List<AnimationFrame>()).Concat(applying.StaleFrames)
-                    .GroupBy(f => f.Relative, StringComparer.OrdinalIgnoreCase).Select(g => g.First()).ToList();
-                applied.Frames = planned;
                 applied.PendingFrames = new List<AnimationFrame>();
-                applied.StartTicks = timeline.StartTicks.ToList();
-                applied.LoopTicks = timeline.LoopTicks;
-                applied.FrameRect = overlay?.Route.RectInWindow;
+                live(applied);
+                applied.StaleFrames = applied.StaleFrames
+                    .GroupBy(f => f.Relative, StringComparer.OrdinalIgnoreCase).Select(g => g.First()).ToList();
                 foreach (var entry in applied.Avfx.Where(a => rewritten.Contains(DjAnimationScan.Normalise(a.Relative))))
                 {
                     entry.AppliedSha = entry.PendingSha;
@@ -324,6 +499,125 @@ namespace Pickles_Playlist_Editor.Utils
             Cleanup(host, site, applying, notes);
             error = string.Empty;
             return true;
+        }
+
+        private sealed record LaptopRoute(byte[][] Encoded, TexRect FrameRect, List<(SiteAvfx Avfx, byte[] Bytes)> Builds);
+
+        /// <summary>
+        /// The laptop layer on each effect's table-built bytes, encoded in memory. A refusal or
+        /// failure sets <paramref name="refused"/>; a carried table that cannot be rebuilt, or too
+        /// many frames, is an error instead.
+        /// </summary>
+        private static LaptopRoute? TryLaptop(DjTableAnimationSite site, Func<AnimatedSurface, byte[]> atlasOf, AnimationLayer? carriedTable,
+            IReadOnlyList<BgraImage> frames, FrameTimeline timeline, FitMode fit, IReadOnlyList<string> gamePaths,
+            IProgress<int>? progress, out string error, out bool refused)
+        {
+            string err = string.Empty;
+            bool isRefused = false;
+            var result = Body();
+            error = err;
+            refused = isRefused;
+            return result;
+
+            LaptopRoute? Body()
+            {
+                var tableBuilt = new List<(SiteAvfx Avfx, byte[] Bytes)>();
+                foreach (var avfx in site.Animatable)
+                {
+                    var built = AnimationLayers.Table(avfx, site, carriedTable, () => atlasOf(AnimatedSurface.Table), out string problem);
+                    if (built == null) { err = AnimationText.Format(AnimationMessage.LayerNotKept, problem); return null; }
+                    tableBuilt.Add((avfx, built));
+                }
+
+                int tableFrames = carriedTable?.GamePaths.Count ?? 0;
+                string Refuse(string reason)
+                {
+                    OverlaySkipped?.Invoke(reason);
+                    isRefused = true;
+                    err = reason;
+                    return reason;
+                }
+                try
+                {
+                    byte[] eq3 = atlasOf(AnimatedSurface.Laptop);
+                    string refusal = string.Empty;
+                    var route = LaptopPlanner != null ? LaptopPlanner(site, eq3) : AnimationLayers.PlanLaptop(site, eq3, out refusal);
+                    if (route == null) { Refuse(refusal.Length > 0 ? refusal : "refused"); return null; }
+
+                    var profile = AnimationLayers.LaptopProfile(site);
+                    var builds = new List<(SiteAvfx, byte[])>();
+                    foreach (var (avfx, bytes) in tableBuilt)
+                    {
+                        var info = AnimationLayers.LaptopInfo(bytes, site);
+                        if (info == null) { Refuse($"ModelUnreadable {avfx.Relative}"); return null; }
+                        int capacity = AnimationLayers.LaptopCapacity(bytes, info, tableFrames);
+                        if (frames.Count > capacity) { err = AnimationText.Format(AnimationMessage.TooManyTextures, avfx.Relative); return null; }
+                        var plan = AvfxTableOverlay.Plan(bytes, info, site.Laptop!.Surface.Rect, eq3, profile, out var r);
+                        if (plan == null) { Refuse($"{r} {avfx.Relative}"); return null; }
+                        if (plan.RectInWindow != route.RectInWindow) { Refuse($"NoWindow {avfx.Relative}"); return null; }
+                        var built = AvfxTableOverlay.Build(bytes, info, plan, gamePaths, timeline, out r, out string problem,
+                            capacity, AvfxTableAnimation.LaptopVisible);
+                        if (built == null && r is OverlayRefusal.TooManyFrames or OverlayRefusal.TooManyTextures)
+                        {
+                            err = AnimationText.Format(AnimationMessage.TooManyTextures, avfx.Relative);
+                            return null;
+                        }
+                        if (built == null) { Refuse($"{r} {avfx.Relative}: {problem}"); return null; }
+                        if (!AnimationLayers.WithinTestedSize(built, info))
+                        {
+                            err = AnimationText.Format(AnimationMessage.TooManyTextures, avfx.Relative);
+                            return null;
+                        }
+                        builds.Add((avfx, built));
+                    }
+
+                    var surface = site.Laptop!.Surface;
+                    var encoded = new byte[frames.Count][];
+                    int done = 0;
+                    string? encodeError = null;
+                    Parallel.For(0, frames.Count, k =>
+                    {
+                        var bytes = TexPaste.PasteRect(route.Crop, route.RectInWindow, surface.ToTextureSpace(frames[k], fit), out string e);
+                        if (bytes == null) encodeError = e;
+                        else encoded[k] = bytes;
+                        progress?.Report(System.Threading.Interlocked.Increment(ref done));
+                    });
+                    if (encodeError != null) { Refuse("encode: " + encodeError); return null; }
+                    return new LaptopRoute(encoded, route.RectInWindow, builds);
+                }
+                catch (Exception ex)
+                {
+                    // Not Failed: the laptop takes the first frame as a still instead.
+                    Refuse("exception: " + ex);
+                    return null;
+                }
+        
+            }
+        }
+
+        /// <summary>
+        /// The laptop's animation, or, when the overlay refuses it, its first frame as a still through
+        /// <paramref name="pasteStill"/>. Too many frames is an error, never a still.
+        /// </summary>
+        public static bool ApplyLaptopOrStill(IAnimationHost host, DjTableAnimationSite site, IReadOnlyList<BgraImage> frames,
+            FrameTimeline timeline, FitMode fit, IProgress<int>? progress, Func<BgraImage, string?> pasteStill,
+            out IReadOnlyList<string> warnings, out string error, out bool fellBack)
+        {
+            fellBack = false;
+            if (Apply(host, site, AnimatedSurface.Laptop, frames, timeline, fit, progress, out warnings, out error, out bool refused))
+                return true;
+            if (!refused) return false;
+
+            fellBack = true;
+            var still = frames[0];
+            if (HasLayer(site, AnimatedSurface.Laptop))
+                return PasteThenRestore(host, site, AnimatedSurface.Laptop, () => pasteStill(still), out warnings, out error);
+            string? pasteError;
+            try { pasteError = pasteStill(still); }
+            catch (Exception ex) { Failed?.Invoke(ex); pasteError = ex.Message; }
+            warnings = Array.Empty<string>();
+            error = pasteError ?? string.Empty;
+            return pasteError == null;
         }
 
         /// <summary>
@@ -443,7 +737,7 @@ namespace Pickles_Playlist_Editor.Utils
             if (state.StaleFrames.Count == 0) return;
             try
             {
-                var keep = new HashSet<string>(state.Frames.Select(f => f.GamePath), StringComparer.OrdinalIgnoreCase);
+                var keep = new HashSet<string>(LiveFrameKeys(state).Keys, StringComparer.OrdinalIgnoreCase);
                 host.EditGroups(group => PruneFrameKeys(group, keep));
             }
             catch (Exception ex)
@@ -496,6 +790,100 @@ namespace Pickles_Playlist_Editor.Utils
         // ---- restore -----------------------------------------------------------------------------
 
         public static bool Restore(IAnimationHost host, DjTableAnimationSite site,
+            out IReadOnlyList<string> warnings, out string error) =>
+            Restore(host, site, AnimatedSurface.Table, out warnings, out error);
+
+        /// <summary>
+        /// Removes one surface's animation and keeps the other's. The laptop card never removes more
+        /// than the laptop; the table card cleans up an interrupted run for both.
+        /// </summary>
+        public static bool Restore(IAnimationHost host, DjTableAnimationSite site, AnimatedSurface surface,
+            out IReadOnlyList<string> warnings, out string error)
+        {
+            warnings = Array.Empty<string>();
+            error = string.Empty;
+            var state = site.State;
+            bool live = site.HasState && IsLive(site);
+            var table = AnimationLayers.TableOf(state);
+            var laptop = AnimationLayers.LaptopOf(state);
+            if (surface == AnimatedSurface.Laptop)
+            {
+                if (!live || laptop == null) return true;
+                return table == null ? RestoreAll(host, site, out warnings, out error) : RemoveLayer(host, site, surface, out warnings, out error);
+            }
+            if (live && table == null && laptop != null) return true;
+            if (live && table != null && laptop != null) return RemoveLayer(host, site, surface, out warnings, out error);
+            return RestoreAll(host, site, out warnings, out error);
+        }
+
+        /// <summary>The effects with one surface's layer taken off, or the reason they cannot be rebuilt.</summary>
+        private static List<(SiteAvfx Avfx, byte[] Bytes, string OriginalSha)>? WithoutLayer(IAnimationHost host,
+            DjTableAnimationSite site, AnimatedSurface surface, out string error)
+        {
+            if (!CheckSite(host, site, refuseProblem: false, out error)) return null;
+            var state = site.State!;
+            var atlasOf = AtlasReader(host, site);
+            if (LiveCheck(site, atlasOf) is { } drift)
+            {
+                error = AnimationText.Format(AnimationMessage.LayerNotKept, drift);
+                return null;
+            }
+            var table = surface == AnimatedSurface.Table ? null : AnimationLayers.TableOf(state);
+            var laptop = surface == AnimatedSurface.Laptop ? null : AnimationLayers.LaptopOf(state);
+            var builds = new List<(SiteAvfx, byte[], string)>();
+            foreach (var avfx in site.Animatable)
+            {
+                var entry = state.Find(avfx.Relative);
+                if (entry == null) continue;
+                var built = AnimationLayers.Compose(avfx, site, table, laptop, atlasOf, out string problem);
+                if (built == null)
+                {
+                    error = AnimationText.Format(AnimationMessage.LayerNotKept, problem);
+                    return null;
+                }
+                builds.Add((avfx, built, entry.OriginalSha));
+            }
+            return builds;
+        }
+
+        private static bool RemoveLayer(IAnimationHost host, DjTableAnimationSite site, AnimatedSurface surface,
+            out IReadOnlyList<string> warnings, out string error)
+        {
+            var notes = new List<string>();
+            warnings = notes;
+            try
+            {
+                var builds = WithoutLayer(host, site, surface, out error);
+                if (builds == null) return false;
+                var state = site.State!;
+                return WriteLayers(host, site, state, state.ModToken, state.Generation + 1, new List<AnimationFrame>(),
+                    Array.Empty<byte[]>(), builds, notes, out error, applied =>
+                    {
+                        if (surface == AnimatedSurface.Laptop)
+                        {
+                            applied.StaleFrames = (state.Laptop?.Frames ?? new List<AnimationFrame>()).Concat(applied.StaleFrames).ToList();
+                            applied.Laptop = null;
+                        }
+                        else
+                        {
+                            applied.StaleFrames = state.Frames.Concat(applied.StaleFrames).ToList();
+                            applied.Frames = new List<AnimationFrame>();
+                            applied.StartTicks = new List<int>();
+                            applied.LoopTicks = 0;
+                            applied.FrameRect = null;
+                        }
+                    });
+            }
+            catch (Exception ex)
+            {
+                Failed?.Invoke(ex);
+                error = AnimationText.Format(AnimationMessage.WriteFailed, ex.Message);
+                return false;
+            }
+        }
+
+        /// <summary>Puts back the shipped effects and removes every frame of both surfaces; never composes.</summary>
+        public static bool RestoreAll(IAnimationHost host, DjTableAnimationSite site,
             out IReadOnlyList<string> warnings, out string error)
         {
             var notes = new List<string>();
@@ -535,7 +923,7 @@ namespace Pickles_Playlist_Editor.Utils
 
                 host.EditGroups(group => PruneFrameKeys(group, new HashSet<string>()));
 
-                var all = state.Frames.Concat(state.PendingFrames).Concat(state.StaleFrames)
+                var all = state.Frames.Concat(state.Laptop?.Frames ?? new List<AnimationFrame>()).Concat(state.PendingFrames).Concat(state.StaleFrames)
                     .GroupBy(f => f.Relative, StringComparer.OrdinalIgnoreCase).Select(g => g.First());
                 var leftovers = all.Where(frame => !DeleteIfOurs(host, site, frame, notes)).ToList();
 
@@ -570,9 +958,28 @@ namespace Pickles_Playlist_Editor.Utils
         /// is hidden), then remove the animation, so a failed paste leaves the animation as it was.
         /// </summary>
         public static bool PasteThenRestore(IAnimationHost host, DjTableAnimationSite site, Func<string?> paste,
+            out IReadOnlyList<string> warnings, out string error) =>
+            PasteThenRestore(host, site, AnimatedSurface.Table, paste, out warnings, out error);
+
+        public static bool PasteThenRestore(IAnimationHost host, DjTableAnimationSite site, AnimatedSurface surface, Func<string?> paste,
             out IReadOnlyList<string> warnings, out string error)
         {
             warnings = Array.Empty<string>();
+            // When the other surface stays, check its layer can be rebuilt before pasting anything.
+            var state = site.State;
+            if (site.HasState && IsLive(site) && AnimationLayers.TableOf(state) != null && AnimationLayers.LaptopOf(state) != null)
+            {
+                try
+                {
+                    if (WithoutLayer(host, site, surface, out error) == null) return false;
+                }
+                catch (Exception ex)
+                {
+                    Failed?.Invoke(ex);
+                    error = AnimationText.Format(AnimationMessage.WriteFailed, ex.Message);
+                    return false;
+                }
+            }
             string? pasteError;
             try { pasteError = paste(); }
             catch (Exception ex) { Failed?.Invoke(ex); pasteError = ex.Message; }
@@ -581,7 +988,7 @@ namespace Pickles_Playlist_Editor.Utils
                 error = pasteError;
                 return false;
             }
-            return Restore(host, site, out warnings, out error);
+            return Restore(host, site, surface, out warnings, out error);
         }
 
         /// <summary>Refusals shared by Apply and Restore: nothing is written when any of these hit.</summary>
@@ -652,8 +1059,26 @@ namespace Pickles_Playlist_Editor.Utils
             return result.ToList();
         }
 
-        public static AnimationSummary Summarise(DjTableAnimationSite site, int frames, FrameTimeline timeline, bool thinned)
+        public static AnimationSummary Summarise(DjTableAnimationSite site, int frames, FrameTimeline timeline, bool thinned,
+            AnimatedSurface surface = AnimatedSurface.Table)
         {
+            double seconds = timeline.LoopTicks / (double)FramePlan.TicksPerSecond;
+            if (surface == AnimatedSurface.Laptop)
+            {
+                // No full-atlas route: a laptop the overlay refuses adds nothing (its first frame is a still).
+                long crop = 0;
+                try
+                {
+                    if (site.Laptop != null && site.LaptopProblem == null)
+                    {
+                        byte[] eq3 = File.ReadAllBytes(site.Laptop.FullPath);
+                        var route = LaptopPlanner != null ? LaptopPlanner(site, eq3) : AnimationLayers.PlanLaptop(site, eq3, out _);
+                        if (route != null) crop = route.Crop.Length;
+                    }
+                }
+                catch { }
+                return new(frames, seconds, crop * frames, thinned);
+            }
             long atlas = 0;
             try { atlas = new FileInfo(site.Table.FullPath).Length; } catch { }
             long perFrame = atlas;

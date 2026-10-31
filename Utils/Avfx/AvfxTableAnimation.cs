@@ -317,6 +317,14 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
             return result;
         }
 
+        /// <summary>An effect's particles, textures and the items in one emitter's last ItPr, for the tested-size envelope.</summary>
+        internal static (int Particles, int Textures, int Items) Counts(byte[] avfx, int emitter)
+        {
+            var root = AvfxChunk.Parse(avfx);
+            var last = root.All("Emit").ElementAtOrDefault(emitter)?.All("ItPr").LastOrDefault();
+            return (root.All("Ptcl").Count(), root.All("Tex").Count(), last == null ? 0 : ItemsOf(last).Count);
+        }
+
         private static List<List<AvfxChunk>> ItemsOf(AvfxChunk itpr)
         {
             var items = new List<List<AvfxChunk>>();
