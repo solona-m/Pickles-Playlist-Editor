@@ -525,7 +525,6 @@ internal static partial class Program
             using var mod = Fixtures.Pickles();
             var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
             var groups = mod.Groups();
-            var shipped = mod.Read(mod.Table.Relative);
             var still = Fixtures.Frames(1)[0];
             PasteStill(mod, still);                               // a still in eq55 first
             Check(ApplyFrames(mod, 4, out string error), error);  // then animated
@@ -550,9 +549,11 @@ internal static partial class Program
             var before = File.ReadAllBytes(outside);
             var site = mod.Scan();
             Check(!site.Avfx.Any(a => a.Relative.Contains("outside")), "no entry for the outside file");
-            ApplyFrames(mod, 2, out _, site: site);
-            Restore(mod, out _, out _, mod.NewHost());
-            Check(!mod.Host.Log.Concat(mod.Host.Log).Any(c => c.Path.Contains("outside")), "never read or written");
+            var applyHost = mod.Host;
+            Check(ApplyFrames(mod, 2, out string e1, applyHost, site), "apply " + e1);
+            var restoreHost = mod.NewHost();
+            Check(Restore(mod, out _, out string e2, restoreHost), "restore " + e2);
+            Check(!applyHost.Log.Concat(restoreHost.Log).Any(c => c.Path.Contains("outside")), "never read or written");
             Check(File.ReadAllBytes(outside).AsSpan().SequenceEqual(before), "outside file unchanged");
         });
 

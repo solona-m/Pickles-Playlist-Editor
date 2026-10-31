@@ -284,22 +284,27 @@ namespace Pickles_Playlist_Editor.Utils
             foreach (var (avfx, before) in written)
             {
                 try { host.WriteFile(avfx.FullPath, before); }
-                catch { stuck ??= avfx.Relative; }
+                catch (Exception ex) { Failed?.Invoke(ex); stuck ??= avfx.Relative; }
             }
             if (stuck != null) return AnimationText.Format(AnimationMessage.RollbackStopped, stuck);
 
             if (keysAdded)
             {
                 try { host.EditGroups(group => RemoveKeys(group, plannedKeys)); }
-                catch { return AnimationText.Format(AnimationMessage.RollbackStopped, "manifest"); }
+                catch (Exception ex)
+                {
+                    Failed?.Invoke(ex);
+                    return AnimationText.Format(AnimationMessage.RollbackStopped, "manifest");
+                }
             }
 
             var leftovers = new List<AnimationFrame>();
             foreach (var frame in framesWritten)
             {
                 try { host.DeleteFile(Path.Combine(site.ModRoot, frame.Relative)); }
-                catch
+                catch (Exception ex)
                 {
+                    Failed?.Invoke(ex);
                     leftovers.Add(frame);
                     notes.Add(AnimationText.Format(AnimationMessage.StaleNotDeleted, frame.Relative));
                 }
@@ -328,8 +333,9 @@ namespace Pickles_Playlist_Editor.Utils
                     });
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Failed?.Invoke(ex);
                 // The Applying state stays on disk, so the card offers Restore.
             }
 
@@ -474,7 +480,7 @@ namespace Pickles_Playlist_Editor.Utils
             warnings = Array.Empty<string>();
             string? pasteError;
             try { pasteError = paste(); }
-            catch (Exception ex) { pasteError = ex.Message; }
+            catch (Exception ex) { Failed?.Invoke(ex); pasteError = ex.Message; }
             if (pasteError != null)
             {
                 error = pasteError;
