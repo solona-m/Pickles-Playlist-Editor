@@ -105,7 +105,7 @@ internal static partial class Program
         Check(!StateText(mod).Contains("FrameRect"), $"{label}: no FrameRect");
     }
 
-    private static void CheckFullAtlas2(TempMod mod, Dictionary<string, byte[]> baselines, int n)
+    private static void CheckFullAtlasGen2(TempMod mod, Dictionary<string, byte[]> baselines, int n)
     {
         var keys = FrameKeys(2, n);
         foreach (var (rel, baseline) in baselines)
@@ -346,7 +346,7 @@ internal static partial class Program
                 string e = string.Empty;
                 Check(WithoutOverlay(() => ApplyFrames(mod, 10, out e)), "gen 1 " + e);
                 Check(WithoutOverlay(() => ApplyFrames(mod, 5, out e, mod.NewHost())), "gen 2 " + e);
-                CheckFullAtlas2(mod, before, 5);
+                CheckFullAtlasGen2(mod, before, 5);
                 Check(Restore(mod, out _, out e, mod.NewHost()), e);
                 CheckPristine(mod, before, groups, "full-atlas restore");
             }
