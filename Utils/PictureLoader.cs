@@ -1,6 +1,7 @@
 using Pickles_Playlist_Editor.Utils.Tex;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
@@ -21,20 +22,75 @@ namespace Pickles_Playlist_Editor.Utils
         public int SourceFrameCount { get; init; } = 1;
         public PictureNote Note { get; init; }
         public bool Thinned { get; init; }
+
+        /// <summary>A clip longer than the clip cap; only its start is used.</summary>
+        public bool Trimmed { get; init; }
     }
 
-    /// <summary>Reads picture files, including animated GIFs, into the format the texture code uses.</summary>
-    internal static class PictureLoader
+    /// <summary>
+    /// Reads picture files into the format the texture code uses. GIFs and stills go through Windows
+    /// imaging; animated WebP, APNG and video go through the bundled ffmpeg (PictureLoaderMedia.cs).
+    /// </summary>
+    internal static partial class PictureLoader
     {
         private const uint MaxEdge = 2048;
         private const int FrameEdge = 1024;
 
+        public const int MaxClipSeconds = 10, MaxClipFps = 30;
+
+        public const string PickerFilter =
+            "Pictures and clips (*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.webp;*.apng;*.mp4;*.webm)"
+            + "|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.webp;*.apng;*.mp4;*.webm|All files (*.*)|*.*";
+
+        /// <summary>Routes by content, not extension.</summary>
         public static async Task<LoadedPicture?> LoadAsync(string path, bool allowAnimation, int maxFrames,
             IProgress<string>? progress)
         {
+            PictureKind kind;
+            using (var head = File.OpenRead(path)) kind = AnimatedFormat.Sniff(head);
+
+            if (kind == PictureKind.WebP) return LoadWebp(path, allowAnimation, maxFrames, progress);
+
+            if (kind == PictureKind.Png)
+            {
+                ApngInfo? apng;
+                using (var stream = File.OpenRead(path)) apng = ApngContainer.Read(stream);
+                if (apng != null)
+                {
+                    if (apng.Width > MaxEdge || apng.Height > MaxEdge)
+                    {
+                        var wic = await LoadWicAsync(path, allowAnimation, maxFrames, progress);
+                        return wic == null ? null : new LoadedPicture
+                        {
+                            Still = wic.Still,
+                            SourceFrameCount = apng.DelaysMs.Count,
+                            Note = PictureNote.TooLarge,
+                        };
+                    }
+                    try { return LoadApng(path, apng, allowAnimation, maxFrames, progress); }
+                    catch { }   // anything this route cannot do loads as it does today
+                }
+                return await LoadWicAsync(path, allowAnimation, maxFrames, progress);
+            }
+
+            return await LoadWicAsync(path, allowAnimation, maxFrames, progress, videoFallback: true);
+        }
+
+        private static async Task<LoadedPicture?> LoadWicAsync(string path, bool allowAnimation, int maxFrames,
+            IProgress<string>? progress, bool videoFallback = false)
+        {
             var file = await StorageFile.GetFileFromPathAsync(path);
             using var stream = await file.OpenReadAsync();
-            var decoder = await BitmapDecoder.CreateAsync(stream);
+            BitmapDecoder decoder;
+            try
+            {
+                decoder = await BitmapDecoder.CreateAsync(stream);
+            }
+            catch when (videoFallback)
+            {
+                // Nothing Windows imaging can open: try it as a clip.
+                return LoadVideo(path, allowAnimation, maxFrames, progress);
+            }
 
             bool animated = decoder.DecoderInformation.CodecId == BitmapDecoder.GifDecoderId && decoder.FrameCount > 1;
             if (!animated)

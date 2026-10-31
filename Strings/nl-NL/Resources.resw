@@ -301,7 +301,7 @@ Wil je doorgaan?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX-mod</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Wijzigen</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>Deze mods hebben een dj-tafel waar je afbeeldingen op kunt zetten. Kies degene die je gebruikt.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Sleep een afbeelding op een van deze, of gebruik de knop eronder. Een geanimeerde GIF op het tafelpaneel speelt af als animatie. Er wordt niets weggeschreven tot je op Toepassen drukt.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Sleep een afbeelding op een van deze, of gebruik de knop eronder. Een geanimeerde GIF, WebP of APNG of een korte video op het tafelpaneel speelt af als animatie. Er wordt niets weggeschreven tot je op Toepassen drukt.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Tafelpaneel</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptopscherm</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Vullen</value></data>
@@ -349,10 +349,10 @@ Wil je doorgaan?</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>past precies</value></data>
   <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animatie, {1} frames, lus van {2:0.0} s. Maakt de mod ongeveer {3} MB groter.</value></data>
   <data name="Textures_AnimCapped" xml:space="preserve"><value>Uitgedund van {1} naar {0} frames zodat het past; de lus blijft even lang.</value></data>
-  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Deze GIF is te groot om te animeren, dus het eerste frame wordt gebruikt.</value></data>
-  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Alleen het tafelpaneel kan worden geanimeerd, dus het eerste frame van deze GIF wordt gebruikt.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Deze animatie is te groot om te animeren, dus het eerste frame wordt gebruikt.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Alleen het tafelpaneel kan worden geanimeerd, dus het eerste frame van deze animatie wordt gebruikt.</value></data>
   <data name="Textures_YourAnimation" xml:space="preserve"><value>Jouw animatie — {0} frames</value></data>
-  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Deze mod animeert de tafel al ({0} frames). Een GIF vervangt die animatie; een afbeelding bedekt het hele paneel.</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Deze mod animeert de tafel al ({0} frames). Een geanimeerde GIF, WebP of APNG of een korte video vervangt die animatie; een afbeelding bedekt het hele paneel.</value></data>
   <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Deze app heeft de tafel geanimeerd, maar de back-up is weg (is de modmap hernoemd?). Installeer de mod opnieuw om de tafel te wijzigen.</value></data>
   <data name="Textures_AnimInterrupted" xml:space="preserve"><value>De laatste wijziging aan de tafelanimatie is niet afgerond. Zet het origineel terug om op te ruimen, of pas opnieuw toe.</value></data>
   <data name="Textures_AnimUnsupported" xml:space="preserve"><value>De tafel kan in deze mod niet worden geanimeerd: {0}</value></data>
@@ -378,4 +378,5 @@ Wil je doorgaan?</value></data>
   <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: het tafelpaneel wordt niet door precies één emitteritem gemaakt</value></data>
   <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: de eigen animatie van de mod heeft geen frame dat deze app kan hergebruiken</value></data>
   <data name="Anim_Unparseable" xml:space="preserve"><value>{0} kon niet als effectbestand worden gelezen</value></data>
+  <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Alleen de eerste {0} s van deze clip worden gebruikt.</value></data>
 </root>

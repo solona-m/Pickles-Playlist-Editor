@@ -301,7 +301,7 @@
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX 模组</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>更改</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>这些模组有可以放图片的 DJ 桌。选择你在用的那个。</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>把图片拖到其中一个上，或用下面的按钮。拖到桌面板上的动态 GIF 会以动画播放。在你点应用之前不会写入任何东西。</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>把图片拖到其中一个上，或用下面的按钮。拖到桌面板上的动态 GIF、WebP、APNG 或短视频会以动画播放。在你点应用之前不会写入任何东西。</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>桌面面板</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>笔记本屏幕</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>填满</value></data>
@@ -349,10 +349,10 @@
   <data name="Textures_FitExact" xml:space="preserve"><value>刚好合适</value></data>
   <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — 动画，{1} 帧，循环 {2:0.0} 秒。模组会增大约 {3} MB。</value></data>
   <data name="Textures_AnimCapped" xml:space="preserve"><value>为了放得下，已从 {1} 帧精简到 {0} 帧；循环时长不变。</value></data>
-  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>这个 GIF 太大，无法做成动画，所以使用它的第一帧。</value></data>
-  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>只有桌面板可以做成动画，所以使用这个 GIF 的第一帧。</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>这个动画太大，无法做成动画，所以使用它的第一帧。</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>只有桌面板可以做成动画，所以使用这个动画的第一帧。</value></data>
   <data name="Textures_YourAnimation" xml:space="preserve"><value>你的动画 — {0} 帧</value></data>
-  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>这个模组已经让桌子动起来了（{0} 帧）。GIF 会替换这段动画；图片会覆盖整个面板。</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>这个模组已经让桌子动起来了（{0} 帧）。动态 GIF、WebP、APNG 或短视频会替换这段动画；图片会覆盖整个面板。</value></data>
   <data name="Textures_AnimOrphaned" xml:space="preserve"><value>这个应用曾给这张桌子做过动画，但备份不见了（模组文件夹被改名了吗？）。重新安装模组才能修改桌子。</value></data>
   <data name="Textures_AnimInterrupted" xml:space="preserve"><value>上一次对桌子动画的修改没有完成。把原版放回去来清理，或者重新应用。</value></data>
   <data name="Textures_AnimUnsupported" xml:space="preserve"><value>这个模组的桌子无法做成动画：{0}</value></data>
@@ -378,4 +378,5 @@
   <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}：桌面板不是由恰好一个发射器项生成的</value></data>
   <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}：模组自带的动画没有可以重用的帧</value></data>
   <data name="Anim_Unparseable" xml:space="preserve"><value>无法把 {0} 读取为特效文件</value></data>
+  <data name="Textures_AnimTrimmed" xml:space="preserve"><value>只使用这个片段的前 {0} 秒。</value></data>
 </root>

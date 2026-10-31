@@ -35,10 +35,12 @@ internal static partial class Program
             return 0;
         }
         if (Value(args, "--scan") is { } scanRoot) return ScanPenumbra(scanRoot);
+        if (Value(args, "--calibration-formats") is { } calDir) return CalibrationFormats(calDir);
 
         string? only = Value(args, "--only");
         Register();
         RegisterGif();
+        RegisterMedia();
 
         int failed = 0, skipped = 0, passed = 0;
         foreach (var test in AllTests)
@@ -123,6 +125,19 @@ internal static partial class Program
 
     private static Dictionary<string, byte[]> AvfxBytes(TempMod mod, IEnumerable<string> rels) =>
         rels.Where(r => File.Exists(mod.Full(r))).ToDictionary(r => r, r => mod.Read(r));
+
+    /// <summary>The 0–9 digit calibration as WebP, APNG and MP4, for the in-game speed check.</summary>
+    private static int CalibrationFormats(string dir)
+    {
+        Directory.CreateDirectory(dir);
+        string gif = Path.Combine(dir, "calibration.gif");
+        File.WriteAllBytes(gif, GifWriter.Calibration());
+        MediaFixtures.Ffmpeg("-i", gif, "-c:v", "libwebp_anim", "-lossless", "1", "-loop", "0", Path.Combine(dir, "calibration.webp"));
+        MediaFixtures.Ffmpeg("-i", gif, "-plays", "0", "-f", "apng", Path.Combine(dir, "calibration.apng"));
+        MediaFixtures.Ffmpeg("-i", gif, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "10", Path.Combine(dir, "calibration.mp4"));
+        Console.WriteLine($"Wrote calibration.webp/.apng/.mp4 to {dir}");
+        return 0;
+    }
 
     private static int ScanPenumbra(string root)
     {

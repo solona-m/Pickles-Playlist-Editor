@@ -23,10 +23,17 @@
     <Compile Include="..\..\Utils\DjAnimationScan.cs" Link="DjAnimationScan.cs" />
     <Compile Include="..\..\Utils\DjTableAnimationCore.cs" Link="DjTableAnimationCore.cs" />
     <Compile Include="..\..\Utils\PictureLoader.cs" Link="PictureLoader.cs" />
+    <Compile Include="..\..\Utils\PictureLoaderMedia.cs" Link="PictureLoaderMedia.cs" />
+    <Compile Include="..\..\Utils\FfmpegFrames.cs" Link="FfmpegFrames.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <!-- The WebP, APNG and video routes run the app's bundled ffmpeg. -->
+  <ItemGroup>
+    <None Include="..\..\ffmpeg.exe" Link="ffmpeg.exe" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

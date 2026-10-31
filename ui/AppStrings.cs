@@ -308,6 +308,8 @@ namespace Pickles_Playlist_Editor
         public static string TexturesAnimationCapped(int kept, int source) =>
             string.Format(_r.GetString("Textures_AnimCapped"), kept, source);
         public static string TexturesAnimationTooLarge => _r.GetString("Textures_AnimTooLarge");
+        public static string TexturesAnimationTrimmed(int seconds) =>
+            string.Format(_r.GetString("Textures_AnimTrimmed"), seconds);
         public static string TexturesAnimationTableOnly => _r.GetString("Textures_AnimTableOnly");
         public static string TexturesYourAnimation(int frames) =>
             string.Format(_r.GetString("Textures_YourAnimation"), frames);
