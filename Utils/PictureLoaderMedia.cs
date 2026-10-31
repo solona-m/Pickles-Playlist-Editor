@@ -13,7 +13,7 @@ namespace Pickles_Playlist_Editor.Utils
         private static readonly string[] VideoWhitelist =
             { "-format_whitelist", "mov,mp4,m4a,3gp,3g2,mj2,matroska,webm", "-protocol_whitelist", "file" };
 
-        private const string FpsCap = "fps=fps='min(source_fps,30)'";
+        private static readonly string FpsCap = $"fps=fps='min(source_fps,{MaxClipFps})'";
 
         // ---- WebP --------------------------------------------------------------------------------
 
@@ -143,20 +143,7 @@ namespace Pickles_Playlist_Editor.Utils
                 count => progress?.Report(count.ToString(CultureInfo.InvariantCulture)));
             if (info.Count == 0) throw new InvalidDataException("The clip has no video frames.");
 
-            // Start times relative to the first frame; a missing pts follows the previous delay.
-            var starts = new List<double>();
-            double first = (info[0].PtsSeconds ?? 0) * 1000;
-            for (int i = 0; i < info.Count; i++)
-            {
-                double? pts = info[i].PtsSeconds * 1000 - first;
-                if (pts == null)
-                    pts = i == 0 ? 0 : starts[i - 1] + (i > 1 ? starts[i - 1] - starts[i - 2] : 100);
-                starts.Add(pts.Value);
-            }
-
-            int usable = starts.FindIndex(s => s >= MaxClipSeconds * 1000.0);
-            bool trimmed = usable >= 0;
-            if (!trimmed) usable = starts.Count;
+            var (starts, end, usable, trimmed) = VideoTimeline(info, MaxClipSeconds * 1000.0);
 
             var (w, h) = (info[0].Width, info[0].Height);
             if (usable == 1)
@@ -170,16 +157,7 @@ namespace Pickles_Playlist_Editor.Utils
             if (!allowAnimation)
                 return new LoadedPicture { Still = DecodeOne(source, filters, fw, fh), SourceFrameCount = usable, Note = PictureNote.TableOnly };
 
-            double end;
-            if (trimmed) end = starts[usable];
-            else
-            {
-                double? lastDuration = info[usable - 1].DurationSeconds * 1000;
-                if (lastDuration is null or <= 0) lastDuration = starts[usable - 1] - starts[usable - 2];
-                end = starts[usable - 1] + lastDuration.Value;
-            }
-
-            return Animate(AnimatedFormat.Timing(starts.Take(usable).ToList(), end), usable, maxFrames, keep =>
+            return Animate(AnimatedFormat.Timing(starts, end), usable, maxFrames, keep =>
             {
                 int last = keep.Max();
                 var wanted = new HashSet<int>(keep);
@@ -193,6 +171,39 @@ namespace Pickles_Playlist_Editor.Utils
                 if (count < last + 1) throw new InvalidDataException($"Only {count} of {last + 1} video frames decoded.");
                 return keep.Select(i => kept[i]).ToList();
             }, trimmed);
+        }
+
+        /// <summary>
+        /// Start times (ms, from the first frame) of the frames before the clip cap, and where the
+        /// last one ends. A missing pts follows the previous delay; a missing last duration repeats it.
+        /// </summary>
+        internal static (List<double> Starts, double EndMs, int Usable, bool Trimmed) VideoTimeline(
+            IReadOnlyList<FfmpegFrameInfo> info, double maxMs)
+        {
+            var starts = new List<double>();
+            double first = (info[0].PtsSeconds ?? 0) * 1000;
+            for (int i = 0; i < info.Count; i++)
+            {
+                double? pts = info[i].PtsSeconds * 1000 - first;
+                if (pts == null)
+                    pts = i == 0 ? 0 : starts[i - 1] + (i > 1 ? starts[i - 1] - starts[i - 2] : 100);
+                starts.Add(pts.Value);
+            }
+
+            int usable = starts.FindIndex(s => s >= maxMs);
+            bool trimmed = usable >= 0;
+            if (!trimmed) usable = starts.Count;
+
+            double end;
+            if (trimmed) end = starts[usable];
+            else
+            {
+                double? lastDuration = info[usable - 1].DurationSeconds * 1000;
+                if (lastDuration is null or <= 0)
+                    lastDuration = usable > 1 ? starts[usable - 1] - starts[usable - 2] : 100;
+                end = starts[usable - 1] + lastDuration.Value;
+            }
+            return (starts.Take(usable).ToList(), end, usable, trimmed);
         }
 
         // ---- shared ------------------------------------------------------------------------------

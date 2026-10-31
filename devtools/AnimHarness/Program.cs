@@ -139,7 +139,7 @@ internal static partial class Program
         return 0;
     }
 
-        private static int ScanPenumbra(string root)
+    private static int ScanPenumbra(string root)
     {
         if (!Directory.Exists(root)) { Console.WriteLine("SKIP no Penumbra root"); return 0; }
         int bad = 0;

@@ -152,9 +152,9 @@ internal static partial class Program
                 Check(pic.Frames == null && pic.Note == PictureNote.TableOnly && Near(At(pic.Still, 10, 10), colour)
                     && Alpha(pic.Still, 10, 10) == 255 && Math.Max(pic.Still.Width, pic.Still.Height) <= 1024, $"{Path.GetFileName(path)} first frame");
             }
-            int probed = 0;
-            WithFfmpeg(() => FfmpegFrames.Probe(new[] { "-i", Mp4N(20, 10, "probe.mp4") }, "showinfo", 2, n => probed = n));
-            Check(probed == 2, $"still-card probe reads 2 frames ({probed})");
+            int reports = 0;
+            var still = Load(Mp4N(20, 10, "probe.mp4"), animate: false, progress: new SyncProgress(_ => reports++))!;
+            Check(still.SourceFrameCount == 2 && reports <= 2, $"still card probes at most 2 frames ({still.SourceFrameCount}, {reports} reports)");
         });
 
         Add("PickerFilterListsFormats", $"AC-{Fmt}-6", () =>
@@ -230,9 +230,10 @@ internal static partial class Program
                 GC.Collect();
                 long baseline = GC.GetTotalMemory(true), peak = 0;
                 int reports = 0;
-                var progress = new SyncProgress(_ => { reports++; if (reports % 10 == 0) peak = Math.Max(peak, GC.GetTotalMemory(true) - baseline); });
+                // Decode progress reads "i/n"; video probe progress is a bare count.
+                var progress = new SyncProgress(s => { if (!s.Contains('/')) return; reports++; peak = Math.Max(peak, GC.GetTotalMemory(false) - baseline); });
                 var pic = Load(path, progress: progress)!;
-                long bound = 48 * 1024L * 1024 * 4 + 4 * canvas + 64L * 1024 * 1024;
+                long bound = 48 * canvas + 4 * canvas + 64L * 1024 * 1024;
                 Check(pic.Frames?.Count == 48, $"{Path.GetFileName(path)} 48 frames ({pic.Frames?.Count})");
                 int lastKept = 47 * decoded / 48;   // decoding stops after the last kept frame
                 Check(reports >= lastKept + 1, $"{Path.GetFileName(path)} progress per decoded frame ({reports})");
@@ -529,9 +530,10 @@ internal static partial class Program
         {
             int count = FfmpegFrames.Decode(new[] { "-f", "lavfi", "-i", "color=c=red:s=8x8:r=10:d=0.3" }, "format=bgra", 8, 8, null, (_, _) => true);
             Check(count == 3, $"Decode reports what ffmpeg gave ({count})");
-            // Claim a fourth frame the file never carries: the APNG route falls back rather than animating short.
-            var pic = Load(new ApngWriter(8, 8) { ClaimExtraFrames = 1 }.Frame(F.Solid(8, 8, 9, 9, 9), 1, 10).Frame(F.Solid(8, 8, 9, 9, 9), 1, 10).Save("short-claim.png"))!;
-            Check(pic.Frames == null || pic.Frames.Count == 2, "no partial animation");
+            var shortApng = new ApngWriter(8, 8) { DropLastFdat = true };
+            for (int k = 0; k < 4; k++) { var c = F.Colour(k); shortApng.Frame(F.Solid(8, 8, c.R, c.G, c.B), 1, 10); }
+            var pic = Load(shortApng.Save("short-fdat.png"))!;
+            Check(pic.Frames == null && pic.Note == PictureNote.None && Near(At(pic.Still, 2, 2), C(0), 0), "frame shortfall: WIC still, no partial animation");
         });
 
         Add("WebpTempCleaned", $"EDGE-{Fmt}-26", () =>
@@ -571,6 +573,22 @@ internal static partial class Program
                 var b = FfmpegFrames.ParseShowinfoLine("[Parsed_showinfo_1 @ 000001] n:   0 pts:NOPTS pts_time:NOPTS fmt:rgba s:8x8 i:P");
                 Check(b != null && b.PtsSeconds == null && b.DurationSeconds == null, "NOPTS and missing duration");
                 Check(FfmpegFrames.ParseShowinfoLine("[Parsed_showinfo_1 @ 000001] color_range:tv") == null, "other showinfo lines ignored");
+
+                FfmpegFrameInfo I(double? pts, double? dur = 0.1) => new(pts, dur, 8, 8);
+                var t0 = PictureLoader.VideoTimeline(new[] { I(null), I(0.1), I(0.2) }, 10000);
+                Check(t0.Starts.SequenceEqual(new[] { 0.0, 100, 200 }) && Math.Abs(t0.EndMs - 300) < 1e-6, "NOPTS at 0 counts from zero");
+                var t1 = PictureLoader.VideoTimeline(new[] { I(0), I(null), I(0.3) }, 10000);
+                Check(Math.Abs(t1.Starts[1] - 100) < 1e-6, $"NOPTS at 1 follows a 100 ms default ({t1.Starts[1]})");
+                var t2 = PictureLoader.VideoTimeline(new[] { I(0), I(0.1), I(null), I(0.35) }, 10000);
+                Check(Math.Abs(t2.Starts[2] - 200) < 1e-6, "NOPTS later repeats the previous delay");
+                var t3 = PictureLoader.VideoTimeline(new[] { I(0), I(0.1), I(0.2, null) }, 10000);
+                Check(Math.Abs(t3.EndMs - 300) < 1e-6, "missing last duration repeats the previous delay");
+                var t4 = PictureLoader.VideoTimeline(new[] { I(0), I(0.1), I(0.2, 0) }, 10000);
+                Check(Math.Abs(t4.EndMs - 300) < 1e-6, "zero last duration repeats the previous delay");
+                var t5 = PictureLoader.VideoTimeline(new[] { I(0), I(5), I(10), I(10.1) }, 10000);
+                Check(t5.Trimmed && t5.Usable == 2 && Math.Abs(t5.EndMs - 10000) < 1e-6, "a frame at exactly 10.000 s is cut");
+                var t6 = PictureLoader.VideoTimeline(new[] { I(1.5), I(1.6) }, 10000);
+                Check(t6.Starts.SequenceEqual(new[] { 0.0, 100 }) && !t6.Trimmed, "timed from the first frame");
             }
             finally { CultureInfo.CurrentCulture = old; }
         });
@@ -646,10 +664,10 @@ internal static partial class Program
             Check(missing.Frames == null && Near(At(missing.Still, 5, 5), C(0), 0), "ffmpeg missing → WIC still");
             var timeout = WithFfmpeg(() => Load(path)!, timeout: TimeSpan.FromMilliseconds(1));
             Check(timeout.Frames == null, "timeout → WIC still");
-            var claim = new ApngWriter(8, 8) { ClaimExtraFrames = 2 };
+            var claim = new ApngWriter(8, 8) { DropLastFdat = true };
             for (int k = 0; k < 3; k++) { var c = F.Colour(k); claim.Frame(F.Solid(8, 8, c.R, c.G, c.B), 1, 10); }
             var pic = Load(claim.Save("claim.png"))!;
-            Check(pic.Still != null, "short APNG still loads");
+            Check(pic.Frames == null && pic.Note == PictureNote.None && Near(At(pic.Still, 2, 2), C(0), 0), "fcTL without fdAT → WIC still of the default image");
         });
 
         Add("VideoStartOffset", $"EDGE-{Fmt}-35", () =>

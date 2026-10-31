@@ -103,7 +103,7 @@ namespace Pickles_Playlist_Editor.Utils
 
         private static IEnumerable<string> Common(IReadOnlyList<string> sourceArgs, string filters, int? maxFrames)
         {
-            var args = new List<string> { "-hide_banner", "-nostdin", "-xerror" };
+            var args = new List<string> { "-hide_banner", "-nostdin", "-nostats", "-xerror" };
             args.AddRange(sourceArgs);
             if (filters.Length > 0) args.AddRange(new[] { "-vf", filters });
             args.AddRange(new[] { "-fps_mode", "passthrough" });
@@ -123,16 +123,17 @@ namespace Pickles_Playlist_Editor.Utils
             };
             foreach (var arg in args) info.ArgumentList.Add(arg);
 
-            Process process;
+            Process? started;
             try
             {
-                process = Process.Start(info) ?? throw new InvalidOperationException("ffmpeg did not start.");
+                started = Process.Start(info) ?? throw new InvalidOperationException("ffmpeg did not start.");
             }
             catch (Exception ex) when (ex is not InvalidOperationException)
             {
                 throw new InvalidOperationException($"ffmpeg could not be started: {ex.Message}", ex);
             }
 
+            using var process = started;
             LastProcessId = process.Id;
             bool timedOut = false;
             using var timer = new Timer(_ =>
@@ -167,7 +168,6 @@ namespace Pickles_Playlist_Editor.Utils
                 lock (tail) detail = string.Join(" / ", tail);
                 throw new InvalidDataException($"ffmpeg could not read the file (exit {process.ExitCode}): {detail}");
             }
-            process.Dispose();
         }
 
         private static void Remember(Queue<string> tail, string line)

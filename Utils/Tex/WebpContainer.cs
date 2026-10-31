@@ -26,7 +26,6 @@ namespace Pickles_Playlist_Editor.Utils.Tex
 
             byte[]? vp8x = null;
             byte[]? image = null;
-            byte[]? alph = null;
             var anmf = new List<byte[]>();
 
             foreach (var (tag, data) in Chunks(file, 12, (int)riffEnd))
@@ -35,7 +34,6 @@ namespace Pickles_Playlist_Editor.Utils.Tex
                 {
                     case "VP8X": vp8x = data; break;
                     case "ANMF": anmf.Add(data); break;
-                    case "ALPH": alph ??= data; break;
                     case "VP8 ":
                     case "VP8L": image ??= Chunk(tag, data); break;
                 }

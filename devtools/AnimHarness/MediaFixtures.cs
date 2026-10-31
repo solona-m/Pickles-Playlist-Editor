@@ -170,6 +170,9 @@ internal sealed class ApngWriter(int width, int height)
     public BgraImage? DefaultImage { get; set; }
     public int ClaimExtraFrames { get; set; }
 
+    /// <summary>Writes the last fcTL with no fdAT after it: the file promises a frame it never carries.</summary>
+    public bool DropLastFdat { get; set; }
+
     public ApngWriter Frame(BgraImage image, ushort num, ushort den, int x = 0, int y = 0, byte dispose = 0, byte blend = 0)
     {
         _frames.Add(new F(x, y, image, num, den, dispose, blend));
@@ -206,6 +209,7 @@ internal sealed class ApngWriter(int width, int height)
             Write(o, "fcTL", fctl);
             var z = Compress(f.Image);
             if (i == 0 && DefaultIsFrame) { Write(o, "IDAT", z); continue; }
+            if (DropLastFdat && i == _frames.Count - 1) continue;
             if (corruptFdat && i == _frames.Count - 1) for (int k = 2; k < z.Length; k++) z[k] ^= 0x5A;
             var fdat = new byte[4 + z.Length];
             BinaryPrimitives.WriteUInt32BigEndian(fdat, seq++);
