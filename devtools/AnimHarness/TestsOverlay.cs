@@ -864,17 +864,22 @@ internal static partial class Program
 
         Add("PreviousVersionAnimationRestores", OTag("A-7 E-22") + " " + AppTag("A-7 E-8"), () =>
         {
+            // The synthetic previous-version animation always runs; the live backup too when there is one.
             using var live = Fixtures.LivePicklesAnimation();
-            using var mod = live ?? Fixtures.Pickles();
+            using var synthetic = Fixtures.Pickles("prev");
             string error = string.Empty;
-            if (live == null) Check(WithoutOverlay(() => ApplyFrames(mod, 12, out error)), "fallback apply " + error);
-            var site = mod.Scan();
-            var status = DjTableAnimationCore.Status(site);
-            Check(status.Kind == AnimationStatusKind.Ours, $"{(live != null ? "live gen " + site.State?.Generation : "today's apply")} scans as Ours ({status.Kind})");
-            var entries = site.State!.Avfx.ToList();
-            Check(Restore(mod, out _, out string restoreError), "restore " + restoreError);
-            foreach (var entry in entries)
-                Check(AvfxTableAnimation.Sha(mod.Read(entry.Relative)) == entry.OriginalSha, $"{entry.Relative} restored byte-exact");
+            Check(WithoutOverlay(() => ApplyFrames(synthetic, 12, out error)), "previous-version apply " + error);
+            foreach (var mod in new[] { synthetic, live }.Where(m => m != null).Select(m => m!))
+            {
+                var site = mod.Scan();
+                var status = DjTableAnimationCore.Status(site);
+                string label = mod == live ? "live gen " + site.State?.Generation : "previous-version apply";
+                Check(status.Kind == AnimationStatusKind.Ours, $"{label} scans as Ours ({status.Kind})");
+                var entries = site.State!.Avfx.ToList();
+                Check(Restore(mod, out _, out string restoreError), $"{label}: restore " + restoreError);
+                foreach (var entry in entries)
+                    Check(AvfxTableAnimation.Sha(mod.Read(entry.Relative)) == entry.OriginalSha, $"{label}: {entry.Relative} restored byte-exact");
+            }
         });
 
         Add("ProbeDiagnostics", OTag("A-1"), () =>

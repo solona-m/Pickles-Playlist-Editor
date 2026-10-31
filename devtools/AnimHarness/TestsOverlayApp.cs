@@ -226,10 +226,17 @@ internal static partial class Program
                 var groups = mod.Groups();
                 var atlas = mod.Read(mod.Table.Relative);
                 string e = string.Empty;
-                var (ok, skipped, _) = Watching(() => ApplyFrames(mod, 4, out e));
+                var (ok, skipped, failed) = Watching(() => ApplyFrames(mod, 4, out e));
                 Check(ok, $"{variant}: applies " + e);
-                Check(skipped.Count == 1 && skipped[0].StartsWith(expect), $"{variant}: logged {expect} ({string.Join("; ", skipped)})");
+                Check(failed == 0 && skipped.Count == 1 && skipped[0].StartsWith(expect), $"{variant}: logged {expect} ({string.Join("; ", skipped)})");
                 CheckFullAtlas(mod, before, atlas, 4, variant);
+                using (var twin = Fixtures.Pickles("twin"))
+                {
+                    foreach (var (rel, bytes) in before) File.WriteAllBytes(twin.Full(rel), bytes);
+                    File.WriteAllBytes(twin.Full(twin.Table.Relative), atlas);
+                    Check(WithoutOverlay(() => ApplyFrames(twin, 4, out e)) && SameOutputs(Outputs(mod), Outputs(twin)),
+                        $"{variant}: output = the full-atlas run, state included");
+                }
                 Check(Restore(mod, out _, out e), e);
                 CheckPristine(mod, before, groups, variant);
             }
@@ -278,6 +285,36 @@ internal static partial class Program
             Check(skipped.Count == 1 && skipped[0].StartsWith("encode:"), $"logged encode ({string.Join("; ", skipped)})");
             Check(SameOutputs(Outputs(mod), reference), "output = the full-atlas run, state included");
             Check(!StateText(mod).Contains("FrameRect"), "no FrameRect");
+        });
+
+        Add("AppBuildGuardUnreachable", AppTag("E-18"), () =>
+        {
+            foreach (bool crowded in new[] { false, true })
+            {
+                using var mod = Fixtures.Pickles();
+                if (crowded)
+                    foreach (var rel in Fixtures.PicklesAvfx)
+                        EditAvfx(mod, rel, root =>
+                        {
+                            int last = root.Children!.FindLastIndex(c => c.Name == "Tex");
+                            for (int i = 0; i < 213; i++) root.Children.Insert(last + 1, AvfxChunk.Leaf("Tex", AvfxChunk.TextBytes($"vfx/pad{i}.atex")));
+                            root.SetInt("TxCn", root.ReadInt("TxCn") + 213);
+                        });
+                var site = mod.Scan();
+                var atlas = mod.Read(mod.Table.Relative);
+                var route = DjTableAnimationCore.PlanOverlay(site, atlas, out string refusal);
+                Check(route != null, $"crowded={crowded}: plans ({refusal})");
+                if (route == null) continue;
+                var keys = Enumerable.Range(0, site.Capacity).Select(k => $"vfx/atex/ppe_x_1_{k:D2}.atex").ToList();
+                foreach (var avfx in site.Animatable)
+                {
+                    var info = avfx.Inspect!.Info!;
+                    Check(AvfxTableOverlay.Capacity(info, FramePlan.MaxFrames) >= site.Capacity, $"crowded={crowded}: {avfx.Relative} overlay capacity covers the site");
+                    var built = AvfxTableOverlay.Build(avfx.Baseline!, info, route.Plans[DjAnimationScan.Normalise(avfx.Relative)], keys,
+                        Fixtures.Timeline(site.Capacity), out var r, out string p, FramePlan.MaxFrames);
+                    Check(built != null, $"crowded={crowded}: {avfx.Relative} builds at capacity ({r} {p})");
+                }
+            }
         });
 
         Add("AppInPlaceUnchanged", AppTag("A-6 E-1"), () =>
