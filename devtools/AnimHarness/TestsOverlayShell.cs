@@ -30,6 +30,7 @@ internal static partial class Program
         ["cornerVertex"] = new[] { (260.0, 260.0), (300.0, 200.0), (200.0, 300.0) },
         ["onX0"] = new[] { (260.0, 400.0), (200.0, 500.0), (400.0, 500.0) },
         ["cornerCover"] = new[] { (200.0, 200.0), (400.0, 200.0), (200.0, 400.0) },
+        ["edgeOnX0"] = new[] { (260.0, 200.0), (260.0, 400.0), (400.0, 300.0) },
     };
 
     /// <summary>The case's triangle, then the anchor, which keeps the split from refusing.</summary>
@@ -128,13 +129,6 @@ internal static partial class Program
     {
         var n = CrossV(Sub(Pos(vs, 0, 1, 0), Pos(vs, 1, 0, 0)), Sub(Pos(vs, 0, 0, 1), Pos(vs, 1, 0, 0)));
         return Math.Sqrt(Dot(n, n)) / 2;
-    }
-
-    /// <summary>Atlas px of a vertex: inside vertices sample the crop, outside ones the atlas.</summary>
-    private static (double X, double Y) InsidePx(byte[] v, PanelUvMap map, TexRect window)
-    {
-        var (s, t) = Px(v, map, 1, 1);
-        return (window.X + s * window.Width, window.Y + t * window.Height);
     }
 
     private static double UvArea(byte[][] vs, Func<byte[], (double X, double Y)> px) => SignedArea(px(vs[0]), px(vs[1]), px(vs[2]));
@@ -379,6 +373,7 @@ internal static partial class Program
                 }
             }
             Console.WriteLine($"   info: {cuts} clip cuts on shared corner edges, {axisCuts} on axis-aligned edges");
+            Check(axisCuts > 0, "some axis-aligned corner cuts checked");
         });
 
         Add("ShellSynthetic", Shell("E-1 E-2 E-3 E-4 E-5 E-6 E-14"), () =>
@@ -423,6 +418,46 @@ internal static partial class Program
                         break;
                 }
             }
+        });
+
+        Add("ShellPlanEmptyOutside", Shell("E-8 E-10"), () =>
+        {
+            using var s = Small();
+            // A panel shell wholly inside the clip region, covering the picture rect.
+            var px = new[] { (140.0, 270.0), (630.0, 270.0), (630.0, 760.0), (140.0, 760.0) };
+            var verts = px.Select(p => { var (u, v) = PanelUvMap.Calibrated.ToModel(p.Item1 / 1024, p.Item2 / 1024); return (p.Item1 / 1024, p.Item2 / 1024, 0.5, u, v); }).ToList();
+            byte[] inner = SyntheticModel(verts, new List<(int, int, int)> { (0, 1, 2), (0, 2, 3) }).ToData();
+            byte[] WithShell(int models) => EditEffect(s.Baseline, root =>
+            {
+                root.All("Modl").ElementAt(6).Data = inner;
+                int last = root.Children!.FindLastIndex(c => c.Name == "Modl");
+                var copy = root.Children[last];
+                for (int i = root.All("Modl").Count(); i < models; i++) root.Children.Insert(last + 1, copy.Clone());
+                root.SetInt("MdCn", models);
+            });
+            foreach (int models in new[] { 8, 254 })
+            {
+                byte[] b = WithShell(models);
+                var plan = AvfxTableOverlay.Plan(b, Fixtures.Inspect(b), TableSurface.Rect, s.Atlas, PanelUvMap.Calibrated, out var refusal);
+                Check(plan != null && plan.OutsideModlData == null && plan.OutsideModel == -1, $"{models} models: plans with no outside part ({refusal})");
+            }
+            Check(PlanRefusal(WithShell(255), s.Atlas) == OverlayRefusal.TooManyModels, "255 models, one needed → TooManyModels");
+        });
+
+        Add("ShellRestoresPanelWithoutAlpha", Shell("E-9"), () =>
+        {
+            using var s = Small();
+            byte[] noAlpha = EditEffect(s.Baseline, root => PanelOf(root).Child("Col")!.Children!.RemoveAll(c => c.Name == "A"));
+            var info = Fixtures.Inspect(noAlpha);
+            var plan = AvfxTableOverlay.Plan(noAlpha, info, TableSurface.Rect, s.Atlas, PanelUvMap.Calibrated, out var refusal);
+            Check(plan?.OutsideModlData != null, $"plans ({refusal})");
+            if (plan == null) return;
+            var built = AvfxTableOverlay.Build(noAlpha, info, plan, ProbeKeys(4), Fixtures.Timeline(4), out var r, out string p);
+            Check(built != null, $"built ({r} {p})");
+            if (built == null) return;
+            var col = PanelOf(AvfxChunk.Parse(built)).Child("Col")!;
+            Check(col.Child("A") == null && col.ToBytes().AsSpan().SequenceEqual(PanelOf(AvfxChunk.Parse(noAlpha)).Child("Col")!.ToBytes()),
+                "panel Col restored with no A, as in the baseline");
         });
 
         Add("ShellEmptyKeepsPanelHidden", Shell("E-8"), () =>
