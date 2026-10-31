@@ -301,7 +301,7 @@ Vill du fortsätta?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX-mod</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Ändra</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>De här modden har ett dj-bord du kan sätta bilder på. Välj det du använder.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Släpp en bild på någon av dem, eller använd knappen under. Inget skrivs förrän du trycker Använd.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Släpp en bild på någon av dem, eller använd knappen under. En animerad GIF på bordspanelen spelas upp som en animation. Inget skrivs förrän du trycker Använd.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Bordspanel</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptopskärm</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Fyll</value></data>
@@ -347,4 +347,35 @@ Vill du fortsätta?</value></data>
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% av ytan lämnas svart</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>förvrängd {0}% för att passa</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>passar exakt</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animation, {1} bildrutor, {2:0.0} s loop. Gör modden ungefär {3} MB större.</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>Glesad från {1} till {0} bildrutor för att få plats; loopen behåller sin längd.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Den här GIF:en är för stor att animera, så dess första bildruta används.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Bara bordspanelen kan animeras, så den första bildrutan i den här GIF:en används.</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>Din animation — {0} bildrutor</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Den här modden animerar redan bordet ({0} bildrutor). En GIF ersätter den animationen; en bild täcker hela panelen.</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Den här appen animerade bordet, men dess säkerhetskopia saknas (har moddmappen bytt namn?). Installera om modden för att ändra bordet.</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>Den senaste ändringen av bordsanimationen blev inte klar. Sätt tillbaka originalet för att städa upp, eller använd igen.</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>Bordet kan inte animeras i den här modden: {0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>Bordet kunde inte läsas: {0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>Kodar bildruta {0} av {1}…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>Återställa bordet som modden levererades? Det tar bort din animation och alla bilder du har lagt på bordet.</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>dess effekt är inte uppbyggd på ett sätt som appen känner till</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>bordseffekten slås på av moddens standardfiler</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>effekten har inte plats för fler bildrutor</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>alternativet ”{0}” använder en annan bordsbild</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>bordsstorlekarna använder olika effektuppbyggnad</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>{0} saknas och hoppades över.</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} kan inte läsas just nu (använder ett annat program den?). Inget ändrades; försök igen.</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>Bordet har ändrats sedan dialogen läste det, så inget skrevs. Försök igen.</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} finns redan i modden, så inget skrevs.</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>Det gick inte att använda och det kunde inte ångras helt ({0}). Använd ”Sätt tillbaka originalet”.</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} ändrades av en moddsuppdatering och lämnades som den är.</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} redigerades utanför appen och behölls.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} kunde inte tas bort ännu; den tas bort nästa gång du använder en animation.</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra behöll inte de nya bildrutorna i ”{0}”. Ladda om modden i Penumbra och kontrollera bordet.</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>Det gick inte att ändra bordet: {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: mer än en partikel visar bordsbilden</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: bordspanelen skapas inte av exakt en emitterpost</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: moddens egen animation har ingen bildruta som appen kan återanvända</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>{0} kunde inte läsas som en effektfil</value></data>
 </root>

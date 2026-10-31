@@ -301,7 +301,7 @@
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX 模组</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>更改</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>这些模组有可以放图片的 DJ 桌。选择你在用的那个。</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>把图片拖到其中一个上，或用下面的按钮。在你点应用之前不会写入任何东西。</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>把图片拖到其中一个上，或用下面的按钮。拖到桌面板上的动态 GIF 会以动画播放。在你点应用之前不会写入任何东西。</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>桌面面板</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>笔记本屏幕</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>填满</value></data>
@@ -347,4 +347,35 @@
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>面板有 {0}% 留黑</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>拉伸了 {0}% 以适应</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>刚好合适</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — 动画，{1} 帧，循环 {2:0.0} 秒。模组会增大约 {3} MB。</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>为了放得下，已从 {1} 帧精简到 {0} 帧；循环时长不变。</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>这个 GIF 太大，无法做成动画，所以使用它的第一帧。</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>只有桌面板可以做成动画，所以使用这个 GIF 的第一帧。</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>你的动画 — {0} 帧</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>这个模组已经让桌子动起来了（{0} 帧）。GIF 会替换这段动画；图片会覆盖整个面板。</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>这个应用曾给这张桌子做过动画，但备份不见了（模组文件夹被改名了吗？）。重新安装模组才能修改桌子。</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>上一次对桌子动画的修改没有完成。把原版放回去来清理，或者重新应用。</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>这个模组的桌子无法做成动画：{0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>无法读取桌子：{0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>正在编码第 {0} 帧，共 {1} 帧…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>把桌子恢复成模组自带的样子吗？这会移除你的动画以及你放在桌子上的任何图片。</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>它的特效结构不是这个应用认识的样子</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>桌子特效由模组的默认文件开启</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>这个特效放不下更多帧了</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>选项“{0}”使用了不同的桌面图片</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>不同尺寸的桌子使用了不同的特效结构</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>{0} 不存在，已跳过。</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>现在无法读取 {0}（是不是有别的程序在用它？）。没有做任何修改；请再试一次。</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>自从这个对话框读取以来，桌子已经变了，所以没有写入任何东西。请再试一次。</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} 已经在模组里了，所以没有写入任何东西。</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>应用失败，且无法完全撤销（{0}）。请使用“放回原版”。</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} 已被模组更新修改，保持原样。</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} 在这个应用之外被编辑过，已保留。</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>暂时无法删除 {0}；下次应用动画时会移除。</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra 没有保留“{0}”里的新帧。请在 Penumbra 中重新加载模组并检查桌子。</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>修改桌子失败：{0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}：不止一个粒子显示桌面图片</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}：桌面板不是由恰好一个发射器项生成的</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}：模组自带的动画没有可以重用的帧</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>无法把 {0} 读取为特效文件</value></data>
 </root>

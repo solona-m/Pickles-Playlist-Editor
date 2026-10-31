@@ -301,7 +301,7 @@ Möchtest du fortfahren?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX-Mod</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Ändern</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>Diese Mods haben einen DJ-Tisch, auf den du Bilder legen kannst. Wähle den, den du nutzt.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Zieh ein Bild auf eines davon oder nutze den Knopf darunter. Nichts wird geschrieben, bis du auf Übernehmen drückst.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Zieh ein Bild auf eines davon oder nutze den Knopf darunter. Ein animiertes GIF auf dem Tischpanel wird als Animation abgespielt. Nichts wird geschrieben, bis du auf Übernehmen drückst.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Tischfront</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptop-Bildschirm</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Füllen</value></data>
@@ -347,4 +347,35 @@ Möchtest du fortfahren?</value></data>
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% der Fläche bleiben schwarz</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>{0}% verzerrt, damit es passt</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>passt genau</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — Animation, {1} Bilder, {2:0.0} s Schleife. Macht die Mod etwa {3} MB größer.</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>Von {1} auf {0} Bilder ausgedünnt; die Schleife bleibt gleich lang.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Dieses GIF ist zu groß zum Animieren, darum wird sein erstes Bild verwendet.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Nur das Tischpanel kann animiert werden, darum wird das erste Bild dieses GIFs verwendet.</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>Deine Animation — {0} Bilder</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Diese Mod animiert den Tisch schon ({0} Bilder). Ein GIF ersetzt diese Animation; ein Bild deckt das ganze Panel ab.</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Diese App hat den Tisch animiert, aber ihre Sicherung fehlt (wurde der Mod-Ordner umbenannt?). Installiere die Mod neu, um den Tisch zu ändern.</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>Die letzte Änderung an der Tischanimation wurde nicht fertig. Setz das Original wieder ein, um aufzuräumen, oder übernimm erneut.</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>Der Tisch kann in dieser Mod nicht animiert werden: {0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>Der Tisch konnte nicht gelesen werden: {0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>Kodiere Bild {0} von {1}…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>Den Tisch so wiederherstellen, wie die Mod ihn liefert? Das entfernt deine Animation und jedes Bild, das du auf den Tisch gelegt hast.</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>sein Effekt ist nicht so aufgebaut, wie diese App es kennt</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>der Tischeffekt wird von den Standarddateien der Mod eingeschaltet</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>der Effekt hat keinen Platz für weitere Bilder</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>die Option „{0}“ nutzt ein anderes Tischbild</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>die Tischgrößen nutzen unterschiedliche Effekt-Layouts</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>{0} fehlt und wurde übersprungen.</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} kann gerade nicht gelesen werden (benutzt ein anderes Programm die Datei?). Nichts wurde geändert; versuch es noch einmal.</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>Der Tisch hat sich geändert, seit dieser Dialog ihn gelesen hat, darum wurde nichts geschrieben. Versuch es noch einmal.</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} ist schon in der Mod, darum wurde nichts geschrieben.</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>Das Übernehmen ist fehlgeschlagen und konnte nicht ganz rückgängig gemacht werden ({0}). Nutze „Original wiederherstellen“.</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} wurde durch ein Mod-Update geändert und bleibt, wie es ist.</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} wurde außerhalb dieser App bearbeitet und bleibt erhalten.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} konnte noch nicht gelöscht werden; es wird entfernt, wenn du das nächste Mal eine Animation übernimmst.</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra hat die neuen Bilder in „{0}“ nicht behalten. Lade die Mod in Penumbra neu und prüfe den Tisch.</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>Den Tisch zu ändern ist fehlgeschlagen: {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: mehr als ein Partikel zeigt das Tischbild</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: das Tischpanel wird nicht von genau einem Emitter-Eintrag erzeugt</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: die Animation der Mod hat kein Bild, das diese App wiederverwenden kann</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>{0} konnte nicht als Effektdatei gelesen werden</value></data>
 </root>

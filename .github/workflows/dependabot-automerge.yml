@@ -44,6 +44,7 @@ jobs:
         run: |
           dotnet build devtools/TexHarness/TexHarness.csproj -c Release
           dotnet build devtools/TmbHarness/TmbHarness.csproj -c Release
+          dotnet build devtools/AnimHarness/AnimHarness.csproj -c Release
 
   meta:
     if: github.event.pull_request.user.login == 'dependabot[bot]'

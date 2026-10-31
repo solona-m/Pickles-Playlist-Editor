@@ -12,11 +12,12 @@
 version: 2
 updates:
   - package-ecosystem: nuget
-    # The app and the three devtools harnesses, listed explicitly so none is missed.
+    # The app and the four devtools harnesses, listed explicitly so none is missed.
     directories:
       - "/"
       - "/devtools/ScdAudioTests"
       - "/devtools/TexHarness"
+      - "/devtools/AnimHarness"
       - "/devtools/TmbHarness"
     target-branch: "test"
     schedule:

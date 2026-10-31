@@ -93,7 +93,7 @@ namespace Pickles_Playlist_Editor.Utils
             try
             {
                 var surface = target.Surface;
-                var inTextureSpace = ToTextureSpace(surface, picture, fit);
+                var inTextureSpace = surface.ToTextureSpace(picture, fit);
 
                 // RoundTripRect, not the full paste: a preview only ever shows mip 0, and building a
                 // whole new 22 MB file to look at a 387x656 rectangle is the allocation this avoids.
@@ -128,7 +128,7 @@ namespace Pickles_Playlist_Editor.Utils
                 var state = EnsureOriginal(target);
 
                 byte[]? pasted = TexPaste.PasteRect(Current(target), target.Surface.Rect,
-                    ToTextureSpace(target.Surface, picture, fit), out error);
+                    target.Surface.ToTextureSpace(picture, fit), out error);
                 if (pasted == null) return false;
 
                 Commit(target, state, pasted, applied: true);
@@ -216,19 +216,6 @@ namespace Pickles_Playlist_Editor.Utils
             {
                 Logger.LogWarn("Reloading {Mod} after a picture change failed: {Error}", modName, ex.Message);
             }
-        }
-
-        /// <summary>
-        /// Fits the picture to the panel and turns it into the texture's own orientation.
-        ///
-        /// Fitted upright first — the orientation the user chose it in — and rotated afterwards. The
-        /// other order would crop to the wrong aspect ratio on anything stored on its side, which
-        /// both the laptop screen and the lid badge are.
-        /// </summary>
-        private static BgraImage ToTextureSpace(DjTextureSurface surface, BgraImage picture, FitMode fit)
-        {
-            var upright = ImageOps.FitTo(picture, surface.UprightWidth, surface.UprightHeight, fit);
-            return ImageOps.Rotate(upright, -surface.QuarterTurns);
         }
 
         /// <summary>Writes the new texture and records which surfaces this app is now responsible for.</summary>

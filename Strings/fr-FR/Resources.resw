@@ -301,7 +301,7 @@ Voulez-vous continuer ?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>Mod VFX</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Changer</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>Ces mods ont une table de DJ sur laquelle mettre des images. Choisis celui que tu utilises.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Dépose une image sur l’une d’elles, ou utilise le bouton en dessous. Rien n’est écrit tant que tu n’as pas appuyé sur Appliquer.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Dépose une image sur l’une d’elles, ou utilise le bouton en dessous. Un GIF animé sur le panneau de la table est joué comme une animation. Rien n’est écrit tant que tu n’appuies pas sur Appliquer.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Panneau de la table</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Écran du portable</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Remplir</value></data>
@@ -347,4 +347,35 @@ Voulez-vous continuer ?</value></data>
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0} % du panneau reste noir</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>déformée de {0} % pour tenir</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>tient exactement</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animation, {1} images, boucle de {2:0.0} s. Ajoute environ {3} Mo au mod.</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>Réduit de {1} à {0} images pour tenir ; la boucle garde sa durée.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Ce GIF est trop grand pour être animé, sa première image est donc utilisée.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Seul le panneau de la table peut être animé, la première image de ce GIF est donc utilisée.</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>Ton animation — {0} images</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Ce mod anime déjà la table ({0} images). Un GIF remplace cette animation ; une image couvre tout le panneau.</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Cette app a animé la table, mais sa sauvegarde a disparu (le dossier du mod a-t-il été renommé ?). Réinstalle le mod pour changer la table.</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>Le dernier changement de l’animation de la table ne s’est pas terminé. Remets l’original pour nettoyer, ou applique à nouveau.</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>La table ne peut pas être animée dans ce mod : {0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>La table n’a pas pu être lue : {0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>Encodage de l’image {0} sur {1}…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>Remettre la table telle que le mod la fournit ? Cela retire ton animation et toute image que tu as mise sur la table.</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>son effet n’est pas organisé comme cette app le connaît</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>l’effet de la table est activé par les fichiers par défaut du mod</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>l’effet n’a plus de place pour d’autres images</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>l’option « {0} » utilise une autre image de table</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>les tailles de table utilisent des effets organisés différemment</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>{0} est absent et a été ignoré.</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} ne peut pas être lu pour l’instant (un autre programme l’utilise ?). Rien n’a été changé ; réessaie.</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>La table a changé depuis que cette fenêtre l’a lue, donc rien n’a été écrit. Réessaie.</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} est déjà dans le mod, donc rien n’a été écrit.</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>L’application a échoué et n’a pas pu être entièrement annulée ({0}). Utilise « Remettre l’original ».</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} a été modifié par une mise à jour du mod et a été laissé tel quel.</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} a été modifié hors de cette app et a été conservé.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} n’a pas encore pu être supprimé ; il le sera la prochaine fois que tu appliques une animation.</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra n’a pas gardé les nouvelles images dans « {0} ». Recharge le mod dans Penumbra et vérifie la table.</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>La modification de la table a échoué : {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0} : plus d’une particule affiche l’image de la table</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0} : le panneau de la table n’est pas créé par exactement un élément d’émetteur</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0} : l’animation du mod n’a aucune image que cette app peut réutiliser</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>{0} n’a pas pu être lu comme fichier d’effet</value></data>
 </root>
