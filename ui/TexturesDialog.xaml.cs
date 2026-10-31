@@ -83,6 +83,9 @@ namespace Pickles_Playlist_Editor
         /// </summary>
         private bool _ready;
 
+        /// <summary>Set once the dialog has closed, so a late redraw never starts playback.</summary>
+        private bool _closed;
+
         public TexturesDialog()
         {
             this.InitializeComponent();
@@ -124,7 +127,11 @@ namespace Pickles_Playlist_Editor
                 card.Player = new FramePlayer(card.Preview);
             }
             AnimationText.Format = AppStrings.TexturesAnimationMessage;
-            Closed += (_, _) => { foreach (var card in _cards.Values) card.Player?.Stop(); };
+            Closed += (_, _) =>
+            {
+                _closed = true;
+                foreach (var card in _cards.Values) card.Player?.Stop();
+            };
             _ready = true;
 
             LoadMod();
@@ -372,7 +379,19 @@ namespace Pickles_Playlist_Editor
                 bool animate = table && card.View?.AnimationAllowed == true;
                 int maxFrames = card.Site is { Capacity: > 0 } site ? site.Capacity : FramePlan.MaxFrames;
 
-                var loaded = await PictureLoader.LoadAsync(path, animate, maxFrames, null);
+                // Decoding a long GIF composites every frame, so it stays off the UI thread.
+                LoadedPicture? loaded;
+                SetBusy(true);
+                StatusText.Text = AppStrings.Textures_Composing;
+                try
+                {
+                    loaded = await Task.Run(() => PictureLoader.LoadAsync(path, animate, maxFrames, null));
+                }
+                finally
+                {
+                    SetBusy(false);
+                }
+                StatusText.Text = string.Empty;
                 if (loaded == null)
                 {
                     StatusText.Text = AppStrings.TexturesUnreadable(Path.GetFileName(path));
@@ -385,6 +404,7 @@ namespace Pickles_Playlist_Editor
                 card.PickedNote = loaded.Note switch
                 {
                     PictureNote.TooLarge => AppStrings.TexturesAnimationTooLarge,
+                    PictureNote.Capped when loaded.Frames == null => AppStrings.TexturesAnimationCapped(1, loaded.SourceFrameCount),
                     PictureNote.TableOnly when table && card.Animation?.Reason is { } reason =>
                         AppStrings.TexturesAnimationUnsupported(reason),
                     PictureNote.TableOnly when table && card.View?.StateKey == TableText.ScanFailed =>
@@ -799,7 +819,7 @@ namespace Pickles_Playlist_Editor
         /// <summary>Plays frames on the card, with the same controls a still would have.</summary>
         private void PlayCard(Card card, IReadOnlyList<BgraImage> frames, FrameTimeline timeline, string state)
         {
-            card.Player?.Play(frames.Select(ToBitmap).ToList(), timeline);
+            if (!_closed) card.Player?.Play(frames.Select(ToBitmap).ToList(), timeline);
             card.State.Text = state + WarningsLine(card);
             EnableCard(card);
         }

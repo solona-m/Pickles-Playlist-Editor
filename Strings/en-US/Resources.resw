@@ -364,7 +364,6 @@ Do you want to proceed?</value></data>
   <data name="Anim_TooManyTextures" xml:space="preserve"><value>the effect has no room for more frames</value></data>
   <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>the option “{0}” uses a different table picture</value></data>
   <data name="Anim_MixedLayouts" xml:space="preserve"><value>the table sizes use different effect layouts</value></data>
-  <data name="Anim_NotAnimatable" xml:space="preserve"><value>{0}</value></data>
   <data name="Anim_FileMissing" xml:space="preserve"><value>{0} is missing and was skipped.</value></data>
   <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} can’t be read right now (is another program using it?). Nothing was changed; try again.</value></data>
   <data name="Anim_ModChanged" xml:space="preserve"><value>The table changed since this dialog read it, so nothing was written. Try again.</value></data>
@@ -374,5 +373,9 @@ Do you want to proceed?</value></data>
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} was edited outside this app and was kept.</value></data>
   <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} could not be deleted yet; it will be removed next time.</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra did not keep the new frames in “{0}”. Reload the mod in Penumbra and check the table.</value></data>
-  <data name="Anim_WriteFailed" xml:space="preserve"><value>{0}</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>Changing the table failed: {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: more than one particle shows the table picture</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: the table panel isn’t spawned by exactly one emitter item</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: the mod’s own animation has no frame this app can reuse</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>{0} could not be read as an effect file</value></data>
 </root>

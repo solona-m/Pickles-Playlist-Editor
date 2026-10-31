@@ -107,6 +107,14 @@ internal static partial class Program
             Check(pic.Frames == null && pic.Note == PictureNote.TooLarge && pic.Still.Width == 2048, $"still, too-large note ({pic.Still.Width})");
         });
 
+        Add("CapacityOneIsStill", "EDGE-animated-table-8", () =>
+        {
+            string path = GifPath("cap1.gif");
+            new GifWriter(8, 8, Palette).Solid(1).Solid(2).Solid(3).Save(path);
+            var pic = Load(path, max: 1)!;
+            Check(pic.Frames == null && pic.Note == PictureNote.Capped && pic.SourceFrameCount == 3, "room for one frame: a still with a note");
+        });
+
         Add("FrameClippedToCanvas", "EDGE-animated-table-7", () =>
         {
             string path = GifPath("clip.gif");

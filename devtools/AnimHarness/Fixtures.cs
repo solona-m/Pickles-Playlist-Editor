@@ -73,7 +73,31 @@ internal static class Fixtures
         var (root, baseDir) = NewRoot(folderName);
         File.Copy(Path.Combine(PicklesRoot, "meta.json"), Path.Combine(root, "meta.json"));
         foreach (var rel in PicklesAvfx.Append(@"common\4\eq55.atex")) CopyFile(PicklesRoot, root, rel);
+        UndoAppAnimation(PicklesRoot, root);
         return Make(root, baseDir, folderName);
+    }
+
+    /// <summary>
+    /// The source pack may have been animated with the app itself. Its pristine backups (read only)
+    /// give the shipped effects back, and the copied manifest loses the frame keys.
+    /// </summary>
+    private static void UndoAppAnimation(string source, string copy)
+    {
+        string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "PicklesPlaylistEditor", "backups", "textures", Path.GetFileName(source), "animation");
+        var state = DjAnimationScan.TryReadState(folder);
+        if (state == null) return;
+        foreach (var entry in state.Avfx)
+        {
+            string pristine = DjAnimationScan.PristinePath(folder, entry.OriginalSha);
+            if (File.Exists(pristine) && File.Exists(Path.Combine(copy, entry.Relative)))
+                File.Copy(pristine, Path.Combine(copy, entry.Relative), overwrite: true);
+        }
+        string meta = Path.Combine(copy, "meta.json");
+        var root = JObject.Parse(File.ReadAllText(meta));
+        foreach (var group in (root["Groups"] as JArray ?? new JArray()).OfType<JObject>())
+            DjTableAnimationCore.PruneFrameKeys(group, new HashSet<string>());
+        File.WriteAllText(meta, root.ToString());
     }
 
     public static TempMod Moon(string folderName = "moon")

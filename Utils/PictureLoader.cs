@@ -94,8 +94,9 @@ namespace Pickles_Playlist_Editor.Utils
             if (!allowAnimation)
                 return new LoadedPicture { Still = kept[0], SourceFrameCount = count, Note = PictureNote.TableOnly };
 
+            // Room for one frame, or frames so short they merged into one: a still, and say why.
             if (plan.KeptSourceIndices.Count < 2)
-                return new LoadedPicture { Still = kept[0], SourceFrameCount = count };
+                return new LoadedPicture { Still = kept[0], SourceFrameCount = count, Thinned = true, Note = PictureNote.Capped };
 
             return new LoadedPicture
             {

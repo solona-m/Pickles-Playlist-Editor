@@ -364,7 +364,6 @@ Möchtest du fortfahren?</value></data>
   <data name="Anim_TooManyTextures" xml:space="preserve"><value>der Effekt hat keinen Platz für weitere Bilder</value></data>
   <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>die Option „{0}“ nutzt ein anderes Tischbild</value></data>
   <data name="Anim_MixedLayouts" xml:space="preserve"><value>die Tischgrößen nutzen unterschiedliche Effekt-Layouts</value></data>
-  <data name="Anim_NotAnimatable" xml:space="preserve"><value>{0}</value></data>
   <data name="Anim_FileMissing" xml:space="preserve"><value>{0} fehlt und wurde übersprungen.</value></data>
   <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} kann gerade nicht gelesen werden (benutzt ein anderes Programm die Datei?). Nichts wurde geändert; versuch es noch einmal.</value></data>
   <data name="Anim_ModChanged" xml:space="preserve"><value>Der Tisch hat sich geändert, seit dieser Dialog ihn gelesen hat, darum wurde nichts geschrieben. Versuch es noch einmal.</value></data>
@@ -374,5 +373,9 @@ Möchtest du fortfahren?</value></data>
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} wurde außerhalb dieser App bearbeitet und bleibt erhalten.</value></data>
   <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} konnte noch nicht gelöscht werden; es wird beim nächsten Mal entfernt.</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra hat die neuen Bilder in „{0}“ nicht behalten. Lade die Mod in Penumbra neu und prüfe den Tisch.</value></data>
-  <data name="Anim_WriteFailed" xml:space="preserve"><value>{0}</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>Den Tisch zu ändern ist fehlgeschlagen: {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: mehr als ein Partikel zeigt das Tischbild</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: das Tischpanel wird nicht von genau einem Emitter-Eintrag erzeugt</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: die Animation der Mod hat kein Bild, das diese App wiederverwenden kann</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>{0} konnte nicht als Effektdatei gelesen werden</value></data>
 </root>

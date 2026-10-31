@@ -364,7 +364,6 @@ Vill du fortsätta?</value></data>
   <data name="Anim_TooManyTextures" xml:space="preserve"><value>effekten har inte plats för fler bildrutor</value></data>
   <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>alternativet ”{0}” använder en annan bordsbild</value></data>
   <data name="Anim_MixedLayouts" xml:space="preserve"><value>bordsstorlekarna använder olika effektuppbyggnad</value></data>
-  <data name="Anim_NotAnimatable" xml:space="preserve"><value>{0}</value></data>
   <data name="Anim_FileMissing" xml:space="preserve"><value>{0} saknas och hoppades över.</value></data>
   <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} kan inte läsas just nu (använder ett annat program den?). Inget ändrades; försök igen.</value></data>
   <data name="Anim_ModChanged" xml:space="preserve"><value>Bordet har ändrats sedan dialogen läste det, så inget skrevs. Försök igen.</value></data>
@@ -374,5 +373,9 @@ Vill du fortsätta?</value></data>
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} redigerades utanför appen och behölls.</value></data>
   <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} kunde inte tas bort ännu; den tas bort nästa gång.</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra behöll inte de nya bildrutorna i ”{0}”. Ladda om modden i Penumbra och kontrollera bordet.</value></data>
-  <data name="Anim_WriteFailed" xml:space="preserve"><value>{0}</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>Det gick inte att ändra bordet: {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: mer än en partikel visar bordsbilden</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: bordspanelen skapas inte av exakt en emitterpost</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: moddens egen animation har ingen bildruta som appen kan återanvända</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>{0} kunde inte läsas som en effektfil</value></data>
 </root>

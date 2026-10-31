@@ -364,7 +364,6 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="Anim_TooManyTextures" xml:space="preserve"><value>el efecto no tiene espacio para más fotogramas</value></data>
   <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>la opción «{0}» usa otra imagen de mesa</value></data>
   <data name="Anim_MixedLayouts" xml:space="preserve"><value>los tamaños de mesa usan distintos diseños de efecto</value></data>
-  <data name="Anim_NotAnimatable" xml:space="preserve"><value>{0}</value></data>
   <data name="Anim_FileMissing" xml:space="preserve"><value>Falta {0} y se ha omitido.</value></data>
   <data name="Anim_FileUnreadable" xml:space="preserve"><value>No se puede leer {0} ahora mismo (¿lo está usando otro programa?). No se cambió nada; inténtalo de nuevo.</value></data>
   <data name="Anim_ModChanged" xml:space="preserve"><value>La mesa cambió desde que este diálogo la leyó, así que no se escribió nada. Inténtalo de nuevo.</value></data>
@@ -374,5 +373,9 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} se editó fuera de esta app y se conservó.</value></data>
   <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>Aún no se pudo borrar {0}; se quitará la próxima vez.</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra no conservó los nuevos fotogramas en «{0}». Recarga el mod en Penumbra y revisa la mesa.</value></data>
-  <data name="Anim_WriteFailed" xml:space="preserve"><value>{0}</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>No se pudo cambiar la mesa: {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: más de una partícula muestra la imagen de la mesa</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: el panel de la mesa no lo genera exactamente un elemento del emisor</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: la animación del propio mod no tiene ningún fotograma que esta app pueda reutilizar</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>No se pudo leer {0} como archivo de efecto</value></data>
 </root>

@@ -184,6 +184,22 @@ internal static partial class Program
             Check(w.Count(x => x.StartsWith("KeptEditedFrame")) == 1, $"warning names it ({string.Join(",", w)})");
         });
 
+        Add("RestoreDeleteFails", "AC-animated-table-4", () =>
+        {
+            using var mod = Fixtures.Pickles();
+            var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
+            var groups = mod.Groups();
+            Check(ApplyFrames(mod, 3, out _), "apply");
+            var host = mod.NewHost();
+            host.ThrowOn = c => c.Kind == CallKind.Delete && c.Path.EndsWith("t0000001_1_01.atex");
+            Check(Restore(mod, out var w, out string e, host), "restore " + e);
+            Check(w.Any(x => x.StartsWith("StaleNotDeleted")), "warns about the locked frame");
+            var st = ReadState(mod);
+            Check(st.IsEmpty && st.StaleFrames.Count == 1 && st.StaleFrames[0].Relative.EndsWith("_1_01.atex"), "state keeps the leftover");
+            Check(Restore(mod, out _, out e, mod.NewHost()), "second restore " + e);
+            CheckPristine(mod, before, groups, "after the second restore");
+        });
+
         Add("StaleGenerationRetried", "EDGE-animated-table-33", () =>
         {
             using var mod = Fixtures.Pickles();

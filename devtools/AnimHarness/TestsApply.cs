@@ -273,7 +273,7 @@ internal static partial class Program
             Check(mod.Read(mod.Table.Relative).AsSpan().SequenceEqual(eq55), "eq55 untouched");
         });
 
-        Add("StillOnOurs", "AC-animated-table-8 EDGE-animated-table-18", () =>
+        Add("StillOnOurs", "AC-animated-table-8", () =>
         {
             using var mod = Fixtures.Pickles();
             var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
@@ -288,9 +288,6 @@ internal static partial class Program
             var rect = TexPaste.ReadRect(mod.Read(mod.Table.Relative), mod.Table.Surface.Rect, out _)!;
             Check(Fixtures.Psnr(rect, mod.Table.Surface.ToTextureSpace(still, FitMode.Fill)) > 30, "eq55 holds the still");
 
-            // EDGE-18: put the shipped rect back, as DjTextures.Restore does.
-            File.WriteAllBytes(mod.Full(mod.Table.Relative), eq55);
-            Check(mod.Read(mod.Table.Relative).AsSpan().SequenceEqual(eq55), "eq55 pristine");
         });
 
         Add("UnanimatableRefused", "AC-animated-table-10 EDGE-animated-table-9", () =>
@@ -336,11 +333,8 @@ internal static partial class Program
                         var items = new[] { 7 }.Concat(Enumerable.Range(9, 48)).Select(i => ItemOf(root, i)).ToList();
                         foreach (int item in items) Retarget(root, 0, item, 0);
                     });
-                var site = mod.Scan();
-                Check(site.Problem != null, $"zero slots: problem ({site.Problem})");
-                Check(site.Avfx.Any(a => a.Inspect?.Info?.Mode == AnimationMode.InPlace) || site.Problem != null, "zero slots: InPlace layout");
-                var v = TableCard.Describe(DjTableAnimationCore.Status(site), site.Mode, site.HasState, false);
-                Check(!v.AnimationAllowed && v.StillRoute == StillRoute.Existing, "zero slots: card");
+                Expect(mod, "zero slots");
+                Check(mod.Scan().Problem?.StartsWith("NoUsableSlot") == true, "zero slots: reason");
             }
         });
 
@@ -524,6 +518,30 @@ internal static partial class Program
             var built = AvfxTableAnimation.Build(entry.Baseline!, entry.Inspect!.Info!,
                 Enumerable.Range(0, 48).Select(k => $"vfx/atex/ppe_x_1_{k:D2}.atex").ToList(), Fixtures.Timeline(48), out _);
             Check(built == null, "48 frames refused");
+        });
+
+        Add("RestoreUndoesBoth", "EDGE-animated-table-18", () =>
+        {
+            using var mod = Fixtures.Pickles();
+            var before = AvfxBytes(mod, Fixtures.PicklesAvfx);
+            var groups = mod.Groups();
+            var shipped = mod.Read(mod.Table.Relative);
+            PasteStill(mod, Fixtures.Frames(1)[0]);           // a still in eq55 first
+            Check(ApplyFrames(mod, 4, out string error), error);  // then animated
+            // The dialog's single Restore: the animation, then the eq55 picture (DjTextures.Restore puts the shipped bytes back).
+            Check(Restore(mod, out _, out error, mod.NewHost()), error);
+            File.WriteAllBytes(mod.Full(mod.Table.Relative), shipped);
+            CheckPristine(mod, before, groups, "after one restore");
+            Check(mod.Read(mod.Table.Relative).AsSpan().SequenceEqual(shipped), "eq55 shipped");
+        });
+
+        Add("UnparseablePanel", "EDGE-animated-table-9", () =>
+        {
+            using var mod = Fixtures.Pickles();
+            foreach (var rel in Fixtures.PicklesAvfx)
+                EditAvfx(mod, rel, root => root.All("Ptcl").ElementAt(7).Children!.RemoveAll(c => c.Name == "Col"));
+            var site = mod.Scan();
+            Check(site.Problem?.StartsWith("Unparseable") == true, $"panel without colour curve refused ({site.Problem})");
         });
 
         Add("FormattingKept", "EDGE-animated-table-21", () =>

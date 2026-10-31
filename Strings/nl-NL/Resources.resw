@@ -364,7 +364,6 @@ Wil je doorgaan?</value></data>
   <data name="Anim_TooManyTextures" xml:space="preserve"><value>het effect heeft geen ruimte voor meer frames</value></data>
   <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>de optie ‘{0}’ gebruikt een andere tafelafbeelding</value></data>
   <data name="Anim_MixedLayouts" xml:space="preserve"><value>de tafelformaten gebruiken verschillende effectindelingen</value></data>
-  <data name="Anim_NotAnimatable" xml:space="preserve"><value>{0}</value></data>
   <data name="Anim_FileMissing" xml:space="preserve"><value>{0} ontbreekt en is overgeslagen.</value></data>
   <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} kan nu niet worden gelezen (gebruikt een ander programma het?). Er is niets gewijzigd; probeer het opnieuw.</value></data>
   <data name="Anim_ModChanged" xml:space="preserve"><value>De tafel is veranderd sinds dit venster hem las, dus er is niets weggeschreven. Probeer het opnieuw.</value></data>
@@ -374,5 +373,9 @@ Wil je doorgaan?</value></data>
   <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} is buiten deze app bewerkt en is bewaard.</value></data>
   <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} kon nog niet worden verwijderd; het wordt de volgende keer opgeruimd.</value></data>
   <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra heeft de nieuwe frames in ‘{0}’ niet bewaard. Laad de mod opnieuw in Penumbra en controleer de tafel.</value></data>
-  <data name="Anim_WriteFailed" xml:space="preserve"><value>{0}</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>Het wijzigen van de tafel is mislukt: {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: meer dan één deeltje toont de tafelafbeelding</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: het tafelpaneel wordt niet door precies één emitteritem gemaakt</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: de eigen animatie van de mod heeft geen frame dat deze app kan hergebruiken</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>{0} kon niet als effectbestand worden gelezen</value></data>
 </root>

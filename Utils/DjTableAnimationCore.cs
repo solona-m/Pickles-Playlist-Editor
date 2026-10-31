@@ -47,8 +47,8 @@ namespace Pickles_Playlist_Editor.Utils
                 return new(TableText.Orphaned, false, false, false, false, null);
 
             bool unsupported = status.Kind == AnimationStatusKind.Unsupported;
-            var route = mode == AnimationMode.InPlace && !unsupported ? Tex_StillRoute.OneFrame
-                : hasState ? Tex_StillRoute.PasteThenRestore : Tex_StillRoute.Existing;
+            var route = mode == AnimationMode.InPlace && !unsupported ? StillRoute.OneFrameAnimation
+                : hasState ? StillRoute.PasteThenRestore : StillRoute.Existing;
 
             var key = status.Kind switch
             {
@@ -64,18 +64,11 @@ namespace Pickles_Playlist_Editor.Utils
                 RestoreEnabled: stillCustomised || hasState,
                 TableChangeAllowed: true,
                 AnimationAllowed: !unsupported,
-                StillRoute: route switch
-                {
-                    Tex_StillRoute.OneFrame => Utils.StillRoute.OneFrameAnimation,
-                    Tex_StillRoute.PasteThenRestore => Utils.StillRoute.PasteThenRestore,
-                    _ => Utils.StillRoute.Existing,
-                });
+                StillRoute: route);
         }
 
         public static TableCardView ScanFailed(bool stateReadable) =>
             new(TableText.ScanFailed, false, stateReadable, false, false, null);
-
-        private enum Tex_StillRoute { Existing, PasteThenRestore, OneFrame }
     }
 
     /// <summary>
@@ -117,14 +110,33 @@ namespace Pickles_Playlist_Editor.Utils
             FrameTimeline timeline, FitMode fit, IProgress<int>? progress,
             out IReadOnlyList<string> warnings, out string error)
         {
+            // Anything that throws before the mod is touched still comes back as a refusal.
+            try
+            {
+                return ApplyCore(host, site, frames, timeline, fit, progress, out warnings, out error);
+            }
+            catch (Exception ex)
+            {
+                warnings = Array.Empty<string>();
+                error = AnimationText.Format(AnimationMessage.WriteFailed, ex.Message);
+                return false;
+            }
+        }
+
+        private static bool ApplyCore(IAnimationHost host, DjTableAnimationSite site, IReadOnlyList<BgraImage> frames,
+            FrameTimeline timeline, FitMode fit, IProgress<int>? progress,
+            out IReadOnlyList<string> warnings, out string error)
+        {
             var notes = new List<string>();
             warnings = notes;
             if (!CheckSite(host, site, refuseProblem: true, out error)) return false;
 
             int n = frames.Count;
-            if (n < 1 || n > site.Capacity || timeline.StartTicks.Count != n)
+            if (n < 1 || timeline.StartTicks.Count != n)
+                throw new ArgumentException("The frames and their timeline do not match.");
+            if (n > site.Capacity)
             {
-                error = AnimationText.Format(AnimationMessage.TooManyTextures, $"{n} > {site.Capacity}");
+                error = AnimationText.Format(AnimationMessage.TooManyTextures, string.Empty);
                 return false;
             }
 
@@ -249,7 +261,7 @@ namespace Pickles_Playlist_Editor.Utils
             }
             catch (Exception ex)
             {
-                error = Rollback(host, site, previous, gen, written, keysAdded, plannedKeys, framesWritten, notes, ex);
+                error = Rollback(host, site, previous, token, gen, written, keysAdded, plannedKeys, framesWritten, notes, ex);
                 return false;
             }
 
@@ -259,7 +271,7 @@ namespace Pickles_Playlist_Editor.Utils
             return true;
         }
 
-        private static string Rollback(IAnimationHost host, DjTableAnimationSite site, AnimationState? previous, int gen,
+        private static string Rollback(IAnimationHost host, DjTableAnimationSite site, AnimationState? previous, string token, int gen,
             List<(SiteAvfx Avfx, byte[] Previous)> written, bool keysAdded, HashSet<string> plannedKeys,
             List<AnimationFrame> framesWritten, List<string> notes, Exception cause)
         {
@@ -305,23 +317,18 @@ namespace Pickles_Playlist_Editor.Utils
                 {
                     WriteState(host, new AnimationState
                     {
-                        ModToken = AvfxTableAnimation.FrameTokens(Array.Empty<byte>()).FirstOrDefault()
-                            ?? TokenOf(framesWritten[0]),
+                        ModToken = token,
                         Generation = gen,
                         StaleFrames = leftovers,
                     });
                 }
             }
-            catch { }
+            catch
+            {
+                // The Applying state stays on disk, so the card offers Restore.
+            }
 
-            return cause.Message;
-        }
-
-        private static string TokenOf(AnimationFrame frame)
-        {
-            string name = Path.GetFileName(frame.Relative);
-            int underscore = name.IndexOf('_');
-            return underscore > 0 ? name[..underscore] : string.Empty;
+            return AnimationText.Format(AnimationMessage.WriteFailed, cause.Message);
         }
 
         /// <summary>Removes old keys, then old files; whatever cannot go stays in StaleFrames.</summary>
@@ -387,7 +394,15 @@ namespace Pickles_Playlist_Editor.Utils
         {
             var notes = new List<string>();
             warnings = notes;
-            if (!CheckSite(host, site, refuseProblem: false, out error)) return false;
+            try
+            {
+                if (!CheckSite(host, site, refuseProblem: false, out error)) return false;
+            }
+            catch (Exception ex)
+            {
+                error = AnimationText.Format(AnimationMessage.WriteFailed, ex.Message);
+                return false;
+            }
 
             var state = site.State;
             if (state == null) return true;
@@ -415,17 +430,26 @@ namespace Pickles_Playlist_Editor.Utils
 
                 var all = state.Frames.Concat(state.PendingFrames).Concat(state.StaleFrames)
                     .GroupBy(f => f.Relative, StringComparer.OrdinalIgnoreCase).Select(g => g.First());
-                foreach (var frame in all) DeleteIfOurs(host, site, frame, notes);
+                var leftovers = all.Where(frame => !DeleteIfOurs(host, site, frame, notes)).ToList();
 
                 string folder = Path.Combine(site.ModRoot, DjAnimationScan.FrameFolder);
                 if (Directory.Exists(folder) && !Directory.EnumerateFileSystemEntries(folder).Any())
                     host.DeleteDirectory(folder);
 
-                host.DeleteDirectory(host.StateFolder);
+                // A frame that would not delete stays listed, so the next run removes it.
+                if (leftovers.Count == 0)
+                    host.DeleteDirectory(host.StateFolder);
+                else
+                    WriteState(host, new AnimationState
+                    {
+                        ModToken = state.ModToken,
+                        Generation = state.Generation,
+                        StaleFrames = leftovers,
+                    });
             }
             catch (Exception ex)
             {
-                error = ex.Message;
+                error = AnimationText.Format(AnimationMessage.WriteFailed, ex.Message);
                 return false;
             }
 

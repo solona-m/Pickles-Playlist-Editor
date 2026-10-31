@@ -91,7 +91,8 @@ namespace Pickles_Playlist_Editor.Utils
     internal enum AnimationMessage
     {
         FileMissing, FileUnreadable, ModChanged, Collision, RollbackStopped, Orphaned,
-        NoPanel, DefaultData, TooManyTextures, MismatchedAtlas, MixedLayouts, NotAnimatable,
+        NoPanel, DefaultData, TooManyTextures, MismatchedAtlas, MixedLayouts,
+        DuplicatePanel, PanelItemCount, NoUsableSlot, Unparseable,
         LeftAlone, KeptEditedFrame, StaleNotDeleted, ManifestLost, WriteFailed,
     }
 
@@ -171,10 +172,13 @@ namespace Pickles_Playlist_Editor.Utils
             var headerCache = new Dictionary<string, TexHeader?>(StringComparer.OrdinalIgnoreCase);
             var tableHeader = Header(modRoot, tableRelative, headerCache);
 
+            string rootPrefix = Path.GetFullPath(modRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             foreach (string relative in candidates)
             {
-                string full = Path.Combine(modRoot, relative);
+                string full = Path.GetFullPath(Path.Combine(modRoot, relative));
                 bool listed = state?.Find(relative) != null;
+                if (!full.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase))
+                    continue;   // a manifest path outside the mod is never read or written
 
                 byte[] bytes;
                 try { bytes = read(full); }
@@ -225,7 +229,7 @@ namespace Pickles_Playlist_Editor.Utils
             var refused = site.Avfx.FirstOrDefault(a => a.Inspect?.Kind == InspectKind.NotAnimatable);
             if (refused != null)
             {
-                site.Problem = AnimationText.Format(AnimationMessage.NotAnimatable, refused.Inspect!.Problem ?? refused.Relative);
+                site.Problem = AnimationText.Format(refused.Inspect!.Problem ?? AnimationMessage.Unparseable, refused.Relative);
                 return;
             }
 

@@ -1,3 +1,4 @@
+using Pickles_Playlist_Editor.Utils;
 using Pickles_Playlist_Editor.Utils.Tex;
 using System;
 using System.Collections.Generic;
@@ -16,7 +17,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         IReadOnlyList<int> AnimationSet, IReadOnlyList<int> Slots,
         int ParticleCount, int TextureCount, int Capacity);
 
-    internal sealed record InspectResult(InspectKind Kind, TableAvfxInfo? Info, string? Problem);
+    internal sealed record InspectResult(InspectKind Kind, TableAvfxInfo? Info, AnimationMessage? Problem);
 
     /// <summary>
     /// Turns the DJ table's panel particle into a frame animation, the way DJ Moon Base does it:
@@ -45,7 +46,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         {
             AvfxChunk root;
             try { root = AvfxChunk.Parse(baseline); }
-            catch (Exception ex) { return new(InspectKind.NotAnimatable, null, ex.Message); }
+            catch { return new(InspectKind.NotAnimatable, null, AnimationMessage.Unparseable); }
 
             var textures = root.All("Tex").Select(t => t.Text()).ToList();
             var particles = root.All("Ptcl").ToList();
@@ -55,8 +56,9 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
 
             var panels = Enumerable.Range(0, particles.Count).Where(i => tableTex.Contains(Tlst(particles[i]))).ToList();
             if (panels.Count == 0) return new(InspectKind.NoPanel, null, null);
-            if (panels.Count > 1) return new(InspectKind.NotAnimatable, null, "More than one particle shows the table picture.");
+            if (panels.Count > 1) return new(InspectKind.NotAnimatable, null, AnimationMessage.DuplicatePanel);
             int p = panels[0];
+            if (particles[p].Child("Col") == null) return new(InspectKind.NotAnimatable, null, AnimationMessage.Unparseable);
 
             int model = ModelOf(particles[p]);
             var set = new List<int>();
@@ -78,7 +80,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
             {
                 var targeting = items.Where(it => it.Target == p).ToList();
                 if (targeting.Count != 1)
-                    return new(InspectKind.NotAnimatable, null, "The table panel is not spawned by exactly one emitter item.");
+                    return new(InspectKind.NotAnimatable, null, AnimationMessage.PanelItemCount);
 
                 int capacity = Math.Min(FramePlan.MaxFrames, 255 - texCount);
                 return new(InspectKind.Animatable, new TableAvfxInfo(sha, p, targeting[0].Emitter, targeting[0].Index,
@@ -92,7 +94,7 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
                 return refs.TryGetValue(tex, out int n) && n == 1 && items.Count(it => it.Target == s) == 1;
             }).ToList();
             if (slots.Count == 0)
-                return new(InspectKind.NotAnimatable, null, "The mod's own animation has no frame this can reuse.");
+                return new(InspectKind.NotAnimatable, null, AnimationMessage.NoUsableSlot);
 
             return new(InspectKind.Animatable, new TableAvfxInfo(sha, p, -1, -1, AnimationMode.InPlace, set, slots,
                 particles.Count, texCount, Math.Min(FramePlan.MaxFrames, slots.Count)), null);
@@ -103,10 +105,10 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         {
             problem = string.Empty;
             int n = frameGamePaths.Count;
-            if (Sha(baseline) != info.BaselineSha) { problem = "The effect changed since it was inspected."; return null; }
+            if (Sha(baseline) != info.BaselineSha) { problem = AnimationText.Format(AnimationMessage.ModChanged, string.Empty); return null; }
             if (n < 1 || n > info.Capacity || timeline.StartTicks.Count != n)
             {
-                problem = $"{n} frames do not fit this effect (room for {info.Capacity}).";
+                problem = AnimationText.Format(AnimationMessage.TooManyTextures, string.Empty);
                 return null;
             }
 
