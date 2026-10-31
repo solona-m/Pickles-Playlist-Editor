@@ -301,7 +301,7 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="TextureModLabel.Text" xml:space="preserve"><value>Mod de VFX</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Cambiar</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>Estos mods tienen una mesa de DJ a la que puedes poner imágenes. Elige el que uses.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Arrastra una imagen a una de estas, o usa el botón de abajo. No se escribe nada hasta que pulses Aplicar.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Arrastra una imagen a una de estas, o usa el botón de abajo. Un GIF animado en el panel de la mesa se reproduce como animación. No se escribe nada hasta que pulses Aplicar.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Panel de la mesa</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Pantalla del portátil</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Llenar</value></data>
@@ -347,4 +347,32 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>el {0}% del panel queda en negro</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>deformada un {0}% para encajar</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>encaja exactamente</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animación, {1} fotogramas, bucle de {2:0.0} s. Añade unos {3} MB al mod.</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>Reducido de {1} a {0} fotogramas para que quepa; el bucle mantiene su duración.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Este GIF es demasiado grande para animarlo, así que se usa su primer fotograma.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Solo se puede animar el panel de la mesa, así que se usa el primer fotograma de este GIF.</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>Tu animación — {0} fotogramas</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Este mod ya anima la mesa ({0} fotogramas). Un GIF reemplaza esa animación; una imagen cubre todo el panel.</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Esta app animó la mesa, pero su copia de seguridad ya no está (¿cambiaste el nombre de la carpeta del mod?). Reinstala el mod para cambiar la mesa.</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>El último cambio de la animación de la mesa no terminó. Vuelve a poner el original para limpiarlo, o aplica de nuevo.</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>No se puede animar la mesa en este mod: {0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>No se pudo leer la mesa: {0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>Codificando fotograma {0} de {1}…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>¿Dejar la mesa como venía en el mod? Esto quita tu animación y cualquier imagen que pusieras en la mesa.</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>su efecto no está organizado como esta app lo conoce</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>el efecto de la mesa lo activan los archivos predeterminados del mod</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>el efecto no tiene espacio para más fotogramas</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>la opción «{0}» usa otra imagen de mesa</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>los tamaños de mesa usan distintos diseños de efecto</value></data>
+  <data name="Anim_NotAnimatable" xml:space="preserve"><value>{0}</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>Falta {0} y se ha omitido.</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>No se puede leer {0} ahora mismo (¿lo está usando otro programa?). No se cambió nada; inténtalo de nuevo.</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>La mesa cambió desde que este diálogo la leyó, así que no se escribió nada. Inténtalo de nuevo.</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} ya está en el mod, así que no se escribió nada.</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>Aplicar falló y no se pudo deshacer del todo ({0}). Usa «Volver a poner el original».</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} cambió con una actualización del mod y se dejó como está.</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} se editó fuera de esta app y se conservó.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>Aún no se pudo borrar {0}; se quitará la próxima vez.</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra no conservó los nuevos fotogramas en «{0}». Recarga el mod en Penumbra y revisa la mesa.</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>{0}</value></data>
 </root>

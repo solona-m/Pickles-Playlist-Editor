@@ -50,7 +50,21 @@ namespace Pickles_Playlist_Editor
 
             public string PickedName { get; set; } = string.Empty;
 
+            /// <summary>The chosen GIF's frames and timing, when it is an animation.</summary>
+            public LoadedPicture? PickedAnimation { get; set; }
+
+            /// <summary>Why the chosen picture was taken as a still, when that needs saying.</summary>
+            public string? PickedNote { get; set; }
+
             public bool HasPending => Picked != null;
+
+            // Table card only, and set only by RescanTableAsync: the last scan of the table effect.
+            public DjTableAnimationSite? Site { get; set; }
+            public AnimationStatus? Animation { get; set; }
+            public TableCardView? View { get; set; }
+            public string? ScanError { get; set; }
+
+            public FramePlayer? Player { get; set; }
         }
 
         private readonly Dictionary<string, Card> _cards = new(StringComparer.OrdinalIgnoreCase);
@@ -104,7 +118,13 @@ namespace Pickles_Playlist_Editor
             PrimaryButtonText = AppStrings.Textures_Apply;
             IsPrimaryButtonEnabled = false;
 
-            foreach (var card in _cards.Values) card.Fit.SelectedIndex = 0;   // Fill
+            foreach (var card in _cards.Values)
+            {
+                card.Fit.SelectedIndex = 0;   // Fill
+                card.Player = new FramePlayer(card.Preview);
+            }
+            AnimationText.Format = AppStrings.TexturesAnimationMessage;
+            Closed += (_, _) => { foreach (var card in _cards.Values) card.Player?.Stop(); };
             _ready = true;
 
             LoadMod();
@@ -195,6 +215,8 @@ namespace Pickles_Playlist_Editor
                           ?? AppStrings.Textures_NotInThisMod;
                     card.Picked = null;
                     card.PickedName = string.Empty;
+                    card.PickedAnimation = null;
+                    await RescanTableAsync(card);
                     await RefreshCardAsync(card);
                 }
             }
@@ -219,6 +241,8 @@ namespace Pickles_Playlist_Editor
             {
                 card.Picked = null;
                 card.PickedName = string.Empty;
+                card.PickedAnimation = null;
+                card.Player?.Stop();
             }
             UpdateApplyButton();
 
@@ -279,7 +303,7 @@ namespace Pickles_Playlist_Editor
         private void Choose_Click(object sender, RoutedEventArgs e)
         {
             if (_busy || sender is not FrameworkElement { Tag: string key }) return;
-            if (!_cards.TryGetValue(key, out var card) || card.Target == null) return;
+            if (!_cards.TryGetValue(key, out var card) || card.Target == null || !CanChoose(card)) return;
 
             using var dialog = new System.Windows.Forms.OpenFileDialog
             {
@@ -299,7 +323,7 @@ namespace Pickles_Playlist_Editor
         private void Preview_DragOver(object sender, DragEventArgs e)
         {
             if (_busy || sender is not FrameworkElement { Tag: string key }) return;
-            if (!_cards.TryGetValue(key, out var card) || card.Target == null) return;
+            if (!_cards.TryGetValue(key, out var card) || card.Target == null || !CanChoose(card)) return;
             if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
 
             e.AcceptedOperation = DataPackageOperation.Copy;
@@ -312,7 +336,7 @@ namespace Pickles_Playlist_Editor
         private async void Preview_Drop(object sender, DragEventArgs e)
         {
             if (_busy || sender is not FrameworkElement { Tag: string key }) return;
-            if (!_cards.TryGetValue(key, out var card) || card.Target == null) return;
+            if (!_cards.TryGetValue(key, out var card) || card.Target == null || !CanChoose(card)) return;
 
             try
             {
@@ -344,15 +368,30 @@ namespace Pickles_Playlist_Editor
         {
             try
             {
-                var picture = await LoadPictureAsync(path);
-                if (picture == null)
+                bool table = card.Key == "table";
+                bool animate = table && card.View?.AnimationAllowed == true;
+                int maxFrames = card.Site is { Capacity: > 0 } site ? site.Capacity : FramePlan.MaxFrames;
+
+                var loaded = await PictureLoader.LoadAsync(path, animate, maxFrames, null);
+                if (loaded == null)
                 {
                     StatusText.Text = AppStrings.TexturesUnreadable(Path.GetFileName(path));
                     return;
                 }
 
-                card.Picked = picture;
+                card.Picked = loaded.Still;
                 card.PickedName = Path.GetFileName(path);
+                card.PickedAnimation = loaded.Frames != null ? loaded : null;
+                card.PickedNote = loaded.Note switch
+                {
+                    PictureNote.TooLarge => AppStrings.TexturesAnimationTooLarge,
+                    PictureNote.TableOnly when table && card.Animation?.Reason is { } reason =>
+                        AppStrings.TexturesAnimationUnsupported(reason),
+                    PictureNote.TableOnly when table && card.View?.StateKey == TableText.ScanFailed =>
+                        AppStrings.TexturesAnimationScanFailed(card.ScanError ?? string.Empty),
+                    PictureNote.TableOnly => AppStrings.TexturesAnimationTableOnly,
+                    _ => null,
+                };
                 await RefreshPreviewAsync(card);
                 UpdateApplyButton();
             }
@@ -384,7 +423,13 @@ namespace Pickles_Playlist_Editor
         private async Task RefreshPreviewAsync(Card card)
         {
             if (card.Target is not { } target || card.Picked is not { } picture) return;
+            if (card.PickedAnimation is { Frames: { } frames, Timeline: { } timeline } animation && card.Site is { } site)
+            {
+                await RefreshAnimationPreviewAsync(card, target, site, animation, frames, timeline);
+                return;
+            }
 
+            card.Player?.Stop();
             var fit = SelectedFit(card);
             SetBusy(true);
             StatusText.Text = AppStrings.Textures_Composing;
@@ -423,7 +468,38 @@ namespace Pickles_Playlist_Editor
             var effect = ImageOps.DescribeFit(picture.Width, picture.Height,
                 target.Surface.UprightWidth, target.Surface.UprightHeight, fit);
             card.State.Text = AppStrings.TexturesPending(card.PickedName)
+                + "\n" + AppStrings.TexturesFitEffect(effect)
+                + (card.PickedNote is { } note ? "\n" + note : string.Empty);
+        }
+
+        /// <summary>Plays the pending animation as the game will draw it: every frame through the real encode.</summary>
+        private async Task RefreshAnimationPreviewAsync(Card card, DjTextureTarget target, DjTableAnimationSite site,
+            LoadedPicture animation, IReadOnlyList<BgraImage> frames, FrameTimeline timeline)
+        {
+            var fit = SelectedFit(card);
+            SetBusy(true);
+            StatusText.Text = AppStrings.Textures_Composing;
+
+            List<BgraImage> previews;
+            try
+            {
+                previews = await Task.Run(() =>
+                    DjTableAnimationCore.PreviewFrames(File.ReadAllBytes(target.FullPath), target.Surface, frames, fit));
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+
+            StatusText.Text = string.Empty;
+            var summary = DjTableAnimationCore.Summarise(site, frames.Count, timeline, animation.Thinned);
+            var effect = ImageOps.DescribeFit(frames[0].Width, frames[0].Height,
+                target.Surface.UprightWidth, target.Surface.UprightHeight, fit);
+            string text = AppStrings.TexturesAnimationPending(card.PickedName, summary.Frames, summary.Seconds,
+                    (summary.AddedBytes + 524288) / 1048576)
+                + (summary.CapNote ? "\n" + AppStrings.TexturesAnimationCapped(frames.Count, animation.SourceFrameCount) : string.Empty)
                 + "\n" + AppStrings.TexturesFitEffect(effect);
+            PlayCard(card, previews, timeline, text);
         }
 
         private void PrimaryButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
@@ -445,6 +521,7 @@ namespace Pickles_Playlist_Editor
             try
             {
             var failures = new List<string>();
+            var notes = new List<string>();
             var results = new Dictionary<Card, BgraImage?>();
             int written = 0;
 
@@ -454,13 +531,37 @@ namespace Pickles_Playlist_Editor
                 var picture = card.Picked!;
                 var fit = SelectedFit(card);
 
-                var (ok, image, message) = await Task.Run(() =>
+                if (card.Key == "table")
                 {
-                    bool applied = DjTextures.Apply(target, picture, fit, out var result, out string error);
-                    return (applied, result, error);
+                    // The table card rescans after any write attempt and redraws from disk.
+                    try
+                    {
+                        var (ok, warnings, error) = await ApplyTableAsync(card, target, picture, fit);
+                        notes.AddRange(warnings);
+                        if (!ok)
+                        {
+                            failures.Add(error);
+                            continue;
+                        }
+                        written++;
+                        card.Picked = null;
+                        card.PickedName = string.Empty;
+                        card.PickedAnimation = null;
+                    }
+                    finally
+                    {
+                        await RescanTableAsync(card);
+                    }
+                    continue;
+                }
+
+                var (applied, image, message) = await Task.Run(() =>
+                {
+                    bool ok = DjTextures.Apply(target, picture, fit, out var result, out string error);
+                    return (ok, result, error);
                 });
 
-                if (!ok)
+                if (!applied)
                 {
                     failures.Add(message);
                     continue;
@@ -474,8 +575,6 @@ namespace Pickles_Playlist_Editor
 
             if (written > 0) await Task.Run(() => DjTextures.Reload(_modFolder));
 
-            SetBusy(false);
-
             // Written cards redraw from what the apply handed back; only the untouched ones are
             // worth a read from disk. A write that somehow could not be read back falls through to
             // the disk path rather than showing a blank card under a successful apply.
@@ -484,18 +583,64 @@ namespace Pickles_Playlist_Editor
                 if (results.TryGetValue(card, out var image) && image != null) ShowCard(card, image, null);
                 else await RefreshCardAsync(card);
             }
-            UpdateApplyButton();
+
+            // Released only now, so no button is enabled from the scan before this write.
+            SetBusy(false);
 
             if (failures.Count > 0)
-                MessageBox(OwnerWindow(), string.Join("\n\n", failures),
+                MessageBox(OwnerWindow(), string.Join("\n\n", failures.Concat(notes)),
                     AppStrings.Dlg_Textures_Title, 0x00000010); // MB_ICONERROR
             else
-                StatusText.Text = AppStrings.TexturesApplied(written);
+                StatusText.Text = string.Join("\n", notes.Prepend(AppStrings.TexturesApplied(written)));
             }
             finally
             {
                 SetBusy(false);
             }
+        }
+
+        /// <summary>The table's write, routed by what is on the table now.</summary>
+        private async Task<(bool Ok, IReadOnlyList<string> Warnings, string Error)> ApplyTableAsync(
+            Card card, DjTextureTarget target, BgraImage picture, FitMode fit)
+        {
+            var site = card.Site;
+            var animation = card.PickedAnimation;
+
+            if (animation is { Frames: { } frames, Timeline: { } timeline } && site != null)
+            {
+                var progress = new Progress<int>(k => StatusText.Text = AppStrings.TexturesEncodingFrame(k, frames.Count));
+                return await Task.Run(() =>
+                {
+                    bool ok = DjTableAnimation.Apply(site, frames, timeline, fit, progress, out var w, out string e);
+                    return (ok, w, e);
+                });
+            }
+
+            var route = card.View?.StillRoute ?? StillRoute.Existing;
+            if (route == StillRoute.OneFrameAnimation && site != null)
+            {
+                return await Task.Run(() =>
+                {
+                    bool ok = DjTableAnimation.Apply(site, new[] { picture }, new FrameTimeline(new[] { 0 }, 1), fit,
+                        null, out var w, out string e);
+                    return (ok, w, e);
+                });
+            }
+
+            if (route == StillRoute.PasteThenRestore && site != null)
+            {
+                return await Task.Run(() =>
+                {
+                    bool ok = DjTableAnimation.PasteThenRestore(site, picture, fit, out var w, out string e);
+                    return (ok, w, e);
+                });
+            }
+
+            return await Task.Run(() =>
+            {
+                bool ok = DjTextures.Apply(target, picture, fit, out _, out string e);
+                return (ok, (IReadOnlyList<string>)Array.Empty<string>(), e);
+            });
         }
 
         private async void Restore_Click(object sender, RoutedEventArgs e)
@@ -509,15 +654,18 @@ namespace Pickles_Playlist_Editor
                 // doing both on one click would throw away work without saying so.
                 card.Picked = null;
                 card.PickedName = string.Empty;
+                card.PickedAnimation = null;
                 await RefreshCardAsync(card);
                 UpdateApplyButton();
                 return;
             }
 
-            if (!target.IsCustomised) return;
+            if (!CanRestore(card)) return;
 
+            bool animated = card.Site?.HasState == true || card.View?.StateKey == TableText.ScanFailed;
             const uint YesNo = 0x00000004 | 0x00000020;  // MB_YESNO | MB_ICONQUESTION
-            if (MessageBox(OwnerWindow(), AppStrings.Textures_ConfirmRestore,
+            if (MessageBox(OwnerWindow(),
+                    animated ? AppStrings.Textures_ConfirmRestoreAnimation : AppStrings.Textures_ConfirmRestore,
                     AppStrings.Dlg_Textures_Title, YesNo) != 6) // IDYES
                 return;
 
@@ -529,24 +677,47 @@ namespace Pickles_Playlist_Editor
             SetBusy(true);
             StatusText.Text = AppStrings.Textures_Restoring;
 
+            bool table = card.Key == "table";
             try
             {
-                var (ok, error) = await Task.Run(() =>
+                // After a failed scan there is no site to act on: scan again, and write nothing if that fails too.
+                if (table && card.Site == null && card.View?.StateKey == TableText.ScanFailed)
                 {
-                    bool restored = DjTextures.Restore(target, out string message);
-                    if (restored) DjTextures.Reload(_modFolder);
-                    return (restored, message);
+                    await RescanTableAsync(card);
+                    if (card.Site == null)
+                    {
+                        MessageBox(OwnerWindow(), AppStrings.TexturesAnimationScanFailed(card.ScanError ?? string.Empty),
+                            AppStrings.Dlg_Textures_Title, 0x00000010);
+                        return;
+                    }
+                }
+
+                var site = table ? card.Site : null;
+                var (ok, error, warnings) = await Task.Run(() =>
+                {
+                    var notes = new List<string>();
+                    string message = string.Empty;
+                    bool restored = true;
+                    if (site is { HasState: true })
+                    {
+                        restored = DjTableAnimation.Restore(site, out var w, out message);
+                        notes.AddRange(w);
+                    }
+                    if (restored && target.IsCustomised)
+                    {
+                        restored = DjTextures.Restore(target, out message);
+                        if (restored) DjTextures.Reload(_modFolder);
+                    }
+                    return (restored, message, notes);
                 });
 
-                SetBusy(false);
-                await RefreshCardAsync(card);
-                UpdateApplyButton();
-
-                if (ok) StatusText.Text = AppStrings.Textures_Restored;
-                else MessageBox(OwnerWindow(), error, AppStrings.Dlg_Textures_Title, 0x00000010);
+                if (ok) StatusText.Text = string.Join("\n", warnings.Prepend(AppStrings.Textures_Restored));
+                else MessageBox(OwnerWindow(), string.Join("\n\n", warnings.Prepend(error)), AppStrings.Dlg_Textures_Title, 0x00000010);
             }
             finally
             {
+                if (table) await RescanTableAsync(card);
+                await RefreshCardAsync(card);
                 SetBusy(false);
             }
         }
@@ -560,6 +731,36 @@ namespace Pickles_Playlist_Editor
             {
                 ShowCard(card, null, null);
                 return;
+            }
+
+            // The table plays back what this app put on it, read from the frame files themselves.
+            if (card.View?.StateKey is TableText.YourAnimation or TableText.YourStill
+                && card.Site is { State: { } state } site && state.Frames.Count > 0)
+            {
+                var timeline = DjTableAnimationCore.LiveTimeline(state);
+                var frames = await Task.Run(() => state.Frames.Select(f =>
+                {
+                    try
+                    {
+                        var bytes = File.ReadAllBytes(Path.Combine(site.ModRoot, f.Relative));
+                        var rect = TexPaste.ReadRect(bytes, target.Surface.Rect, out _);
+                        return rect == null ? null : ImageOps.Rotate(rect, target.Surface.QuarterTurns);
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }).ToList());
+
+                if (frames.All(f => f != null))
+                {
+                    var images = frames.Select(f => f!).ToList();
+                    if (card.View.StateKey == TableText.YourAnimation && timeline != null)
+                        PlayCard(card, images, timeline, AppStrings.TexturesYourAnimation(images.Count));
+                    else
+                        ShowCard(card, images[0], null);
+                    return;
+                }
             }
 
             var (current, error) = await Task.Run(() =>
@@ -589,15 +790,90 @@ namespace Pickles_Playlist_Editor
                 return;
             }
 
+            card.Player?.Stop();
             card.Preview.Source = image == null ? null : ToBitmap(image);
-            card.State.Text = image == null ? (error ?? string.Empty)
-                : target.IsCustomised
-                    ? AppStrings.TexturesYours(target.Surface.UprightWidth, target.Surface.UprightHeight)
-                    : AppStrings.TexturesShipped(target.Surface.UprightWidth, target.Surface.UprightHeight);
+            card.State.Text = image == null ? (error ?? string.Empty) : StateText(card, target);
+            EnableCard(card);
+        }
 
-            card.Choose.IsEnabled = !_busy;
-            card.Fit.IsEnabled = !_busy;
-            card.Restore.IsEnabled = !_busy && target.IsCustomised;
+        /// <summary>Plays frames on the card, with the same controls a still would have.</summary>
+        private void PlayCard(Card card, IReadOnlyList<BgraImage> frames, FrameTimeline timeline, string state)
+        {
+            card.Player?.Play(frames.Select(ToBitmap).ToList(), timeline);
+            card.State.Text = state + WarningsLine(card);
+            EnableCard(card);
+        }
+
+        private void EnableCard(Card card)
+        {
+            card.Choose.IsEnabled = !_busy && CanChoose(card);
+            card.Fit.IsEnabled = !_busy && CanChoose(card);
+            card.Restore.IsEnabled = !_busy && CanRestore(card);
+        }
+
+        /// <summary>What the card says about what is on the surface; the table also says what is animating it.</summary>
+        private static string StateText(Card card, DjTextureTarget target)
+        {
+            int w = target.Surface.UprightWidth, h = target.Surface.UprightHeight;
+            string plain = target.IsCustomised ? AppStrings.TexturesYours(w, h) : AppStrings.TexturesShipped(w, h);
+
+            string text = card.View?.StateKey switch
+            {
+                TableText.YourAnimation => AppStrings.TexturesYourAnimation(card.Animation?.Frames ?? 0),
+                TableText.YourStill => AppStrings.TexturesYours(w, h),
+                TableText.AuthorAnimation => plain + "\n" + AppStrings.TexturesAuthorAnimation(card.Site?.AuthorFrames ?? 0),
+                TableText.Unsupported => plain + "\n" + AppStrings.TexturesAnimationUnsupported(card.Animation?.Reason ?? string.Empty),
+                TableText.Interrupted => AppStrings.TexturesAnimationInterrupted,
+                TableText.Orphaned => AppStrings.TexturesAnimationOrphaned,
+                TableText.ScanFailed => AppStrings.TexturesAnimationScanFailed(card.ScanError ?? string.Empty),
+                _ => plain,
+            };
+            return text + WarningsLine(card);
+        }
+
+        private static string WarningsLine(Card card) =>
+            card.Site is { Warnings.Count: > 0 } site ? "\n" + string.Join("\n", site.Warnings) : string.Empty;
+
+        private static bool CanChoose(Card card) => card.View?.TableChangeAllowed ?? true;
+
+        private static bool CanRestore(Card card) =>
+            card.HasPending || (card.View?.RestoreEnabled ?? card.Target?.IsCustomised ?? false);
+
+        /// <summary>
+        /// Reads the table effect again. The only place Site, Animation and View are set, so the
+        /// card always describes what is on disk after a write.
+        /// </summary>
+        private async Task RescanTableAsync(Card card)
+        {
+            if (card.Key != "table" || card.Target is not { } target)
+            {
+                card.Site = null;
+                card.Animation = null;
+                card.View = null;
+                return;
+            }
+
+            try
+            {
+                var (site, status) = await Task.Run(() =>
+                {
+                    var scanned = DjTableAnimation.Scan(target);
+                    return (scanned, DjTableAnimationCore.Status(scanned));
+                });
+                card.Site = site;
+                card.Animation = status;
+                card.ScanError = null;
+                card.View = TableCard.Describe(status, site.Mode, site.HasState, target.IsCustomised);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarn("Reading the table effect failed: {Error}", ex.Message);
+                card.Site = null;
+                card.Animation = null;
+                card.ScanError = ex.Message;
+                card.View = TableCard.ScanFailed(
+                    DjAnimationScan.TryReadState(DjTableAnimation.StateFolderFor(target.ModName)) != null);
+            }
         }
 
         private void UpdateApplyButton() =>
@@ -623,9 +899,9 @@ namespace Pickles_Playlist_Editor
             foreach (var card in _cards.Values)
             {
                 bool usable = !busy && card.Target != null;
-                card.Choose.IsEnabled = usable;
-                card.Fit.IsEnabled = usable;
-                card.Restore.IsEnabled = usable && (card.HasPending || card.Target!.IsCustomised);
+                card.Choose.IsEnabled = usable && CanChoose(card);
+                card.Fit.IsEnabled = usable && CanChoose(card);
+                card.Restore.IsEnabled = usable && CanRestore(card);
             }
             UpdateApplyButton();
         }
@@ -638,51 +914,6 @@ namespace Pickles_Playlist_Editor
         };
 
         // ---- pixels in and out ---------------------------------------------------------------------
-
-        /// <summary>
-        /// Reads a picture file into the format the texture code works in.
-        ///
-        /// Capped on the way in rather than after decoding: this is an x86 process, and a modern
-        /// phone photograph at full size is a 100 MB buffer for a picture that ends up 656 pixels
-        /// wide. The cap is generous next to the panels and costs nothing at ordinary sizes.
-        ///
-        /// The scaling is expressed in RAW pixels and the result reported in ORIENTED ones, which is
-        /// the whole subtlety here. BitmapTransform runs before the EXIF rotation, so scaling to the
-        /// oriented size squashes a portrait phone photo into its own landscape frame and then turns
-        /// it — and because the two sizes multiply to the same buffer length, nothing throws. It
-        /// simply comes back diagonally sheared.
-        ///
-        /// That arithmetic lives in <see cref="PictureLoadPlan"/> so the harness can exercise it
-        /// without an image decoder; what is left here is the platform call it feeds.
-        /// </summary>
-        private static async Task<BgraImage?> LoadPictureAsync(string path)
-        {
-            const uint MaxEdge = 2048;
-
-            var file = await StorageFile.GetFileFromPathAsync(path);
-            using var stream = await file.OpenReadAsync();
-            var decoder = await BitmapDecoder.CreateAsync(stream);
-
-            var plan = PictureLoadPlan.For(
-                decoder.PixelWidth, decoder.PixelHeight, decoder.OrientedPixelWidth, MaxEdge);
-            if (plan.OutputWidth <= 0 || plan.OutputHeight <= 0) return null;
-
-            var transform = new BitmapTransform { InterpolationMode = BitmapInterpolationMode.Fant };
-            if (plan.Scale)
-            {
-                transform.ScaledWidth = plan.ScaledWidth;
-                transform.ScaledHeight = plan.ScaledHeight;
-            }
-
-            var pixels = await decoder.GetPixelDataAsync(
-                BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight, transform,
-                ExifOrientationMode.RespectExifOrientation, ColorManagementMode.ColorManageToSRgb);
-
-            var data = pixels.DetachPixelData();
-            if (data.Length < plan.RequiredBytes) return null;
-
-            return new BgraImage(plan.OutputWidth, plan.OutputHeight, data);
-        }
 
         private static WriteableBitmap ToBitmap(BgraImage image)
         {

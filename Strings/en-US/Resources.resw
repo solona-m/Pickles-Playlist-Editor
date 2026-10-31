@@ -301,7 +301,7 @@ Do you want to proceed?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX Mod</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Change</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>These mods have a DJ table you can put pictures on. Pick the one you use.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Drop a picture onto one of these, or use the button underneath. Nothing is written until you press Apply.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Drop a picture onto one of these, or use the button underneath. An animated GIF on the table panel plays as an animation. Nothing is written until you press Apply.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Table panel</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptop screen</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Fill</value></data>
@@ -347,4 +347,32 @@ Do you want to proceed?</value></data>
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% of the panel is left black</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>squashed {0}% to fit</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>fits the panel exactly</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animation, {1} frames, {2:0.0} s loop. Adds about {3} MB to the mod.</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>Thinned from {1} to {0} frames to fit; the loop keeps its length.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>This GIF is too large to animate, so its first frame is used as a picture.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Only the table panel can be animated, so the first frame of this GIF is used.</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>Your animation — {0} frames</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>This mod already animates the table ({0} frames). A GIF replaces that animation; a picture covers the whole panel.</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>This app animated this table, but its backup is gone (was the mod folder renamed?). Reinstall the mod to change the table.</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>The last change to the table animation did not finish. Put the original back to clean it up, or apply again.</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>The table can’t be animated in this mod: {0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>The table could not be read: {0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>Encoding frame {0} of {1}…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>Put the table back the way the mod shipped it? This removes your animation and any picture you put on the table.</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>its effect is not laid out the way this app knows</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>the table effect is switched on by the mod’s default files</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>the effect has no room for more frames</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>the option “{0}” uses a different table picture</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>the table sizes use different effect layouts</value></data>
+  <data name="Anim_NotAnimatable" xml:space="preserve"><value>{0}</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>{0} is missing and was skipped.</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} can’t be read right now (is another program using it?). Nothing was changed; try again.</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>The table changed since this dialog read it, so nothing was written. Try again.</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} is already in the mod, so nothing was written.</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>Applying failed and could not be fully undone ({0}). Use “Put the original back”.</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} was changed by a mod update and was left as it is.</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} was edited outside this app and was kept.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} could not be deleted yet; it will be removed next time.</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra did not keep the new frames in “{0}”. Reload the mod in Penumbra and check the table.</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>{0}</value></data>
 </root>

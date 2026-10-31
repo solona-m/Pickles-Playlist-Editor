@@ -301,7 +301,7 @@ Wil je doorgaan?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX-mod</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Wijzigen</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>Deze mods hebben een dj-tafel waar je afbeeldingen op kunt zetten. Kies degene die je gebruikt.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Sleep een afbeelding op een van deze, of gebruik de knop eronder. Er wordt niets weggeschreven tot je op Toepassen drukt.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Sleep een afbeelding op een van deze, of gebruik de knop eronder. Een geanimeerde GIF op het tafelpaneel speelt af als animatie. Er wordt niets weggeschreven tot je op Toepassen drukt.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Tafelpaneel</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptopscherm</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Vullen</value></data>
@@ -347,4 +347,32 @@ Wil je doorgaan?</value></data>
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% van het paneel blijft zwart</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>{0}% vervormd om te passen</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>past precies</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animatie, {1} frames, lus van {2:0.0} s. Maakt de mod ongeveer {3} MB groter.</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>Uitgedund van {1} naar {0} frames zodat het past; de lus blijft even lang.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Deze GIF is te groot om te animeren, dus het eerste frame wordt gebruikt.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Alleen het tafelpaneel kan worden geanimeerd, dus het eerste frame van deze GIF wordt gebruikt.</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>Jouw animatie — {0} frames</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Deze mod animeert de tafel al ({0} frames). Een GIF vervangt die animatie; een afbeelding bedekt het hele paneel.</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Deze app heeft de tafel geanimeerd, maar de back-up is weg (is de modmap hernoemd?). Installeer de mod opnieuw om de tafel te wijzigen.</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>De laatste wijziging aan de tafelanimatie is niet afgerond. Zet het origineel terug om op te ruimen, of pas opnieuw toe.</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>De tafel kan in deze mod niet worden geanimeerd: {0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>De tafel kon niet worden gelezen: {0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>Frame {0} van {1} coderen…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>De tafel terugzetten zoals de mod hem levert? Dit verwijdert je animatie en elke afbeelding die je op de tafel hebt gezet.</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>het effect is niet opgebouwd zoals deze app het kent</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>het tafeleffect wordt aangezet door de standaardbestanden van de mod</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>het effect heeft geen ruimte voor meer frames</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>de optie ‘{0}’ gebruikt een andere tafelafbeelding</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>de tafelformaten gebruiken verschillende effectindelingen</value></data>
+  <data name="Anim_NotAnimatable" xml:space="preserve"><value>{0}</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>{0} ontbreekt en is overgeslagen.</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} kan nu niet worden gelezen (gebruikt een ander programma het?). Er is niets gewijzigd; probeer het opnieuw.</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>De tafel is veranderd sinds dit venster hem las, dus er is niets weggeschreven. Probeer het opnieuw.</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} zit al in de mod, dus er is niets weggeschreven.</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>Toepassen is mislukt en kon niet volledig ongedaan worden gemaakt ({0}). Gebruik ‘Origineel terugzetten’.</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} is door een modupdate gewijzigd en is gelaten zoals het is.</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} is buiten deze app bewerkt en is bewaard.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} kon nog niet worden verwijderd; het wordt de volgende keer opgeruimd.</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra heeft de nieuwe frames in ‘{0}’ niet bewaard. Laad de mod opnieuw in Penumbra en controleer de tafel.</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>{0}</value></data>
 </root>

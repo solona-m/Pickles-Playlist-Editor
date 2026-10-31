@@ -301,5 +301,32 @@ namespace Pickles_Playlist_Editor
         };
         public static string TexturesApplied(int count) =>
             string.Format(_r.GetString(count == 1 ? "Textures_AppliedOne" : "Textures_Applied"), count);
+
+        // ---- animated table ---------------------------------------------------------------------
+        public static string TexturesAnimationPending(string file, int frames, double seconds, long megabytes) =>
+            string.Format(_r.GetString("Textures_AnimPending"), file, frames, seconds, megabytes);
+        public static string TexturesAnimationCapped(int kept, int source) =>
+            string.Format(_r.GetString("Textures_AnimCapped"), kept, source);
+        public static string TexturesAnimationTooLarge => _r.GetString("Textures_AnimTooLarge");
+        public static string TexturesAnimationTableOnly => _r.GetString("Textures_AnimTableOnly");
+        public static string TexturesYourAnimation(int frames) =>
+            string.Format(_r.GetString("Textures_YourAnimation"), frames);
+        public static string TexturesAuthorAnimation(int frames) =>
+            string.Format(_r.GetString("Textures_AuthorAnimation"), frames);
+        public static string TexturesAnimationOrphaned => _r.GetString("Textures_AnimOrphaned");
+        public static string TexturesAnimationInterrupted => _r.GetString("Textures_AnimInterrupted");
+        public static string TexturesAnimationUnsupported(string reason) =>
+            string.Format(_r.GetString("Textures_AnimUnsupported"), reason);
+        public static string TexturesAnimationScanFailed(string error) =>
+            string.Format(_r.GetString("Textures_AnimScanFailed"), error);
+        public static string TexturesEncodingFrame(int frame, int count) =>
+            string.Format(_r.GetString("Textures_EncodingFrame"), frame, count);
+        public static string Textures_ConfirmRestoreAnimation => _r.GetString("Textures_ConfirmRestoreAnimation");
+
+        /// <summary>The sentence for a message from the animation core.</summary>
+        public static string TexturesAnimationMessage(Utils.AnimationMessage message, string arg) =>
+            message == Utils.AnimationMessage.Orphaned
+                ? TexturesAnimationOrphaned
+                : string.Format(_r.GetString("Anim_" + message), arg);
     }
 }
