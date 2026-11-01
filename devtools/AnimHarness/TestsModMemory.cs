@@ -157,7 +157,7 @@ internal static partial class Program
         Add("FolderCaseInsensitive", MTag("E-10"), () => WithRoot(root =>
             Check(DjModMemory.PicturesOpening(root, FakeDjMods.With(pictures: "dj pack")) != null, "case differs: resolves"), "DJ Pack"));
 
-        Add("PicturesThrowOnOpenKeepsSetting", MTag("E-12"), () => WithRoot(root =>
+        Add("PicturesOpenNeverWritesSetting", MTag("E-12"), () => WithRoot(root =>
         {
             // The dialog's catch returns before PicturesLoaded; the opening itself never writes.
             var s = FakeDjMods.With(dance: "A", pictures: "B");
