@@ -39,7 +39,8 @@ public class RuntimeTargetTests
 
     // Every workflow that installs .NET, not a fixed list, so a new one can't bring back an old version.
     public static TheoryData<string> Workflows() =>
-        new(Directory.GetFiles(Path.Combine(RepoRoot(), ".github", "workflows"), "*.yml")
+        new(Directory.GetFiles(Path.Combine(RepoRoot(), ".github", "workflows"))
+            .Where(f => f.EndsWith(".yml", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase))
             .Where(f => File.ReadAllText(f).Contains("dotnet-version:")).Select(Path.GetFileName)!);
 
     [Fact] // [AC-dotnet10-upgrade-5]
