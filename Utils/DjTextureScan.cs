@@ -115,8 +115,8 @@ namespace Pickles_Playlist_Editor.Utils
         ///
         /// A far surer test than the one the dances picker has to make do with: a mod either ships a
         /// texture of the right name, size and format or it does not, so there is no scoring to get
-        /// wrong. The mod already chosen for the dances is preferred on a tie, because a DJ pack
-        /// normally keeps its animations and its table art together.
+        /// wrong. The caller's remembered mod is preferred on a tie, because a DJ pack normally keeps
+        /// its animations and its table art together.
         /// </summary>
         public static List<DjTextureModCandidate> FindCandidates(string penumbraRoot, string? preferredFolder)
         {

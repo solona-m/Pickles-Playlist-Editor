@@ -396,6 +396,30 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        /// <summary>The mod the Pictures dialog last loaded from its picker; independent of DanceModName.</summary>
+        public static string PicturesModName
+        {
+            get => (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("PicturesModName") ?? string.Empty;
+            set
+            {
+                Logger.LogInfo("Settings: pictures mod set to '{Mod}' (was '{Old}').",
+                    value, PicturesModName.Length == 0 ? "<unset>" : PicturesModName);
+
+                using RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                key?.SetValue("PicturesModName", value ?? string.Empty);
+            }
+        }
+
+        /// <summary>The DJ mod choices, for <see cref="DjModMemory"/>.</summary>
+        internal static IDjModSettings DjMods { get; } = new RegistryDjModSettings();
+
+        private sealed class RegistryDjModSettings : IDjModSettings
+        {
+            public string DanceModName { get => Settings.DanceModName; set => Settings.DanceModName = value; }
+            public string DanceGroupId { get => Settings.DanceGroupId; set => Settings.DanceGroupId = value; }
+            public string PicturesModName { get => Settings.PicturesModName; set => Settings.PicturesModName = value; }
+        }
+
         /// <summary>
         /// Controls whether the mod should be auto-reloaded (Penumbra) after changes.
         /// Default: true.

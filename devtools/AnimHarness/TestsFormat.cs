@@ -12,6 +12,7 @@ internal static partial class Program
         RegisterFormat();
         RegisterApply();
         RegisterState();
+        RegisterModMemory();
     }
 
     private static void RegisterFormat()
