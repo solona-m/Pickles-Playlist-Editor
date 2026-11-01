@@ -881,6 +881,31 @@ internal static partial class Program
             }
         });
 
+        Add("TableOnlyTestedSize", "#16", () =>
+        {
+            using (var mod = Fixtures.Pickles())
+                Check(mod.Scan().Capacity == 48, $"Pickles table only: 48 ({mod.Scan().Capacity})");
+            using (var mod = Fixtures.Pickles())
+            {
+                PadParticles(mod, 11);
+                var site = mod.Scan();
+                Check(site.Mode == AnimationMode.Append && site.Capacity == 37, $"20 particles, no laptop: 37 ({site.Capacity})");
+                var host = mod.NewHost();
+                var stale = mod.Scan(host);
+                stale.Capacity = 38;
+                var snap = mod.Snapshot();
+                Check(!DjTableAnimationCore.Apply(host, stale, Fixtures.Frames(38), Fixtures.Timeline(38), FitMode.Fill, null, out _, out string e)
+                    && e.StartsWith(nameof(AnimationMessage.TooManyTextures)) && mod.Snapshot().SequenceEqual(snap), "stale 38: refused after the build " + e);
+                Check(ApplyFrames(mod, 37, out e, mod.NewHost()), "table 37 " + e);
+                Check(Fixtures.PicklesAvfx.All(r => AvfxTableAnimation.Counts(mod.Read(r), 0).Particles == 57), "57 particles");
+            }
+            using (var mod = Fixtures.Pickles())
+            {
+                PadItems(mod, 35);
+                Check(mod.Scan().Capacity == 13, $"items bind: 13 ({mod.Scan().Capacity})");
+            }
+        });
+
         Add("LaptopRollback", LTag("A-10 E-8"), () =>
         {
             foreach (bool overLaptop in new[] { false, true })

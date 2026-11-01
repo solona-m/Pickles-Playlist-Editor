@@ -316,8 +316,8 @@ internal static partial class Program
                         EditAvfx(mod, rel, root =>
                         {
                             int last = root.Children!.FindLastIndex(c => c.Name == "Tex");
-                            for (int i = 0; i < 213; i++) root.Children.Insert(last + 1, AvfxChunk.Leaf("Tex", AvfxChunk.TextBytes($"vfx/pad{i}.atex")));
-                            root.SetInt("TxCn", root.ReadInt("TxCn") + 213);
+                            for (int i = 0; i < 33; i++) root.Children.Insert(last + 1, AvfxChunk.Leaf("Tex", AvfxChunk.TextBytes($"vfx/pad{i}.atex")));
+                            root.SetInt("TxCn", root.ReadInt("TxCn") + 33);
                         });
                 var site = mod.Scan();
                 var atlas = mod.Read(mod.Table.Relative);
@@ -498,10 +498,10 @@ internal static partial class Program
                     EditAvfx(mod, rel, root =>
                     {
                         int last = root.Children!.FindLastIndex(c => c.Name == "Tex");
-                        for (int i = 0; i < 213; i++) root.Children.Insert(last + 1, AvfxChunk.Leaf("Tex", AvfxChunk.TextBytes($"vfx/pad{i}.atex")));
-                        root.SetInt("TxCn", root.ReadInt("TxCn") + 213);
+                        for (int i = 0; i < 33; i++) root.Children.Insert(last + 1, AvfxChunk.Leaf("Tex", AvfxChunk.TextBytes($"vfx/pad{i}.atex")));
+                        root.SetInt("TxCn", root.ReadInt("TxCn") + 33);
                     });
-                Check(mod.Scan().Capacity == 15, "crowded capacity 15");
+                Check(mod.Scan().Capacity == 15, "crowded capacity 15 (60 textures, tested size 75)");
                 Check(!ApplyFrames(mod, 16, out string e), "16 refused");
                 Check(ApplyFrames(mod, 15, out e, mod.NewHost()) && ReadState(mod).FrameRect != null, "15 through the overlay " + e);
             }

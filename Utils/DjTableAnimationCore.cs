@@ -106,9 +106,13 @@ namespace Pickles_Playlist_Editor.Utils
             if (site.Problem != null) return new(AnimationStatusKind.Unsupported, Reason: site.Problem);
             bool table = surface == AnimatedSurface.Table;
             if (!site.HasState)
-                return table && site.Mode == AnimationMode.InPlace
-                    ? new(AnimationStatusKind.Author, site.AuthorFrames)
+            {
+                if (table && site.Mode == AnimationMode.InPlace) return new(AnimationStatusKind.Author, site.AuthorFrames);
+                // No room in the tested size (#16).
+                return table && site.Capacity < 2
+                    ? new(AnimationStatusKind.Unsupported, Reason: AnimationText.Format(AnimationMessage.TooManyTextures, string.Empty))
                     : new(AnimationStatusKind.None);
+            }
 
             if (!IsLive(site)) return new(AnimationStatusKind.Interrupted);
             var state = site.State!;
@@ -376,6 +380,17 @@ namespace Pickles_Playlist_Editor.Utils
                             return false;
                         }
                         builds[i] = (avfx, withLaptop, original);
+                    }
+                else if (site.Mode == AnimationMode.Append)
+                    foreach (var (avfx, built, _) in builds)
+                    {
+                        var size = AvfxTableAnimation.Counts(built, avfx.Inspect!.Info!.Emitter);
+                        if (size.Particles > AvfxTableOverlay.TestedParticles || size.Textures > AvfxTableOverlay.TestedTextures
+                            || size.Items > AvfxTableOverlay.TestedItems)
+                        {
+                            error = AnimationText.Format(AnimationMessage.TooManyTextures, avfx.Relative);
+                            return false;
+                        }
                     }
             }
             for (int k = 0; k < n; k++) planned[k].Sha = AvfxTableAnimation.Sha(encoded[k]);

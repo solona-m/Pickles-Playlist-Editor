@@ -524,8 +524,10 @@ internal static partial class Program
                     root.SetInt("TxCn", root.ReadInt("TxCn") + 213);
                 });
             var site = mod.Scan();
-            Check(site.Capacity == 15, $"capacity 15 ({site.Capacity})");
             var entry = site.Animatable.First();
+            Check(entry.Inspect!.Info!.Capacity == 15, $"index ceiling 15 ({entry.Inspect.Info.Capacity})");
+            Check(site.Capacity == 0 && DjTableAnimationCore.Status(site).Kind == AnimationStatusKind.Unsupported,
+                $"the tested size binds first: capacity 0, not offered (#16) ({site.Capacity})");
             var built = AvfxTableAnimation.Build(entry.Baseline!, entry.Inspect!.Info!,
                 Enumerable.Range(0, 48).Select(k => $"vfx/atex/ppe_x_1_{k:D2}.atex").ToList(), Fixtures.Timeline(48), out _);
             Check(built == null, "48 frames refused");

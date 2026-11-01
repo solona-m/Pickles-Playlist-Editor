@@ -263,9 +263,9 @@ namespace Pickles_Playlist_Editor.Utils
             int tableLive = site.Mode == AnimationMode.Append ? state?.Frames.Count ?? 0 : 0;
             int laptopLive = state?.Laptop?.Frames.Count ?? 0;
 
-            if (site.Problem == null && !site.Orphaned && laptopLive > 0)
+            if (site.Problem == null && !site.Orphaned && (laptopLive > 0 || site.Mode == AnimationMode.Append))
             {
-                // The table shares the effect, and the tested size, with a live laptop.
+                // Appended frames stay within the tested size, shared with a live laptop (#16).
                 int cap = int.MaxValue;
                 foreach (var avfx in site.Animatable)
                 {
