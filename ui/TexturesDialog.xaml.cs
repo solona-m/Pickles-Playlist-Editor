@@ -142,15 +142,14 @@ namespace Pickles_Playlist_Editor
         private void LoadMod()
         {
             string penumbra = Settings.PenumbraLocation ?? string.Empty;
-            string folder = Settings.DanceModName;
-
-            if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(Path.Combine(penumbra, folder)))
+            string? folder = DjModMemory.PicturesOpening(penumbra, Settings.DjMods);
+            if (folder == null)
             {
                 ShowPicker();
                 return;
             }
 
-            Start(() => UseModAsync(folder), "Loading the table pictures");
+            Start(() => UseModAsync(folder, picked: false), "Loading the table pictures");
         }
 
         /// <summary>
@@ -160,7 +159,7 @@ namespace Pickles_Playlist_Editor
         /// working out whether it is still the file this app wrote means hashing all of it. Done
         /// inline, opening the dialog froze the window for as long as that took.
         /// </summary>
-        private async Task UseModAsync(string folder)
+        private async Task UseModAsync(string folder, bool picked)
         {
             if (_busy) return;
 
@@ -192,7 +191,8 @@ namespace Pickles_Playlist_Editor
                 {
                     Logger.LogWarn("Reading textures from {Mod} failed: {Error}", folder, ex.Message);
                     SetBusy(false);
-                    StatusText.Text = ex.Message;
+                    // In the header: ShowPicker rewrites the status line straight away.
+                    ModText.Text = ex.Message;
                     ShowPicker();
                     return;
                 }
@@ -207,6 +207,7 @@ namespace Pickles_Playlist_Editor
                 }
 
                 _modFolder = folder;
+                DjModMemory.PicturesLoaded(Settings.DjMods, folder, picked, targets.Count);
                 ModText.Text = displayName;
                 PickerSection.Visibility = Visibility.Collapsed;
                 CardsSection.Visibility = Visibility.Visible;
@@ -259,7 +260,7 @@ namespace Pickles_Playlist_Editor
             StatusText.Text = AppStrings.Textures_ScanRunning;
 
             string penumbra = Settings.PenumbraLocation ?? string.Empty;
-            string preferred = Settings.DanceModName;
+            string preferred = DjModMemory.PicturesPreferred(Settings.DjMods);
 
             _ = Task.Run(() =>
             {
@@ -295,10 +296,8 @@ namespace Pickles_Playlist_Editor
             int at = CandidateList.SelectedIndex;
             if (at < 0 || at >= _candidates.Count) return;
 
-            // Not saved to Settings.DanceModName. That setting means "the mod holding my dances", and
-            // a DJ whose table art lives in a second pack would otherwise have their dances quietly
-            // repointed at it by opening this dialog.
-            Start(() => UseModAsync(_candidates[at].Folder), "Loading the table pictures");
+            // Remembered as PicturesModName once it loads, never as DanceModName.
+            Start(() => UseModAsync(_candidates[at].Folder, picked: true), "Loading the table pictures");
         }
 
         private void ChangeModButton_Click(object sender, RoutedEventArgs e)

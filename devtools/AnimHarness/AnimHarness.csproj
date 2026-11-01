@@ -20,6 +20,7 @@
     <Compile Include="..\..\Utils\Avfx\*.cs" LinkBase="Avfx" />
     <Compile Include="..\..\Utils\PenumbraOptions.cs" Link="PenumbraOptions.cs" />
     <Compile Include="..\..\Utils\DjTextureScan.cs" Link="DjTextureScan.cs" />
+    <Compile Include="..\..\Utils\DjModMemory.cs" Link="DjModMemory.cs" />
     <Compile Include="..\..\Utils\DjAnimationScan.cs" Link="DjAnimationScan.cs" />
     <Compile Include="..\..\Utils\DjTableAnimationCore.cs" Link="DjTableAnimationCore.cs" />
     <Compile Include="..\..\Utils\DjAnimationLayers.cs" Link="DjAnimationLayers.cs" />

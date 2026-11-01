@@ -65,9 +65,8 @@ namespace Pickles_Playlist_Editor
         private void LoadDanceMod()
         {
             string penumbra = Settings.PenumbraLocation ?? string.Empty;
-            string folder = Settings.DanceModName;
-
-            if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(Path.Combine(penumbra, folder)))
+            string? folder = DjModMemory.DancesOpening(penumbra, Settings.DjMods);
+            if (folder == null)
             {
                 ShowPicker();
                 return;
@@ -242,7 +241,8 @@ namespace Pickles_Playlist_Editor
             if (at < 0 || at >= _candidates.Count) return;
 
             var chosen = _candidates[at];
-            if (chosen.DancesGroup == null)
+            string? groupId = chosen.DancesGroup == null ? null : chosen.DancesGroup.Id?.ToString() ?? string.Empty;
+            if (!DjModMemory.DancesPicked(Settings.DjMods, chosen.Folder, groupId))
             {
                 StatusText.Text = AppStrings.DanceModNoGroup(chosen.Name);
                 return;
@@ -251,8 +251,6 @@ namespace Pickles_Playlist_Editor
             if (chosen.Format == ModFormat.V3)
                 StatusText.Text = AppStrings.DanceModLegacyLayout;
 
-            Settings.DanceModName = chosen.Folder;
-            Settings.DanceGroupId = chosen.DancesGroup.Id?.ToString() ?? string.Empty;
             LoadDanceMod();
         }
 
