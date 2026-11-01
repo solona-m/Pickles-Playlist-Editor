@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <RootNamespace>Pickles_Playlist_Editor</RootNamespace>
     <Nullable>enable</Nullable>
     <UseWinUI>true</UseWinUI>
@@ -17,6 +17,8 @@
          require a machine-wide runtime install (fixes the Win10 "Windows App
          Runtime is missing" prompt). Requires a RuntimeIdentifier. -->
     <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <!-- Every build ships the .NET runtime, ProjectReference builds included (no x86 runtime needed). -->
+    <SelfContained>true</SelfContained>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <!-- Without this, `dotnet publish` silently drops the app's own .pri resource
          index and satellite resource folders for unpackaged (WindowsPackageType=None)
