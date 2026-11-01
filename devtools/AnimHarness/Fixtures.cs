@@ -402,6 +402,7 @@ internal static class Fixtures
         string backup = Path.Combine(AppBackups, "textures", Path.GetFileName(PicklesRoot), "animation");
         var state = DjAnimationScan.TryReadState(backup);
         if (state == null || state.Frames.Count == 0) return null;
+        withLaptop |= state.Laptop != null; // a live laptop layer needs eq3 to rebuild
 
         var (root, baseDir) = NewRoot("live");
         File.Copy(Path.Combine(PicklesRoot, "meta.json"), Path.Combine(root, "meta.json"));

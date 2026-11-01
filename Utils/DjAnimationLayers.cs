@@ -71,7 +71,7 @@ namespace Pickles_Playlist_Editor.Utils
             var built = Table(avfx, site, table, () => atlas(AnimatedSurface.Table), out problem);
             if (built == null || laptop == null) return built;
             if (site.Laptop == null) { problem = "NoLaptop " + avfx.Relative; return null; }
-            var result = Laptop(built, site, laptop, atlas(AnimatedSurface.Laptop), FramePlan.LaptopMaxFrames, out var refusal, out problem, out _);
+            var result = Laptop(built, site, laptop, atlas(AnimatedSurface.Laptop), FramePlan.MaxFrames, out var refusal, out problem, out _);
             if (result == null) problem = $"{refusal} {avfx.Relative}{(problem.Length > 0 ? ": " + problem : string.Empty)}";
             return result;
         }

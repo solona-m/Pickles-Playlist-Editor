@@ -17,11 +17,11 @@ namespace Pickles_Playlist_Editor.Utils.Tex
         /// <summary>Effect ticks per second. Moon Base shows a frame every 3 ticks at about 10 fps.</summary>
         public const int TicksPerSecond = 30;
 
-        /// <summary>The table's frame cap (#13 test build: 32).</summary>
-        public const int MaxFrames = 32;
+        /// <summary>The frame count DJ Moon Base proves the game handles.</summary>
+        public const int MaxFrames = 48;
 
-        /// <summary>The laptop screen's own frame cap, separate from the table's.</summary>
-        public const int LaptopMaxFrames = 16;
+        /// <summary>Where the laptop can animate, the table keeps 16 of the 48 for it (32 + 16 proven in game, #13).</summary>
+        public const int TableWithLaptopFrames = 32, LaptopMaxFrames = 16;
 
         public const int MaxLoopTicks = 65535;
 

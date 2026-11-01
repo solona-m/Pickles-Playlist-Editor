@@ -272,7 +272,7 @@ namespace Pickles_Playlist_Editor.Utils
                     var info = avfx.Inspect!.Info!;
                     var counts = AvfxTableAnimation.Counts(avfx.Baseline!, info.Emitter);
                     int laptopItems = avfx.LaptopInspect?.Info?.Emitter == info.Emitter ? laptopLive : 0;
-                    cap = Math.Min(cap, Math.Min(Math.Min(FramePlan.MaxFrames, 255 - info.TextureCount - laptopLive),
+                    cap = Math.Min(cap, Math.Min(Math.Min(FramePlan.MaxFrames - laptopLive, 255 - info.TextureCount - laptopLive),
                         Math.Min(Math.Min(AvfxTableOverlay.TestedParticles - counts.Particles - laptopLive,
                             AvfxTableOverlay.TestedTextures - counts.Textures - laptopLive),
                             AvfxTableOverlay.TestedItems - counts.Items - laptopItems)));
@@ -282,18 +282,22 @@ namespace Pickles_Playlist_Editor.Utils
 
             string? problem = LaptopProblemOf(site, mapping);
             if (problem != null) { site.LaptopProblem = problem; return; }
-
-            int combined = FramePlan.LaptopMaxFrames, tested = int.MaxValue;
+            int combined = FramePlan.LaptopMaxFrames, tested = int.MaxValue, bare = int.MaxValue;
             string testedBy = string.Empty;
             foreach (var avfx in site.Animatable)
             {
                 var info = avfx.LaptopInspect!.Info!;
                 var counts = AvfxTableAnimation.Counts(avfx.Baseline!, info.Emitter);
                 int tableItems = avfx.Inspect!.Info!.Emitter == info.Emitter ? tableLive : 0;
+                int empty = Math.Min(Math.Min(AvfxTableOverlay.TestedParticles - counts.Particles,
+                    AvfxTableOverlay.TestedTextures - counts.Textures), AvfxTableOverlay.TestedItems - counts.Items);
                 int room = Math.Min(Math.Min(AvfxTableOverlay.TestedParticles - counts.Particles - tableLive,
                     AvfxTableOverlay.TestedTextures - counts.Textures - tableLive), AvfxTableOverlay.TestedItems - counts.Items - tableItems);
+                bare = Math.Min(bare, empty);
                 if (room < tested) { tested = room; testedBy = avfx.Relative; }
             }
+            // Where the laptop can animate, the table leaves it 16 of the tested size.
+            if (bare >= 2) site.Capacity = Math.Min(site.Capacity, FramePlan.TableWithLaptopFrames);
             site.LaptopCapacity = Math.Max(0, Math.Min(combined, tested));
             if (site.LaptopCapacity < 2)
                 site.LaptopProblem = tested < combined

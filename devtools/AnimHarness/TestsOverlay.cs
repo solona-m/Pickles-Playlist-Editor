@@ -876,7 +876,7 @@ internal static partial class Program
                 string label = mod == live ? "live gen " + site.State?.Generation : "previous-version apply";
                 Check(status.Kind == AnimationStatusKind.Ours, $"{label} scans as Ours ({status.Kind})");
                 var entries = site.State!.Avfx.ToList();
-                Check(Restore(mod, out _, out string restoreError), $"{label}: restore " + restoreError);
+                Check(RestoreToShipped(mod, out string restoreError), $"{label}: restore " + restoreError);
                 foreach (var entry in entries)
                     Check(AvfxTableAnimation.Sha(mod.Read(entry.Relative)) == entry.OriginalSha, $"{label}: {entry.Relative} restored byte-exact");
             }
