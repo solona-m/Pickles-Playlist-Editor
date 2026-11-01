@@ -72,6 +72,30 @@
     </Content>
   </ItemGroup>
 
+  <!-- x86 apphost is not large-address-aware by default, capping the app at 2 GB; animation
+       previews hit that. Set the PE flag so it gets 4 GB on 64-bit Windows. -->
+  <UsingTask TaskName="SetLargeAddressAware" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Path ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var b = System.IO.File.ReadAllBytes(Path);
+        int pe = System.BitConverter.ToInt32(b, 0x3c);
+        int at = pe + 22;
+        if ((b[at] & 0x20) == 0)
+        {
+            b[at] |= 0x20;
+            System.IO.File.WriteAllBytes(Path, b);
+            Log.LogMessage(MessageImportance.High, "Large-address-aware: " + Path);
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="LargeAddressAwareAppHost" AfterTargets="_CreateAppHost" Condition="Exists('$(AppHostIntermediatePath)')">
+    <SetLargeAddressAware Path="$(AppHostIntermediatePath)" />
+  </Target>
+
   <ItemGroup>
     <None Update="default.scd">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
