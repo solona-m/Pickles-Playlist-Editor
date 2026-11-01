@@ -319,9 +319,9 @@ internal static partial class Program
                 && DjTableAnimationCore.Status(site, AnimatedSurface.Table).Kind == AnimationStatusKind.None, "laptop Ours(12), table None");
 
             using var full = Fixtures.Pickles("full", withLaptop: true);
-            var plan = FramePlan.Plan(Enumerable.Repeat(4, 120).ToList(), 48);
+            var plan = FramePlan.Plan(Enumerable.Repeat(4, 120).ToList(), FramePlan.LaptopMaxFrames);
             Check(DjTableAnimationCore.Apply(full.Host, full.Scan(), AnimatedSurface.Laptop, Fixtures.Frames(plan.Timeline.StartTicks.Count),
-                plan.Timeline, FitMode.Fill, null, out _, out e, out _), "120 frames thinned to 48 apply " + e);
+                plan.Timeline, FitMode.Fill, null, out _, out e, out _), "120 frames thinned to 16 apply " + e);
         });
 
         Add("LaptopPreviewAndSummary", LTag("A-2 E-14"), () =>
@@ -385,10 +385,11 @@ internal static partial class Program
             }
             using (var mod = Fixtures.Pickles(withLaptop: true))
             {
-                Check(ApplyLaptop(mod, 47, out string e), e);
+                PadParticles(mod, 32);
+                Check(ApplyLaptop(mod, 16, out string e), e);
                 var site = mod.Scan();
                 var status = DjTableAnimationCore.Status(site, AnimatedSurface.Table);
-                Check(status.Kind == AnimationStatusKind.Unsupported && status.Reason!.StartsWith(nameof(AnimationMessage.TooManyTextures)), $"laptop 47: table not offered ({status})");
+                Check(status.Kind == AnimationStatusKind.Unsupported && status.Reason!.StartsWith(nameof(AnimationMessage.TooManyTextures)), $"laptop fills the tested size: table not offered ({status})");
                 Check(LaptopCard.Describe(site, false).StateKey == TableText.YourAnimation, "laptop card unaffected");
             }
             using (var mod = Fixtures.Pickles(withLaptop: false))
@@ -788,15 +789,18 @@ internal static partial class Program
             }
             using (var mod = Fixtures.Pickles(withLaptop: true))
             {
-                HardError(mod, 49, "laptop 49");
-                Check(Run(mod, 48).Ok, "laptop 48");
+                Check(mod.Scan().Capacity == 32, $"table keeps 16 for the laptop: 32 ({mod.Scan().Capacity})");
+                HardError(mod, 17, "laptop 17");
+                Check(Run(mod, 16).Ok, "laptop 16");
             }
+            using (var moon = Fixtures.Moon(withLaptop: true))
+                Check(moon.Scan().Capacity == 48, $"laptop not animatable: table keeps 48 ({moon.Scan().Capacity})");
             using (var mod = Fixtures.Pickles(withLaptop: true))
             {
-                Check(ApplyFrames(mod, 24, out _), "table 24");
-                Check(mod.Scan().LaptopCapacity == 24, $"laptop capacity 24 ({mod.Scan().LaptopCapacity})");
-                HardError(mod, 25, "laptop 25 beside table 24");
-                Check(Run(mod, 24).Ok, "laptop 24");
+                Check(ApplyFrames(mod, 32, out _), "table 32");
+                Check(mod.Scan().LaptopCapacity == 16, $"laptop capacity 16 ({mod.Scan().LaptopCapacity})");
+                HardError(mod, 17, "laptop 17 beside table 32");
+                Check(Run(mod, 16).Ok, "laptop 16");
                 foreach (var rel in Fixtures.PicklesAvfx)
                 {
                     var (p, t, i) = AvfxTableAnimation.Counts(mod.Read(rel), 0);
@@ -805,31 +809,35 @@ internal static partial class Program
             }
             using (var mod = Fixtures.Pickles(withLaptop: true))
             {
-                Check(ApplyFrames(mod, 47, out _), "table 47");
-                var site = mod.Scan();
-                Check(site.LaptopCapacity == 1 && site.LaptopProblem != null && !LaptopCard.Describe(site, false).AnimationAllowed, "1 left: laptop not offered");
+                // A 48-frame table from an earlier version leaves no room in the tested size.
+                var host = mod.NewHost();
+                var site = mod.Scan(host);
+                site.Capacity = 48;
+                Check(DjTableAnimationCore.Apply(host, site, Fixtures.Frames(48), Fixtures.Timeline(48), FitMode.Fill, null, out _, out string e), "old table 48 " + e);
+                site = mod.Scan();
+                Check(site.LaptopCapacity == 0 && site.LaptopProblem != null && !LaptopCard.Describe(site, false).AnimationAllowed, "old table 48: laptop not offered");
             }
             using (var mod = Fixtures.Pickles(withLaptop: true))
             {
-                Check(ApplyLaptop(mod, 30, out _), "laptop 30");
-                Check(mod.Scan().Capacity == 18, $"table capacity 18 ({mod.Scan().Capacity})");
+                Check(ApplyLaptop(mod, 16, out _), "laptop 16");
+                Check(mod.Scan().Capacity == 32, $"table capacity 32 ({mod.Scan().Capacity})");
                 var snap = mod.Snapshot();
-                Check(!ApplyFrames(mod, 19, out string e, mod.NewHost()) && e.StartsWith(nameof(AnimationMessage.TooManyTextures)) && mod.Snapshot().SequenceEqual(snap), "table 19: refused");
+                Check(!ApplyFrames(mod, 33, out string e, mod.NewHost()) && e.StartsWith(nameof(AnimationMessage.TooManyTextures)) && mod.Snapshot().SequenceEqual(snap), "table 33: refused");
             }
             using (var mod = Fixtures.Pickles(withLaptop: true))
             {
                 PadParticles(mod, 11);
-                Check(ApplyLaptop(mod, 30, out string e), "laptop 30 on 20 particles " + e);
+                Check(ApplyLaptop(mod, 16, out string e), "laptop 16 on 20 particles " + e);
                 var site = mod.Scan();
-                Check(site.Capacity == 7, $"table held to the tested size: 7 ({site.Capacity})");
+                Check(site.Capacity == 21, $"table held to the tested size: 21 ({site.Capacity})");
                 var snap = mod.Snapshot();
-                Check(!ApplyFrames(mod, 8, out e, mod.NewHost()) && mod.Snapshot().SequenceEqual(snap), "table 8 refused");
+                Check(!ApplyFrames(mod, 22, out e, mod.NewHost()) && mod.Snapshot().SequenceEqual(snap), "table 22 refused");
                 var host = mod.NewHost();
                 var stale = mod.Scan(host);
-                stale.Capacity = 8;
-                Check(!DjTableAnimationCore.Apply(host, stale, Fixtures.Frames(8), Fixtures.Timeline(8), FitMode.Fill, null, out _, out e)
+                stale.Capacity = 22;
+                Check(!DjTableAnimationCore.Apply(host, stale, Fixtures.Frames(22), Fixtures.Timeline(22), FitMode.Fill, null, out _, out e)
                     && e.StartsWith(nameof(AnimationMessage.TooManyTextures)) && mod.Snapshot().SequenceEqual(snap), "stale capacity: the composed re-check refuses " + e);
-                Check(ApplyFrames(mod, 7, out e, mod.NewHost()), "table 7 " + e);
+                Check(ApplyFrames(mod, 21, out e, mod.NewHost()), "table 21 " + e);
                 Check(Fixtures.PicklesAvfx.All(r => AvfxTableAnimation.Counts(mod.Read(r), 0).Particles == 57), "57 particles");
                 Check(DjTableAnimationCore.Status(mod.Scan(), AnimatedSurface.Laptop).Kind == AnimationStatusKind.Ours, "laptop still Ours");
             }
@@ -842,13 +850,13 @@ internal static partial class Program
             }
             using (var mod = Fixtures.Pickles(withLaptop: true))
             {
-                PadParticles(mod, 2);
-                Check(mod.Scan().LaptopCapacity == 46, $"particles bind: 46 ({mod.Scan().LaptopCapacity})");
+                PadParticles(mod, 34);
+                Check(mod.Scan().LaptopCapacity == 14, $"particles bind: 14 ({mod.Scan().LaptopCapacity})");
             }
             using (var mod = Fixtures.Pickles(withLaptop: true))
             {
-                PadItems(mod, 3);
-                Check(mod.Scan().LaptopCapacity == 45, $"items bind: 45 ({mod.Scan().LaptopCapacity})");
+                PadItems(mod, 35);
+                Check(mod.Scan().LaptopCapacity == 13, $"items bind: 13 ({mod.Scan().LaptopCapacity})");
             }
             using (var mod = Fixtures.Pickles(withLaptop: true))
             {

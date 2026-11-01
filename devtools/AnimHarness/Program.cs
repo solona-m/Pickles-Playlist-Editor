@@ -113,6 +113,16 @@ internal static partial class Program
         return DjTableAnimationCore.Restore(host, mod.Scan(host), out warnings, out error);
     }
 
+    // A live mod may carry a laptop layer too; only putting both back returns the shipped bytes.
+    private static bool RestoreToShipped(TempMod mod, out string error, TempModHost? host = null)
+    {
+        host ??= mod.Host;
+        var site = mod.Scan(host);
+        return site.State?.Laptop != null
+            ? DjTableAnimationCore.RestoreAll(host, site, out _, out error)
+            : DjTableAnimationCore.Restore(host, site, out _, out error);
+    }
+
     private static void CheckPristine(TempMod mod, Dictionary<string, byte[]> avfx, List<Newtonsoft.Json.Linq.JObject> groups, string label)
     {
         foreach (var (rel, bytes) in avfx)

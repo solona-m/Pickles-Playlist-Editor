@@ -84,11 +84,11 @@ namespace Pickles_Playlist_Editor.Utils
                 && items <= AvfxTableOverlay.TestedItems;
         }
 
-        /// <summary>How many laptop frames fit on these table-built bytes: combined cap and tested size.</summary>
+        /// <summary>How many laptop frames fit on these table-built bytes: its own cap and tested size.</summary>
         public static int LaptopCapacity(byte[] tableBuilt, TableAvfxInfo laptopInfo, int tableFrames)
         {
             var (particles, textures, items) = AvfxTableAnimation.Counts(tableBuilt, laptopInfo.Emitter);
-            return Math.Max(0, Math.Min(Math.Min(FramePlan.MaxFrames - tableFrames, AvfxTableOverlay.TestedParticles - particles),
+            return Math.Max(0, Math.Min(Math.Min(FramePlan.LaptopMaxFrames, AvfxTableOverlay.TestedParticles - particles),
                 Math.Min(AvfxTableOverlay.TestedTextures - textures, AvfxTableOverlay.TestedItems - items)));
         }
 

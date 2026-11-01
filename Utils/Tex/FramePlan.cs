@@ -20,6 +20,9 @@ namespace Pickles_Playlist_Editor.Utils.Tex
         /// <summary>The frame count DJ Moon Base proves the game handles.</summary>
         public const int MaxFrames = 48;
 
+        /// <summary>Where the laptop can animate, the table keeps 16 of the 48 for it (32 + 16 proven in game, #13).</summary>
+        public const int TableWithLaptopFrames = 32, LaptopMaxFrames = 16;
+
         public const int MaxLoopTicks = 65535;
 
         /// <summary>Browsers treat a 0 or 1 cs delay as 10 cs.</summary>

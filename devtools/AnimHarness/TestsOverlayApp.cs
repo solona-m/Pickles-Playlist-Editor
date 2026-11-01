@@ -439,7 +439,7 @@ internal static partial class Program
                 Check(old.Frames.All(f => !File.Exists(mod.Full(f.Relative))), $"{name}: old frames gone");
                 Check(old.Avfx.All(a => now.Find(a.Relative)?.OriginalSha == a.OriginalSha), $"{name}: no re-baseline");
                 Check(now.Frames.All(f => new FileInfo(mod.Full(f.Relative)).Length == CropBytes), $"{name}: crops");
-                Check(Restore(mod, out _, out e, mod.NewHost()), e);
+                Check(RestoreToShipped(mod, out e, mod.NewHost()), e);
                 foreach (var a in old.Avfx) Check(AvfxTableAnimation.Sha(mod.Read(a.Relative)) == a.OriginalSha, $"{name}: {a.Relative} restored byte-exact");
             }
         });
