@@ -43,9 +43,8 @@ namespace Pickles_Playlist_Editor.Utils.Avfx
         // The laptop particle's UvSt chunk (scale 0.5), shared by Pickles, Moon Base and DJ Solona V4.
         public const string LaptopUvStSha = "683CC8ECEF6CBC1BBF7AF6548AFED3ADEBAF3CD2C7A9495A3B026FD2D587B880";
 
-        // The largest effect proven in game until #13: Moon Base's 57/74/56, and 75 textures from the
-        // app's own Pickles table at 48 frames.
-        public const int TestedParticles = 57, TestedTextures = 75, TestedItems = 56;
+        // #13 test build: the proven-size envelope (57/75/56) is lifted to the 255 index ceiling.
+        public const int TestedParticles = 255, TestedTextures = 255, TestedItems = 255;
 
         public static int Capacity(TableAvfxInfo info, int maxFrames = MaxFrames) =>
             Math.Max(0, Math.Min(maxFrames, 255 - info.TextureCount));

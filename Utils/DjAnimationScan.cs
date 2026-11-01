@@ -272,7 +272,7 @@ namespace Pickles_Playlist_Editor.Utils
                     var info = avfx.Inspect!.Info!;
                     var counts = AvfxTableAnimation.Counts(avfx.Baseline!, info.Emitter);
                     int laptopItems = avfx.LaptopInspect?.Info?.Emitter == info.Emitter ? laptopLive : 0;
-                    cap = Math.Min(cap, Math.Min(Math.Min(FramePlan.MaxFrames - laptopLive, 255 - info.TextureCount - laptopLive),
+                    cap = Math.Min(cap, Math.Min(Math.Min(FramePlan.MaxFrames, 255 - info.TextureCount - laptopLive),
                         Math.Min(Math.Min(AvfxTableOverlay.TestedParticles - counts.Particles - laptopLive,
                             AvfxTableOverlay.TestedTextures - counts.Textures - laptopLive),
                             AvfxTableOverlay.TestedItems - counts.Items - laptopItems)));
@@ -283,7 +283,7 @@ namespace Pickles_Playlist_Editor.Utils
             string? problem = LaptopProblemOf(site, mapping);
             if (problem != null) { site.LaptopProblem = problem; return; }
 
-            int combined = FramePlan.MaxFrames - tableLive, tested = int.MaxValue;
+            int combined = FramePlan.LaptopMaxFrames, tested = int.MaxValue;
             string testedBy = string.Empty;
             foreach (var avfx in site.Animatable)
             {

@@ -364,7 +364,7 @@ namespace Pickles_Playlist_Editor.Utils
                     {
                         var (avfx, tableBuilt, original) = builds[i];
                         var withLaptop = AnimationLayers.Laptop(tableBuilt, site, carriedLaptop, atlasOf(AnimatedSurface.Laptop),
-                            FramePlan.MaxFrames, out var refusal, out string problem, out _);
+                            FramePlan.LaptopMaxFrames, out var refusal, out string problem, out _);
                         if (withLaptop == null)
                         {
                             error = AnimationText.Format(AnimationMessage.LayerNotKept, $"{refusal} {avfx.Relative} {problem}".Trim());
