@@ -8,7 +8,7 @@ namespace ScdAudioTests;
 
 public class RuntimeTargetTests
 {
-    private static string RepoRoot()
+    internal static string RepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Pickles Playlist Editor.csproj")))
