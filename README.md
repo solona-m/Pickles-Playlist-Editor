@@ -19,8 +19,9 @@ Setup
 1) Download and run the exe in the releases link. https://github.com/solona-m/Pickles-Playlist-Editor/releases/latest/download/PicklesPlaylistEditor-win-Setup.exe
 a.	NOTE: Windows is pissy about non-commercial software. You may need to click more info and run anyway on the smartscreen filter.
 
-2) Install any dependencies when prompted. Then after setup completes, the program should launch. You can also launch from your start menu.
+2) That setup exe is the only thing you need to download. When setup completes, the program launches. You can also launch it from your start menu.
 a.	The installer bundles .NET and the Windows App Runtime; no separate .NET install is required.
+b.	If your PC doesn't have Microsoft's WebView2 runtime yet (some Windows 10 PCs), setup installs it for you first.
 
 3)	(optional) if you don't want to reload the mod after every change, open penumbra. Click the settings tab at top left. Expand Advanced. Check Enable HTTP API.
 
