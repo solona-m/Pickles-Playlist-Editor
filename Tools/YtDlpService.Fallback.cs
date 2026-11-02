@@ -124,8 +124,7 @@ public static partial class YtDlpService
                 return (new(title, FallbackSkipReason.SearchFailed, null), null);
             }
 
-            var candidates = YouTubeFallbackMatcher.ParseSearchResults(searchJson);
-            if (candidates.Count == 0 && !searchJson.TrimStart().StartsWith('{'))
+            if (!YouTubeFallbackMatcher.TryParseSearchResults(searchJson, out var candidates))
                 Logger.LogWarn("Could not read yt-dlp's search output for SoundCloud track {Id}", id);
 
             var pick = YouTubeFallbackMatcher.SelectCandidate(info, candidates);

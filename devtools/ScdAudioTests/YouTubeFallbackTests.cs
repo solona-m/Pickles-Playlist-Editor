@@ -269,7 +269,46 @@ public class YouTubeFallbackTests : IDisposable
         Assert.NotNull(M.SelectCandidate(Track("夜に駆ける", "YOASOBI", 260), new[] { Cand("YOASOBI「夜に駆ける」Official Music Video", "Ayase / YOASOBI", 261) }));
         Assert.NotNull(M.SelectCandidate(Track("Café", "Artist", 200), new[] { Cand("Cafe", "Artist", 200) }));
         Assert.Null(M.SelectCandidate(Track("Run", "Artist", 200), new[] { Cand("Running Up", "Artist", 200) }));
-        Assert.Null(M.SelectCandidate(Track("夜に駆ける", "YOASOBI", 260), new[] { Cand("YOASOBI夜に駆ける", "Other", 261) }));
+        // Glued CJK and Latin is one token, so the song rule alone rejects it (D25), artist present.
+        Assert.Null(M.SelectCandidate(Track("夜に駆ける", "YOASOBI", 260), new[] { Cand("YOASOBI夜に駆ける", "YOASOBI", 261) }));
+    }
+
+    [Fact] // [EDGE-sc-youtube-fallback-34]
+    public void SelectCandidate_XIsTheArtist()
+    {
+        var t = Track("Artist - Song", "Artist", 200);
+        Assert.Null(M.ParseScTitle(t.Title, t.Artist).RequiredSequence);
+        Assert.NotNull(M.SelectCandidate(t, new[] { Cand("Song", "Artist", 200) }));
+        Assert.Null(M.SelectCandidate(t, new[] { Cand("Song", "Other", 200) }));
+    }
+
+    [Fact] // [AC-sc-youtube-fallback-3] [EDGE-sc-youtube-fallback-35]
+    public void SelectCandidate_CandidateVersionBracketsMustBeInScTitle()
+    {
+        var song = Track("Song", "Artist", 200);
+        foreach (var bad in new[] { "Song (VIP)", "Song (Acoustic Version)", "Song (Acapella)", "Song [Bootleg]" })
+            Assert.Null(M.SelectCandidate(song, new[] { Cand(bad, "Artist", 200) }));
+        foreach (var good in new[] { "Song (Radio Edit)", "Song (Official Video)", "Song (Original Mix)", "Song [2019 Remaster]" })
+            Assert.NotNull(M.SelectCandidate(song, new[] { Cand(good, "Artist", 200) }));
+    }
+
+    [Fact] // [EDGE-sc-youtube-fallback-35]
+    public void ScTitle_VersionWordsWinOverNoise()
+    {
+        var p = M.ParseScTitle("Song (Official Remix)", "Artist");
+        Assert.Contains("remix", p.VersionTokens);
+        Assert.DoesNotContain("official", p.VersionTokens);
+        Assert.Null(M.SelectCandidate(Track("Song (Official Remix)", "Artist", 200), new[] { Cand("Song", "Artist", 200) }));
+    }
+
+    [Fact] // [EDGE-sc-youtube-fallback-34]
+    public void ScTitle_FeatTailIsNotPartOfTheSong()
+    {
+        var t = Track("Artist - Song ft. Other", "Artist", 200);
+        Assert.Equal("song", M.ParseScTitle(t.Title, t.Artist).Song);
+        Assert.NotNull(M.SelectCandidate(t, new[] { Cand("Song (feat. Other)", "Artist", 200) }));
+        Assert.NotNull(M.SelectCandidate(t, new[] { Cand("Artist - Song ft. Other", "Label", 200) }));
+        Assert.Equal("Artist Song", M.BuildSearchQuery(t));
     }
 
     [Fact] // [AC-sc-youtube-fallback-3]
@@ -307,6 +346,7 @@ public class YouTubeFallbackTests : IDisposable
     {
         Assert.True(M.IsValidYouTubeId("MOWTfwrX48Y"));
         Assert.False(M.IsValidYouTubeId("MOWTfwrX48Y\" --x"));
+        Assert.False(M.IsValidYouTubeId("MOWTfwrX48Y\n"));
         Assert.False(M.IsValidYouTubeId("short"));
         Assert.Null(M.SelectCandidate(Track("Song", "Artist", 200), new[] { Cand("Song", "Artist", 200, id: "bad id here") }));
     }
@@ -602,10 +642,61 @@ public class YouTubeFallbackTests : IDisposable
     [Fact] // [AC-sc-youtube-fallback-9]
     public async Task RunProcessAsync_TimesOutAndKills()
     {
+        var started = DateTime.Now.AddSeconds(-1);
         var sw = Stopwatch.StartNew();
         await Assert.ThrowsAsync<TimeoutException>(() =>
             YtDlpService.RunProcessAsync("cmd.exe", "/c ping -n 30 127.0.0.1", TimeSpan.FromSeconds(1)));
         Assert.True(sw.Elapsed < TimeSpan.FromSeconds(10), $"took {sw.Elapsed}");
+
+        // The whole tree is killed: the ping this test started is gone too.
+        await Task.Delay(500);
+        var survivors = Process.GetProcessesByName("PING").Where(p =>
+        {
+            try { return !p.HasExited && p.StartTime >= started; } catch (Exception) { return false; }
+        }).ToList();
+        Assert.Empty(survivors);
+    }
+
+    [Fact] // [AC-sc-youtube-fallback-1] [EDGE-sc-youtube-fallback-4]
+    public void InfoProbe_LetsALoneDrmTrackThroughOnSoundCloudOnly()
+    {
+        // Byte-for-byte the pre-change probe for everything that isn't SoundCloud.
+        Assert.Equal("--dump-single-json --flat-playlist --no-warnings --skip-download D --no-playlist C -- \"https://www.youtube.com/watch?v=MOWTfwrX48Y\"",
+            YtDlpService.BuildInfoProbeArgs("https://www.youtube.com/watch?v=MOWTfwrX48Y", YtDownloadMode.Single, "D", "C"));
+        Assert.Contains("--ignore-no-formats-error",
+            YtDlpService.BuildInfoProbeArgs("https://soundcloud.com/a/b", YtDownloadMode.Single, "", "", ignoreNoFormats: true));
+
+        string service = File.ReadAllText(Path.Combine(RepoRoot(), "Tools", "YtDlpService.cs"));
+        Assert.Contains("ignoreNoFormats: service == MediaService.SoundCloud", service);
+        Assert.Contains("run.ExitCode != 0 && service == MediaService.SoundCloud", service);
+    }
+
+    [Fact] // [EDGE-sc-youtube-fallback-6] [EDGE-sc-youtube-fallback-18]
+    public async Task ApplyFallback_KnownIdsByIndexThenUnknownInStderrOrder()
+    {
+        var fake = new FakeYtDlp { Search = _ => "{\"entries\": []}" };
+        var result = await Run(fake, Drm("9", "2", "8", "1"), Entries("1", "2", "3"));
+        Assert.Equal(new[] { "https://api.soundcloud.com/tracks/1", "https://api.soundcloud.com/tracks/2" }, fake.Probes);
+        Assert.Equal(new[] { "Tonight", "Tonight", "9", "8" }, result.Select(r => r.SoundCloudTitle));
+    }
+
+    [Fact] // [EDGE-sc-youtube-fallback-7] [EDGE-sc-youtube-fallback-9]
+    public void TryParseSearchResults_FlagsUnreadableOutput()
+    {
+        Assert.False(M.TryParseSearchResults("{\"entries\": [", out _));
+        Assert.False(M.TryParseSearchResults("garbage", out _));
+        Assert.True(M.TryParseSearchResults("{\"entries\": []}", out var none));
+        Assert.Empty(none);
+    }
+
+    [Fact] // [EDGE-sc-youtube-fallback-17]
+    public void Truncation_NeverSplitsASurrogatePair()
+    {
+        string title = new string('a', 119) + "😀" + "tail";
+        string name = M.SafeFileName(title, "x");
+        Assert.False(char.IsHighSurrogate(name[^1]));
+        string query = M.BuildSearchQuery(Track(title, null, 100));
+        Assert.False(char.IsHighSurrogate(query[^1]));
     }
 
     [Fact] // [AC-sc-youtube-fallback-9]

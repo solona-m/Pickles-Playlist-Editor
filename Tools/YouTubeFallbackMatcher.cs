@@ -23,7 +23,7 @@ internal static class YouTubeFallbackMatcher
 {
     private static readonly Regex DrmLine = new(@"^ERROR: \[soundcloud[^\]]*\] (\S+?): .*DRM protected",
         RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-    private static readonly Regex YouTubeId = new(@"^[A-Za-z0-9_-]{11}$", RegexOptions.CultureInvariant);
+    private static readonly Regex YouTubeId = new(@"\A[A-Za-z0-9_-]{11}\z", RegexOptions.CultureInvariant);
     private static readonly Regex BracketGroup = new(@"[\(\[]([^\)\]]*)[\)\]]", RegexOptions.CultureInvariant);
     private static readonly Regex Url = new(@"https?://\S+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     private static readonly string[] Dashes = { " - ", " – ", " — " };
@@ -40,6 +40,13 @@ internal static class YouTubeFallbackMatcher
         "official", "audio", "video", "music", "lyric", "lyrics", "visualizer", "hd", "hq", "mv", "topic",
     };
     private static readonly HashSet<string> FeatWords = new() { "feat", "ft", "featuring" };
+    private static readonly Regex FeatTail = new(@"\s(?:feat\.?|ft\.?|featuring)\s.*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    // A bracketed version word on YouTube ("(VIP)", "(Acoustic Version)") must also be in the SoundCloud title.
+    private static readonly HashSet<string> CandidateVersionWords = new()
+    {
+        "vip", "flip", "bootleg", "edit", "rework", "acoustic", "acapella", "demo", "dub", "version", "remix", "mix", "extended", "instrumental",
+    };
+    private static readonly HashSet<string> PlainVersionWords = new() { "original", "radio", "remaster", "remastered" };
     private static readonly string[] Markers =
     {
         "live", "cover", "remix", "nightcore", "sped up", "slowed", "reverb", "8d", "karaoke", "instrumental",
@@ -99,11 +106,16 @@ internal static class YouTubeFallbackMatcher
             string.IsNullOrWhiteSpace(artist) ? null : artist.Trim(), duration.Value);
     }
 
-    public static IReadOnlyList<YtCandidate> ParseSearchResults(string json)
+    public static IReadOnlyList<YtCandidate> ParseSearchResults(string json) =>
+        TryParseSearchResults(json, out var result) ? result : Array.Empty<YtCandidate>();
+
+    /// <summary>False when yt-dlp's output isn't readable search JSON.</summary>
+    public static bool TryParseSearchResults(string json, out IReadOnlyList<YtCandidate> candidates)
     {
+        candidates = Array.Empty<YtCandidate>();
         JObject o;
-        try { o = JObject.Parse(json); } catch (Exception) { return Array.Empty<YtCandidate>(); }
-        if (o["entries"] is not JArray entries) return Array.Empty<YtCandidate>();
+        try { o = JObject.Parse(json); } catch (Exception) { return false; }
+        if (o["entries"] is not JArray entries) return false;
 
         var result = new List<YtCandidate>();
         for (int i = 0; i < entries.Count; i++)
@@ -113,7 +125,8 @@ internal static class YouTubeFallbackMatcher
             result.Add(new YtCandidate(e.Value<string>("id") ?? string.Empty, e.Value<string>("title") ?? string.Empty,
                 e.Value<string>("channel") ?? e.Value<string>("uploader"), duration, e.Value<string>("live_status"), i + 1));
         }
-        return result;
+        candidates = result;
+        return true;
     }
 
     public static double Tolerance(double scSeconds) => Math.Clamp(0.05 * scSeconds, 5, 15);
@@ -159,11 +172,9 @@ internal static class YouTubeFallbackMatcher
         string remainder = BracketGroup.Replace(title, m =>
         {
             var words = Tokens(Normalize(m.Groups[1].Value));
-            if (words.Any(NoiseGroupWords.Contains) || Normalize(m.Groups[1].Value).Contains("out now", StringComparison.Ordinal))
-                return " ";
             if (words.Any(VersionGroupWords.Contains))
             {
-                version.AddRange(words);
+                version.AddRange(words.Where(w => !NoiseGroupWords.Contains(w)));
                 versionRaw.Add(m.Groups[1].Value.Trim());
             }
             return " ";
@@ -214,6 +225,7 @@ internal static class YouTubeFallbackMatcher
             }
         }
 
+        songRaw = FeatTail.Replace(songRaw, string.Empty).Trim();
         return new ScTitleParts(Normalize(songRaw), version.Distinct().ToList(), artists, required,
             songRaw, artistRaw, string.Join(' ', versionRaw));
     }
@@ -231,7 +243,7 @@ internal static class YouTubeFallbackMatcher
         foreach (char c in string.Join(' ', pieces))
             sb.Append(c == '"' || c == '\\' || char.IsControl(c) ? ' ' : c);
         string query = string.Join(' ', sb.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries)).TrimStart('-', ' ');
-        return query.Length > 120 ? query[..120].TrimEnd() : query;
+        return Truncate(query, 120);
     }
 
     /// <summary>The candidate title with brackets, a feat. tail, noise words, the artist and the version words removed.</summary>
@@ -285,6 +297,13 @@ internal static class YouTubeFallbackMatcher
 
         string title = Normalize(c.Title);
         if (Markers.Any(m => ContainsWhole(title, m) && !ContainsWhole(scTitle, m))) return false;
+        foreach (Match g in BracketGroup.Matches(c.Title))
+        {
+            var words = Tokens(Normalize(g.Groups[1].Value));
+            if (!words.Any(PlainVersionWords.Contains)
+                && words.Any(w => CandidateVersionWords.Contains(w) && !ContainsWhole(scTitle, w)))
+                return false;
+        }
         if (parts.VersionTokens.Any(v => !ContainsWhole(title, v))) return false;
 
         // Also try with the artist left in, so "Tonight" by Tonight or "Killer Queen" by Queen still match.
@@ -311,11 +330,19 @@ internal static class YouTubeFallbackMatcher
         {
             var invalid = Path.GetInvalidFileNameChars();
             var cleaned = new string(s.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim().Trim('.').Trim();
-            return cleaned.Length > 120 ? cleaned[..120].TrimEnd() : cleaned;
+            return Truncate(cleaned, 120);
         }
         string name = Clean(title);
         if (name.Trim('_').Length == 0) name = Clean(fallback);
         return name.Trim('_').Length == 0 ? "YouTube track" : name;
+    }
+
+    // Never cuts an emoji (surrogate pair) in half.
+    private static string Truncate(string s, int max)
+    {
+        if (s.Length <= max) return s;
+        int cut = char.IsHighSurrogate(s[max - 1]) ? max - 1 : max;
+        return s[..cut].TrimEnd();
     }
 
     public static string RedactUrls(string? text)

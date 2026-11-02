@@ -551,8 +551,9 @@ public static partial class YtDlpService
 
     private static string PlaylistFlag(YtDownloadMode mode) => mode == YtDownloadMode.Playlist ? "--yes-playlist" : "--no-playlist";
 
-    internal static string BuildInfoProbeArgs(string url, YtDownloadMode mode, string denoArg, string cookiesArg) =>
-        $"--dump-single-json --flat-playlist --no-warnings --skip-download {denoArg} {PlaylistFlag(mode)} {cookiesArg} -- \"{url}\"";
+    // On SoundCloud a lone DRM-protected track would fail the probe itself; this lets it through to the download, whose error starts the YouTube match.
+    internal static string BuildInfoProbeArgs(string url, YtDownloadMode mode, string denoArg, string cookiesArg, bool ignoreNoFormats = false) =>
+        $"--dump-single-json --flat-playlist --no-warnings --skip-download {(ignoreNoFormats ? "--ignore-no-formats-error " : "")}{denoArg} {PlaylistFlag(mode)} {cookiesArg} -- \"{url}\"";
 
     internal static string BuildDownloadArgs(string url, YtDownloadMode mode, string itemsArg, string outputArg, string denoArg, string ffmpegArg, string cookiesArg) =>
         $"-f bestaudio/best -x --audio-format vorbis --audio-quality 5 --newline --no-warnings {denoArg} {ffmpegArg} {PlaylistFlag(mode)} {itemsArg} {cookiesArg} {outputArg} -- \"{url}\"";
@@ -569,7 +570,7 @@ public static partial class YtDlpService
         //    entry before the download even starts; on a SoundCloud user page or a large
         //    YouTube playlist that's hundreds of API calls against a rate-limited endpoint.
         //    _type, title and a countable entries array are all still present under it.
-        var infoJson = await RunYtDlpAsync(BuildInfoProbeArgs(url, mode, denoArg, cookiesArg)).ConfigureAwait(false);
+        var infoJson = await RunYtDlpAsync(BuildInfoProbeArgs(url, mode, denoArg, cookiesArg, ignoreNoFormats: service == MediaService.SoundCloud)).ConfigureAwait(false);
         var parsed = JObject.Parse(infoJson);
         var title = parsed.Value<string>("title") ?? "Download";
         bool isPlaylist = string.Equals(parsed.Value<string>("_type"), "playlist", StringComparison.OrdinalIgnoreCase);
@@ -604,7 +605,7 @@ public static partial class YtDlpService
 
         // Tracks SoundCloud won't serve get a matching YouTube upload, slotted in before the
         // files are collected so the ordering prefix places them.
-        var fallbacks = run.ExitCode != 0
+        var fallbacks = run.ExitCode != 0 && service == MediaService.SoundCloud
             ? await ApplyDrmFallbackAsync(service, YouTubeFallbackMatcher.ClassifyProbe(parsed), run.Error,
                 YouTubeFallbackMatcher.ParseProbeEntries(parsed, url), outputDirectory, numbered,
                 new LiveFallbackYtDlp(denoArg, ffmpegArg), onProgress).ConfigureAwait(false)

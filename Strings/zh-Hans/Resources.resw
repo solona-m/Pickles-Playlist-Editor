@@ -384,7 +384,7 @@
   <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>把桌子和笔记本屏幕恢复成模组自带的样子吗？这会移除两个动画。</value></data>
   <data name="Anim_LayerNotKept" xml:space="preserve"><value>无法保留这个模组里的另一个动画（{0}），所以没有写入任何内容。</value></data>
   <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>无法从 SoundCloud 下载，正在 YouTube 上查找“{0}”的对应上传 ({1}/{2})</value></data>
-  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>部分歌曲来自 YouTube</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>无法从 SoundCloud 下载的歌曲</value></data>
   <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>无法从 SoundCloud 下载；已使用对应的 YouTube 上传：</value></data>
   <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0}（YouTube：{1}）</value></data>
   <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>无法从 SoundCloud 下载，已跳过：</value></data>

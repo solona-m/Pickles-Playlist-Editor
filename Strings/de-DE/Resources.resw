@@ -384,7 +384,7 @@ Möchtest du fortfahren?</value></data>
   <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>Den Tisch und den Laptopbildschirm so wiederherstellen, wie die Mod sie liefert? Das entfernt beide Animationen.</value></data>
   <data name="Anim_LayerNotKept" xml:space="preserve"><value>Die andere Animation in dieser Mod konnte nicht erhalten werden ({0}), darum wurde nichts geschrieben.</value></data>
   <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>Nicht von SoundCloud herunterladbar, suche passenden YouTube-Upload von „{0}“ ({1}/{2})</value></data>
-  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>Einige Songs stammen von YouTube</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>Songs, die nicht von SoundCloud herunterladbar sind</value></data>
   <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>Nicht von SoundCloud herunterladbar; passender YouTube-Upload verwendet:</value></data>
   <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0} (YouTube: {1})</value></data>
   <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>Nicht von SoundCloud herunterladbar und ausgelassen:</value></data>
