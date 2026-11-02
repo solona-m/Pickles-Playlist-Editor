@@ -176,10 +176,22 @@ public class WindowsAppSdkTargetTests
             else if (generated[end] == '}' && --depth == 0) break;
         }
         string body = generated[start.Index..end];
-        var calls = Regex.Matches(body, @"global::(?:\w+\.)*?(\w+\.\w+)\s*\(").Select(m => m.Groups[1].Value).Distinct().ToList();
+        var calls = Regex.Matches(body, @"\b(\w+\.\w+)\s*\(").Select(m => m.Groups[1].Value).Distinct().ToList();
         Assert.NotEmpty(calls);
-        string program = File.ReadAllText(Path.Combine(RepoRoot(), "Program.cs"));
-        Assert.All(calls, c => Assert.Contains(c, program));
+        string program = Regex.Replace(File.ReadAllText(Path.Combine(RepoRoot(), "Program.cs")), @"//.*", "");
+        foreach (var call in calls)
+        {
+            if (call == "App.XamlGeneratedCreateApplicationInstance")
+            {
+                // Its generated body must only construct App, which Program.Main does itself.
+                string app = File.ReadAllText(Path.Combine(RepoRoot(), "obj", BuildTail(), "ui", "App.g.cs"));
+                var create = Regex.Match(app, @"void\s+_XamlGeneratedCreateApplicationInstance\s*\(\s*\)\s*\{([^}]*)\}");
+                Assert.True(create.Success, "no _XamlGeneratedCreateApplicationInstance body in App.g.cs");
+                Assert.Equal("new App();", create.Groups[1].Value.Trim());
+                Assert.Matches(@"new\s+App\s*\(\s*\)", program);
+            }
+            else Assert.Contains(call, program);
+        }
     }
 
     [Fact] // [EDGE-winappsdk2-6]
