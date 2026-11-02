@@ -383,4 +383,19 @@ Vill du fortsätta?</value></data>
   <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Återställa laptopskärmen som modden levererades? Det tar bort din laptopanimation och alla bilder du har lagt på skärmen.</value></data>
   <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>Återställa bordet och laptopskärmen som modden levererades? Det tar bort båda animationerna.</value></data>
   <data name="Anim_LayerNotKept" xml:space="preserve"><value>Den andra animationen i den här modden kunde inte behållas ({0}), så ingenting skrevs.</value></data>
+  <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>Går inte att ladda ner från SoundCloud, letar efter en matchande YouTube-uppladdning av "{0}" ({1}/{2})</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>Låtar som inte går att ladda ner från SoundCloud</value></data>
+  <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>Går inte att ladda ner från SoundCloud; matchande YouTube-uppladdning användes:</value></data>
+  <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0} (YouTube: {1})</value></data>
+  <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>Går inte att ladda ner från SoundCloud och utelämnades:</value></data>
+  <data name="YTFallback_SkippedEntry" xml:space="preserve"><value>• {0} ({1})</value></data>
+  <data name="YTFallback_More" xml:space="preserve"><value>…och {0} till</value></data>
+  <data name="YTFallback_Reason_NoMatch" xml:space="preserve"><value>ingen YouTube-uppladdning med samma låt, artist och längd</value></data>
+  <data name="YTFallback_Reason_NoDetails" xml:space="preserve"><value>SoundCloud gav inte dess titel eller längd</value></data>
+  <data name="YTFallback_Reason_SearchFailed" xml:space="preserve"><value>YouTube-sökningen fungerade inte</value></data>
+  <data name="YTFallback_Reason_DownloadFailed" xml:space="preserve"><value>YouTube-nedladdningen fungerade inte</value></data>
+  <data name="YTFallback_Reason_RateLimited" xml:space="preserve"><value>SoundCloud begränsar förfrågningar just nu; försök igen senare</value></data>
+  <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube bad om inloggning, så sökningen stoppades</value></data>
+  <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>bara de första {0} sådana låtarna söks upp på YouTube</value></data>
+  <data name="YTFallback_NoneFound" xml:space="preserve"><value>Ingen matchande uppladdning hittades på YouTube heller.</value></data>
 </root>

@@ -1,0 +1,62 @@
+{
+ "_type": "playlist",
+ "id": "Brian Zeno Tonight",
+ "title": "Brian Zeno Tonight",
+ "entries": [
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "MOWTfwrX48Y",
+   "url": "https://www.youtube.com/watch?v=MOWTfwrX48Y",
+   "title": "Tonight",
+   "duration": 140,
+   "channel": "Brian Zeno",
+   "uploader": "Brian Zeno",
+   "live_status": null
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "6Zk32nJRdU0",
+   "url": "https://www.youtube.com/watch?v=6Zk32nJRdU0",
+   "title": "Tonight (Sped Up)",
+   "duration": 123,
+   "channel": "Brian Zeno",
+   "uploader": "Brian Zeno",
+   "live_status": null
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "Ky3sRraw9xU",
+   "url": "https://www.youtube.com/watch?v=Ky3sRraw9xU",
+   "title": "Brian Zeno - Tonight",
+   "duration": 141,
+   "channel": "Gem.",
+   "uploader": "Gem.",
+   "live_status": null
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "O9cNEMWna7A",
+   "url": "https://www.youtube.com/watch?v=O9cNEMWna7A",
+   "title": "Tonight (Slowed)",
+   "duration": 159,
+   "channel": "Brian Zeno",
+   "uploader": "Brian Zeno",
+   "live_status": null
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "7OSKIWi98DA",
+   "url": "https://www.youtube.com/watch?v=7OSKIWi98DA",
+   "title": "Run",
+   "duration": 201,
+   "channel": "Brian Zeno",
+   "uploader": "Brian Zeno",
+   "live_status": null
+  }
+ ]
+}

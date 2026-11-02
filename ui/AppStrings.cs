@@ -42,6 +42,28 @@ namespace Pickles_Playlist_Editor
         public static string Dlg_YTNoCookies => _r.GetString("Dlg_YTNoCookies");
         public static string Dlg_SCGeoBlocked => _r.GetString("Dlg_SCGeoBlocked");
         public static string Dlg_SCPaidTrack => _r.GetString("Dlg_SCPaidTrack");
+
+        // YouTube match for SoundCloud tracks that aren't downloadable there.
+        public static string Dlg_YouTubeFallback_Title => _r.GetString("Dlg_YouTubeFallback_Title");
+        public static string YTFallback_NoneFound => _r.GetString("YTFallback_NoneFound");
+        public static string YouTubeFallbackSearching(string title, int current, int total) =>
+            string.Format(_r.GetString("Prog_YouTubeFallbackSearching"), title, current, total);
+        public static FallbackReportFormats FallbackFormats() => new(
+            _r.GetString("YTFallback_SubstitutedHeader"),
+            _r.GetString("YTFallback_SubstitutedEntry"),
+            _r.GetString("YTFallback_SkippedHeader"),
+            _r.GetString("YTFallback_SkippedEntry"),
+            _r.GetString("YTFallback_More"),
+            new System.Collections.Generic.Dictionary<Tools.FallbackSkipReason, string>
+            {
+                [Tools.FallbackSkipReason.NoConfidentMatch] = _r.GetString("YTFallback_Reason_NoMatch"),
+                [Tools.FallbackSkipReason.NoDetails] = _r.GetString("YTFallback_Reason_NoDetails"),
+                [Tools.FallbackSkipReason.SearchFailed] = _r.GetString("YTFallback_Reason_SearchFailed"),
+                [Tools.FallbackSkipReason.DownloadFailed] = _r.GetString("YTFallback_Reason_DownloadFailed"),
+                [Tools.FallbackSkipReason.SoundCloudRateLimited] = _r.GetString("YTFallback_Reason_RateLimited"),
+                [Tools.FallbackSkipReason.YouTubeBlocked] = _r.GetString("YTFallback_Reason_YouTubeBlocked"),
+                [Tools.FallbackSkipReason.TooMany] = string.Format(_r.GetString("YTFallback_Reason_TooMany"), Tools.YtDlpService.MaxFallbackTracks),
+            });
         public static string Dlg_SCNotFound => _r.GetString("Dlg_SCNotFound");
         public static string Dlg_SCRateLimited => _r.GetString("Dlg_SCRateLimited");
         public static string Prog_ExtractingAudio => _r.GetString("Prog_ExtractingAudio");

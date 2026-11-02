@@ -13,6 +13,34 @@ public class YtDlpDownloadResult
     public required bool IsPlaylist { get; init; }
     public required string Title { get; init; }
     public required List<string> DownloadedFiles { get; init; }
+    /// <summary>SoundCloud tracks that weren't downloadable there, and what the YouTube match did for each.</summary>
+    public List<FallbackTrackResult> Fallbacks { get; init; } = new();
+}
+
+public enum FallbackSkipReason
+{
+    None,
+    NoDetails,
+    NoConfidentMatch,
+    SearchFailed,
+    DownloadFailed,
+    SoundCloudRateLimited,
+    YouTubeBlocked,
+    TooMany
+}
+
+public sealed record FallbackTrackResult(string SoundCloudTitle, FallbackSkipReason Reason, string? YouTubeTitle)
+{
+    public bool Substituted => Reason == FallbackSkipReason.None;
+}
+
+/// <summary>Nothing was downloaded; carries what the YouTube match tried, so the dialog can say so.</summary>
+public sealed class YtDlpDownloadException : InvalidOperationException
+{
+    public IReadOnlyList<FallbackTrackResult> Fallbacks { get; }
+
+    public YtDlpDownloadException(string message, IReadOnlyList<FallbackTrackResult> fallbacks) : base(message) =>
+        Fallbacks = fallbacks;
 }
 
 public enum YtDownloadMode
@@ -51,9 +79,11 @@ public sealed class YtDlpProgressInfo
     public required int Current { get; init; }
     public required int Total { get; init; }
     public double? Percent { get; init; }
+    /// <summary>Set while a YouTube match is looked up for a SoundCloud track (its title).</summary>
+    public string? FallbackTitle { get; init; }
 }
 
-public static class YtDlpService
+public static partial class YtDlpService
 {
     private const string YtDlpExeName = "yt-dlp.exe";
     private static readonly string LocalAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -385,12 +415,12 @@ public static class YtDlpService
 
         try
         {
-            return await DownloadAudioAttemptAsync(url, outputDirectory, mode, denoArg, ffmpegArg, cookiesArg: CookiesArgFor(scJar), onProgress).ConfigureAwait(false);
+            return await DownloadAudioAttemptAsync(url, outputDirectory, mode, denoArg, ffmpegArg, cookiesArg: CookiesArgFor(scJar), onProgress, service).ConfigureAwait(false);
         }
         catch (Exception ex) when (ShouldRetryWithCookies(url, ex))
         {
             Logger.LogInfo("Retrying the download with saved YouTube cookies after a sign-in error.");
-            return await DownloadAudioAttemptAsync(url, outputDirectory, mode, denoArg, ffmpegArg, cookiesArg: CookiesArg, onProgress).ConfigureAwait(false);
+            return await DownloadAudioAttemptAsync(url, outputDirectory, mode, denoArg, ffmpegArg, cookiesArg: CookiesArg, onProgress, service).ConfigureAwait(false);
         }
         finally
         {
@@ -519,9 +549,17 @@ public static class YtDlpService
         _ => 4,
     };
 
-    private static async Task<YtDlpDownloadResult> DownloadAudioAttemptAsync(string url, string outputDirectory, YtDownloadMode mode, string denoArg, string ffmpegArg, string cookiesArg, Action<YtDlpProgressInfo>? onProgress)
+    private static string PlaylistFlag(YtDownloadMode mode) => mode == YtDownloadMode.Playlist ? "--yes-playlist" : "--no-playlist";
+
+    // On SoundCloud a lone DRM-protected track would fail the probe itself; this lets it through to the download, whose error starts the YouTube match.
+    internal static string BuildInfoProbeArgs(string url, YtDownloadMode mode, string denoArg, string cookiesArg, bool ignoreNoFormats = false) =>
+        $"--dump-single-json --flat-playlist --no-warnings --skip-download {(ignoreNoFormats ? "--ignore-no-formats-error " : "")}{denoArg} {PlaylistFlag(mode)} {cookiesArg} -- \"{url}\"";
+
+    internal static string BuildDownloadArgs(string url, YtDownloadMode mode, string itemsArg, string outputArg, string denoArg, string ffmpegArg, string cookiesArg) =>
+        $"-f bestaudio/best -x --audio-format vorbis --audio-quality 5 --newline --no-warnings {denoArg} {ffmpegArg} {PlaylistFlag(mode)} {itemsArg} {cookiesArg} {outputArg} -- \"{url}\"";
+
+    private static async Task<YtDlpDownloadResult> DownloadAudioAttemptAsync(string url, string outputDirectory, YtDownloadMode mode, string denoArg, string ffmpegArg, string cookiesArg, Action<YtDlpProgressInfo>? onProgress, MediaService service)
     {
-        string playlistFlag = mode == YtDownloadMode.Playlist ? "--yes-playlist" : "--no-playlist";
 
         // Two things going on in the arguments below:
         //  - "--" terminates option parsing, so a URL beginning with "-" can't be read as
@@ -532,7 +570,7 @@ public static class YtDlpService
         //    entry before the download even starts; on a SoundCloud user page or a large
         //    YouTube playlist that's hundreds of API calls against a rate-limited endpoint.
         //    _type, title and a countable entries array are all still present under it.
-        var infoJson = await RunYtDlpAsync($"--dump-single-json --flat-playlist --no-warnings --skip-download {denoArg} {playlistFlag} {cookiesArg} -- \"{url}\"").ConfigureAwait(false);
+        var infoJson = await RunYtDlpAsync(BuildInfoProbeArgs(url, mode, denoArg, cookiesArg, ignoreNoFormats: service == MediaService.SoundCloud)).ConfigureAwait(false);
         var parsed = JObject.Parse(infoJson);
         var title = parsed.Value<string>("title") ?? "Download";
         bool isPlaylist = string.Equals(parsed.Value<string>("_type"), "playlist", StringComparison.OrdinalIgnoreCase);
@@ -563,32 +601,26 @@ public static class YtDlpService
         bool numbered = isPlaylist && !capToFirstItem;
         string template = numbered ? "%(playlist_index)05d - %(title)s.%(ext)s" : "%(title)s.%(ext)s";
         string outputArg = $"-o \"{Path.Combine(outputDirectory, template)}\"";
-        var run = await RunYtDlpWithProgressAsync($"-f bestaudio/best -x --audio-format vorbis --audio-quality 5 --newline --no-warnings {denoArg} {ffmpegArg} {playlistFlag} {itemsArg} {cookiesArg} {outputArg} -- \"{url}\"", totalItems, onProgress).ConfigureAwait(false);
+        var run = await RunYtDlpWithProgressAsync(BuildDownloadArgs(url, mode, itemsArg, outputArg, denoArg, ffmpegArg, cookiesArg), totalItems, onProgress).ConfigureAwait(false);
+
+        // Tracks SoundCloud won't serve get a matching YouTube upload, slotted in before the
+        // files are collected so the ordering prefix places them.
+        var fallbacks = run.ExitCode != 0 && service == MediaService.SoundCloud
+            ? await ApplyDrmFallbackAsync(service, YouTubeFallbackMatcher.ClassifyProbe(parsed), run.Error,
+                YouTubeFallbackMatcher.ParseProbeEntries(parsed, url), outputDirectory, numbered,
+                new LiveFallbackYtDlp(denoArg, ffmpegArg), onProgress).ConfigureAwait(false)
+            : new List<FallbackTrackResult>();
 
         // Enumerating and renaming a whole set's worth of files is blocking disk work, so
         // keep it off the caller's thread along with everything else here.
-        var files = await Task.Run(() =>
-        {
-            var found = Directory.GetFiles(outputDirectory, "*.ogg", SearchOption.TopDirectoryOnly)
-                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            // Song names come from the file name (Playlist.AddFiles uses
-            // Path.GetFileNameWithoutExtension), so drop the ordering prefix now that the
-            // sort has served its purpose — otherwise every track shows up as "00001 - Name".
-            return numbered ? StripOrderingPrefixes(found) : found;
-        }).ConfigureAwait(false);
+        var files = await Task.Run(() => CollectDownloadedFiles(outputDirectory, numbered)).ConfigureAwait(false);
 
         // Only treat a non-zero exit as fatal when nothing survived it. Individual tracks
         // failing mid-set is normal on SoundCloud — DRM-protected tracks are common, and
         // yt-dlp still exits non-zero after downloading every other track in the set.
         // Throwing there would have thrown away a whole album over one bad track.
         if (files.Count == 0)
-        {
-            throw new InvalidOperationException(run.ExitCode != 0
-                ? $"yt-dlp failed ({run.ExitCode}): {run.Error}"
-                : "yt-dlp completed but no OGG files were created.");
-        }
+            throw NothingDownloaded(run.ExitCode, run.Error, fallbacks);
 
         if (run.ExitCode != 0)
             Logger.LogWarn("Some tracks in this download could not be fetched, keeping the {Count} that succeeded: {Error}", files.Count, run.Error);
@@ -597,8 +629,24 @@ public static class YtDlpService
         {
             IsPlaylist = isPlaylist,
             Title = title,
-            DownloadedFiles = files
+            DownloadedFiles = files,
+            Fallbacks = fallbacks
         };
+    }
+
+    internal static YtDlpDownloadException NothingDownloaded(int exitCode, string stderr, List<FallbackTrackResult> fallbacks) =>
+        new(exitCode != 0 ? $"yt-dlp failed ({exitCode}): {stderr}" : "yt-dlp completed but no OGG files were created.", fallbacks);
+
+    internal static List<string> CollectDownloadedFiles(string outputDirectory, bool numbered)
+    {
+        var found = Directory.GetFiles(outputDirectory, "*.ogg", SearchOption.TopDirectoryOnly)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        // Song names come from the file name (Playlist.AddFiles uses
+        // Path.GetFileNameWithoutExtension), so drop the ordering prefix now that the
+        // sort has served its purpose — otherwise every track shows up as "00001 - Name".
+        return numbered ? StripOrderingPrefixes(found) : found;
     }
 
     /// <summary>
@@ -650,10 +698,13 @@ public static class YtDlpService
         return result;
     }
 
-    private static async Task<string> RunYtDlpAsync(string arguments)
+    private static Task<string> RunYtDlpAsync(string arguments) => RunProcessAsync(LocalYtDlpPath, arguments, null);
+
+    /// <summary>Runs a process and returns stdout; a timeout kills the whole tree and throws <see cref="TimeoutException"/>.</summary>
+    internal static async Task<string> RunProcessAsync(string exe, string arguments, TimeSpan? timeout)
     {
         using var process = new Process();
-        process.StartInfo.FileName = LocalYtDlpPath;
+        process.StartInfo.FileName = exe;
         process.StartInfo.Arguments = arguments;
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.CreateNoWindow = true;
@@ -663,12 +714,23 @@ public static class YtDlpService
         process.Start();
         Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
         Task<string> stderrTask = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync().ConfigureAwait(false);
+        using (var cts = timeout is { } t ? new CancellationTokenSource(t) : new CancellationTokenSource())
+        {
+            try
+            {
+                await process.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                try { process.Kill(entireProcessTree: true); } catch (Exception) { }
+                throw new TimeoutException($"{Path.GetFileName(exe)} did not finish within {timeout!.Value.TotalSeconds:0} s.");
+            }
+        }
         string stdout = await stdoutTask.ConfigureAwait(false);
         string stderr = await stderrTask.ConfigureAwait(false);
 
         if (process.ExitCode != 0)
-            throw new InvalidOperationException($"yt-dlp failed ({process.ExitCode}): {stderr}");
+            throw new InvalidOperationException($"{(exe == LocalYtDlpPath ? "yt-dlp" : Path.GetFileName(exe))} failed ({process.ExitCode}): {stderr}");
 
         return stdout;
     }

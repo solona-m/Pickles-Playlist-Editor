@@ -95,6 +95,8 @@ namespace Pickles_Playlist_Editor
 
             if (errorMessage != null)
                 await ShowDialogAsync(AppStrings.Dlg_Error, errorMessage);
+            else if (result.Fallbacks.Count > 0)
+                await ShowDialogAsync(AppStrings.Dlg_YouTubeFallback_Title, FallbackReportText.Compose(result.Fallbacks, AppStrings.FallbackFormats()));
         }
 
         private static void CleanupYtTempFiles(List<string> files)
