@@ -34,13 +34,25 @@ public class WindowsAppSdkTargetTests
 
     private static string MajorMinor() => $"{WinAppSdkVersion().Major}.{WinAppSdkVersion().Minor}";
 
-    private static (string Version, string Dir) RuntimePackage()
+    // A restored package of the app: its resolved version and folder.
+    private static (string Version, string Dir) Package(string id)
     {
         using var assets = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoRoot(), "obj", "project.assets.json")));
         string folder = assets.RootElement.GetProperty("packageFolders").EnumerateObject().First().Name;
         var lib = assets.RootElement.GetProperty("libraries").EnumerateObject()
-            .Single(l => l.Name.StartsWith("Microsoft.WindowsAppSDK.Runtime/", StringComparison.OrdinalIgnoreCase));
+            .Single(l => l.Name.StartsWith(id + "/", StringComparison.OrdinalIgnoreCase));
         return (lib.Name.Split('/')[1], Path.Combine(folder, lib.Value.GetProperty("path").GetString()!));
+    }
+
+    private static (string Version, string Dir) RuntimePackage() => Package("Microsoft.WindowsAppSDK.Runtime");
+
+    private static string MsixFolder() => Path.Combine(RuntimePackage().Dir, "tools", "MSIX", "win10-x86");
+
+    private static XDocument MsixManifest(string msix)
+    {
+        using var zip = ZipFile.OpenRead(msix);
+        using var stream = zip.GetEntry("AppxManifest.xml")!.Open();
+        return XDocument.Load(stream);
     }
 
     private static List<int> MinVersionBuilds(XDocument manifest) =>
@@ -59,15 +71,25 @@ public class WindowsAppSdkTargetTests
     public void Restore_Resolved_WindowsAppSdkRuntime_MatchesCsproj() =>
         Assert.Equal(WinAppSdkVersion(), Version.Parse(RuntimePackage().Version));
 
-    [Theory] // [AC-winappsdk2-1] [EDGE-winappsdk2-5] [EDGE-winappsdk2-12]
-    [InlineData("Microsoft.WindowsAppRuntime.dll")]
-    [InlineData("Microsoft.ui.xaml.dll")]
-    public void TestOutput_Bundles_WindowsAppRuntime_OfReferencedVersion(string dll)
+    [Fact] // [AC-winappsdk2-1] [EDGE-winappsdk2-5] [EDGE-winappsdk2-12]
+    public void TestOutput_Bundles_WindowsAppRuntime_OfReferencedVersion()
     {
-        string path = Path.Combine(AppContext.BaseDirectory, dll);
-        Assert.True(File.Exists(path), dll + " not bundled");
+        string path = Path.Combine(AppContext.BaseDirectory, "Microsoft.WindowsAppRuntime.dll");
+        Assert.True(File.Exists(path), "Microsoft.WindowsAppRuntime.dll not bundled");
         var info = FileVersionInfo.GetVersionInfo(path);
         Assert.Equal(MajorMinor(), $"{info.ProductMajorPart}.{info.ProductMinorPart}");
+    }
+
+    // WinUI versions itself (3.x in SDK 2.6), so the bundled copy must be the resolved WinUI package's own file.
+    [Fact] // [AC-winappsdk2-1] [EDGE-winappsdk2-5] [EDGE-winappsdk2-12]
+    public void TestOutput_Bundles_WinUI_FromResolvedPackage()
+    {
+        var winui = Package("Microsoft.WindowsAppSDK.WinUI");
+        Assert.Equal(WinAppSdkVersion(), Version.Parse(winui.Version));
+        string shipped = Path.Combine(winui.Dir, "runtimes-framework", "win-x86", "native", "Microsoft.ui.xaml.dll");
+        string bundled = Path.Combine(AppContext.BaseDirectory, "Microsoft.ui.xaml.dll");
+        Assert.True(File.Exists(bundled), "Microsoft.ui.xaml.dll not bundled");
+        Assert.Equal(File.ReadAllBytes(shipped), File.ReadAllBytes(bundled));
     }
 
     [Fact] // [AC-winappsdk2-2] [EDGE-winappsdk2-9] [EDGE-winappsdk2-10]
@@ -96,30 +118,31 @@ public class WindowsAppSdkTargetTests
     public void AppAssembly_SupportedOS_IsWindows10_19041() =>
         Assert.Equal("Windows10.0.19041.0", typeof(ScdOggExtractor).Assembly.GetCustomAttribute<SupportedOSPlatformAttribute>()?.PlatformName);
 
-    // The runtime manifest the build extracted, i.e. what actually ships next to the exe.
+    // The framework package of the referenced version: Microsoft's declared OS floor for the binaries we bundle.
     [Fact] // [AC-winappsdk2-3] [EDGE-winappsdk2-5] [EDGE-winappsdk2-12]
-    public void BundledRuntime_ExtractedManifest_SupportsWindows10()
+    public void FrameworkMsix_OfReferencedVersion_SupportsWindows10()
     {
-        string path = Path.Combine(RepoRoot(), "obj", BuildTail(), "MsixContent", "AppxManifest.xml");
-        Assert.True(File.Exists(path), "no extracted runtime manifest at " + path);
-        var manifest = XDocument.Load(path);
-        string name = manifest.Descendants().First(e => e.Name.LocalName == "Identity").Attribute("Name")!.Value;
-        Assert.Matches($@"^Microsoft\.WindowsAppRuntime\.{Regex.Escape(MajorMinor())}(-.+)?$", name);
-        var builds = MinVersionBuilds(manifest);
+        var v = WinAppSdkVersion();
+        var framework = Directory.GetFiles(MsixFolder(), "Microsoft.WindowsAppRuntime.*.msix")
+            .Select(MsixManifest)
+            .Select(m => m.Descendants().First(e => e.Name.LocalName == "Identity"))
+            .Where(i => Regex.IsMatch(i.Attribute("Name")!.Value, $@"^Microsoft\.WindowsAppRuntime\.{v.Major}(\.{v.Minor})?$"))
+            .ToList();
+        var identity = Assert.Single(framework);
+        Assert.StartsWith($"{v.Major}.{v.Minor}.{v.Build}.", identity.Attribute("Version")!.Value);
+        var builds = MinVersionBuilds(identity.Document!);
         Assert.NotEmpty(builds);
-        Assert.All(builds, b => Assert.True(b < 22000, $"bundled runtime needs build {b}"));
+        Assert.All(builds, b => Assert.True(b < 22000, $"framework package needs build {b}"));
     }
 
     [Fact] // [AC-winappsdk2-3] [EDGE-winappsdk2-7] [EDGE-winappsdk2-8] [EDGE-winappsdk2-12]
     public void RuntimePackage_AllMsix_SupportWindows10()
     {
-        var msix = Directory.GetFiles(Path.Combine(RuntimePackage().Dir, "tools", "MSIX", "win10-x86"), "Microsoft.WindowsAppRuntime*.msix");
+        var msix = Directory.GetFiles(MsixFolder(), "Microsoft.WindowsAppRuntime*.msix");
         Assert.NotEmpty(msix);
         foreach (var file in msix)
         {
-            using var zip = ZipFile.OpenRead(file);
-            using var stream = zip.GetEntry("AppxManifest.xml")!.Open();
-            var builds = MinVersionBuilds(XDocument.Load(stream));
+            var builds = MinVersionBuilds(MsixManifest(file));
             Assert.NotEmpty(builds);
             Assert.All(builds, b => Assert.True(b < 22000, $"{Path.GetFileName(file)} needs build {b}"));
         }
@@ -143,9 +166,10 @@ public class WindowsAppSdkTargetTests
     public void ProgramMain_HasEveryGeneratedMainCall()
     {
         string generated = File.ReadAllText(Path.Combine(RepoRoot(), "obj", BuildTail(), "ui", "App.g.i.cs"));
-        var start = Regex.Match(generated, @"static\s+void\s+(?:XamlGenerated)?Main\s*\([^)]*\)\s*\{");
+        // The header sits between #if/#else lines (renamed XamlGeneratedMain since SDK 2.3), so start at the next brace.
+        var start = Regex.Match(generated, @"static\s+void\s+(?:XamlGenerated)?Main\s*\([^)]*\)");
         Assert.True(start.Success, "no generated main in App.g.i.cs");
-        int depth = 0, end = start.Index + start.Length - 1;
+        int depth = 0, end = generated.IndexOf('{', start.Index);
         for (; end < generated.Length; end++)
         {
             if (generated[end] == '{') depth++;
