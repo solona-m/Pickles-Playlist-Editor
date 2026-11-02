@@ -383,4 +383,19 @@ Wil je doorgaan?</value></data>
   <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Het laptopscherm terugzetten zoals de mod het levert? Dit verwijdert je laptopanimatie en elke afbeelding die je op het scherm hebt gezet.</value></data>
   <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>De tafel en het laptopscherm terugzetten zoals de mod ze levert? Dit verwijdert beide animaties.</value></data>
   <data name="Anim_LayerNotKept" xml:space="preserve"><value>De andere animatie in deze mod kon niet worden behouden ({0}), dus er is niets geschreven.</value></data>
+  <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>Niet te downloaden van SoundCloud, zoekt een overeenkomende YouTube-upload van "{0}" ({1}/{2})</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>Sommige nummers komen van YouTube</value></data>
+  <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>Niet te downloaden van SoundCloud; overeenkomende YouTube-upload gebruikt:</value></data>
+  <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0} (YouTube: {1})</value></data>
+  <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>Niet te downloaden van SoundCloud en weggelaten:</value></data>
+  <data name="YTFallback_SkippedEntry" xml:space="preserve"><value>• {0} ({1})</value></data>
+  <data name="YTFallback_More" xml:space="preserve"><value>…en nog {0}</value></data>
+  <data name="YTFallback_Reason_NoMatch" xml:space="preserve"><value>geen YouTube-upload met hetzelfde nummer, dezelfde artiest en lengte</value></data>
+  <data name="YTFallback_Reason_NoDetails" xml:space="preserve"><value>SoundCloud gaf geen titel of lengte</value></data>
+  <data name="YTFallback_Reason_SearchFailed" xml:space="preserve"><value>de YouTube-zoekopdracht werkte niet</value></data>
+  <data name="YTFallback_Reason_DownloadFailed" xml:space="preserve"><value>de YouTube-download werkte niet</value></data>
+  <data name="YTFallback_Reason_RateLimited" xml:space="preserve"><value>SoundCloud beperkt het aantal verzoeken; probeer het later opnieuw</value></data>
+  <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube vroeg om in te loggen, dus het zoeken is gestopt</value></data>
+  <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>alleen de eerste {0} van zulke nummers worden op YouTube gezocht</value></data>
+  <data name="YTFallback_NoneFound" xml:space="preserve"><value>Ook op YouTube is geen overeenkomende upload gevonden.</value></data>
 </root>

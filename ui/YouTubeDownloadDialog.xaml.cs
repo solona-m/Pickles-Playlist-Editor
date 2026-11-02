@@ -17,6 +17,8 @@ namespace Pickles_Playlist_Editor
         public string? TargetPlaylistName { get; init; }
         /// <summary>Which site the links came from, used to name an auto-created playlist.</summary>
         public MediaService Service { get; init; }
+        /// <summary>SoundCloud tracks that weren't downloadable there, and what the YouTube match did for each.</summary>
+        public List<FallbackTrackResult> Fallbacks { get; init; } = new();
     }
 
     public sealed partial class YouTubeDownloadDialog : ContentDialog
@@ -88,6 +90,11 @@ namespace Pickles_Playlist_Editor
 
                 var progress = new Progress<YtDlpProgressInfo>(info =>
                 {
+                    if (info.FallbackTitle != null)
+                    {
+                        StatusLabel.Text = AppStrings.YouTubeFallbackSearching(info.FallbackTitle, info.Current, info.Total);
+                        return;
+                    }
                     StatusLabel.Text = $"{info.Stage} {info.Current}/{info.Total}";
                     int baseProgress = 10, maxProgress = 60;
                     double stageProgress = (info.Current - 1) / (double)Math.Max(1, info.Total);
@@ -107,6 +114,7 @@ namespace Pickles_Playlist_Editor
                     Title = dlResult.Title ?? string.Empty,
                     TargetPlaylistName = mode == YtDownloadMode.Single ? TargetPlaylistComboBox.SelectedItem as string : null,
                     Service = service,
+                    Fallbacks = dlResult.Fallbacks,
                 };
 
                 ProgressBar1.Value = 60;
@@ -141,6 +149,8 @@ namespace Pickles_Playlist_Editor
                     DownloadFailureKind.SoundCloudRateLimited => AppStrings.Dlg_SCRateLimited,
                     _ => AppStrings.YTDownloadFailed(ex.Message),
                 };
+                if (ex is YtDlpDownloadException { Fallbacks.Count: > 0 })
+                    StatusLabel.Text += " " + AppStrings.YTFallback_NoneFound;
                 IsPrimaryButtonEnabled = true;
                 args.Cancel = true;
             }

@@ -383,4 +383,19 @@ Möchtest du fortfahren?</value></data>
   <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Den Laptopbildschirm so wiederherstellen, wie die Mod ihn liefert? Das entfernt deine Laptop-Animation und jedes Bild, das du auf den Bildschirm gelegt hast.</value></data>
   <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>Den Tisch und den Laptopbildschirm so wiederherstellen, wie die Mod sie liefert? Das entfernt beide Animationen.</value></data>
   <data name="Anim_LayerNotKept" xml:space="preserve"><value>Die andere Animation in dieser Mod konnte nicht erhalten werden ({0}), darum wurde nichts geschrieben.</value></data>
+  <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>Nicht von SoundCloud herunterladbar, suche passenden YouTube-Upload von „{0}“ ({1}/{2})</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>Einige Songs stammen von YouTube</value></data>
+  <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>Nicht von SoundCloud herunterladbar; passender YouTube-Upload verwendet:</value></data>
+  <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0} (YouTube: {1})</value></data>
+  <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>Nicht von SoundCloud herunterladbar und ausgelassen:</value></data>
+  <data name="YTFallback_SkippedEntry" xml:space="preserve"><value>• {0} ({1})</value></data>
+  <data name="YTFallback_More" xml:space="preserve"><value>…und {0} weitere</value></data>
+  <data name="YTFallback_Reason_NoMatch" xml:space="preserve"><value>kein YouTube-Upload mit demselben Song, Interpreten und derselben Länge</value></data>
+  <data name="YTFallback_Reason_NoDetails" xml:space="preserve"><value>SoundCloud hat Titel oder Länge nicht geliefert</value></data>
+  <data name="YTFallback_Reason_SearchFailed" xml:space="preserve"><value>die YouTube-Suche hat nicht funktioniert</value></data>
+  <data name="YTFallback_Reason_DownloadFailed" xml:space="preserve"><value>der YouTube-Download hat nicht funktioniert</value></data>
+  <data name="YTFallback_Reason_RateLimited" xml:space="preserve"><value>SoundCloud begrenzt gerade Anfragen; versuche es später erneut</value></data>
+  <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube hat eine Anmeldung verlangt, deshalb wurde die Suche beendet</value></data>
+  <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>nur die ersten {0} solchen Titel werden auf YouTube gesucht</value></data>
+  <data name="YTFallback_NoneFound" xml:space="preserve"><value>Auch auf YouTube wurde kein passender Upload gefunden.</value></data>
 </root>

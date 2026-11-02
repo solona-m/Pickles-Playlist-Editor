@@ -383,4 +383,19 @@ Voulez-vous continuer ?</value></data>
   <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Remettre l’écran du portable tel que le mod le fournit ? Cela retire ton animation du portable et toute image que tu as mise sur l’écran.</value></data>
   <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>Remettre la table et l’écran du portable tels que le mod les fournit ? Cela retire les deux animations.</value></data>
   <data name="Anim_LayerNotKept" xml:space="preserve"><value>L’autre animation de ce mod n’a pas pu être conservée ({0}), rien n’a donc été écrit.</value></data>
+  <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>Non téléchargeable depuis SoundCloud, recherche d'un envoi YouTube correspondant pour « {0} » ({1}/{2})</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>Certains morceaux viennent de YouTube</value></data>
+  <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>Non téléchargeables depuis SoundCloud ; envoi YouTube correspondant utilisé :</value></data>
+  <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0} (YouTube : {1})</value></data>
+  <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>Non téléchargeables depuis SoundCloud et laissés de côté :</value></data>
+  <data name="YTFallback_SkippedEntry" xml:space="preserve"><value>• {0} ({1})</value></data>
+  <data name="YTFallback_More" xml:space="preserve"><value>…et {0} de plus</value></data>
+  <data name="YTFallback_Reason_NoMatch" xml:space="preserve"><value>aucun envoi YouTube avec le même morceau, le même artiste et la même durée</value></data>
+  <data name="YTFallback_Reason_NoDetails" xml:space="preserve"><value>SoundCloud n'a pas fourni son titre ou sa durée</value></data>
+  <data name="YTFallback_Reason_SearchFailed" xml:space="preserve"><value>la recherche YouTube n'a pas fonctionné</value></data>
+  <data name="YTFallback_Reason_DownloadFailed" xml:space="preserve"><value>le téléchargement YouTube n'a pas fonctionné</value></data>
+  <data name="YTFallback_Reason_RateLimited" xml:space="preserve"><value>SoundCloud limite les requêtes ; réessayez plus tard</value></data>
+  <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube a demandé une connexion, la recherche s'est donc arrêtée</value></data>
+  <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>seuls les {0} premiers morceaux de ce type sont recherchés sur YouTube</value></data>
+  <data name="YTFallback_NoneFound" xml:space="preserve"><value>Aucun envoi correspondant n'a été trouvé sur YouTube non plus.</value></data>
 </root>

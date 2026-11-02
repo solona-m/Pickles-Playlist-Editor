@@ -383,4 +383,19 @@
   <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>把笔记本屏幕恢复成模组自带的样子吗？这会移除你的笔记本动画以及你放在屏幕上的任何图片。</value></data>
   <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>把桌子和笔记本屏幕恢复成模组自带的样子吗？这会移除两个动画。</value></data>
   <data name="Anim_LayerNotKept" xml:space="preserve"><value>无法保留这个模组里的另一个动画（{0}），所以没有写入任何内容。</value></data>
+  <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>无法从 SoundCloud 下载，正在 YouTube 上查找“{0}”的对应上传 ({1}/{2})</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>部分歌曲来自 YouTube</value></data>
+  <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>无法从 SoundCloud 下载；已使用对应的 YouTube 上传：</value></data>
+  <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0}（YouTube：{1}）</value></data>
+  <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>无法从 SoundCloud 下载，已跳过：</value></data>
+  <data name="YTFallback_SkippedEntry" xml:space="preserve"><value>• {0}（{1}）</value></data>
+  <data name="YTFallback_More" xml:space="preserve"><value>……还有 {0} 首</value></data>
+  <data name="YTFallback_Reason_NoMatch" xml:space="preserve"><value>YouTube 上没有歌曲、艺人和时长都相同的上传</value></data>
+  <data name="YTFallback_Reason_NoDetails" xml:space="preserve"><value>SoundCloud 没有提供标题或时长</value></data>
+  <data name="YTFallback_Reason_SearchFailed" xml:space="preserve"><value>YouTube 搜索失败</value></data>
+  <data name="YTFallback_Reason_DownloadFailed" xml:space="preserve"><value>YouTube 下载失败</value></data>
+  <data name="YTFallback_Reason_RateLimited" xml:space="preserve"><value>SoundCloud 正在限制请求，请稍后再试</value></data>
+  <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube 要求登录，因此搜索已停止</value></data>
+  <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>只会在 YouTube 上查找前 {0} 首此类曲目</value></data>
+  <data name="YTFallback_NoneFound" xml:space="preserve"><value>在 YouTube 上也没有找到对应的上传。</value></data>
 </root>

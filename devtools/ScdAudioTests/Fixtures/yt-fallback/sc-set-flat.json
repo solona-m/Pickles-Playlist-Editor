@@ -1,0 +1,11 @@
+{
+ "_type": "playlist",
+ "id": "1000000001",
+ "title": "Synthetic set",
+ "extractor_key": "SoundcloudSet",
+ "entries": [
+  { "_type": "url", "ie_key": "Soundcloud", "id": "2268015032", "url": "https://api.soundcloud.com/tracks/2268015032" },
+  { "_type": "url", "ie_key": "Soundcloud", "id": "2269478501", "url": "https://api.soundcloud.com/tracks/2269478501" },
+  { "_type": "url", "ie_key": "Soundcloud", "id": "2249966423", "url": "https://api.soundcloud.com/tracks/2249966423" }
+ ]
+}
