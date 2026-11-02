@@ -111,7 +111,7 @@ jobs:
         run: |
           vpk upload github `
             --repoUrl $env:REPO_URL `
-            --token '${{ secrets.GITHUB_TOKEN }}' `
+            --token '${{ secrets.RELEASE_TOKEN }}' `
             --outputDir Releases `
             --publish `
             --merge `
