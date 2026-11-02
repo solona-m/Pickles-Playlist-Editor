@@ -17,6 +17,8 @@ on:
   push:
     tags:
       - 'testing-*'
+      # The release's own tag (testing-v<version>), pushed by RELEASE_TOKEN, must not start another run.
+      - '!testing-v*'
 
 permissions:
   contents: write
