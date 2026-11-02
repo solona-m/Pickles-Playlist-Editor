@@ -38,9 +38,23 @@ $depsPath = Join-Path $Dir "$app.deps.json"
 $target = if (Test-Path $depsPath) { (Get-Content $depsPath -Raw | ConvertFrom-Json).runtimeTarget.name } else { $null }
 Check "deps.json .NETCoreApp v$ExpectMajor.0/win-x86" ($target -eq ".NETCoreApp,Version=v$ExpectMajor.0/win-x86")
 
-foreach ($dll in 'Microsoft.ui.xaml.dll', 'Microsoft.WindowsAppRuntime.dll', 'System.Security.Cryptography.ProtectedData.dll') {
+# RestartAgent.exe is needed by AppInstance.Restart (language switch).
+foreach ($dll in 'Microsoft.ui.xaml.dll', 'Microsoft.ui.xaml.resources.19h1.dll', 'Microsoft.WindowsAppRuntime.dll', 'RestartAgent.exe', 'System.Security.Cryptography.ProtectedData.dll') {
     Check $dll (Test-Path (Join-Path $Dir $dll))
 }
+
+# Windows App SDK: the runtime is the csproj's major.minor; WinUI (own 3.x versioning) is the resolved package's file.
+$sdk = [regex]::Match((Get-Content (Join-Path $repo "$app.csproj") -Raw), 'Include="Microsoft\.WindowsAppSDK"\s+Version="([^"]+)"').Groups[1].Value
+$mm = ($sdk -split '\.')[0..1] -join '.'
+$rt = Join-Path $Dir 'Microsoft.WindowsAppRuntime.dll'
+$rtv = if (Test-Path $rt) { $i = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($rt); "$($i.ProductMajorPart).$($i.ProductMinorPart)" } else { $null }
+Check "Microsoft.WindowsAppRuntime.dll $mm" ($sdk -and $rtv -eq $mm)
+$assets = Get-Content (Join-Path $repo 'obj\project.assets.json') -Raw | ConvertFrom-Json
+$winui = $assets.libraries.PSObject.Properties | Where-Object { $_.Name -like 'Microsoft.WindowsAppSDK.WinUI/*' } | Select-Object -First 1
+$shipped = if ($winui) { Join-Path ($assets.packageFolders.PSObject.Properties | Select-Object -First 1).Name "$($winui.Value.path)\runtimes-framework\win-x86\native\Microsoft.ui.xaml.dll" } else { $null }
+$xaml = Join-Path $Dir 'Microsoft.ui.xaml.dll'
+Check "Microsoft.ui.xaml.dll from $($winui.Name)" ($shipped -and (Test-Path $shipped) -and (Test-Path $xaml) -and
+    (Get-FileHash $shipped).Hash -eq (Get-FileHash $xaml).Hash)
 
 # PE header: machine at e_lfanew+4, characteristics at e_lfanew+22 (0x20 = large address aware).
 $x86 = $false; $laa = $false
