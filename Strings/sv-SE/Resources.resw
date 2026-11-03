@@ -421,6 +421,7 @@ Vill du fortsätta?</value></data>
   <data name="AiScore_Ready" xml:space="preserve"><value>AI-sannolikheten är på. Kör Beräkna statistik på en spellista för att ge dess låtar poäng.</value></data>
   <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>AI-sannolikheten kunde inte köras: {0}</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Troligen AI</value></data>
+  <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Möjligen AI</value></data>
   <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Oklart</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Troligen mänsklig</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>AI-sannolikhet: {0} %. En uppskattning, inte ett bevis.</value></data>

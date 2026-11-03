@@ -421,6 +421,7 @@ Wil je doorgaan?</value></data>
   <data name="AiScore_Ready" xml:space="preserve"><value>De AI-waarschijnlijkheid staat aan. Voer Statistieken berekenen uit op een afspeellijst om de nummers te scoren.</value></data>
   <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>De AI-waarschijnlijkheid kon niet worden uitgevoerd: {0}</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Waarschijnlijk AI</value></data>
+  <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Mogelijk AI</value></data>
   <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Onduidelijk</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Waarschijnlijk menselijk</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>AI-waarschijnlijkheid: {0}%. Een schatting, geen bewijs.</value></data>

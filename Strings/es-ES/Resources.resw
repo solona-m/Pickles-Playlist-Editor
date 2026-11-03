@@ -421,6 +421,7 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="AiScore_Ready" xml:space="preserve"><value>La probabilidad de IA está activada. Ejecuta Calcular estadísticas en una lista para puntuar sus canciones.</value></data>
   <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>No se pudo ejecutar la probabilidad de IA: {0}</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Probable IA</value></data>
+  <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Posiblemente IA</value></data>
   <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Incierto</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Probable humano</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>Probabilidad de IA: {0} %. Una estimación, no una prueba.</value></data>

@@ -421,6 +421,7 @@ Möchtest du fortfahren?</value></data>
   <data name="AiScore_Ready" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit ist eingeschaltet. Führe „Statistik berechnen“ für eine Playlist aus, um ihre Songs zu bewerten.</value></data>
   <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit konnte nicht ausgeführt werden: {0}</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Wahrscheinlich KI</value></data>
+  <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Möglicherweise KI</value></data>
   <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Unklar</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Wahrscheinlich menschlich</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>KI-Wahrscheinlichkeit: {0} %. Eine Schätzung, kein Beweis.</value></data>

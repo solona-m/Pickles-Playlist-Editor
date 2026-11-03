@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace Pickles_Playlist_Editor.Utils
 {
-    internal enum AiBand { LikelyHuman, Unclear, LikelyAi }
+    internal enum AiBand { LikelyHuman, Unclear, PossiblyAi, LikelyAi }
 
     internal enum AiScoreOutcome { Scored, NoScore, Failed }
 
@@ -13,19 +13,20 @@ namespace Pickles_Playlist_Editor.Utils
         public static AiScoreResult Fail(string error) => new(AiScoreOutcome.Failed, null, 0, 0, error);
     }
 
-    /// <summary>What a song's AI chip shows: only a Likely AI score, and only while the setting is on.</summary>
+    /// <summary>What a song's AI chip shows: only a Possibly or Likely AI score, and only while the setting is on.</summary>
     internal static class AiScoreDisplay
     {
         public static (bool Visible, AiBand Band, int Percent) For(int? stored, bool enabled)
         {
-            if (!enabled || AiScoreMath.Band(stored) is not AiBand.LikelyAi) return (false, AiBand.Unclear, 0);
-            return (true, AiBand.LikelyAi, Percent(stored!.Value));
+            var band = AiScoreMath.Band(stored);
+            if (!enabled || band is not (AiBand.LikelyAi or AiBand.PossiblyAi)) return (false, AiBand.Unclear, 0);
+            return (true, band.Value, Percent(stored!.Value));
         }
 
-        /// <summary>Whole percent; 0 and 100 only for exact scores, so a near-certain one never reads as certain.</summary>
+        /// <summary>Whole percent, rounded down so it agrees with the band; 0 and 100 only for exact scores.</summary>
         public static int Percent(int stored)
         {
-            int p = (int)Math.Round(stored / 10.0, MidpointRounding.AwayFromZero);
+            int p = stored / 10;
             return stored > 0 && stored < 1000 ? Math.Clamp(p, 1, 99) : p;
         }
     }
@@ -41,6 +42,7 @@ namespace Pickles_Playlist_Editor.Utils
         public const int MinSamples = 80_000;      // 5 s
         public const double SilenceRms = 1e-3;     // -60 dBFS
         public const int AiThreshold = 700, HumanThreshold = 300, NoScore = -1;
+        public const int PossibleThreshold = 510; // the first score that reads as 51%
 
         public static double Sigmoid(double x) => 1.0 / (1.0 + Math.Exp(-x));
 
@@ -52,6 +54,7 @@ namespace Pickles_Playlist_Editor.Utils
         {
             null or < 0 => null,
             >= AiThreshold => AiBand.LikelyAi,
+            >= PossibleThreshold => AiBand.PossiblyAi,
             <= HumanThreshold => AiBand.LikelyHuman,
             _ => AiBand.Unclear,
         };
