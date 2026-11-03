@@ -96,6 +96,17 @@ public sealed class AdpcmScdFixture : IDisposable
 
     public static ushort SamplesPerBlock(byte[] fmt) => BitConverter.ToUInt16(fmt, 18);
 
+    internal static string DefaultScdCopy() => CopyOfDefault();
+
+    /// <summary>A temp copy, so reading it never holds the original open.</summary>
+    internal static string CopyOf(string path)
+    {
+        string copy = Path.Combine(Path.GetTempPath(), "scd-audio-tests", $"copy-{Guid.NewGuid():N}.scd");
+        Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
+        File.Copy(path, copy);
+        return copy;
+    }
+
     private static string CopyOfDefault()
     {
         string copy = Path.Combine(Path.GetTempPath(), "scd-audio-tests", $"default-{Guid.NewGuid():N}.scd");
