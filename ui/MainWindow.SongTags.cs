@@ -66,8 +66,15 @@ namespace Pickles_Playlist_Editor
                 var result = await Task.Run(() =>
                 {
                     using (ThreadPriorityScope.Background())
-                        return SongTagScan.Run(paths, SongTagCache.Default, SongTagReader.Read, ct,
-                            n => { if (n % SongTagScan.FlushEvery == 0) _uiDispatcherQueue.TryEnqueue(RefreshSongTooltips); });
+                    {
+                        LibraryReadGate.Shared.Enter(ct); // never alongside a stats run or AI scoring
+                        try
+                        {
+                            return SongTagScan.Run(paths, SongTagCache.Default, SongTagReader.Read, ct,
+                                n => { if (n % SongTagScan.FlushEvery == 0) _uiDispatcherQueue.TryEnqueue(RefreshSongTooltips); });
+                        }
+                        finally { LibraryReadGate.Shared.Exit(); }
+                    }
                 });
                 Logger.LogInfo("Song tags: {Read} read ({Tagged} with artist or album), {Unreadable} unreadable, {Known} already known, {Refused} skipped",
                     result.Read, result.Tagged, result.Unreadable, result.AlreadyKnown, result.Refused);

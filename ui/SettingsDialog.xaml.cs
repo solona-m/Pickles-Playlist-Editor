@@ -509,9 +509,11 @@ namespace Pickles_Playlist_Editor
             if (result != 6) // not IDYES
                 return;
 
+            App.MainWindow.PrepareForExit(); // this exit skips AppWindow.Closing
             try
             {
                 Microsoft.Windows.AppLifecycle.AppInstance.Restart(string.Empty);
+                App.MainWindow.ResumeAfterAbortedExit(); // Restart returned: still running
             }
             catch
             {

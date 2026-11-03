@@ -110,6 +110,9 @@ namespace Pickles_Playlist_Editor
         public static string Summary_AiScore => _r.GetString("Summary_AiScore");
         public static string ProgAiScoring(int done, int total) => string.Format(_r.GetString("Prog_AiScoring"), done, total);
         public static string Prog_ComputingStats => _r.GetString("Prog_ComputingStats");
+        public static string ProgComputingStats(int done, int total) => string.Format(_r.GetString("Prog_ComputingStatsCount"), done, total);
+        public static string Prog_StatsWaitingToApply => _r.GetString("Prog_StatsWaitingToApply");
+        public static string StatsAnalyseFailed(string song) => string.Format(_r.GetString("Stats_AnalyseFailed"), song);
         public static string Summary_ComputeStats => _r.GetString("Summary_ComputeStats");
         public static string Prog_ConvertingToStereo => _r.GetString("Prog_ConvertingToStereo");
         public static string Tree_PlaylistsRoot => _r.GetString("Tree_PlaylistsRoot");

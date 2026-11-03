@@ -426,6 +426,10 @@ Voulez-vous continuer ?</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Probablement humain</value></data>
   <data name="SongTip_Artist" xml:space="preserve"><value>Artiste : {0}</value></data>
   <data name="SongTip_Album" xml:space="preserve"><value>Album : {0}</value></data>
+  <data name="Prog_ComputingStatsCount" xml:space="preserve"><value>Calcul du BPM et de la tonalité {0}/{1}...</value></data>
+  <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>Statistiques prêtes, mise à jour des noms en attente...</value></data>
+  <data name="Stats_AlreadyRunning" xml:space="preserve"><value>Calculer les statistiques est déjà en cours en arrière-plan. Réessayez quand la barre de progression en bas sera terminée.</value></data>
+  <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0} : l'audio n'a pas pu être analysé</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>Probabilité d'IA : {0} %. Une estimation, pas une preuve.</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>Probabilité d'IA : {0} notés, {3} déjà notés, {1} sans score (silencieux ou trop courts), {2} illisibles.</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>La probabilité d'IA a été ignorée : ses fichiers ne sont pas prêts.</value></data>

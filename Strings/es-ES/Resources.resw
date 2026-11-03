@@ -426,6 +426,10 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Probable humano</value></data>
   <data name="SongTip_Artist" xml:space="preserve"><value>Artista: {0}</value></data>
   <data name="SongTip_Album" xml:space="preserve"><value>Álbum: {0}</value></data>
+  <data name="Prog_ComputingStatsCount" xml:space="preserve"><value>Calculando BPM y tonalidad {0}/{1}...</value></data>
+  <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>Estadísticas listas, esperando para actualizar los nombres...</value></data>
+  <data name="Stats_AlreadyRunning" xml:space="preserve"><value>Calcular estadísticas ya se está ejecutando en segundo plano. Inténtalo de nuevo cuando termine la barra de progreso de abajo.</value></data>
+  <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0}: no se pudo analizar el audio</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>Probabilidad de IA: {0} %. Una estimación, no una prueba.</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>Probabilidad de IA: {0} puntuadas, {3} ya puntuadas, {1} sin puntuación (silenciosas o demasiado cortas), {2} no se pudieron leer.</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>Se omitió la probabilidad de IA: sus archivos no están listos.</value></data>

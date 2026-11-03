@@ -210,9 +210,12 @@ namespace Pickles_Playlist_Editor
 
         // Cache-only: this runs for every song on every load, and GetKeyFromSCD would drag an FFT
         // analysis onto the UI thread per uncached song. No cached key simply means no chip.
-        private static void ApplyCamelotChip(PlaylistNodeContent node, Option song)
+        private static void ApplyCamelotChip(PlaylistNodeContent node, Option song) => ApplyCamelotChip(node, Playlist.GetScdPath(song));
+
+        private static void ApplyCamelotChip(PlaylistNodeContent node) => ApplyCamelotChip(node, node.ScdRel);
+
+        private static void ApplyCamelotChip(PlaylistNodeContent node, string? scd)
         {
-            var scd = Playlist.GetScdPath(song);
             if (string.IsNullOrEmpty(scd)) return;
 
             string? key = KeyDetector.TryGetCachedKey(scd);
@@ -400,6 +403,9 @@ namespace Pickles_Playlist_Editor
                     if (!bpm.HasValue && string.IsNullOrEmpty(key) && !duration.HasValue) continue;
 
                     OptionStatsNaming.UpdateName(option, bpm, key, duration);
+                    // In memory only; a stats run may save these (MainWindow.Stats.cs).
+                    _backfilledPlaylists.Add(playlist);
+                    _backfilledOptions.Add(option);
                 }
             }
         }
@@ -503,6 +509,7 @@ namespace Pickles_Playlist_Editor
             ProgressLabel.Text = "";
             BusyProgressLabel.Text = "";
             SetBusyOverlayVisible(false);
+            RenderBackgroundProgress(); // a background stats or AI pass shows again
         }
 
         private Storyboard GetSpinnerStoryboard()
@@ -692,7 +699,9 @@ namespace Pickles_Playlist_Editor
                 Utils.VersionBackup.TryCaptureBeforeUpdate(targetVersion);
 
                 await mgr.DownloadUpdatesAsync(update);
-                mgr.ApplyUpdatesAndRestart(update);
+                PrepareForExit(); // this exit skips AppWindow.Closing
+                try { mgr.ApplyUpdatesAndRestart(update); }
+                catch { ResumeAfterAbortedExit(); throw; }
             }
             catch (Exception ex)
             {

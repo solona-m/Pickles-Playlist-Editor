@@ -39,23 +39,28 @@ namespace Pickles_Playlist_Editor.Utils
         /// </summary>
         internal static void UpdateName(Option option, int? bpm, string? key, TimeSpan? duration, Parts parts)
         {
-            string baseName = StripSuffix(option.Name);
+            option.Name = StripSuffix(option.Name) + BpmPart(bpm, parts) + KeyPart(key, parts) + LengthPart(duration, parts);
+        }
 
-            if (parts.Bpm && bpm.HasValue && bpm.Value > 0)
-                baseName += $" ({bpm.Value} BPM)";
+        // The three suffix parts, each with its leading space, or "" when off or unknown. Shared with the
+        // additive rename of the automatic stats run, so both write the same text.
+        internal static string BpmPart(int? bpm, Parts parts) =>
+            parts.Bpm && bpm.HasValue && bpm.Value > 0 ? $" ({bpm.Value} BPM)" : "";
 
+        internal static string KeyPart(string? key, Parts parts)
+        {
             // Normalized, so a song whose cache entry predates the current spelling reads
             // "[3B C#]" rather than "[3B C# Major]" beside its neighbours.
             string? shortKey = Camelot.Normalize(key);
             var keyParts = new List<string>(2);
             if (parts.Camelot && Camelot.Code(key) is string code) keyParts.Add(code);
             if (parts.Key && !string.IsNullOrEmpty(shortKey)) keyParts.Add(shortKey);
-            if (keyParts.Count > 0) baseName += $" [{string.Join(' ', keyParts)}]";
-
-            if (parts.Length && duration.HasValue && duration.Value > TimeSpan.Zero)
-                baseName += $" ({(int)duration.Value.TotalHours:D2}:{duration.Value.Minutes:D2}:{duration.Value.Seconds:D2})";
-
-            option.Name = baseName;
+            return keyParts.Count > 0 ? $" [{string.Join(' ', keyParts)}]" : "";
         }
+
+        internal static string LengthPart(TimeSpan? duration, Parts parts) =>
+            parts.Length && duration.HasValue && duration.Value > TimeSpan.Zero
+                ? $" ({(int)duration.Value.TotalHours:D2}:{duration.Value.Minutes:D2}:{duration.Value.Seconds:D2})"
+                : "";
     }
 }

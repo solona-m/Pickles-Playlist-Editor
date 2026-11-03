@@ -38,6 +38,7 @@ namespace Pickles_Playlist_Editor
         public MainWindow()
         {
             _aiGate = new AiPassGate(_closingCts.Token);
+            _statsGate = new StatsPassGate(_closingCts.Token);
             this.InitializeComponent();
             _uiDispatcherQueue = DispatcherQueue;
             InitializePlaybackTimer();
@@ -94,6 +95,7 @@ namespace Pickles_Playlist_Editor
                 // Don't let a debounced Penumbra reload get dropped by closing mid-countdown.
                 Playlist.FlushPenumbraMod();
                 DisposeAiScore();
+                PrepareForExit();
             };
         }
 
@@ -143,10 +145,15 @@ namespace Pickles_Playlist_Editor
                 UseDescriptionForTitle = !string.IsNullOrWhiteSpace(description)
             };
 
-            return Task.FromResult(
-                dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
-                    ? dialog.SelectedPath
-                    : null);
+            _nativeModalOpen++; // its message loop can run dispatcher work; stats names wait
+            try
+            {
+                return Task.FromResult(
+                    dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
+                        ? dialog.SelectedPath
+                        : null);
+            }
+            finally { _nativeModalOpen--; }
         }
 
         public Task<string[]?> PickFilesAsync(params string[] extensions)
@@ -158,10 +165,15 @@ namespace Pickles_Playlist_Editor
                 Multiselect = true
             };
 
-            return Task.FromResult(
-                dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
-                    ? dialog.FileNames
-                    : null);
+            _nativeModalOpen++; // its message loop can run dispatcher work; stats names wait
+            try
+            {
+                return Task.FromResult(
+                    dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
+                        ? dialog.FileNames
+                        : null);
+            }
+            finally { _nativeModalOpen--; }
         }
 
         public Task<string?> PickSingleFileAsync(params string[] extensions)
@@ -173,10 +185,15 @@ namespace Pickles_Playlist_Editor
                 Multiselect = false
             };
 
-            return Task.FromResult(
-                dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
-                    ? dialog.FileName
-                    : null);
+            _nativeModalOpen++; // its message loop can run dispatcher work; stats names wait
+            try
+            {
+                return Task.FromResult(
+                    dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
+                        ? dialog.FileName
+                        : null);
+            }
+            finally { _nativeModalOpen--; }
         }
 
         private static string BuildFileDialogFilter(params string[] extensions)
@@ -268,8 +285,9 @@ namespace Pickles_Playlist_Editor
 
             RefreshAiScoreUi(reload: false); // before the tree is built, so chips show on first load
             LoadPlaylists();
-            _aiModKey = Utils.AiScoreCache.Key(Utils.PenumbraMeta.ModRoot); // no AI scan at startup
+            _aiModKey = Utils.AiScoreCache.Key(Utils.PenumbraMeta.ModRoot); // startup AI work only via the once-per-version stats run
             StartSongTagScan(); // quiet; reads only songs whose tags aren't known yet
+            MaybeStartAutoStats(); // once per app version
 
             _ = CheckForUpdatesAsync();
             if (string.IsNullOrWhiteSpace(Settings.PenumbraLocation) || string.IsNullOrWhiteSpace(Settings.ModName))
@@ -721,7 +739,10 @@ namespace Pickles_Playlist_Editor
         /// </summary>
         internal async Task ApplyNamingOptionsAsync()
         {
-            var failed = await Task.Run(() => Library.RefreshStatNames());
+            _namingRefreshInFlight = true; // a background stats run waits for this
+            List<string> failed;
+            try { failed = await Task.Run(() => Library.RefreshStatNames()); }
+            finally { _namingRefreshInFlight = false; }
             Playlists = Playlist.GetAll();
             if (failed.Count > 0)
                 Utils.Logger.LogWarn("Song names: {Count} playlist(s) could not be saved: {Names}",

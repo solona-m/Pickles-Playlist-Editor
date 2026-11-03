@@ -68,7 +68,7 @@ namespace Pickles_Playlist_Editor.Utils
                 }
 
                 string key = ScdOggExtractor.WithExtractedOgg(path, DetectKeyFromFile);
-                keyCache[path] = key;
+                StatsCacheWrites.Write(() => keyCache[path] = key);
                 return key;
             }
             catch (Exception ex)
@@ -97,8 +97,8 @@ namespace Pickles_Playlist_Editor.Utils
             {
                 if (keyCache.ContainsKey(oldFullPath))
                 {
-                    keyCache[newFullPath] = keyCache[oldFullPath];
-                    keyCache.Remove(oldFullPath);
+                    StatsCacheWrites.Write(() => keyCache[newFullPath] = keyCache[oldFullPath]);
+                    StatsCacheWrites.Write(() => keyCache.Remove(oldFullPath));
                 }
             }
             catch (Exception ex)

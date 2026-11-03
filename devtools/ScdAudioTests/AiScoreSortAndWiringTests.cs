@@ -52,13 +52,16 @@ public class AiScoreSortAndWiringTests
     [Fact] // [AC-ai-score-1] [AC-ai-score-4] [EDGE-ai-score-38]
     public void ComputeStats_TwoPhases()
     {
+        // Retargeted for background Compute Stats: the click starts a run; the phases are ordered in RunStatsPassAsync.
         string handler = Method(Src("ui/MainWindow.ContextMenu.cs"), "private async void ComputeStatsMenuItem_Click");
-        Assert.Contains("if (Settings.AiScoreEnabled) await RunAiScorePhaseAsync(targetSongs);", handler); // no AI work while off
-        int summary = handler.IndexOf("ShowOperationSummary(AppStrings.Summary_ComputeStats", StringComparison.Ordinal);
-        int phase2 = handler.IndexOf("RunAiScorePhaseAsync(", StringComparison.Ordinal);
+        Assert.Contains("StartStatsRun(targetSongs, StatsPassKind.Manual)", handler);
+        string run = Method(Src("ui/MainWindow.Stats.cs"), "private async Task RunStatsPassAsync");
+        Assert.Contains("if (Settings.AiScoreEnabled) await RunAiScorePhaseAsync(targets);", run); // no AI work while off
+        int summary = run.IndexOf("ShowOperationSummary(AppStrings.Summary_ComputeStats", StringComparison.Ordinal);
+        int phase2 = run.IndexOf("RunAiScorePhaseAsync(", StringComparison.Ordinal);
         Assert.True(summary > 0 && phase2 > summary, "phase 2 runs after the phase 1 summary");
-        int phase1Run = handler.IndexOf("await Task.Run(", StringComparison.Ordinal);
-        Assert.True(phase1Run < summary);
+        int phase1Run = run.IndexOf("StatsDetectLoop.RunAsync(", StringComparison.Ordinal);
+        Assert.True(phase1Run > 0 && phase1Run < summary);
         string phase = Method(Src("ui/MainWindow.AiScore.cs"), "private async Task RunAiScorePhaseAsync");
         foreach (var bad in new[] { ".Save(", "UpdateName", "option.Name =" }) Assert.DoesNotContain(bad, phase);
         Assert.Matches(@"await Task\.Run\(\(\) =>[\s\S]*ScoreSong", phase);

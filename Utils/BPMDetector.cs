@@ -68,8 +68,8 @@ namespace Pickles_Playlist_Editor.Utils
                     try
                     {
                         SongAttributes retval = ScdOggExtractor.WithExtractedOgg(path, GetAttribtesFromFile);
-                        bpmCache[path] = retval.BPM;
-                        durationCache[path] = (int)retval.Duration.TotalSeconds;
+                        StatsCacheWrites.Write(() => bpmCache[path] = retval.BPM);
+                        StatsCacheWrites.Write(() => durationCache[path] = (int)retval.Duration.TotalSeconds);
 
                         return retval.Duration;
                     }
@@ -92,13 +92,13 @@ namespace Pickles_Playlist_Editor.Utils
             {
                 if (bpmCache.ContainsKey(oldFullPath))
                 {
-                    bpmCache[newFullPath] = bpmCache[oldFullPath];
-                    bpmCache.Remove(oldFullPath);
+                    StatsCacheWrites.Write(() => bpmCache[newFullPath] = bpmCache[oldFullPath]);
+                    StatsCacheWrites.Write(() => bpmCache.Remove(oldFullPath));
                 }
                 if (durationCache.ContainsKey(oldFullPath))
                 {
-                    durationCache[newFullPath] = durationCache[oldFullPath];
-                    durationCache.Remove(oldFullPath);
+                    StatsCacheWrites.Write(() => durationCache[newFullPath] = durationCache[oldFullPath]);
+                    StatsCacheWrites.Write(() => durationCache.Remove(oldFullPath));
                 }
             }
             catch (Exception ex)
@@ -119,8 +119,8 @@ namespace Pickles_Playlist_Editor.Utils
                 }
 
                 SongAttributes retval = ScdOggExtractor.WithExtractedOgg(path, GetAttribtesFromFile);
-                bpmCache[path] = retval.BPM;
-                durationCache[path] = (int)retval.Duration.TotalSeconds;
+                StatsCacheWrites.Write(() => bpmCache[path] = retval.BPM);
+                StatsCacheWrites.Write(() => durationCache[path] = (int)retval.Duration.TotalSeconds);
                 return retval.BPM;
             }
             catch (Exception ex)
