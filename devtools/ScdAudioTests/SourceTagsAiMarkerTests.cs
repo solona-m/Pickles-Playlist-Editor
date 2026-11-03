@@ -196,8 +196,26 @@ public sealed class SourceTagsAiMarkerFfmpegTests : IDisposable
         Assert.Equal(before, SourceFiles.TempMetaFiles()); // killed, waited for, then deleted
         Assert.Null(SourceTagReader.Read(src, TimeSpan.FromMilliseconds(1)));
         Assert.Equal(before, SourceFiles.TempMetaFiles());
-        // no ffmpeg started by these calls is still alive
-        Assert.All(System.Diagnostics.Process.GetProcessesByName("ffmpeg"), p => Assert.Contains(p.Id, ffmpegBefore));
+        // no ffmpeg started by these calls is still alive; only our own children count, so the running app's ffmpeg can't fail it
+        int self = Environment.ProcessId;
+        Assert.DoesNotContain(System.Diagnostics.Process.GetProcessesByName("ffmpeg"), p => !ffmpegBefore.Contains(p.Id) && ParentOf(p) == self);
+    }
+
+    [System.Runtime.InteropServices.DllImport("ntdll.dll")]
+    private static extern int NtQueryInformationProcess(IntPtr process, int infoClass, ref ProcessBasicInfo info, int size, out int returned);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct ProcessBasicInfo { public IntPtr R1, Peb, R2a, R2b, UniqueProcessId, InheritedFromUniqueProcessId; }
+
+    private static int ParentOf(System.Diagnostics.Process p)
+    {
+        try
+        {
+            var info = new ProcessBasicInfo();
+            return NtQueryInformationProcess(p.Handle, 0, ref info, System.Runtime.InteropServices.Marshal.SizeOf(info), out _) == 0
+                ? (int)info.InheritedFromUniqueProcessId : -1;
+        }
+        catch { return -1; } // exited, or not ours to open
     }
 
     [Theory] // [EDGE-gh-20-source-tags-ai-marker-1] [EDGE-gh-20-source-tags-ai-marker-9]
