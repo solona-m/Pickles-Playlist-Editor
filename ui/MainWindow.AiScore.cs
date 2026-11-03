@@ -69,12 +69,7 @@ namespace Pickles_Playlist_Editor
             node.AiText = AppStrings.Get(AiScoreText.BandKey(band));
             node.AiTooltip = AppStrings.AiScoreTooltip(percent);
             node.AiAutomationName = node.AiText + ", " + node.AiTooltip;
-            node.AiBrush = new SolidColorBrush(band switch
-            {
-                AiBand.LikelyAi => Color.FromArgb(255, 0xF2, 0xA3, 0x3A),     // amber, not red: an estimate, not an accusation
-                AiBand.LikelyHuman => Color.FromArgb(255, 0x8B, 0xC9, 0x8B),
-                _ => Color.FromArgb(255, 0xB8, 0xB8, 0xB8),
-            });
+            node.AiBrush = new SolidColorBrush(Color.FromArgb(255, 0xF2, 0xA3, 0x3A)); // amber, not red: an estimate, not an accusation
             node.AiVisibility = Visibility.Visible;
         }
 

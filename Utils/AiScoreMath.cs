@@ -13,13 +13,13 @@ namespace Pickles_Playlist_Editor.Utils
         public static AiScoreResult Fail(string error) => new(AiScoreOutcome.Failed, null, 0, 0, error);
     }
 
-    /// <summary>What a song's AI chip shows: nothing unless the setting is on and a real score is cached.</summary>
+    /// <summary>What a song's AI chip shows: only a Likely AI score, and only while the setting is on.</summary>
     internal static class AiScoreDisplay
     {
         public static (bool Visible, AiBand Band, int Percent) For(int? stored, bool enabled)
         {
-            if (!enabled || AiScoreMath.Band(stored) is not AiBand band) return (false, AiBand.Unclear, 0);
-            return (true, band, Percent(stored!.Value));
+            if (!enabled || AiScoreMath.Band(stored) is not AiBand.LikelyAi) return (false, AiBand.Unclear, 0);
+            return (true, AiBand.LikelyAi, Percent(stored!.Value));
         }
 
         /// <summary>Whole percent; 0 and 100 only for exact scores, so a near-certain one never reads as certain.</summary>

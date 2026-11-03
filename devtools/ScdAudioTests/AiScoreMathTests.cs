@@ -69,8 +69,11 @@ public class AiScoreMathTests
     [Theory] // [AC-ai-score-1] [AC-ai-score-5] [EDGE-ai-score-22] off hides any score; otherwise band + raw
     [InlineData(812, false, false, "", 0)]
     [InlineData(812, true, true, "LikelyAi", 81)]
-    [InlineData(300, true, true, "LikelyHuman", 30)]
-    [InlineData(455, true, true, "Unclear", 46)]
+    [InlineData(700, true, true, "LikelyAi", 70)]
+    [InlineData(699, true, false, "", 0)]
+    [InlineData(300, true, false, "", 0)]
+    [InlineData(455, true, false, "", 0)]
+    [InlineData(0, true, false, "", 0)]
     [InlineData(-1, true, false, "", 0)]
     [InlineData(null, true, false, "", 0)]
     public void Display_For(int? stored, bool enabled, bool visible, string band, int percent)
