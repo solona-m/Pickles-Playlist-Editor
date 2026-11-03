@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Licence texts ship byte-for-byte (tests pin their bytes), whatever the checkout line-ending settings.
+licenses/*.txt -text

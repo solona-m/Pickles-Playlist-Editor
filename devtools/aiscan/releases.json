@@ -1,0 +1,30 @@
+{
+  "aiscan-v1": [
+    {
+      "name": "ffmpeg.exe",
+      "bytes": 227823104,
+      "sha256": "589e50b766d251afdf181dd664d40bd94407e200b019989fd7468c7d118a28d0",
+      "source": {
+        "kind": "gyan",
+        "url": "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-full_build.7z",
+        "archiveBytes": 168971636,
+        "archiveSha256": "f0e46253c70dfe902bac915dfb4224f0cf1b7c6eeab9da2ccc9a5581f9a71b13",
+        "path": "ffmpeg-9.0.2-full_build/bin/ffmpeg.exe",
+        "version": "9.0.2-full_build-www.gyan.dev",
+        "sourceUrl": "https://github.com/FFmpeg/FFmpeg/commit/946fcce07b"
+      }
+    },
+    {
+      "name": "sonics-beta-120s.onnx",
+      "bytes": 1160829,
+      "sha256": "ef15582fef09654f2638c3656d7cd3615e61471e461a8cd460797b176db657a7",
+      "source": { "kind": "manual", "from": "awsaf49/sonics-spectttra-beta-120s@cc49422a98b5b92700876c608d0f9cdf27214a3e" }
+    },
+    {
+      "name": "sonics-beta-120s.onnx.data",
+      "bytes": 86246448,
+      "sha256": "9ac1de27e38dc5e84c917753dac67d1ef6da72dd23d147a090954789f3b30ceb",
+      "source": { "kind": "manual", "from": "awsaf49/sonics-spectttra-beta-120s@cc49422a98b5b92700876c608d0f9cdf27214a3e" }
+    }
+  ]
+}
