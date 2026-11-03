@@ -221,6 +221,7 @@ namespace Pickles_Playlist_Editor.Utils
                     try
                     {
                         int n = _samples.Read(buffer, offset, count);
+                        if (_closed) { DisposeReaderOnce(); return 0; } // Close timed out while this Read ran
                         Interlocked.Exchange(ref _positionTicks, _reader.CurrentTime.Ticks);
                         return n;
                     }
@@ -258,7 +259,7 @@ namespace Pickles_Playlist_Editor.Utils
                 _closed = true;
                 if (!Monitor.TryEnter(_readerLock, 1000))
                 {
-                    // The busy Read disposes the reader when it next runs.
+                    // The busy Read disposes the reader when it returns.
                     _warn("Closing the decoder timed out; the file stays open until the decoder returns.");
                     return;
                 }
