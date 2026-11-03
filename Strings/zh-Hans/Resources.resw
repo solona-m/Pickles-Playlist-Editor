@@ -424,6 +424,8 @@
   <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>可能是 AI</value></data>
   <data name="AiScore_Band_Unclear" xml:space="preserve"><value>不确定</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>可能是人类创作</value></data>
+  <data name="SongTip_Artist" xml:space="preserve"><value>艺术家：{0}</value></data>
+  <data name="SongTip_Album" xml:space="preserve"><value>专辑：{0}</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>AI 可能性：{0}%。这是估计，不是证据。</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>AI 可能性：已评分 {0} 首，之前已评分 {3} 首，{1} 首无评分（静音或太短），{2} 首无法读取。</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>已跳过 AI 可能性评分：其文件尚未就绪。</value></data>

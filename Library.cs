@@ -418,6 +418,7 @@ namespace Pickles_Playlist_Editor
                             Utils.BPMDetector.UpdateCacheForSCD(currentFull, candidateFull);
                             Utils.KeyDetector.UpdateCacheForSCD(currentFull, candidateFull);
                             Utils.AiScoreCache.Default.UpdateCacheForSCD(currentFull, candidateFull);
+                            Utils.SongTagCache.Default.UpdateCacheForSCD(currentFull, candidateFull);
                             currentRel = candidateRel;
                         }
 

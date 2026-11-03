@@ -424,6 +424,8 @@ Vill du fortsätta?</value></data>
   <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Möjligen AI</value></data>
   <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Oklart</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Troligen mänsklig</value></data>
+  <data name="SongTip_Artist" xml:space="preserve"><value>Artist: {0}</value></data>
+  <data name="SongTip_Album" xml:space="preserve"><value>Album: {0}</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>AI-sannolikhet: {0} %. En uppskattning, inte ett bevis.</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>AI-sannolikhet: {0} fick poäng, {3} hade redan poäng, {1} utan poäng (tysta eller för korta), {2} kunde inte läsas.</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>AI-sannolikheten hoppades över: dess filer är inte klara.</value></data>

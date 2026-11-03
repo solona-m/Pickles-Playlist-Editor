@@ -330,6 +330,7 @@ namespace Pickles_Playlist_Editor
                 Utils.BPMDetector.UpdateCacheForSCD(oldFullPath, newPath);
                 Utils.KeyDetector.UpdateCacheForSCD(oldFullPath, newPath);
                 Utils.AiScoreCache.Default.UpdateCacheForSCD(oldFullPath, newPath);
+                Utils.SongTagCache.Default.UpdateCacheForSCD(oldFullPath, newPath);
                 string newRel = Path.Combine(targetScdDirectory, Path.GetFileName(newPath));
                 foreach (var (key, _) in keys)
                     song.Files[key] = newRel;
@@ -355,6 +356,7 @@ namespace Pickles_Playlist_Editor
                         Utils.BPMDetector.UpdateCacheForSCD(newPath, oldFullPath);
                         Utils.KeyDetector.UpdateCacheForSCD(newPath, oldFullPath);
                         Utils.AiScoreCache.Default.UpdateCacheForSCD(newPath, oldFullPath);
+                        Utils.SongTagCache.Default.UpdateCacheForSCD(newPath, oldFullPath);
                     }
                     catch (Exception moveBack)
                     {

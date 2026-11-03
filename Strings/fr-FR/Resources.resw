@@ -424,6 +424,8 @@ Voulez-vous continuer ?</value></data>
   <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Peut-être IA</value></data>
   <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Incertain</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Probablement humain</value></data>
+  <data name="SongTip_Artist" xml:space="preserve"><value>Artiste : {0}</value></data>
+  <data name="SongTip_Album" xml:space="preserve"><value>Album : {0}</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>Probabilité d'IA : {0} %. Une estimation, pas une preuve.</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>Probabilité d'IA : {0} notés, {3} déjà notés, {1} sans score (silencieux ou trop courts), {2} illisibles.</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>La probabilité d'IA a été ignorée : ses fichiers ne sont pas prêts.</value></data>

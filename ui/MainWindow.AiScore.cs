@@ -52,19 +52,22 @@ namespace Pickles_Playlist_Editor
         }
 
         /// <summary>
-        /// After Settings has closed and the library has been reloaded: scan it if AI was just turned on, or rescan
-        /// if the mod folder changed while AI is on.
+        /// After Settings has closed and the library has been reloaded: read new songs' tags; scan for AI if it was just
+        /// turned on, or rescan if the mod folder changed while AI is on.
         /// </summary>
         internal void ContinueAiScoreAfterSettings(bool libraryFresh)
         {
             string key = AiScoreCache.Key(Utils.PenumbraMeta.ModRoot);
             bool modChanged = _aiModKey != null && key != _aiModKey;
             _aiModKey = key;
+            // Reloaded first, whatever the AI setting, so both scans snapshot the new mod. A running AI pass keeps
+            // its own snapshot, and RefreshAiChips walks the rebuilt tree.
+            if (modChanged && !libraryFresh) LoadPlaylists();
+            StartSongTagScan(modChanged);
             if (!Settings.AiScoreEnabled) { _aiScanWanted = false; return; }
             if (modChanged) _aiGate.CancelRunning();
             if (_aiScanWanted || modChanged)
             {
-                if (modChanged && !libraryFresh) LoadPlaylists();
                 _aiScanWanted = false;
                 StartLibraryAiScan();
             }
@@ -118,7 +121,7 @@ namespace Pickles_Playlist_Editor
             {
                 foreach (var n in nodes)
                 {
-                    if (!string.IsNullOrEmpty(n.ScdRel)) ApplyAiChip(n);
+                    if (!string.IsNullOrEmpty(n.ScdRel)) { ApplyAiChip(n); ApplySongTooltip(n); }
                     Walk(n.Children);
                 }
             }

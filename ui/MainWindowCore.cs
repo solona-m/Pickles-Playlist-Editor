@@ -57,6 +57,7 @@ namespace Pickles_Playlist_Editor
                 BackfillStatsFromCacheIfNeeded();
 
                 RootPlaylistItems.Clear();
+                string? modRoot = SongTagCache.ModRootOrNull(Settings.PenumbraLocation, Settings.ModName); // once per load
 
                 var rootContent = new PlaylistNodeContent
                 {
@@ -101,13 +102,12 @@ namespace Pickles_Playlist_Editor
                                 playlistTime = playlistTime.Add(cachedTime);
                             }
 
-                            var songContent = CreateSongNode(song);
+                            var songContent = CreateSongNode(song, modRoot);
 
                             if (!string.IsNullOrEmpty(filter))
                             {
-                                var cmp = StringComparison.OrdinalIgnoreCase;
-                                if (playlist.Name?.IndexOf(filter, cmp) >= 0 ||
-                                    song.Name?.IndexOf(filter, cmp) >= 0)
+                                if (SongSearch.Matches(filter, playlist.Name, song.Name,
+                                    () => SongTagCache.Default.TryGetForRel(Playlist.GetScdPath(song) ?? "", modRoot)))
                                 {
                                     matchFound = true;
                                     playlistContent.AddChild(songContent);
@@ -192,7 +192,7 @@ namespace Pickles_Playlist_Editor
         // to a filtered rebuild instead.
         private bool IsFilterActive => !string.IsNullOrWhiteSpace(SearchTextBox?.Text);
 
-        private static PlaylistNodeContent CreateSongNode(Option song)
+        private static PlaylistNodeContent CreateSongNode(Option song, string? modRoot = null)
         {
             var node = new PlaylistNodeContent
             {
@@ -204,6 +204,7 @@ namespace Pickles_Playlist_Editor
             };
             ApplyCamelotChip(node, song);
             ApplyAiChip(node);
+            ApplySongTooltip(node, modRoot);
             return node;
         }
 
@@ -590,6 +591,7 @@ namespace Pickles_Playlist_Editor
                                             Playlist.NormalizeRelativeModPath(rel));
                                         if (File.Exists(scdFull)) File.Delete(scdFull);
                                         Utils.AiScoreCache.Default.Forget(scdFull);
+                                        Utils.SongTagCache.Default.Forget(scdFull);
                                     }
                                     catch { /* best-effort; a leftover file is harmless and Cleanup reclaims it */ }
                                 }
