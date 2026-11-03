@@ -426,6 +426,10 @@ Möchtest du fortfahren?</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Wahrscheinlich menschlich</value></data>
   <data name="SongTip_Artist" xml:space="preserve"><value>Interpret: {0}</value></data>
   <data name="SongTip_Album" xml:space="preserve"><value>Album: {0}</value></data>
+  <data name="Prog_ComputingStatsCount" xml:space="preserve"><value>BPM und Tonart werden berechnet {0}/{1}...</value></data>
+  <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>Statistik fertig, Songnamen werden gleich aktualisiert...</value></data>
+  <data name="Stats_AlreadyRunning" xml:space="preserve"><value>„Statistik berechnen“ läuft bereits im Hintergrund. Versuche es erneut, wenn der Fortschrittsbalken unten fertig ist.</value></data>
+  <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0}: Audio konnte nicht analysiert werden</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>KI-Wahrscheinlichkeit: {0} %. Eine Schätzung, kein Beweis.</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>KI-Wahrscheinlichkeit: {0} bewertet, {3} bereits bewertet, {1} ohne Wert (still oder zu kurz), {2} konnten nicht gelesen werden.</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit wurde übersprungen: ihre Dateien sind nicht bereit.</value></data>

@@ -678,6 +678,20 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        /// <summary>The version whose automatic stats run last completed.</summary>
+        public static string AutoStatsVersion
+        {
+            get { try { return (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("AutoStatsVersion", "") ?? ""; } catch { return ""; } }
+            set { try { using var key = Registry.CurrentUser.CreateSubKey(s_subKey); key?.SetValue("AutoStatsVersion", value ?? ""); } catch { } }
+        }
+
+        /// <summary>"version|n": failed automatic stats runs for that version.</summary>
+        public static string AutoStatsAttempt
+        {
+            get { try { return (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("AutoStatsAttempt", "") ?? ""; } catch { return ""; } }
+            set { try { using var key = Registry.CurrentUser.CreateSubKey(s_subKey); key?.SetValue("AutoStatsAttempt", value ?? ""); } catch { } }
+        }
+
         /// <summary>
         /// BCP-47 language tag overriding the UI language (e.g. "en-US", "zh-Hans").
         /// Empty string means follow the system language. Default: "".

@@ -64,6 +64,8 @@ namespace Pickles_Playlist_Editor
             // its own snapshot, and RefreshAiChips walks the rebuilt tree.
             if (modChanged && !libraryFresh) LoadPlaylists();
             StartSongTagScan(modChanged);
+            if (modChanged) _statsGate.CancelRunning();
+            MaybeStartAutoStats();
             if (!Settings.AiScoreEnabled) { _aiScanWanted = false; return; }
             if (modChanged) _aiGate.CancelRunning();
             if (_aiScanWanted || modChanged)
@@ -203,7 +205,9 @@ namespace Pickles_Playlist_Editor
                         if (r.UnavailableReason != null) return r.UnavailableReason;
                         for (int i = 0; i < paths.Count && !ct.IsCancellationRequested; i++)
                         {
-                            r.ScoreSong(paths[i], ct);
+                            LibraryReadGate.Shared.Enter(ct); // one background reader of the library at a time
+                            try { r.ScoreSong(paths[i], ct); }
+                            finally { LibraryReadGate.Shared.Exit(); }
                             int done = i + 1;
                             SetBackgroundProgress(AppStrings.ProgAiScoring(done, paths.Count), done * 100 / paths.Count);
                             if (done % 10 == 0) _uiDispatcherQueue.TryEnqueue(RefreshAiChips);
@@ -236,8 +240,8 @@ namespace Pickles_Playlist_Editor
         private void SetBackgroundProgress(string text, int percent)
         {
             if (!_uiDispatcherQueue.HasThreadAccess) { _uiDispatcherQueue.TryEnqueue(() => SetBackgroundProgress(text, percent)); return; }
-            ProgressLabel.Text = text;
-            ProgressBar1.Value = Math.Clamp(percent, 0, 100);
+            _aiProgress = string.IsNullOrEmpty(text) ? null : (text, percent); // shown unless a stats run is
+            RenderBackgroundProgress();
         }
 
         private void ClearBackgroundProgress() => SetBackgroundProgress("", 0);

@@ -24,7 +24,7 @@
         <CommandBar Grid.Row="0" DefaultLabelPosition="Right" HorizontalAlignment="Left">
             <AppBarButton x:Name="AddSongsButton" x:Uid="AddSongsButton" Label="Add Songs" Icon="Add" Click="AddSongsButton_Click">
                 <AppBarButton.Flyout>
-                    <MenuFlyout>
+                    <MenuFlyout x:Name="AddSongsFlyout">
                         <MenuFlyoutItem x:Name="FromMyComputerMenuItem" x:Uid="FromMyComputerMenuItem" Text="From My Computer" Click="fromMyComputerToolStripMenuItem_Click"/>
                         <MenuFlyoutItem x:Name="FromYouTubeMenuItem" x:Uid="FromYouTubeMenuItem" Text="From a Link" Click="YtDownloadButton_Click"/>
                     </MenuFlyout>
@@ -45,7 +45,7 @@
             <AppBarButton x:Name="SortByBPMButton" x:Uid="SortByBPMButton" Label="Sort" IsEnabled="False">
                 <AppBarButton.Icon><FontIcon Glyph="&#xE8CB;"/></AppBarButton.Icon>
                 <AppBarButton.Flyout>
-                    <MenuFlyout>
+                    <MenuFlyout x:Name="SortFlyout">
                         <MenuFlyoutItem x:Name="SortByBPMMenuItem" x:Uid="SortByBPMMenuItem" Text="Sort by BPM" Click="SortByBPM_Click"/>
                         <MenuFlyoutItem x:Name="SortByBPMZigZagMenuItem" x:Uid="SortByBPMZigZagMenuItem" Text="Alternate Fast/Slow" Click="SortByBPMZigZag_Click"/>
                         <MenuFlyoutItem x:Name="SortByKeyMenuItem" x:Uid="SortByKeyMenuItem" Text="Sort by Key (Harmonic)" Click="SortByCamelot_Click"/>

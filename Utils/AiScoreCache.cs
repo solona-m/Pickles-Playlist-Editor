@@ -26,6 +26,9 @@ namespace Pickles_Playlist_Editor.Utils
 
         public AiScoreCache(string path) => _path = path;
 
+        /// <summary>Whether this model's scores have been stored before (a new model tag starts with no file).</summary>
+        public bool HasStore => File.Exists(_path);
+
         // Opened on first use. Lookups, moves and forgets on a cache that was never written create no file, so a
         // user who never turned the score on gets none. Caller holds _lock.
         private PersistentDictionary<string, int>? Map(bool create)

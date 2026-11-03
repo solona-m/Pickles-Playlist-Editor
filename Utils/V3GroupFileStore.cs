@@ -1113,6 +1113,7 @@ namespace Pickles_Playlist_Editor.Utils
             try
             {
                 if (ourWrite) ModFolderGuard.NoteWrite();
+                if (SnapshotBatch.SkipSnapshot()) return null; // this batch already has its one
 
                 string modDir = ModRoot;
                 if (!Directory.Exists(modDir)) return null;
@@ -1123,12 +1124,16 @@ namespace Pickles_Playlist_Editor.Utils
                 string hash = HashOf(sources);
                 var existing = SnapshotSets();
                 if (existing.Count > 0 && HashOfSet(existing[0]) == hash)
+                {
+                    SnapshotBatch.Taken();
                     return existing[0].FullName;   // unchanged since the last set — nothing to record
+                }
 
                 string dest = Path.Combine(SnapshotRoot, $"{DateTime.Now:yyyyMMdd_HHmmss_fff}");
                 Directory.CreateDirectory(dest);
                 foreach (var src in sources)
                     File.Copy(src, Path.Combine(dest, Path.GetFileName(src)), true);
+                SnapshotBatch.Taken();
 
                 PenumbraMeta.PruneByPolicy(SnapshotSets(), d => { try { d.Delete(true); } catch { } });
                 return dest;

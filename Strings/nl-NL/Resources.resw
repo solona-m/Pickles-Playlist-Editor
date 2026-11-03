@@ -426,6 +426,10 @@ Wil je doorgaan?</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Waarschijnlijk menselijk</value></data>
   <data name="SongTip_Artist" xml:space="preserve"><value>Artiest: {0}</value></data>
   <data name="SongTip_Album" xml:space="preserve"><value>Album: {0}</value></data>
+  <data name="Prog_ComputingStatsCount" xml:space="preserve"><value>BPM en toonsoort berekenen {0}/{1}...</value></data>
+  <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>Statistieken klaar, wachten om de nummernamen bij te werken...</value></data>
+  <data name="Stats_AlreadyRunning" xml:space="preserve"><value>Statistieken berekenen loopt al op de achtergrond. Probeer het opnieuw als de voortgangsbalk onderaan klaar is.</value></data>
+  <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0}: audio kon niet worden geanalyseerd</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>AI-waarschijnlijkheid: {0}%. Een schatting, geen bewijs.</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>AI-waarschijnlijkheid: {0} gescoord, {3} al gescoord, {1} zonder score (stil of te kort), {2} konden niet worden gelezen.</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>De AI-waarschijnlijkheid is overgeslagen: de bestanden zijn niet klaar.</value></data>

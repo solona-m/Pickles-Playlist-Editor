@@ -123,6 +123,7 @@ namespace Pickles_Playlist_Editor
                 }
 
                 List<string>? log = null;
+                _restoreInFlight = true; // a background stats run must not save over the restore
                 try
                 {
                     await Task.Run(() => { log = Utils.BackupCatalog.Restore(entry); });
@@ -131,6 +132,7 @@ namespace Pickles_Playlist_Editor
                 {
                     // The tree is showing whichever library lost the argument.
                     LoadPlaylists();
+                    _restoreInFlight = false;
                 }
 
                 Utils.Logger.LogInfo("Restore after an external change: {Lines}",
