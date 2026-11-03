@@ -167,11 +167,17 @@ public sealed class SongTagsTests : IDisposable
     [Fact] // [EDGE-song-tags-tooltip-3] [EDGE-song-tags-tooltip-4]
     public void From_SanitizesBlankControlAndLength()
     {
-        Assert.Equal("", SongTags.From(["   "], null, null).Artist);
-        Assert.Equal("X Y Z", SongTags.From(["X\r\nY\tZ"], null, null).Artist);
-        Assert.Equal("X Y", SongTags.From(["X\u001FY"], null, null).Artist);
-        string capped = SongTags.From([new string('a', 300)], null, null).Artist;
+        Assert.Equal("", SongTags.From(["   "], [], []).Artist);
+        Assert.Equal("X Y Z", SongTags.From(["X\r\nY\tZ"], [], []).Artist);
+        Assert.Equal("X Y", SongTags.From(["X\u001FY"], [], []).Artist);
+        string capped = SongTags.From([new string('a', 300)], [], []).Artist;
         Assert.Equal(new string('a', 200) + "…", capped);
+        // an emoji straddling the cap is not split, and the value still saves and reloads
+        string emoji = SongTags.From([new string('a', 199) + string.Concat(Enumerable.Repeat("😀", 10))], [], []).Artist;
+        Assert.Equal(new string('a', 199) + "…", emoji);
+        var c = Cache();
+        c.Store(@"C:\M\e.scd", new SongTags(emoji, "", ""));
+        Assert.Equal(emoji, Cache().TryGet(@"C:\M\e.scd")?.Artist);
     }
 
     [Fact] // [AC-song-tags-tooltip-5] [EDGE-song-tags-tooltip-4]
@@ -281,6 +287,29 @@ public sealed class SongTagsTests : IDisposable
         Assert.Equal(before, File.ReadAllBytes(CachePath));
         Assert.Equal(Wcl, c.TryGet(@"C:\M\a.scd"));
         Assert.Equal(SongTags.None, c.TryGet(@"C:\M\b.scd"));
+        c.Flush();
+        var f = Cache();
+        Assert.Equal(Wcl, f.TryGet(@"C:\M\a.scd"));
+        Assert.Equal(SongTags.None, f.TryGet(@"C:\M\b.scd"));
+    }
+
+    [Fact] // [EDGE-song-tags-tooltip-28] a delete or move made while the file was locked is not undone by the later load
+    public void Cache_ForgetOrMoveWhileUnloaded_NotUndoneByLoad()
+    {
+        var seed = Cache();
+        seed.Store(@"C:\M\gone.scd", Wcl);
+        seed.Store(@"C:\M\from.scd", Wcl);
+        var c = Cache();
+        using (new FileStream(CachePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            c.Forget(@"C:\M\gone.scd");
+            c.UpdateCacheForSCD(@"C:\M\from.scd", @"C:\M\to.scd");
+        }
+        Assert.Null(c.TryGet(@"C:\M\gone.scd"));
+        Assert.Null(c.TryGet(@"C:\M\from.scd")); // no stale tags at the old path
+        Assert.Null(c.TryGet(@"C:\M\to.scd"));   // read again by the next scan
+        c.Flush();
+        Assert.Null(Cache().TryGet(@"C:\M\gone.scd"));
     }
 
     // ── Scan ──

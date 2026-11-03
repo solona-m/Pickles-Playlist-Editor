@@ -1568,8 +1568,10 @@ namespace Pickles_Playlist_Editor
             {
                 string rel = GetScdPath(song);
                 if (!string.IsNullOrEmpty(rel))
+                {
                     AiScoreCache.Default.Forget(Path.Combine(Settings.PenumbraLocation, Settings.ModName, rel));
                     SongTagCache.Default.Forget(Path.Combine(Settings.PenumbraLocation, Settings.ModName, rel));
+                }
             }
             DeleteGroupOnly();
             ReclaimUnusedAudioDirectories(new[] { scdDir });

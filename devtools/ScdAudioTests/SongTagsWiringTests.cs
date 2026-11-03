@@ -94,6 +94,7 @@ public class SongTagsWiringTests
         int paths = At(run, "SongTagCache.FullPathOf(");
         int task = At(run, "await Task.Run(");
         Assert.True(paths < task, "paths are snapshotted on the UI thread");
+        Assert.True(At(run, ".ToList()", paths) < task, "materialised before the scan thread starts");
         Assert.Contains("using (ThreadPriorityScope.Background())", run[task..]);
         Assert.Contains("SongTagScan.Run(paths, SongTagCache.Default, SongTagReader.Read, ct,", run);
         Assert.Contains("CancellationTokenSource.CreateLinkedTokenSource(_closingCts.Token)", run);
@@ -168,6 +169,8 @@ public class SongTagsWiringTests
             }
             Assert.Equal(Count(src, "AiScoreCache.Default.UpdateCacheForSCD(") + Count(src, "AiScoreCache.Default.Forget("),
                 Regex.Matches(src, @"AiScoreCache\.Default\.(UpdateCacheForSCD|Forget)\(([^;]*)\);[^\r\n]*\r?\n\s*(Utils\.)?SongTagCache\.Default\.\1\(\2\);").Count);
+            // never the single statement of a brace-less if/else, where the twin would escape the guard
+            Assert.DoesNotMatch(@"(\bif \([^\r\n]*\)|\belse)\s*\r?\n\s*(Utils\.)?AiScoreCache\.Default\.(UpdateCacheForSCD|Forget)\(", src);
         }
     }
 

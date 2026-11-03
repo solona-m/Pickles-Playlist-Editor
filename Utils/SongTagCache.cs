@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Pickles_Playlist_Editor.Utils
@@ -14,10 +13,12 @@ namespace Pickles_Playlist_Editor.Utils
     {
         private const int Version = 1;
         private readonly string _path;
-        private readonly object _lock = new();
+        private readonly object _lock = new(), _writeLock = new();
         private readonly Dictionary<string, SongTags> _map = new();
         private readonly Dictionary<string, long> _generation = new();
+        private readonly HashSet<string> _removedWhileUnloaded = new(); // so a later load can't bring them back
         private bool _loaded, _dirty;
+        private long _changes; // counts edits, so a flush that raced one stays dirty
 
         private static readonly Lazy<SongTagCache> s_default = new(() => new SongTagCache(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Pickles Playlist Editor", "song_tags_cache_v1.json")));
@@ -37,8 +38,15 @@ namespace Pickles_Playlist_Editor.Utils
                 if (File.Exists(_path)) fromFile = Parse(File.ReadAllText(_path));
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
-            catch { fromFile = new(); }
-            foreach (var (k, v) in fromFile) _map.TryAdd(k, v); // entries stored while unloaded win
+            catch (Exception ex)
+            {
+                Logger.LogWarn("Song tag cache unreadable, starting empty: {Error}", ex.Message);
+                fromFile = new();
+            }
+            foreach (var (k, v) in fromFile)
+                if (!_removedWhileUnloaded.Contains(k)) _map.TryAdd(k, v); // entries stored while unloaded win
+            if (_removedWhileUnloaded.Count > 0) Changed();
+            _removedWhileUnloaded.Clear();
             _loaded = true;
             return true;
         }
@@ -54,25 +62,47 @@ namespace Pickles_Playlist_Editor.Utils
             return result;
         }
 
-        /// <summary>Writes pending changes: temp file, then replace. A failure is logged and stays pending.</summary>
+        /// <summary>
+        /// Writes pending changes: temp file, then replace. The file is written outside <c>_lock</c>, so a slow write
+        /// on the low-priority scan thread never holds up the window's lookups. A failure is logged and stays pending.
+        /// </summary>
         public void Flush()
         {
-            lock (_lock)
+            lock (_writeLock)
             {
-                if (!_dirty || !EnsureLoaded()) return;
+                string json;
+                long snapshot;
+                lock (_lock)
+                {
+                    if (!_dirty || !EnsureLoaded()) return;
+                    try
+                    {
+                        var songs = new JsonObject();
+                        foreach (var (k, v) in _map) songs[k] = new JsonArray(v.Artist, v.Album, v.Title);
+                        json = new JsonObject { ["version"] = Version, ["songs"] = songs }.ToJsonString();
+                    }
+                    catch (Exception ex) { Logger.LogWarn("Song tag cache could not be saved: {Error}", ex.Message); return; }
+                    snapshot = _changes;
+                }
                 try
                 {
-                    var songs = new JsonObject();
-                    foreach (var (k, v) in _map) songs[k] = new JsonArray(v.Artist, v.Album, v.Title);
-                    var root = new JsonObject { ["version"] = Version, ["songs"] = songs };
                     Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
                     string tmp = _path + ".tmp";
-                    File.WriteAllText(tmp, root.ToJsonString(new JsonSerializerOptions { WriteIndented = false }));
+                    File.WriteAllText(tmp, json);
                     File.Move(tmp, _path, true);
-                    _dirty = false;
+                    lock (_lock) { if (_changes == snapshot) _dirty = false; }
                 }
                 catch (Exception ex) { Logger.LogWarn("Song tag cache could not be saved: {Error}", ex.Message); }
             }
+        }
+
+        private void Changed() { _dirty = true; _changes++; } // caller holds _lock
+
+        // Caller holds _lock. A removal made before the file could be read also hides the file's entry.
+        private void Remove(string key)
+        {
+            if (_map.Remove(key)) Changed();
+            if (!_loaded) _removedWhileUnloaded.Add(key);
         }
 
         public SongTags? TryGet(string fullPath)
@@ -126,7 +156,8 @@ namespace Pickles_Playlist_Editor.Utils
                 if ((_generation.TryGetValue(key, out long g) ? g : 0) != generation) return false;
                 EnsureLoaded();
                 _map[key] = tags;
-                _dirty = true;
+                _removedWhileUnloaded.Remove(key);
+                Changed();
                 return true;
             }
         }
@@ -136,8 +167,10 @@ namespace Pickles_Playlist_Editor.Utils
             lock (_lock)
             {
                 EnsureLoaded();
-                _map[AiScoreCache.Key(fullPath)] = tags;
-                _dirty = true;
+                string key = AiScoreCache.Key(fullPath);
+                _map[key] = tags;
+                _removedWhileUnloaded.Remove(key);
+                Changed();
             }
             Flush();
         }
@@ -149,7 +182,7 @@ namespace Pickles_Playlist_Editor.Utils
             {
                 Bump(key);
                 EnsureLoaded();
-                if (_map.Remove(key)) _dirty = true;
+                Remove(key);
             }
             Flush();
         }
@@ -163,9 +196,17 @@ namespace Pickles_Playlist_Editor.Utils
             {
                 Bump(from);
                 Bump(to);
-                EnsureLoaded();
-                if (_map.Remove(from, out var t)) { _map[to] = t; _dirty = true; }
-                else if (_map.Remove(to)) _dirty = true;
+                if (EnsureLoaded() && _map.Remove(from, out var t))
+                {
+                    _map[to] = t;
+                    Changed();
+                }
+                else
+                {
+                    // Unloaded, or nothing to move: neither path keeps an entry; the scan reads the file again.
+                    Remove(from);
+                    Remove(to);
+                }
             }
             Flush();
         }

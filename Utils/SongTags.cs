@@ -19,13 +19,12 @@ namespace Pickles_Playlist_Editor.Utils
 
         public bool HasArtistOrAlbum => Artist.Length > 0 || Album.Length > 0;
 
-        public static SongTags From(IEnumerable<string?>? artists, IEnumerable<string?>? albums, IEnumerable<string?>? titles) =>
+        public static SongTags From(IEnumerable<string?> artists, IEnumerable<string?> albums, IEnumerable<string?> titles) =>
             new(Join(artists), Join(albums), Join(titles));
 
         /// <summary>Several values joined with ", ", case-insensitive duplicates dropped, first spelling kept.</summary>
-        private static string Join(IEnumerable<string?>? values)
+        private static string Join(IEnumerable<string?> values)
         {
-            if (values == null) return "";
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var kept = new List<string>();
             foreach (var v in values)
@@ -58,6 +57,8 @@ namespace Pickles_Playlist_Editor.Utils
             return Cap(sb.ToString().Trim());
         }
 
-        private static string Cap(string s) => s.Length <= MaxLength ? s : s[..MaxLength] + "…";
+        // Never splits a surrogate pair (an emoji), which would make the cache unsavable.
+        private static string Cap(string s) =>
+            s.Length <= MaxLength ? s : s[..(char.IsHighSurrogate(s[MaxLength - 1]) ? MaxLength - 1 : MaxLength)] + "…";
     }
 }
