@@ -38,6 +38,9 @@ namespace Pickles_Playlist_Editor
             var computeStats = new MenuFlyoutItem { Text = AppStrings.Menu_ComputeStats };
             computeStats.Click += ComputeStatsMenuItem_Click;
             flyout.Items.Add(computeStats);
+            var backfill = new MenuFlyoutItem { Text = AppStrings.Menu_BackfillTags };
+            backfill.Click += BackfillTagsMenuItem_Click;
+            flyout.Items.Add(backfill);
             return flyout;
         }
 
@@ -50,6 +53,9 @@ namespace Pickles_Playlist_Editor
             var computeStats = new MenuFlyoutItem { Text = AppStrings.Menu_ComputeStats };
             computeStats.Click += ComputeStatsMenuItem_Click;
             flyout.Items.Add(computeStats);
+            var backfill = new MenuFlyoutItem { Text = AppStrings.Menu_BackfillTags };
+            backfill.Click += BackfillTagsMenuItem_Click;
+            flyout.Items.Add(backfill);
             return flyout;
         }
 

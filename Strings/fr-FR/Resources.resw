@@ -439,4 +439,22 @@ Voulez-vous continuer ?</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>Probabilité d'IA</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>Calcul de la probabilité d'IA {0}/{1}...</value></data>
   <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>Le calcul de la probabilité d'IA est déjà en cours en arrière-plan. Ces morceaux seront notés ensuite.</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>Compléter les tags depuis un dossier…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>Compléter les tags depuis un dossier</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>Choisissez le dossier contenant vos fichiers de chansons d'origine (les sous-dossiers sont aussi parcourus)</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>Vérification des chansons sans tags…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>Recherche des fichiers d'origine… {0} fichiers audio vérifiés</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>Lecture des tags {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>Tags complétés pour {0} chansons sur {1} sans tags, à partir de {2} fichiers audio parcourus.</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>{0} d'entre elles sont marquées comme créées avec Suno ou Udio.</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>Activez la probabilité d'IA dans les Paramètres pour voir leur tag Certainement IA.</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} avaient déjà des tags et n'ont pas été modifiées.</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} n'avaient aucun fichier au nom correspondant dans ce dossier.</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} ont été ignorées : plusieurs fichiers possibles, une durée qui ne correspondait pas ou un changement pendant l'exécution.</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} correspondaient à un fichier sans tags ou illisible.</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} correspondaient à des fichiers stockés uniquement en ligne (OneDrive ou similaire). Rendez-les disponibles hors connexion et relancez.</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>Le dossier n'a pas pu être lu : {0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>Vos tags de chansons enregistrés n'ont pas pu être ouverts, rien n'a donc été modifié. Réessayez plus tard.</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>Compléter les tags depuis un dossier est déjà en cours en arrière-plan. Réessayez quand la barre de progression en bas sera terminée.</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>Ces chansons ont déjà des tags.</value></data>
 </root>

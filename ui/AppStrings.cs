@@ -87,6 +87,15 @@ namespace Pickles_Playlist_Editor
             string.Format(_r.GetString("Dlg_ModFolderUnreadable_Content"), modName);
         public static string Menu_ManageEQ => _r.GetString("Menu_ManageEQ");
         public static string Menu_ComputeStats => _r.GetString("Menu_ComputeStats");
+        // Backfill tags from folder
+        public static string Menu_BackfillTags => _r.GetString("Menu_BackfillTags");
+        public static string Summary_BackfillTags => _r.GetString("Summary_BackfillTags");
+        public static string Backfill_PickFolder => _r.GetString("Backfill_PickFolder");
+        public static string Prog_BackfillPreparing => _r.GetString("Prog_BackfillPreparing");
+        public static string ProgBackfillScanning(int files) => string.Format(_r.GetString("Prog_BackfillScanning"), files);
+        public static string ProgBackfillReading(int done, int total) => string.Format(_r.GetString("Prog_BackfillReading"), done, total);
+        public static string Backfill_AlreadyRunning => _r.GetString("Backfill_AlreadyRunning");
+        public static string Backfill_NothingToFill => _r.GetString("Backfill_NothingToFill");
         // AI-likelihood score
         public static string Get(string key) => _r.GetString(key);
         public static string AiScoreHint(long mb) => string.Format(_r.GetString("AiScore_Hint"), mb);

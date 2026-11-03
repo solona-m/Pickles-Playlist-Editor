@@ -439,4 +439,22 @@
   <data name="Summary_AiScore" xml:space="preserve"><value>AI 可能性评分</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>正在评估 AI 可能性 {0}/{1}...</value></data>
   <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI 评分已在后台进行中。这些歌曲会在它完成后评分。</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>从文件夹补全标签…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>从文件夹补全标签</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>选择存放原始歌曲文件的文件夹（也会搜索子文件夹）</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>正在检查哪些歌曲需要标签…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>正在查找原始文件… 已检查 {0} 个音频文件</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>正在读取标签 {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>已为 {1} 首无标签歌曲中的 {0} 首补全标签，共搜索 {2} 个音频文件。</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>其中 {0} 首被标记为使用 Suno 或 Udio 制作。</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>在设置中开启 AI 可能性评分，即可看到它们的“确定为 AI”标签。</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} 首已有标签，保持不变。</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} 首在该文件夹中没有名称匹配的文件。</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} 首已跳过：可能对应多个文件、时长不匹配，或运行期间发生了更改。</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} 首匹配到的文件没有标签或无法读取。</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} 首匹配到的文件仅存储在网上（OneDrive 等）。请将其设为离线可用后再运行一次。</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>无法读取该文件夹：{0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>无法打开已保存的歌曲标签，因此未做任何更改。请稍后重试。</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>“从文件夹补全标签”已在后台运行。请在底部进度条完成后重试。</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>这些歌曲已有标签。</value></data>
 </root>

@@ -6,6 +6,9 @@ using System.Linq;
 
 namespace Pickles_Playlist_Editor.Tools
 {
+    /// <summary>A source file's tags (null when unreadable) and its duration (null when unknown).</summary>
+    internal readonly record struct SourceRead(SongTags? Tags, TimeSpan? Duration);
+
     /// <summary>
     /// Artist, album, title and comment-type tags from an imported mp3/m4a/flac/wav itself (#20): the SCD made from it
     /// carries no tags on purpose, so these go to the tag cache only. Never throws.
@@ -21,6 +24,21 @@ namespace Pickles_Playlist_Editor.Tools
             {
                 Logger.LogWarn("Could not read tags from '{File}': {Error}", Path.GetFileName(sourcePath), ex.Message);
                 return null;
+            }
+        }
+
+        /// <summary>Tags and duration for Backfill tags from folder: ffmpeg at low priority, 15 s bound. Never throws.</summary>
+        internal static SourceRead ReadForBackfill(string sourcePath)
+        {
+            try
+            {
+                var (fields, duration) = FFMpeg.ReadFfMetadataWithDuration(sourcePath, null, lowPriority: true);
+                return new SourceRead(FromFields(fields), duration);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarn("Could not read tags from '{File}': {Error}", Path.GetFileName(sourcePath), ex.Message);
+                return new SourceRead(null, null);
             }
         }
 

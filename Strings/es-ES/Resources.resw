@@ -439,4 +439,22 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="Summary_AiScore" xml:space="preserve"><value>Probabilidad de IA</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>Puntuando probabilidad de IA {0}/{1}...</value></data>
   <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>La puntuación de IA ya está en curso en segundo plano. Estas canciones se puntuarán después.</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>Completar etiquetas desde carpeta…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>Completar etiquetas desde carpeta</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>Elige la carpeta con tus archivos de canciones originales (también se buscan las subcarpetas)</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>Comprobando qué canciones necesitan etiquetas…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>Buscando archivos originales… {0} archivos de audio revisados</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>Leyendo etiquetas {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>Se completaron las etiquetas de {0} de {1} canciones sin etiquetas, a partir de {2} archivos de audio revisados.</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>{0} de ellas están etiquetadas como hechas con Suno o Udio.</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>Activa la probabilidad de IA en Configuración para ver su etiqueta Seguro IA.</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} ya tenían etiquetas y se dejaron como estaban.</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} no tenían ningún archivo con un nombre coincidente en esa carpeta.</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} se omitieron: más de un archivo posible, una duración que no coincidía o un cambio mientras se ejecutaba.</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} coincidieron con un archivo sin etiquetas o que no se pudo leer.</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} coincidieron con archivos que solo están guardados en línea (OneDrive o similar). Haz que estén disponibles sin conexión y vuelve a ejecutarlo.</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>No se pudo leer la carpeta: {0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>No se pudieron abrir tus etiquetas de canciones guardadas, así que no se cambió nada. Inténtalo de nuevo más tarde.</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>Completar etiquetas desde carpeta ya se está ejecutando en segundo plano. Inténtalo de nuevo cuando termine la barra de progreso de abajo.</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>Estas canciones ya tienen etiquetas.</value></data>
 </root>
