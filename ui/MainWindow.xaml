@@ -161,7 +161,7 @@
         </Grid>
 
         <!-- Progress bar -->
-        <Grid Grid.Row="4" Margin="4,2,4,4">
+        <Grid x:Name="StatusBarGrid" Grid.Row="4" Margin="4,2,4,4" Visibility="Collapsed">
             <ProgressBar x:Name="ProgressBar1" Minimum="0" Maximum="100" Value="0" Height="16"/>
             <TextBlock x:Name="ProgressLabel" Text="" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11"/>
         </Grid>

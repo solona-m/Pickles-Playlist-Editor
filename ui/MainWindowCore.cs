@@ -429,6 +429,7 @@ namespace Pickles_Playlist_Editor
             if (percent > 100) percent = 100;
             ProgressBar1.Value = percent;
             BusyProgressBar.Value = percent;
+            UpdateStatusBarVisibility();
 
             if (percent > 0 || !string.IsNullOrWhiteSpace(ProgressLabel.Text))
                 SetBusyOverlayVisible(true);
@@ -491,11 +492,19 @@ namespace Pickles_Playlist_Editor
             }
             ProgressLabel.Text = text;
             BusyProgressLabel.Text = text;
+            UpdateStatusBarVisibility();
 
             if (string.IsNullOrWhiteSpace(text))
                 SetBusyOverlayVisible(false);
             else
                 SetBusyOverlayVisible(true);
+        }
+
+        // The status bar shows only while there is progress text or a value.
+        private void UpdateStatusBarVisibility()
+        {
+            bool idle = string.IsNullOrEmpty(ProgressLabel.Text) && ProgressBar1.Value == 0;
+            StatusBarGrid.Visibility = idle ? Visibility.Collapsed : Visibility.Visible;
         }
 
         public void ClearProgressDisplay()
@@ -510,6 +519,7 @@ namespace Pickles_Playlist_Editor
             BusyProgressBar.Value = 0;
             ProgressLabel.Text = "";
             BusyProgressLabel.Text = "";
+            UpdateStatusBarVisibility();
             SetBusyOverlayVisible(false);
             RenderBackgroundProgress(); // a background stats or AI pass shows again
         }
