@@ -78,6 +78,10 @@ public class BackgroundComputeStatsWiringTests
         Assert.True(At(run, "if (ticket.Kind == StatsPassKind.Manual)\n            {") < summary);
         Assert.Contains("if (Settings.AiScoreEnabled) await RunAiScorePhaseAsync(targets);", run);
         Assert.Contains("ticket.Kind == StatsPassKind.Manual ? StatsRenameMode.Rebuild : StatsRenameMode.Additive", run);
+        Assert.Contains("ticket.Kind == StatsPassKind.Manual ? targets.Select(t => t.playlist.Name ?? \"\").ToHashSet() : null", run);
+        string applySrc = Apply();
+        Assert.Contains("onlyPlaylists == null || onlyPlaylists.Contains(n)", applySrc);
+        Assert.Contains("requireSamePlaylist: onlyPlaylists != null", applySrc);
     }
 
     [Fact] // [AC-background-compute-stats-3] [EDGE-background-compute-stats-1] [EDGE-background-compute-stats-50]
@@ -102,11 +106,13 @@ public class BackgroundComputeStatsWiringTests
         string maybe = Method(Stats(), "internal void MaybeStartAutoStats");
         int closing = At(maybe, "if (_closingCts.IsCancellationRequested) return;");
         int capture = At(maybe, "VersionBackup.TryCaptureOnBoot()");
-        int rules = At(maybe, "AutoStatsRules.ShouldRun(Settings.AutoStatsVersion, Settings.AutoStatsAttempt, AppVersion.Display, modReadable)");
+        int cheap = At(maybe, "AutoStatsRules.ShouldRun(done, attempt, AppVersion.Display, modReadable: true)");
+        int parse = At(maybe, "PenumbraMeta.DetectFormat() != ModFormat.Unknown");
+        int rules = At(maybe, "AutoStatsRules.ShouldRun(done, attempt, AppVersion.Display, modReadable)", parse);
         int busy = At(maybe, "if (_statsGate.IsRunning) { _autoStatsAgain = true; return; }");
         int start = At(maybe, "StartStatsRun(Library.SongTargets(Playlists.Values), StatsPassKind.Auto)");
-        Assert.True(closing < capture && capture < rules && rules < busy && busy < start);
-        Assert.Contains("PenumbraMeta.DetectFormat() != ModFormat.Unknown", maybe);
+        Assert.True(closing < capture && capture < cheap && cheap < parse && parse < rules && rules < busy && busy < start);
+        Assert.Contains("string done = Settings.AutoStatsVersion, attempt = Settings.AutoStatsAttempt;", maybe);
         Assert.Contains("catch (Exception ex)", maybe);
         Assert.DoesNotContain("AutoStatsAttempt =", maybe); // no attempt recorded at start
     }
@@ -202,12 +208,17 @@ public class BackgroundComputeStatsWiringTests
         string apply = Apply();
         string compute = apply[At(apply, "async Task<Dictionary<StatsEntry, string>> Compute()")..At(apply, "do expected = await Compute();")];
         Assert.True(At(compute, "StatsRename.ExpectedNames(") < compute.LastIndexOf("CheckMod(modKey);", StringComparison.Ordinal));
-        string loop = apply[At(apply, "foreach (string name in Playlists.Keys.ToList())")..];
+        string loop = apply[At(apply, "foreach (string name in Playlists.Keys.Where(")..];
         int tick = At(loop, "await NextTickAsync();");
+        Assert.Matches(@"await NextTickAsync\(\);\s*ct\.ThrowIfCancellationRequested\(\);", loop);
         int wait = At(loop, "await WaitUntilQuietForApplyAsync(ct);");
         int recompute = At(loop, "if (OptionStatsNaming.Parts.FromSettings() != parts) { expected = await Compute(); continue; }");
         int quiet = At(loop, "if (!IsQuietForApply()) continue;");
+        int cancel = At(loop, "ct.ThrowIfCancellationRequested();", quiet);
         int mod = At(loop, "CheckMod(modKey);", quiet);
+        Assert.True(cancel < mod, "closing or an exit stops the run before anything is written");
+        Assert.Contains("tcs.TrySetCanceled();", Method(Stats(), "private Task NextTickAsync"));
+        Assert.DoesNotContain("tcs.TrySetResult();\n", Method(Stats(), "private Task NextTickAsync").Replace("() => tcs.TrySetResult()", ""));
         int parts = At(loop, "if (OptionStatsNaming.Parts.FromSettings() != parts) continue;", mod);
         int applyOne = At(loop, "StatsRename.ApplyOne(", parts);
         int save = At(loop, "pl.Save();", applyOne);
@@ -226,7 +237,10 @@ public class BackgroundComputeStatsWiringTests
         Assert.Contains("n.Name == c.OldName && StatsPlan.RelKeyOf(n.ScdRel) == key", nodes);
         Assert.Contains("_nowPlayingSongName = c.NewName", nodes);
         Assert.Contains("ApplyCamelotChip(song);", nodes);
-        Assert.Contains("SetNodeDisplayText(plNode,", Method(Stats(), "private void RefreshStatsDisplay"));
+        string refresh = Method(Stats(), "private void RefreshStatsDisplay(IReadOnlyList<string> detectedRels)");
+        Assert.Contains("SetNodeDisplayText(plNode,", refresh);
+        Assert.Contains("detected.Contains(StatsPlan.RelKeyOf(n.ScdRel))", refresh);
+        Assert.Contains("else if (plan.ToDetect.Count > 0) RefreshStatsDisplay(plan.ToDetect);", apply);
         Assert.Equal(2, Count(nodes, "SyncPlaylistNode(pl)")); // only when a node isn't found
         Assert.DoesNotContain("RootPlaylistItems.Clear", Stats());
     }
@@ -236,7 +250,11 @@ public class BackgroundComputeStatsWiringTests
     {
         string apply = Apply();
         Assert.Equal(1, Count(Stats(), ".Save("));
-        Assert.Matches(@"if \(dirty\)\s*\{\s*try\s*\{\s*pl\.Save\(\);\s*_backfilledPlaylists\.Remove\(pl\);[\s\S]*?catch \(Exception ex\)\s*\{\s*StatsRename\.Revert\(changes\);", apply);
+        Assert.Matches(@"if \(dirty\)\s*\{\s*bool ok = false;\s*try\s*\{\s*pl\.Save\(\);\s*_backfilledPlaylists\.Remove\(pl\);\s*ok = true;\s*\}\s*catch \(Exception ex\)\s*\{\s*StatsRename\.Revert\(changes\);", apply);
+        int save = At(apply, "pl.Save();");
+        int revert = At(apply, "StatsRename.Revert(changes);", save);
+        Assert.True(At(apply, "if (ok)", revert) < At(apply, "UpdateStatsNodes(pl, changes)", revert), "the tree is updated only after a save that worked");
+        Assert.DoesNotContain("UpdateStatsNodes(", apply[save..revert]);
         Assert.Contains("_backfilledPlaylists.Contains(pl)", apply);
     }
 
@@ -252,6 +270,7 @@ public class BackgroundComputeStatsWiringTests
         int prep = At(lang, "App.MainWindow.PrepareForExit();");
         int restart = At(lang, "AppInstance.Restart(");
         Assert.True(prep < restart && restart < At(lang, "App.MainWindow.ResumeAfterAbortedExit();"));
+        Assert.Contains("Logger.LogWarn(", Method(Stats(), "internal void ResumeAfterAbortedExit"));
         string guard = Method(Stats(), "internal void PrepareForExit");
         Assert.Contains("_closingCts.Cancel()", guard);
         Assert.Contains("StatsCacheWrites.HoldForExit();", guard);

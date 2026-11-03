@@ -10,6 +10,7 @@ namespace Pickles_Playlist_Editor.Utils
         private readonly ThreadPriority _saved;
         private readonly bool _background, _suspended;
         [ThreadStatic] private static bool s_backgroundMode;
+        internal static bool IsBackgroundMode => s_backgroundMode; // this thread; for tests
         private ThreadPriorityScope(ThreadPriority saved, bool background = false, bool suspended = false)
         {
             _saved = saved;

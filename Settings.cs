@@ -678,10 +678,6 @@ namespace Pickles_Playlist_Editor
             }
         }
 
-        /// <summary>
-        /// BCP-47 language tag overriding the UI language (e.g. "en-US", "zh-Hans").
-        /// Empty string means follow the system language. Default: "".
-        /// </summary>
         /// <summary>The version whose automatic stats run last completed.</summary>
         public static string AutoStatsVersion
         {
@@ -696,6 +692,10 @@ namespace Pickles_Playlist_Editor
             set { try { using var key = Registry.CurrentUser.CreateSubKey(s_subKey); key?.SetValue("AutoStatsAttempt", value ?? ""); } catch { } }
         }
 
+        /// <summary>
+        /// BCP-47 language tag overriding the UI language (e.g. "en-US", "zh-Hans").
+        /// Empty string means follow the system language. Default: "".
+        /// </summary>
         public static string Language
         {
             get => (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("Language", "") ?? "";

@@ -44,7 +44,8 @@ namespace Pickles_Playlist_Editor.Tools
         /// and deleted songs find no match and are left alone. Dirty: something changed, or a decorated playlist matched.
         /// </summary>
         public static (List<StatsRenameChange> Changes, bool Dirty, int Matched) ApplyOne(Playlist pl,
-            IReadOnlyDictionary<StatsEntry, string> expected, Func<Option, string> relOf, bool isBackfilledPlaylist)
+            IReadOnlyDictionary<StatsEntry, string> expected, Func<Option, string> relOf, bool isBackfilledPlaylist,
+            bool requireSamePlaylist = false)
         {
             var byRel = expected.Keys.GroupBy(e => e.Rel, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
             var changes = new List<StatsRenameChange>();
@@ -56,8 +57,9 @@ namespace Pickles_Playlist_Editor.Tools
                     if (o?.Name == null) continue;
                     string rel = relOf(o) ?? "";
                     if (!byRel.TryGetValue(rel, out var candidates)) continue;
-                    var matches = candidates.Where(e => e.Name == o.Name
-                        || (e.Backfilled && o.Name == OptionStatsNaming.StripSuffix(e.Name))).ToList();
+                    var matches = candidates.Where(e => (e.Name == o.Name
+                        || (e.Backfilled && o.Name == OptionStatsNaming.StripSuffix(e.Name)))
+                        && (!requireSamePlaylist || e.PlaylistName == pl.Name)).ToList();
                     if (matches.Count == 0) continue;
                     var entry = matches.FirstOrDefault(e => e.PlaylistName == pl.Name) ?? matches[0];
                     matched++;

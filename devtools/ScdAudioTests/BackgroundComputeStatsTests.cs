@@ -361,6 +361,42 @@ public class BackgroundComputeStatsTests
         Assert.Equal("X from Q", q.Options[0].Name);
     }
 
+    [Fact] // [AC-background-compute-stats-7] [EDGE-background-compute-stats-11] a manual run on a selection renames only there
+    public void StatsRename_RequireSamePlaylist_LeavesOtherPlaylistsAlone()
+    {
+        var inP = new StatsEntry("P", "s/x.scd", "s\\x.scd", "X", false);
+        var expected = new Dictionary<StatsEntry, string> { [inP] = "X (120 BPM)" };
+        var q = new Playlist { Name = "Q", Options = [Song("X", "s/x.scd")] };
+        var (changes, dirty, _) = StatsRename.ApplyOne(q, expected, RelOf, false, requireSamePlaylist: true);
+        Assert.Empty(changes);
+        Assert.False(dirty);
+        Assert.Equal("X", q.Options[0].Name);
+        StatsRename.ApplyOne(q, expected, RelOf, false); // the automatic run follows the file
+        Assert.Equal("X (120 BPM)", q.Options[0].Name);
+    }
+
+    [Theory] // [AC-background-compute-stats-2] [EDGE-background-compute-stats-51] the name format, pinned
+    [InlineData(true, true, true, true, "Song (126 BPM) [8A Am] (01:02:03)")]
+    [InlineData(false, true, false, false, "Song [Am]")]
+    [InlineData(false, false, true, false, "Song [8A]")]
+    [InlineData(true, false, false, true, "Song (126 BPM) (01:02:03)")]
+    [InlineData(false, false, false, false, "Song")]
+    public void UpdateName_GoldenFormat(bool bpm, bool key, bool camelot, bool length, string expected)
+    {
+        var o = new Option { Name = "Song (99 BPM) [1A Abm] (00:00:01)" };
+        OptionStatsNaming.UpdateName(o, 126, "Am", new TimeSpan(1, 2, 3), new OptionStatsNaming.Parts(bpm, key, camelot, length));
+        Assert.Equal(expected, o.Name);
+        Assert.Equal("Song", OptionStatsNaming.StripSuffix(o.Name));
+    }
+
+    [Fact] // [EDGE-background-compute-stats-26] "Off"/"Default" in any case are never analysed or renamed
+    public void StatsPlan_SkipsOffAndDefault_AnyCase()
+    {
+        var pl = new Playlist { Name = "P" };
+        var entries = StatsPlan.Snapshot([(pl, Song("off", "p/o.scd")), (pl, Song("DEFAULT", "p/d.scd")), (pl, Song("Song", "p/s.scd"))], RelOf, _ => false);
+        Assert.Equal(new[] { "Song" }, entries.Select(e => e.Name));
+    }
+
     [Fact] // [EDGE-background-compute-stats-5]
     public void StatsRename_Revert_RestoresExactOldNames()
     {
@@ -386,19 +422,25 @@ public class BackgroundComputeStatsTests
     {
         Exception? error = null;
         ThreadPriority after = default;
+        var seen = new List<(string Where, bool Background)>();
+        void Note(string where) => seen.Add((where, ThreadPriorityScope.IsBackgroundMode));
         var t = new Thread(() =>
         {
             try
             {
                 Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
-                using (ThreadPriorityScope.SuspendBackground()) { } // outside background: no-op
+                Note("start");
+                using (ThreadPriorityScope.SuspendBackground()) Note("suspend outside"); // a no-op
                 using (ThreadPriorityScope.Background())
                 {
-                    using (ThreadPriorityScope.SuspendBackground()) { }
-                    try { using (ThreadPriorityScope.SuspendBackground()) throw new InvalidOperationException(); }
+                    Note("background");
+                    using (ThreadPriorityScope.SuspendBackground()) Note("suspended");
+                    Note("restored");
+                    try { using (ThreadPriorityScope.SuspendBackground()) { Note("suspended, throwing"); throw new InvalidOperationException(); } }
                     catch (InvalidOperationException) { }
-                    using (ThreadPriorityScope.SuspendBackground()) { } // still works: background mode was restored
+                    Note("restored after throw");
                 }
+                Note("end");
                 after = Thread.CurrentThread.Priority;
             }
             catch (Exception ex) { error = ex; }
@@ -407,6 +449,15 @@ public class BackgroundComputeStatsTests
         t.Join();
         Assert.Null(error);
         Assert.Equal(ThreadPriority.AboveNormal, after);
+        // Background mode is a Windows feature; if the call isn't available the scope falls back to BelowNormal.
+        bool available = seen.Single(s => s.Where == "background").Background;
+        var expected = new (string, bool)[]
+        {
+            ("start", false), ("suspend outside", false), ("background", available), ("suspended", false),
+            ("restored", available), ("suspended, throwing", false), ("restored after throw", available), ("end", false),
+        };
+        Assert.Equal(expected, seen);
+        Assert.True(available, "Windows background thread mode should be available on the dev machine");
     }
 
     [Fact] // [EDGE-background-compute-stats-18] [EDGE-background-compute-stats-39]

@@ -38,9 +38,11 @@ namespace Pickles_Playlist_Editor
             {
                 if (_closingCts.IsCancellationRequested) return;
                 Utils.VersionBackup.TryCaptureOnBoot(); // a backup exists before the first write
+                string done = Settings.AutoStatsVersion, attempt = Settings.AutoStatsAttempt;
+                if (!AutoStatsRules.ShouldRun(done, attempt, AppVersion.Display, modReadable: true)) return; // cheap check first
                 bool modReadable = SongTagCache.ModRootOrNull(Settings.PenumbraLocation, Settings.ModName) != null
                     && PenumbraMeta.DetectFormat() != ModFormat.Unknown;
-                if (!AutoStatsRules.ShouldRun(Settings.AutoStatsVersion, Settings.AutoStatsAttempt, AppVersion.Display, modReadable)) return;
+                if (!AutoStatsRules.ShouldRun(done, attempt, AppVersion.Display, modReadable)) return;
                 if (_statsGate.IsRunning) { _autoStatsAgain = true; return; }
                 if (StartStatsRun(Library.SongTargets(Playlists.Values), StatsPassKind.Auto))
                     Logger.LogInfo("Automatic stats run started for {Version}", AppVersion.Display);
@@ -54,7 +56,7 @@ namespace Pickles_Playlist_Editor
             string modKey = ModKey();
             bool reachedApply = false;
             var end = StatsPassEnd.Error;
-            int analysed = 0, renamed = 0, saved = 0, entryCount = 0;
+            int analysed = 0, failedRels = 0, renamed = 0, saved = 0, entryCount = 0;
             var failedSongs = new List<string>();
             var saveErrors = new List<string>();
             try
@@ -66,13 +68,15 @@ namespace Pickles_Playlist_Editor
                 var failed = await StatsDetectLoop.RunAsync(plan.ToDetect, DetectOne, () => !IsForegroundBusy(), WaitUntilIdleAsync,
                     LibraryReadGate.Shared, ct,
                     (done, total) => SetStatsProgress(AppStrings.ProgComputingStats(done, total), done * 100 / Math.Max(1, total)));
-                analysed = plan.ToDetect.Count - failed.Count;
+                failedRels = failed.Count;
+                analysed = plan.ToDetect.Count - failedRels;
                 var failedSet = new HashSet<string>(failed, StringComparer.Ordinal);
                 failedSongs.AddRange(entries.Where(e => failedSet.Contains(e.Rel)).Select(e => $"{e.PlaylistName}/{e.Name}"));
 
                 reachedApply = true;
                 (renamed, saved) = await ApplyStatsNamesAsync(plan, modKey,
-                    ticket.Kind == StatsPassKind.Manual ? StatsRenameMode.Rebuild : StatsRenameMode.Additive, saveErrors, ct);
+                    ticket.Kind == StatsPassKind.Manual ? StatsRenameMode.Rebuild : StatsRenameMode.Additive, saveErrors, ct,
+                    ticket.Kind == StatsPassKind.Manual ? targets.Select(t => t.playlist.Name ?? "").ToHashSet() : null);
                 end = StatsPassEnd.Finished;
                 if (ticket.Kind == StatsPassKind.Auto && AutoStatsRules.ShouldWriteMarker(end, saveErrors.Count, entryCount, Playlists.Count))
                     Settings.AutoStatsVersion = AppVersion.Display;
@@ -85,7 +89,7 @@ namespace Pickles_Playlist_Editor
                 if (ticket.Kind == StatsPassKind.Auto && AutoStatsRules.CountsAsFailedAttempt(reachedApply, end, saveErrors.Count))
                     Settings.AutoStatsAttempt = AutoStatsRules.NextAttempt(Settings.AutoStatsAttempt, AppVersion.Display);
                 Logger.LogInfo("Stats pass {Kind} ended {End}: {Analysed} analysed, {Failed} failed, {Renamed} renamed, {Saved} playlist(s) saved, {SaveFailed} save failure(s)",
-                    ticket.Kind, end, analysed, failedSongs.Count, renamed, saved, saveErrors.Count);
+                    ticket.Kind, end, analysed, failedRels, renamed, saved, saveErrors.Count);
                 _statsGate.End(ticket);
                 if (_autoStatsAgain && !_closingCts.IsCancellationRequested)
                 {
@@ -134,7 +138,7 @@ namespace Pickles_Playlist_Editor
         /// The last checks and the save run with nothing awaited in between.
         /// </summary>
         private async Task<(int Renamed, int Saved)> ApplyStatsNamesAsync(StatsPlan plan, string modKey, StatsRenameMode mode,
-            List<string> saveErrors, CancellationToken ct)
+            List<string> saveErrors, CancellationToken ct, IReadOnlyCollection<string>? onlyPlaylists = null)
         {
             SetStatsProgress(AppStrings.Prog_StatsWaitingToApply, 100);
             int renamed = 0, saved = 0;
@@ -154,29 +158,32 @@ namespace Pickles_Playlist_Editor
 
             do expected = await Compute(); while (OptionStatsNaming.Parts.FromSettings() != parts);
 
-            foreach (string name in Playlists.Keys.ToList())
+            // A manual run on a selection renames only in the playlists it was started on.
+            foreach (string name in Playlists.Keys.Where(n => onlyPlaylists == null || onlyPlaylists.Contains(n)).ToList())
             {
                 while (true)
                 {
                     await NextTickAsync();
+                    ct.ThrowIfCancellationRequested();
                     await WaitUntilQuietForApplyAsync(ct);
                     if (OptionStatsNaming.Parts.FromSettings() != parts) { expected = await Compute(); continue; }
 
                     // From here to the save nothing is awaited, so nothing can change underneath.
                     if (!IsQuietForApply()) continue;
+                    ct.ThrowIfCancellationRequested(); // closing or an exit: nothing more is written
                     CheckMod(modKey);
                     if (OptionStatsNaming.Parts.FromSettings() != parts) continue;
                     if (!Playlists.TryGetValue(name, out var pl)) break; // renamed meanwhile: skipped
-                    var (changes, dirty, _) = StatsRename.ApplyOne(pl, expected, Playlist.GetScdPath, _backfilledPlaylists.Contains(pl));
+                    var (changes, dirty, _) = StatsRename.ApplyOne(pl, expected, Playlist.GetScdPath, _backfilledPlaylists.Contains(pl),
+                        requireSamePlaylist: onlyPlaylists != null);
                     if (dirty)
                     {
+                        bool ok = false;
                         try
                         {
                             pl.Save();
                             _backfilledPlaylists.Remove(pl);
-                            saved++;
-                            renamed += changes.Count;
-                            UpdateStatsNodes(pl, changes);
+                            ok = true;
                         }
                         catch (Exception ex)
                         {
@@ -184,20 +191,29 @@ namespace Pickles_Playlist_Editor
                             saveErrors.Add($"{pl.Name}: {ex.Message}");
                             Logger.LogWarn("Stats: playlist '{Name}' could not be saved: {Error}", pl.Name, ex.Message);
                         }
+                        if (ok)
+                        {
+                            saved++;
+                            renamed += changes.Count;
+                            try { UpdateStatsNodes(pl, changes); }
+                            catch (Exception ex) { Logger.LogWarn("Stats: tree update failed for '{Name}': {Error}", pl.Name, ex.Message); }
+                        }
                     }
                     break;
                 }
             }
 
             if (IsFilterActive) LoadPlaylists(SearchTextBox.Text.Trim());
-            else RefreshStatsDisplay();
+            else if (plan.ToDetect.Count > 0) RefreshStatsDisplay(plan.ToDetect);
             return (renamed, saved);
         }
 
+        // A dispatcher that won't take work is shutting down: stop rather than run the rest synchronously.
         private Task NextTickAsync()
         {
             var tcs = new TaskCompletionSource();
-            if (!_uiDispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => tcs.TrySetResult())) tcs.TrySetResult();
+            if (!_uiDispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => tcs.TrySetResult()))
+                tcs.TrySetCanceled();
             return tcs.Task;
         }
 
@@ -220,15 +236,18 @@ namespace Pickles_Playlist_Editor
             }
         }
 
-        // New lengths and keys may change playlist totals and chips even where no name changed.
-        private void RefreshStatsDisplay()
+        // New lengths and keys may change playlist totals and chips even where no name changed; only where analysed.
+        private void RefreshStatsDisplay(IReadOnlyList<string> detectedRels)
         {
             if (RootPlaylistItems.Count == 0) return;
+            var detected = new HashSet<string>(detectedRels.Select(StatsPlan.RelKeyOf));
             foreach (var plNode in RootPlaylistItems[0].Children)
             {
                 if (!Playlists.TryGetValue(plNode.Name, out var pl)) continue;
+                var songs = plNode.Children.Where(n => !string.IsNullOrEmpty(n.ScdRel) && detected.Contains(StatsPlan.RelKeyOf(n.ScdRel))).ToList();
+                if (songs.Count == 0) continue;
                 SetNodeDisplayText(plNode, (pl.Name ?? "") + GetTimeString(SumPlaylistDuration(pl)));
-                foreach (var song in plNode.Children) ApplyCamelotChip(song);
+                foreach (var song in songs) ApplyCamelotChip(song);
             }
         }
 
@@ -292,6 +311,10 @@ namespace Pickles_Playlist_Editor
         }
 
         /// <summary>The exit didn't happen after all: let cache writes through again.</summary>
-        internal void ResumeAfterAbortedExit() => StatsCacheWrites.ReleaseExitHold();
+        internal void ResumeAfterAbortedExit()
+        {
+            StatsCacheWrites.ReleaseExitHold();
+            Logger.LogWarn("Exit was called off; background stats, tags and AI work stay stopped until the app restarts");
+        }
     }
 }

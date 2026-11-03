@@ -20,7 +20,8 @@ namespace Pickles_Playlist_Editor.Tools
             var list = new List<StatsEntry>();
             foreach (var (pl, o) in targets)
             {
-                if (o?.Name == null || o.Name == "Off" || o.Name == "Default") continue;
+                if (o?.Name == null || o.Name.Equals("Off", StringComparison.OrdinalIgnoreCase)
+                    || o.Name.Equals("Default", StringComparison.OrdinalIgnoreCase)) continue;
                 string rel = relOf(o) ?? "";
                 if (rel.Length == 0) continue;
                 list.Add(new StatsEntry(pl.Name ?? "", rel, RelKeyOf(rel), o.Name, isBackfilled(o)));
