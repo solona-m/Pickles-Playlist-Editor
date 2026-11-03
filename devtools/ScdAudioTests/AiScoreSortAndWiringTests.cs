@@ -71,8 +71,11 @@ public class AiScoreSortAndWiringTests
         Assert.DoesNotContain("SetProgressBarText", phase);
         Assert.DoesNotContain("SetProgressBarPercent", phase);
         Assert.Contains("SetBackgroundProgress(", phase);
-        Assert.Matches(@"Interlocked\.Exchange\(ref _aiPhaseRunning, 1\) == 1\)[^{]*\{\s*await ShowDialogAsync\(AppStrings\.Summary_AiScore, AppStrings\.Get\(""AiScore_AlreadyRunning""\)\);\s*return;", phase);
-        Assert.Matches(@"finally\s*\{\s*ClearBackgroundProgress\(\);\s*Interlocked\.Exchange\(ref _aiPhaseRunning, 0\);", phase);
+        // One pass at a time through the ticketed gate (its transitions are unit-tested in AiScanOnEnableTests).
+        int begin = phase.IndexOf("_aiGate.TryBegin(pass, out var ticket)", StringComparison.Ordinal);
+        Assert.True(begin > 0 && begin < Regex.Match(phase, @"\btry\s*\{").Index, "only a started pass reaches finally");
+        Assert.Matches(@"case AiPassStart\.Queued: return;\s*case AiPassStart\.AlreadyRunning:\s*await ShowDialogAsync\(AppStrings\.Summary_AiScore, AppStrings\.Get\(""AiScore_AlreadyRunning""\)\);\s*return;", phase);
+        Assert.Matches(@"finally\s*\{\s*ClearBackgroundProgress\(\);[\s\S]*_aiGate\.End\(ticket, Settings\.AiScoreEnabled\)", phase);
         string setter = Method(Src("ui/MainWindow.AiScore.cs"), "private void SetBackgroundProgress");
         Assert.DoesNotContain("BusyOverlay", setter);
         Assert.DoesNotContain("IsHitTestVisible", setter);

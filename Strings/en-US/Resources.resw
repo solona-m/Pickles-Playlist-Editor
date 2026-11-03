@@ -401,7 +401,7 @@ Do you want to proceed?</value></data>
   <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>Sort by AI likelihood</value></data>
   <data name="AiScoreLabel.Text" xml:space="preserve"><value>AI-likelihood score</value></data>
   <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>Estimate how likely each song is to be AI-generated</value></data>
-  <data name="AiScore_Hint" xml:space="preserve"><value>A local machine-learning classifier (SONICS), not generative AI. Your songs never leave this computer. Turning it on downloads about {0} MB once; scores are computed by Compute Stats.</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>A local machine-learning classifier (SONICS), not generative AI. Your songs never leave this computer. Turning it on downloads about {0} MB once; your library is then scored in the background, and Compute Stats scores songs you add later.</value></data>
   <data name="AiScore_Consent_Title" xml:space="preserve"><value>Turn on the AI-likelihood score?</value></data>
   <data name="AiScore_Consent_Content" xml:space="preserve"><value>The score comes from SONICS, a machine-learning classifier that runs on this computer. It is not generative AI, and your songs never leave this computer. It is an estimate, not proof.&#10;&#10;The model and the audio decoder it needs are downloaded once (about {0} MB) from {2} into {1}.</value></data>
   <data name="AiScore_Redownload_Content" xml:space="preserve"><value>The AI-likelihood files are missing, damaged or out of date. Download them again (about {0} MB)? Your songs never leave this computer.</value></data>
@@ -418,7 +418,7 @@ Do you want to proceed?</value></data>
   <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>the download was cancelled.</value></data>
   <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>The AI files aren't available for download yet. Try again later.</value></data>
   <data name="AiScore_LowDisk" xml:space="preserve"><value>There isn't enough free space: about {0} MB is needed in {1}.</value></data>
-  <data name="AiScore_Ready" xml:space="preserve"><value>The AI-likelihood score is on. Run Compute Stats on a playlist to score its songs.</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>The AI-likelihood score is on. Any songs in your library that are not scored yet are now scored in the background, at low priority; tags appear as songs are scored. Compute Stats scores songs you add later.</value></data>
   <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>The AI-likelihood score couldn't run: {0}</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Likely AI</value></data>
   <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Possibly AI</value></data>
@@ -429,5 +429,5 @@ Do you want to proceed?</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>The AI-likelihood score was skipped: its files aren't ready.</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>AI-likelihood score</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>Scoring AI likelihood {0}/{1}...</value></data>
-  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI scoring is already running. Run Compute Stats again when it has finished to score these songs.</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI scoring is already running in the background. These songs will be scored after it.</value></data>
 </root>

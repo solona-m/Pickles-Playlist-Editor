@@ -13,12 +13,14 @@ using Windows.UI;
 
 namespace Pickles_Playlist_Editor
 {
-    // The AI-likelihood score: opt-in, the second (AI) pass of Compute Stats, chips and sort.
+    // The AI-likelihood score: opt-in, the library scan on turn-on, the AI pass of Compute Stats, chips and sort.
     public sealed partial class MainWindow
     {
         private AiAssetDownloadService? _aiAssets;
         private readonly CancellationTokenSource _closingCts = new(); // stops an AI scoring pass when the window closes
-        private int _aiPhaseRunning;
+        private readonly AiPassGate _aiGate; // built in the constructor: it links to _closingCts
+        private bool _aiScanWanted;
+        private string? _aiModKey;
         private SortDirection _aiSortDirection = SortDirection.Ascending; // so the first click is Descending
         private static bool s_showAiChips;
 
@@ -44,8 +46,31 @@ namespace Pickles_Playlist_Editor
                 }
                 catch (Exception ex) { Logger.LogError("AI score opt-in failed: {Error}", ex); }
             }
+            if (dialog.AiScoreChanged && !Settings.AiScoreEnabled) { _aiGate.TurnOff(); _aiScanWanted = false; }
             if (dialog.AiScoreChanged || dialog.AiScoreOptInRequested) RefreshAiScoreUi(reload: true);
+            if (dialog.AiScoreOptInRequested && Settings.AiScoreEnabled) _aiScanWanted = true; // started after the reload
         }
+
+        /// <summary>
+        /// After Settings has closed and the library has been reloaded: scan it if AI was just turned on, or rescan
+        /// if the mod folder changed while AI is on.
+        /// </summary>
+        internal void ContinueAiScoreAfterSettings(bool libraryFresh)
+        {
+            string key = AiScoreCache.Key(Utils.PenumbraMeta.ModRoot);
+            bool modChanged = _aiModKey != null && key != _aiModKey;
+            _aiModKey = key;
+            if (!Settings.AiScoreEnabled) { _aiScanWanted = false; return; }
+            if (modChanged) _aiGate.CancelRunning();
+            if (_aiScanWanted || modChanged)
+            {
+                if (modChanged && !libraryFresh) LoadPlaylists();
+                _aiScanWanted = false;
+                StartLibraryAiScan();
+            }
+        }
+
+        private void StartLibraryAiScan() => _ = RunAiScorePhaseAsync(Library.SongTargets(Playlists.Values), AiPass.Library);
 
         /// <summary>Shows or hides the AI sort item and chips to match the setting.</summary>
         internal void RefreshAiScoreUi(bool reload)
@@ -88,53 +113,79 @@ namespace Pickles_Playlist_Editor
             Walk(RootPlaylistItems);
         }
 
+        /// <summary>Are the files there? Checked off the UI thread; never prompts.</summary>
+        private Task<bool> IsAiReadyAsync()
+        {
+            var svc = AiAssetsService;
+            return Task.Run(() => { using (ThreadPriorityScope.BelowNormal()) return svc.IsReady(); });
+        }
+
         /// <summary>Before phase 2: are the files there? If not, offer to download them again.</summary>
         private async Task<bool> EnsureAiReadyForStatsAsync()
         {
+            if (await IsAiReadyAsync()) return true;
             var svc = AiAssetsService;
-            if (await Task.Run(() => { using (ThreadPriorityScope.BelowNormal()) return svc.IsReady(); })) return true;
             var outcome = await AiScoreOptIn.RunAsync(OptInUi(), svc, AiScoreOptIn.HasFreeSpace, on => { if (on) Settings.AiScoreEnabled = true; }, redownload: true);
             return outcome is AiOptInOutcome.Enabled or AiOptInOutcome.AlreadyReady;
         }
 
         /// <summary>
-        /// Compute Stats, phase 2: scores the songs after phase 1 has saved its results. Writes only the AI cache,
-        /// never playlist JSON, so closing the app mid-way loses nothing.
+        /// One AI pass: Compute Stats phase 2, or the background library scan. Writes only the AI cache, never
+        /// playlist JSON, so closing the app mid-way loses nothing. A library scan shows no summary.
         /// </summary>
-        private async Task RunAiScorePhaseAsync(List<(Playlist playlist, Option option)> targets)
+        private async Task RunAiScorePhaseAsync(List<(Playlist playlist, Option option)> targets, AiPass pass = AiPass.ComputeStats)
         {
-            if (Interlocked.Exchange(ref _aiPhaseRunning, 1) == 1) // one AI pass at a time
+            switch (_aiGate.TryBegin(pass, out var ticket)) // one AI pass at a time; a busy gate queues a library scan
             {
-                await ShowDialogAsync(AppStrings.Summary_AiScore, AppStrings.Get("AiScore_AlreadyRunning"));
-                return;
+                case AiPassStart.Queued: return;
+                case AiPassStart.AlreadyRunning:
+                    await ShowDialogAsync(AppStrings.Summary_AiScore, AppStrings.Get("AiScore_AlreadyRunning"));
+                    return;
             }
+            var ct = ticket.Token;
+            AiScoreRun? run = null;
+            int alreadyCached = 0, toScore = 0;
+            AiPassEnd end = AiPassEnd.Error;
             try
             {
                 var cache = AiScoreCache.Default;
-                var all = targets.Select(t => Playlist.GetScdPath(t.option)).Where(p => !string.IsNullOrEmpty(p))
-                    .Select(AiScoreCache.FullPathOf).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-                var paths = all.Where(p => cache.TryGet(p) is null).ToList();
-                int alreadyCached = all.Count - paths.Count;
+                var rels = targets.Select(t => Playlist.GetScdPath(t.option)).Where(p => !string.IsNullOrEmpty(p)).ToList();
+                var (paths, cached) = await Task.Run(() =>
+                {
+                    using (ThreadPriorityScope.BelowNormal())
+                    {
+                        var all = rels.Select(AiScoreCache.FullPathOf).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                        var todo = all.Where(p => cache.TryGet(p) is null).ToList();
+                        return (todo, all.Count - todo.Count);
+                    }
+                });
+                alreadyCached = cached;
+                toScore = paths.Count;
+                if (ct.IsCancellationRequested) { end = AiPassEnd.Cancelled; return; }
                 if (paths.Count == 0)
                 {
                     // Nothing to score: no model load and no download prompt.
-                    await ShowDialogAsync(AppStrings.Summary_AiScore, AppStrings.AiScoreSummary(0, 0, 0, alreadyCached));
+                    end = AiPassEnd.NothingToScore;
+                    if (AiPassRules.ShowsDialog(pass, end))
+                        await ShowDialogAsync(AppStrings.Summary_AiScore, AppStrings.AiScoreSummary(0, 0, 0, alreadyCached));
                     return;
                 }
-                if (!await EnsureAiReadyForStatsAsync())
+                if (!await (pass == AiPass.Library ? IsAiReadyAsync() : EnsureAiReadyForStatsAsync()))
                 {
-                    await ShowDialogAsync(AppStrings.Summary_AiScore, AppStrings.AiScore_SummarySkipped);
+                    end = AiPassEnd.NotReady;
+                    if (AiPassRules.ShowsDialog(pass, end))
+                        await ShowDialogAsync(AppStrings.Summary_AiScore, AppStrings.AiScore_SummarySkipped);
                     return;
                 }
+                if (ct.IsCancellationRequested) { end = AiPassEnd.Cancelled; return; }
                 SetBackgroundProgress(AppStrings.ProgAiScoring(0, paths.Count), 0);
-                var ct = _closingCts.Token;
 
-                var (run, unavailable) = await Task.Run(() =>
+                string? unavailable = await Task.Run(() =>
                 {
-                    var r = AiScoreRun.Begin(AiScoreCache.Default);
+                    var r = run = AiScoreRun.Begin(AiScoreCache.Default);
                     try
                     {
-                        if (r.UnavailableReason != null) return (r, r.UnavailableReason);
+                        if (r.UnavailableReason != null) return r.UnavailableReason;
                         for (int i = 0; i < paths.Count && !ct.IsCancellationRequested; i++)
                         {
                             r.ScoreSong(paths[i], ct);
@@ -142,22 +193,26 @@ namespace Pickles_Playlist_Editor
                             SetBackgroundProgress(AppStrings.ProgAiScoring(done, paths.Count), done * 100 / paths.Count);
                             if (done % 10 == 0) _uiDispatcherQueue.TryEnqueue(RefreshAiChips);
                         }
-                        return (r, (string?)null);
+                        return (string?)null;
                     }
                     finally { r.Dispose(); }
                 });
                 ClearBackgroundProgress();
                 RefreshAiChips();
-                await ShowDialogAsync(AppStrings.Summary_AiScore, unavailable != null
-                    ? AppStrings.AiScoreRuntimeFailed(unavailable)
-                    : AppStrings.AiScoreSummary(run.Scored, run.NoScore, run.Failed, run.Cached + alreadyCached));
+                end = ct.IsCancellationRequested ? AiPassEnd.Cancelled : unavailable != null ? AiPassEnd.RuntimeFailed : AiPassEnd.Finished;
+                if (AiPassRules.ShowsDialog(pass, end))
+                    await ShowDialogAsync(AppStrings.Summary_AiScore, unavailable != null
+                        ? AppStrings.AiScoreRuntimeFailed(unavailable)
+                        : AppStrings.AiScoreSummary(run!.Scored, run.NoScore, run.Failed, run.Cached + alreadyCached));
             }
-            catch (OperationCanceledException) { } // the window is closing
-            catch (Exception ex) { Logger.LogError("AI score pass failed: {Error}", ex); }
+            catch (OperationCanceledException) { end = AiPassEnd.Cancelled; } // closing, or the score was turned off
+            catch (Exception ex) { end = AiPassEnd.Error; Logger.LogError("AI score pass failed: {Error}", ex); }
             finally
             {
                 ClearBackgroundProgress();
-                Interlocked.Exchange(ref _aiPhaseRunning, 0);
+                Logger.LogInfo("AI score pass {Pass} ended {End}: {Scored} scored, {NoScore} no score, {Failed} failed, {Cached} already scored, {ToScore} to score",
+                    pass, end, run?.Scored ?? 0, run?.NoScore ?? 0, run?.Failed ?? 0, (run?.Cached ?? 0) + alreadyCached, toScore);
+                if (_aiGate.End(ticket, Settings.AiScoreEnabled)) StartLibraryAiScan();
             }
         }
 
