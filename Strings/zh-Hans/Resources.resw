@@ -398,4 +398,35 @@
   <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube 要求登录，因此搜索已停止</value></data>
   <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>只会在 YouTube 上查找前 {0} 首此类曲目</value></data>
   <data name="YTFallback_NoneFound" xml:space="preserve"><value>在 YouTube 上也没有找到对应的上传。</value></data>
+  <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>按 AI 可能性排序</value></data>
+  <data name="AiScoreLabel.Text" xml:space="preserve"><value>AI 可能性评分</value></data>
+  <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>估计每首歌由 AI 生成的可能性</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>本地机器学习分类器（SONICS），不是生成式 AI。你的歌曲绝不会离开这台电脑。开启后会一次性下载约 {0} MB；评分由“计算统计”生成。</value></data>
+  <data name="AiScore_Consent_Title" xml:space="preserve"><value>开启 AI 可能性评分？</value></data>
+  <data name="AiScore_Consent_Content" xml:space="preserve"><value>评分来自 SONICS，一个在这台电脑上运行的机器学习分类器。它不是生成式 AI，你的歌曲绝不会离开这台电脑。这是估计，不是证据。&#10;&#10;模型及其所需的音频解码器会一次性（约 {0} MB）从 {2} 下载到 {1}。</value></data>
+  <data name="AiScore_Redownload_Content" xml:space="preserve"><value>AI 可能性所需的文件缺失、损坏或已过期。要重新下载吗（约 {0} MB）？你的歌曲绝不会离开这台电脑。</value></data>
+  <data name="AiScore_Btn_Download" xml:space="preserve"><value>下载</value></data>
+  <data name="AiScore_Downloading_Title" xml:space="preserve"><value>正在下载 AI 可能性文件</value></data>
+  <data name="AiScore_Progress" xml:space="preserve"><value>{0}（第 {1}/{2} 个）：{3}/{4} MB</value></data>
+  <data name="AiScore_Checking" xml:space="preserve"><value>正在检查 AI 文件…</value></data>
+  <data name="AiScore_Cancelling" xml:space="preserve"><value>正在取消…</value></data>
+  <data name="AiScore_DownloadFailed" xml:space="preserve"><value>未开启 AI 可能性评分：{0}</value></data>
+  <data name="AiScore_Fail_Http" xml:space="preserve"><value>下载服务器返回了错误。请稍后再试。</value></data>
+  <data name="AiScore_Fail_Checksum" xml:space="preserve"><value>下载的文件与校验值不符。</value></data>
+  <data name="AiScore_Fail_Transport" xml:space="preserve"><value>连接失败。请检查网络连接后重试。</value></data>
+  <data name="AiScore_Fail_Disk" xml:space="preserve"><value>无法将文件写入磁盘。</value></data>
+  <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>下载已取消。</value></data>
+  <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>AI 文件暂时还不能下载。请稍后再试。</value></data>
+  <data name="AiScore_LowDisk" xml:space="preserve"><value>可用空间不足：{1} 中需要约 {0} MB。</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>AI 可能性评分已开启。对播放列表运行“计算统计”即可为其歌曲评分。</value></data>
+  <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>AI 可能性评分无法运行：{0}</value></data>
+  <data name="AiScore_Band_Ai" xml:space="preserve"><value>可能是 AI</value></data>
+  <data name="AiScore_Band_Unclear" xml:space="preserve"><value>不确定</value></data>
+  <data name="AiScore_Band_Human" xml:space="preserve"><value>可能是人类创作</value></data>
+  <data name="AiScore_Tooltip" xml:space="preserve"><value>AI 可能性 {0}（0 = 人类，1 = AI）。这是估计，不是证据。</value></data>
+  <data name="AiScore_Summary" xml:space="preserve"><value>AI 可能性：已评分 {0} 首，之前已评分 {3} 首，{1} 首无评分（静音或太短），{2} 首无法读取。</value></data>
+  <data name="AiScore_SummarySkipped" xml:space="preserve"><value>已跳过 AI 可能性评分：其文件尚未就绪。</value></data>
+  <data name="Summary_AiScore" xml:space="preserve"><value>AI 可能性评分</value></data>
+  <data name="Prog_AiScoring" xml:space="preserve"><value>正在评估 AI 可能性 {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI 评分已在进行中。完成后再次运行“计算统计”即可为这些歌曲评分。</value></data>
 </root>

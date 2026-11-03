@@ -144,7 +144,8 @@ public sealed class AiAssetDownloadTests : IDisposable
         {
             var r = await svc.EnsureAsync(null, CancellationToken.None);
             Assert.False(r.Ok);
-            Assert.Equal(AiAssetFailure.Http, r.Failure);
+            // Every source answered 404, so the failure is NotFound, not Http.
+            Assert.Equal(AiAssetFailure.NotFound, r.Failure);
             Assert.Equal(_pins[1].Name, r.FileName);
             Assert.Contains("404", r.Detail);
             Assert.True(File.Exists(Dest(0)));
@@ -156,6 +157,28 @@ public sealed class AiAssetDownloadTests : IDisposable
             Assert.True((await svc.EnsureAsync(null, CancellationToken.None)).Ok);
             Assert.DoesNotContain(_requests, u => u.EndsWith("/" + _pins[0].Name));
         }
+    }
+
+    [Fact] // [AC-ai-score-3] [EDGE-ai-score-36]
+    public async Task Every404_NotFound()
+    {
+        using var svc = Service((_, _) => Task.FromResult(Status(404)));
+        var r = await svc.EnsureAsync(null, CancellationToken.None);
+        Assert.Equal(AiAssetFailure.NotFound, r.Failure);
+    }
+
+    [Fact] // [AC-ai-score-3] [EDGE-ai-score-36]
+    public async Task Mirror410GitHub404_NotFound()
+    {
+        using var svc = Service((req, _) => Task.FromResult(Status(IsMirror(req) ? 410 : 404)));
+        Assert.Equal(AiAssetFailure.NotFound, (await svc.EnsureAsync(null, CancellationToken.None)).Failure);
+    }
+
+    [Fact] // [EDGE-ai-score-37] a real server fault somewhere is not "not published yet"
+    public async Task Mirror404GitHub500_Http()
+    {
+        using var svc = Service((req, _) => Task.FromResult(Status(IsMirror(req) ? 404 : 500)));
+        Assert.Equal(AiAssetFailure.Http, (await svc.EnsureAsync(null, CancellationToken.None)).Failure);
     }
 
     [Fact] // [AC-ai-assets-download-6] [EDGE-ai-assets-download-7]

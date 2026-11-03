@@ -87,6 +87,10 @@
         <CheckBox x:Name="ShowCamelotInNameCheckBox" x:Uid="ShowCamelotInNameCheckBox" Content="Camelot number" IsChecked="True"/>
         <CheckBox x:Name="ShowLengthInNameCheckBox" x:Uid="ShowLengthInNameCheckBox" Content="Length" IsChecked="True"/>
 
+        <TextBlock x:Uid="AiScoreLabel" Text="AI-likelihood score" FontWeight="SemiBold"/>
+        <CheckBox x:Name="AiScoreCheckBox" x:Uid="AiScoreCheckBox" Content="Estimate how likely each song is to be AI-generated"/>
+        <TextBlock x:Name="AiScoreHintText" TextWrapping="Wrap" Opacity="0.8"/>
+
         <TextBlock x:Uid="YtCookiesLabel" Text="YouTube Cookies" FontWeight="SemiBold"/>
         <TextBlock x:Name="CookieStatusText" Text="No cookies found. Use the VRCVideoCacher browser extension to send cookies." TextWrapping="Wrap"/>
         <Button x:Uid="ClearCookiesButton" x:Name="ClearCookiesButton" Content="Clear Cookies" Click="ClearCookiesButton_Click" HorizontalAlignment="Stretch"/>

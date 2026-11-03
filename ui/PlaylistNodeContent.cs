@@ -18,6 +18,11 @@ namespace Pickles_Playlist_Editor
         private string _camelotText = "";
         private SolidColorBrush? _camelotBrush;
         private Visibility _camelotVisibility = Visibility.Collapsed;
+        private string _aiText = "";
+        private string _aiTooltip = "";
+        private string _aiAutomationName = "";
+        private SolidColorBrush? _aiBrush;
+        private Visibility _aiVisibility = Visibility.Collapsed;
 
         public string Name { get; set; } = "";
 
@@ -60,6 +65,41 @@ namespace Pickles_Playlist_Editor
                 _camelotVisibility = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CamelotVisibility)));
             }
+        }
+
+        /// <summary>A song's SCD path relative to the mod, so its chips can be refreshed in place.</summary>
+        public string ScdRel { get; set; } = "";
+
+        // AI-likelihood chip, songs only. Collapsed unless the setting is on and a score is cached.
+        public string AiText
+        {
+            get => _aiText;
+            set { _aiText = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AiText))); }
+        }
+
+        public string AiTooltip
+        {
+            get => _aiTooltip;
+            set { _aiTooltip = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AiTooltip))); }
+        }
+
+        /// <summary>What a screen reader says for the chip: the band and the score.</summary>
+        public string AiAutomationName
+        {
+            get => _aiAutomationName;
+            set { _aiAutomationName = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AiAutomationName))); }
+        }
+
+        public SolidColorBrush? AiBrush
+        {
+            get => _aiBrush;
+            set { _aiBrush = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AiBrush))); }
+        }
+
+        public Visibility AiVisibility
+        {
+            get => _aiVisibility;
+            set { _aiVisibility = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AiVisibility))); }
         }
 
         // Selection lives here, not on the TreeView: WinUI offers Single or a checkbox per row and

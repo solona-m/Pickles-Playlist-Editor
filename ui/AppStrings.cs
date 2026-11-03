@@ -87,6 +87,28 @@ namespace Pickles_Playlist_Editor
             string.Format(_r.GetString("Dlg_ModFolderUnreadable_Content"), modName);
         public static string Menu_ManageEQ => _r.GetString("Menu_ManageEQ");
         public static string Menu_ComputeStats => _r.GetString("Menu_ComputeStats");
+        // AI-likelihood score
+        public static string Get(string key) => _r.GetString(key);
+        public static string AiScoreHint(long mb) => string.Format(_r.GetString("AiScore_Hint"), mb);
+        public static string AiScore_Consent_Title => _r.GetString("AiScore_Consent_Title");
+        public static string AiScoreConsent(long mb, string folder, string sources) => string.Format(_r.GetString("AiScore_Consent_Content"), mb, folder, sources);
+        public static string AiScoreRedownload(long mb) => string.Format(_r.GetString("AiScore_Redownload_Content"), mb);
+        public static string AiScore_Btn_Download => _r.GetString("AiScore_Btn_Download");
+        public static string AiScore_Downloading_Title => _r.GetString("AiScore_Downloading_Title");
+        public static string AiScoreProgress(string file, int index, int count, long mbDone, long mbTotal) =>
+            string.Format(_r.GetString("AiScore_Progress"), file, index, count, mbDone, mbTotal);
+        public static string AiScore_Checking => _r.GetString("AiScore_Checking");
+        public static string AiScore_Cancelling => _r.GetString("AiScore_Cancelling");
+        public static string AiScoreDownloadFailed(string reason) => string.Format(_r.GetString("AiScore_DownloadFailed"), reason);
+        public static string AiScoreLowDisk(long mb, string folder) => string.Format(_r.GetString("AiScore_LowDisk"), mb, folder);
+        public static string AiScore_Ready => _r.GetString("AiScore_Ready");
+        public static string AiScoreRuntimeFailed(string reason) => string.Format(_r.GetString("AiScore_RuntimeFailed"), reason);
+        public static string AiScoreTooltip(string score) => string.Format(_r.GetString("AiScore_Tooltip"), score);
+        public static string AiScoreSummary(int scored, int noScore, int failed, int cached) =>
+            string.Format(_r.GetString("AiScore_Summary"), scored, noScore, failed, cached);
+        public static string AiScore_SummarySkipped => _r.GetString("AiScore_SummarySkipped");
+        public static string Summary_AiScore => _r.GetString("Summary_AiScore");
+        public static string ProgAiScoring(int done, int total) => string.Format(_r.GetString("Prog_AiScoring"), done, total);
         public static string Prog_ComputingStats => _r.GetString("Prog_ComputingStats");
         public static string Summary_ComputeStats => _r.GetString("Summary_ComputeStats");
         public static string Prog_ConvertingToStereo => _r.GetString("Prog_ConvertingToStereo");

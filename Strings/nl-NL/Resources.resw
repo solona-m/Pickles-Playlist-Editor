@@ -398,4 +398,35 @@ Wil je doorgaan?</value></data>
   <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube vroeg om in te loggen, dus het zoeken is gestopt</value></data>
   <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>alleen de eerste {0} van zulke nummers worden op YouTube gezocht</value></data>
   <data name="YTFallback_NoneFound" xml:space="preserve"><value>Ook op YouTube is geen overeenkomende upload gevonden.</value></data>
+  <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>Sorteren op AI-waarschijnlijkheid</value></data>
+  <data name="AiScoreLabel.Text" xml:space="preserve"><value>AI-waarschijnlijkheid</value></data>
+  <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>Inschatten hoe waarschijnlijk elk nummer door AI is gemaakt</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>Een lokale machine-learningclassificatie (SONICS), geen generatieve AI. Je nummers verlaten deze computer nooit. Inschakelen downloadt eenmalig ongeveer {0} MB; de scores worden berekend door Statistieken berekenen.</value></data>
+  <data name="AiScore_Consent_Title" xml:space="preserve"><value>AI-waarschijnlijkheid inschakelen?</value></data>
+  <data name="AiScore_Consent_Content" xml:space="preserve"><value>De score komt van SONICS, een machine-learningclassificatie die op deze computer draait. Het is geen generatieve AI en je nummers verlaten deze computer nooit. Het is een schatting, geen bewijs.&#10;&#10;Het model en de audiodecoder die het nodig heeft worden eenmalig gedownload (ongeveer {0} MB) van {2} naar {1}.</value></data>
+  <data name="AiScore_Redownload_Content" xml:space="preserve"><value>De bestanden voor de AI-waarschijnlijkheid ontbreken, zijn beschadigd of verouderd. Opnieuw downloaden (ongeveer {0} MB)? Je nummers verlaten deze computer nooit.</value></data>
+  <data name="AiScore_Btn_Download" xml:space="preserve"><value>Downloaden</value></data>
+  <data name="AiScore_Downloading_Title" xml:space="preserve"><value>Bestanden voor de AI-waarschijnlijkheid downloaden</value></data>
+  <data name="AiScore_Progress" xml:space="preserve"><value>{0} ({1} van {2}): {3} van {4} MB</value></data>
+  <data name="AiScore_Checking" xml:space="preserve"><value>AI-bestanden controleren…</value></data>
+  <data name="AiScore_Cancelling" xml:space="preserve"><value>Annuleren…</value></data>
+  <data name="AiScore_DownloadFailed" xml:space="preserve"><value>De AI-waarschijnlijkheid is niet ingeschakeld: {0}</value></data>
+  <data name="AiScore_Fail_Http" xml:space="preserve"><value>de downloadserver gaf een fout. Probeer het later opnieuw.</value></data>
+  <data name="AiScore_Fail_Checksum" xml:space="preserve"><value>een gedownload bestand kwam niet overeen met de controlesom.</value></data>
+  <data name="AiScore_Fail_Transport" xml:space="preserve"><value>de verbinding is mislukt. Controleer je internetverbinding en probeer het opnieuw.</value></data>
+  <data name="AiScore_Fail_Disk" xml:space="preserve"><value>de bestanden konden niet naar schijf worden geschreven.</value></data>
+  <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>de download is geannuleerd.</value></data>
+  <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>De AI-bestanden zijn nog niet beschikbaar om te downloaden. Probeer het later opnieuw.</value></data>
+  <data name="AiScore_LowDisk" xml:space="preserve"><value>Er is niet genoeg vrije ruimte: ongeveer {0} MB is nodig in {1}.</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>De AI-waarschijnlijkheid staat aan. Voer Statistieken berekenen uit op een afspeellijst om de nummers te scoren.</value></data>
+  <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>De AI-waarschijnlijkheid kon niet worden uitgevoerd: {0}</value></data>
+  <data name="AiScore_Band_Ai" xml:space="preserve"><value>Waarschijnlijk AI</value></data>
+  <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Onduidelijk</value></data>
+  <data name="AiScore_Band_Human" xml:space="preserve"><value>Waarschijnlijk menselijk</value></data>
+  <data name="AiScore_Tooltip" xml:space="preserve"><value>AI-waarschijnlijkheid {0} (0 = mens, 1 = AI). Een schatting, geen bewijs.</value></data>
+  <data name="AiScore_Summary" xml:space="preserve"><value>AI-waarschijnlijkheid: {0} gescoord, {3} al gescoord, {1} zonder score (stil of te kort), {2} konden niet worden gelezen.</value></data>
+  <data name="AiScore_SummarySkipped" xml:space="preserve"><value>De AI-waarschijnlijkheid is overgeslagen: de bestanden zijn niet klaar.</value></data>
+  <data name="Summary_AiScore" xml:space="preserve"><value>AI-waarschijnlijkheid</value></data>
+  <data name="Prog_AiScoring" xml:space="preserve"><value>AI-waarschijnlijkheid scoren {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>De AI-scoring loopt al. Voer Statistieken berekenen opnieuw uit als die klaar is om deze nummers te scoren.</value></data>
 </root>

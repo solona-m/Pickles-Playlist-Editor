@@ -329,6 +329,7 @@ namespace Pickles_Playlist_Editor
                 // as 0:00 and the target playlist's displayed duration comes up short.
                 Utils.BPMDetector.UpdateCacheForSCD(oldFullPath, newPath);
                 Utils.KeyDetector.UpdateCacheForSCD(oldFullPath, newPath);
+                Utils.AiScoreCache.Default.UpdateCacheForSCD(oldFullPath, newPath);
                 string newRel = Path.Combine(targetScdDirectory, Path.GetFileName(newPath));
                 foreach (var (key, _) in keys)
                     song.Files[key] = newRel;
@@ -353,6 +354,7 @@ namespace Pickles_Playlist_Editor
                         File.Move(newPath, oldFullPath);
                         Utils.BPMDetector.UpdateCacheForSCD(newPath, oldFullPath);
                         Utils.KeyDetector.UpdateCacheForSCD(newPath, oldFullPath);
+                        Utils.AiScoreCache.Default.UpdateCacheForSCD(newPath, oldFullPath);
                     }
                     catch (Exception moveBack)
                     {

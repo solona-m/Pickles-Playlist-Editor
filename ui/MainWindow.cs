@@ -91,10 +91,29 @@ namespace Pickles_Playlist_Editor
                 Settings.WindowSize = (size.Width, size.Height);
                 // Don't let a debounced Penumbra reload get dropped by closing mid-countdown.
                 Playlist.FlushPenumbraMod();
+                DisposeAiScore();
             };
         }
 
         // ─── Dialog helper ───────────────────────────────────────────────────────
+
+        private readonly SemaphoreSlim _dialogGate = new(1, 1);
+
+        /// <summary>
+        /// Shows one dialog through the gate, so a summary raised while another gated dialog is open waits its turn.
+        /// A collision with an ungated dialog is logged and reads as "closed".
+        /// </summary>
+        internal async Task<ContentDialogResult> ShowGatedAsync(ContentDialog dialog)
+        {
+            await _dialogGate.WaitAsync();
+            try { return await dialog.ShowAsync(); }
+            catch (COMException ex)
+            {
+                Utils.Logger.LogWarn("Dialog '{Title}' not shown: {Error}", dialog.Title as string ?? "", ex.Message);
+                return ContentDialogResult.None;
+            }
+            finally { _dialogGate.Release(); }
+        }
 
         public async Task<ContentDialogResult> ShowDialogAsync(
             string title, string content,
@@ -110,7 +129,7 @@ namespace Pickles_Playlist_Editor
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = this.Content.XamlRoot
             };
-            return await dialog.ShowAsync();
+            return await ShowGatedAsync(dialog);
         }
 
         // ─── File picker helpers
@@ -245,6 +264,7 @@ namespace Pickles_Playlist_Editor
             // No-ops when nothing is configured yet — see the second call site in OpenSettingsAsync.
             Utils.VersionBackup.TryCaptureOnBoot();
 
+            RefreshAiScoreUi(reload: false); // before the tree is built, so chips show on first load
             LoadPlaylists();
 
             _ = CheckForUpdatesAsync();
@@ -667,6 +687,7 @@ namespace Pickles_Playlist_Editor
             var dialog = new SettingsDialog { XamlRoot = this.Content.XamlRoot };
             await dialog.ShowAsync();
             RefreshBackground();
+            await ApplyAiScoreSettingAsync(dialog);
 
             if (dialog.NamingOptionsChanged)
                 await ApplyNamingOptionsAsync();

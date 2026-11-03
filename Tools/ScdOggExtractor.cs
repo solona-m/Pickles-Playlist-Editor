@@ -106,6 +106,38 @@ namespace Pickles_Playlist_Editor.Tools {
         }
 
         /// <summary>
+        /// Like <see cref="WithExtractedOgg"/>, but without re-encoding: Vorbis comes out as its stored OGG, ADPCM as
+        /// a WAV of its own data. For analysis that decodes the file itself (the AI score); temp files are always deleted.
+        /// </summary>
+        public static T WithExtractedAudioForAnalysis<T>(string scdPath, Func<string, T> use, int audioIndex = 0) {
+            if (string.IsNullOrWhiteSpace(scdPath)) throw new ArgumentNullException(nameof(scdPath));
+            if (!File.Exists(scdPath)) throw new FileNotFoundException("SCD file not found", scdPath);
+            string copy = Path.Combine(Path.GetTempPath(), $"pickles-scd-{Guid.NewGuid():N}.scd");
+            string? audio = null;
+            try {
+                File.Copy(scdPath, copy, true);
+                var scd = ScdFile.Import(copy);
+                if (scd.Audio == null || scd.Audio.Count == 0) throw new InvalidOperationException("No audio entries in SCD.");
+                if (audioIndex < 0 || audioIndex >= scd.Audio.Count) throw new ArgumentOutOfRangeException(nameof(audioIndex));
+                var entry = scd.Audio[audioIndex];
+                if (entry.Data is ScdAdpcm adpcm) {
+                    if (adpcm.Data == null || adpcm.Data.Length == 0) throw new InvalidOperationException("ADPCM data is empty.");
+                    audio = Path.Combine(Path.GetTempPath(), $"pickles-adpcm-{Guid.NewGuid():N}.wav");
+                    File.WriteAllBytes(audio, AdpcmWav.Build(adpcm.WaveHeader, adpcm.Data));
+                }
+                else {
+                    audio = Path.Combine(Path.GetTempPath(), $"pickles-ogg-{Guid.NewGuid():N}.ogg");
+                    WriteEntryAsOgg(entry, audio); // Vorbis only: anything else throws before a transcode
+                }
+                return use(audio);
+            }
+            finally {
+                try { if (File.Exists(copy)) File.Delete(copy); } catch { }
+                try { if (audio != null && File.Exists(audio)) File.Delete(audio); } catch { }
+            }
+        }
+
+        /// <summary>
         /// Returns the OGG bytes for the specified audio entry.
         /// </summary>
         public static byte[] GetOggBytes(string scdPath, int audioIndex = 0) =>

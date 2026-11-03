@@ -97,6 +97,13 @@ Check 'ffmpeg.exe matches tracked essentials' ((Test-Path $ff) -and (Get-FileHas
 Check 'licenses\FFmpeg-GPL-3.0.txt' (Test-Path (Join-Path $Dir 'licenses\FFmpeg-GPL-3.0.txt'))
 Check 'no model files in payload' (@(Get-ChildItem $Dir -Recurse -File -Include *.onnx, *.onnx.data).Count -eq 0)
 
+# ONNX Runtime comes with the Windows App SDK (Windows ML): exactly one copy, x64, with its licence terms.
+$ort = @(Get-ChildItem $Dir -Recurse -File -Filter 'onnxruntime.dll')
+Check 'onnxruntime.dll (one copy)' ($ort.Count -eq 1)
+Check 'onnxruntime.dll x64' ($ort.Count -eq 1 -and (Get-PeKind $ort[0].FullName) -eq 'x64')
+Check 'Microsoft.ML.OnnxRuntime.dll' (Test-Path (Join-Path $Dir 'Microsoft.ML.OnnxRuntime.dll'))
+foreach ($lic in 'WindowsML-License.txt', 'WindowsML-ThirdPartyNotices.txt', 'SONICS-MIT.txt') { Check "licenses\$lic" (Test-Path (Join-Path $Dir "licenses\$lic")) }
+
 if ($failed) { Write-Output "$failed check(s) failed"; exit 1 }
 Write-Output 'All checks passed'
 exit 0

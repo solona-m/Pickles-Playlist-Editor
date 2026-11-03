@@ -30,3 +30,16 @@ Pickles Playlist Editor ships these components. Full license texts are in the `l
 - License: GPL v3 (`licenses/FFmpeg-GPL-3.0.txt`)
 - Source: https://github.com/FFmpeg/FFmpeg/commit/946fcce07b
 - Downloaded unmodified from this app's `aiscan-v1` release into `%LOCALAPPDATA%\PicklesPlaylistEditor\aiscan\aiscan-v1\`.
+
+## ONNX Runtime 1.27.1 (Windows ML build)
+- Ships as part of the Windows App SDK, in the package Microsoft.Windows.AI.MachineLearning 2.4.89, as `onnxruntime.dll` and `Microsoft.ML.OnnxRuntime.dll`. Used to run the AI-likelihood model on the CPU.
+- License: the Microsoft Windows ML Runtime license terms (`licenses/WindowsML-License.txt`). Its third-party notices are in `licenses/WindowsML-ThirdPartyNotices.txt`.
+- Upstream ONNX Runtime is MIT-licensed open source: https://github.com/microsoft/onnxruntime
+- This build can emit Windows diagnostic (TraceLogging) events. One start-up event (runtime version and process details) fires when ONNX Runtime starts, before an app can turn them off; the app then switches them off before it loads the model, so no session events follow. No audio, file names or song information is part of them.
+
+## SONICS model (downloaded only when you turn on the AI score)
+- SpecTTTra-β 120 s from SONICS (Synthetic Or Not - Identifying Counterfeit Songs), by Md Awsafur Rahman et al.: https://github.com/awsaf49/sonics
+- Weights: Hugging Face `awsaf49/sonics-spectttra-beta-120s`, revision `cc49422a98b5b92700876c608d0f9cdf27214a3e`, exported to ONNX.
+- License: MIT for the code and weights (`licenses/SONICS-MIT.txt`, which also states the dataset terms). The training dataset is CC BY-NC 4.0 (non-commercial); Pickles Playlist Editor is free and non-commercial.
+- Downloaded into `%LOCALAPPDATA%\PicklesPlaylistEditor\aiscan\aiscan-v1\`.
+

@@ -14,7 +14,12 @@ from sonics import HFAudioClassifier
 REVISION = "cc49422a98b5b92700876c608d0f9cdf27214a3e"
 
 out_dir = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
-model = HFAudioClassifier.from_pretrained("awsaf49/sonics-spectttra-beta-120s", revision=REVISION)
+# from_pretrained has no revision argument, so load the pinned revision from a local snapshot folder:
+# SONICS_MODEL_DIR = <hf cache>/models--awsaf49--sonics-spectttra-beta-120s/snapshots/<REVISION>
+model_dir = os.environ["SONICS_MODEL_DIR"]
+if os.path.basename(os.path.normpath(model_dir)) != REVISION:
+    sys.exit(f"SONICS_MODEL_DIR must be the {REVISION} snapshot")
+model = HFAudioClassifier.from_pretrained(model_dir)
 model.eval()
 win = int(model.config.audio.max_time * model.config.audio.sample_rate)
 dummy = torch.randn(1, win) * 0.1

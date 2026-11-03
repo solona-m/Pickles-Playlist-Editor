@@ -194,6 +194,31 @@ namespace Pickles_Playlist_Editor
         }
 
 
+        /// <summary>Accepts the forms a DWORD flag has been stored in; anything else is <paramref name="fallback"/>.</summary>
+        internal static bool ParseFlag(object? value, bool fallback) => value switch
+        {
+            int iv => iv != 0,
+            long lv => lv != 0,
+            string sv when bool.TryParse(sv, out var bv) => bv,
+            string sv when int.TryParse(sv, out var parsed) => parsed != 0,
+            _ => fallback,
+        };
+
+        /// <summary>The AI-likelihood score. Off unless turned on after its files were downloaded and verified.</summary>
+        public static bool AiScoreEnabled
+        {
+            get
+            {
+                try { return ParseFlag(Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("AiScoreEnabled"), false); }
+                catch { return false; }
+            }
+            set
+            {
+                using RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                key.SetValue("AiScoreEnabled", value ? 1 : 0, RegistryValueKind.DWord);
+            }
+        }
+
         /// <summary>
         /// Controls whether converted audio should be loudness-normalized.
         /// Default: true.

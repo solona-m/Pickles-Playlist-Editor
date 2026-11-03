@@ -41,7 +41,10 @@ namespace Pickles_Playlist_Editor.Tools
 
         public void Dispose() => _downloader.Dispose();
 
-        public string PathFor(AiAsset asset) => Path.Combine(_root, asset.Tag, asset.Name);
+        public string PathFor(AiAsset asset) => AiAssets.LocalPath(asset, _root);
+
+        /// <summary>True when every pinned file is present and verified. Hashes up to ~315 MB the first time: call off the UI thread.</summary>
+        public bool IsReady() => _files.All(f => IsVerified(PathFor(f), f));
 
         /// <summary>
         /// Returns at once; concurrent callers share one run, governed by the first caller's token.

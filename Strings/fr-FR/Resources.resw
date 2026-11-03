@@ -398,4 +398,35 @@ Voulez-vous continuer ?</value></data>
   <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube a demandé une connexion, la recherche s'est donc arrêtée</value></data>
   <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>seuls les {0} premiers morceaux de ce type sont recherchés sur YouTube</value></data>
   <data name="YTFallback_NoneFound" xml:space="preserve"><value>Aucun envoi correspondant n'a été trouvé sur YouTube non plus.</value></data>
+  <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>Trier par probabilité d'IA</value></data>
+  <data name="AiScoreLabel.Text" xml:space="preserve"><value>Probabilité d'IA</value></data>
+  <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>Estimer la probabilité que chaque morceau soit généré par IA</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>Un classifieur local d'apprentissage automatique (SONICS), pas une IA générative. Vos morceaux ne quittent jamais cet ordinateur. L'activer télécharge une seule fois environ {0} Mo ; les scores sont calculés par Calculer les statistiques.</value></data>
+  <data name="AiScore_Consent_Title" xml:space="preserve"><value>Activer la probabilité d'IA ?</value></data>
+  <data name="AiScore_Consent_Content" xml:space="preserve"><value>Le score vient de SONICS, un classifieur d'apprentissage automatique qui s'exécute sur cet ordinateur. Ce n'est pas une IA générative, et vos morceaux ne quittent jamais cet ordinateur. C'est une estimation, pas une preuve.&#10;&#10;Le modèle et le décodeur audio nécessaire sont téléchargés une seule fois (environ {0} Mo) depuis {2} dans {1}.</value></data>
+  <data name="AiScore_Redownload_Content" xml:space="preserve"><value>Les fichiers de la probabilité d'IA sont absents, endommagés ou obsolètes. Les télécharger à nouveau (environ {0} Mo) ? Vos morceaux ne quittent jamais cet ordinateur.</value></data>
+  <data name="AiScore_Btn_Download" xml:space="preserve"><value>Télécharger</value></data>
+  <data name="AiScore_Downloading_Title" xml:space="preserve"><value>Téléchargement des fichiers de la probabilité d'IA</value></data>
+  <data name="AiScore_Progress" xml:space="preserve"><value>{0} ({1} sur {2}) : {3} sur {4} Mo</value></data>
+  <data name="AiScore_Checking" xml:space="preserve"><value>Vérification des fichiers d'IA…</value></data>
+  <data name="AiScore_Cancelling" xml:space="preserve"><value>Annulation…</value></data>
+  <data name="AiScore_DownloadFailed" xml:space="preserve"><value>La probabilité d'IA n'a pas été activée : {0}</value></data>
+  <data name="AiScore_Fail_Http" xml:space="preserve"><value>le serveur de téléchargement a répondu par une erreur. Réessayez plus tard.</value></data>
+  <data name="AiScore_Fail_Checksum" xml:space="preserve"><value>un fichier téléchargé ne correspondait pas à sa somme de contrôle.</value></data>
+  <data name="AiScore_Fail_Transport" xml:space="preserve"><value>la connexion a échoué. Vérifiez votre connexion Internet et réessayez.</value></data>
+  <data name="AiScore_Fail_Disk" xml:space="preserve"><value>les fichiers n'ont pas pu être écrits sur le disque.</value></data>
+  <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>le téléchargement a été annulé.</value></data>
+  <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>Les fichiers d'IA ne sont pas encore disponibles au téléchargement. Réessayez plus tard.</value></data>
+  <data name="AiScore_LowDisk" xml:space="preserve"><value>Il n'y a pas assez d'espace libre : environ {0} Mo sont nécessaires dans {1}.</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>La probabilité d'IA est activée. Lancez Calculer les statistiques sur une playlist pour noter ses morceaux.</value></data>
+  <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>La probabilité d'IA n'a pas pu s'exécuter : {0}</value></data>
+  <data name="AiScore_Band_Ai" xml:space="preserve"><value>Probablement IA</value></data>
+  <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Incertain</value></data>
+  <data name="AiScore_Band_Human" xml:space="preserve"><value>Probablement humain</value></data>
+  <data name="AiScore_Tooltip" xml:space="preserve"><value>Probabilité d'IA {0} (0 = humain, 1 = IA). Une estimation, pas une preuve.</value></data>
+  <data name="AiScore_Summary" xml:space="preserve"><value>Probabilité d'IA : {0} notés, {3} déjà notés, {1} sans score (silencieux ou trop courts), {2} illisibles.</value></data>
+  <data name="AiScore_SummarySkipped" xml:space="preserve"><value>La probabilité d'IA a été ignorée : ses fichiers ne sont pas prêts.</value></data>
+  <data name="Summary_AiScore" xml:space="preserve"><value>Probabilité d'IA</value></data>
+  <data name="Prog_AiScoring" xml:space="preserve"><value>Calcul de la probabilité d'IA {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>Le calcul de la probabilité d'IA est déjà en cours. Relancez Calculer les statistiques quand il sera terminé pour noter ces morceaux.</value></data>
 </root>
