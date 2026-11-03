@@ -424,6 +424,8 @@ Do you want to proceed?</value></data>
   <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Possibly AI</value></data>
   <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Unclear</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Likely human</value></data>
+  <data name="SongTip_Artist" xml:space="preserve"><value>Artist: {0}</value></data>
+  <data name="SongTip_Album" xml:space="preserve"><value>Album: {0}</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>AI likelihood: {0}%. An estimate, not proof.</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>AI-likelihood: {0} scored, {3} already scored, {1} without a score (silent or too short), {2} couldn't be read.</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>The AI-likelihood score was skipped: its files aren't ready.</value></data>

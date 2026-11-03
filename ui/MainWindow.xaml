@@ -121,8 +121,10 @@
                 <DataTemplate x:DataType="local:PlaylistNodeContent">
                     <TreeViewItem ItemsSource="{x:Bind Children}"
                                   IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}"
+                                  AutomationProperties.HelpText="{x:Bind SongHelpText, Mode=OneWay}"
                                   HorizontalContentAlignment="Stretch">
-                        <Grid>
+                        <!-- Transparent so the song tooltip covers the whole row, not just the text. -->
+                        <Grid Background="Transparent" ToolTipService.ToolTip="{x:Bind SongTooltip, Mode=OneWay}">
                             <!-- Row highlight. Drawn here rather than by the TreeView, whose only
                                  multi-select mode puts a checkbox on every row — selection is
                                  tracked in MainWindow.Selection.cs instead. -->

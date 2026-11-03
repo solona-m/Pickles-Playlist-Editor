@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Pickles_Playlist_Editor.Utils
@@ -7,7 +8,22 @@ namespace Pickles_Playlist_Editor.Utils
     internal readonly struct ThreadPriorityScope : IDisposable
     {
         private readonly ThreadPriority _saved;
-        private ThreadPriorityScope(ThreadPriority saved) => _saved = saved;
+        private readonly bool _background;
+        private ThreadPriorityScope(ThreadPriority saved, bool background = false) { _saved = saved; _background = background; }
+
+        private const int ThreadModeBackgroundBegin = 0x00010000, ThreadModeBackgroundEnd = 0x00020000;
+        [DllImport("kernel32.dll")] private static extern IntPtr GetCurrentThread();
+        [DllImport("kernel32.dll")] private static extern bool SetThreadPriority(IntPtr thread, int priority);
+
+        /// <summary>Windows background mode: lower CPU, I/O and memory priority. Falls back to BelowNormal.</summary>
+        public static ThreadPriorityScope Background()
+        {
+            var saved = Thread.CurrentThread.Priority;
+            bool begun = false;
+            try { begun = SetThreadPriority(GetCurrentThread(), ThreadModeBackgroundBegin); } catch { }
+            if (!begun) Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+            return new ThreadPriorityScope(saved, begun);
+        }
 
         public static ThreadPriorityScope BelowNormal()
         {
@@ -16,6 +32,10 @@ namespace Pickles_Playlist_Editor.Utils
             return new ThreadPriorityScope(saved);
         }
 
-        public void Dispose() => Thread.CurrentThread.Priority = _saved;
+        public void Dispose()
+        {
+            if (_background) { try { SetThreadPriority(GetCurrentThread(), ThreadModeBackgroundEnd); } catch { } }
+            Thread.CurrentThread.Priority = _saved;
+        }
     }
 }

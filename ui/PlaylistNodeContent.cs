@@ -21,6 +21,8 @@ namespace Pickles_Playlist_Editor
         private string _aiText = "";
         private string _aiTooltip = "";
         private string _aiAutomationName = "";
+        private string? _songTooltip;
+        private string _songHelpText = "";
         private SolidColorBrush? _aiBrush;
         private Visibility _aiVisibility = Visibility.Collapsed;
 
@@ -88,6 +90,20 @@ namespace Pickles_Playlist_Editor
         {
             get => _aiAutomationName;
             set { _aiAutomationName = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AiAutomationName))); }
+        }
+
+        /// <summary>Artist, album and AI likelihood; null means no tooltip. Raised only on change, so an open tooltip doesn't flicker.</summary>
+        public string? SongTooltip
+        {
+            get => _songTooltip;
+            set { if (string.Equals(_songTooltip, value, StringComparison.Ordinal)) return; _songTooltip = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SongTooltip))); }
+        }
+
+        /// <summary>The tooltip for screen readers; empty when there is none.</summary>
+        public string SongHelpText
+        {
+            get => _songHelpText;
+            set { if (string.Equals(_songHelpText, value, StringComparison.Ordinal)) return; _songHelpText = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SongHelpText))); }
         }
 
         public SolidColorBrush? AiBrush

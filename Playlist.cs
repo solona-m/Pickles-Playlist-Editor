@@ -246,7 +246,11 @@ namespace Pickles_Playlist_Editor
                     using (var stream = new FileStream(targetPath, FileMode.CreateNew))
                         stream.Write(encoded, 0, encoded.Length);
                     AiScoreCache.Default.Forget(targetPath); // a new song at a path a deleted one had
+                    SongTagCache.Default.Forget(targetPath);
                 }
+
+                // From the bytes just encoded, so the new song needs no tag read; never fails the import.
+                try { if (Pickles_Playlist_Editor.Tools.SongTagReader.FromScdBytes(encoded) is { } tags) SongTagCache.Default.Store(targetPath, tags); } catch { }
 
                 string targetRelative = Path.Combine(playlistScdDirectory, Path.GetFileName(targetPath));
 
@@ -468,6 +472,7 @@ namespace Pickles_Playlist_Editor
                             BPMDetector.UpdateCacheForSCD(oldPath, newPath);
                             KeyDetector.UpdateCacheForSCD(oldPath, newPath);
                             AiScoreCache.Default.UpdateCacheForSCD(oldPath, newPath);
+                            SongTagCache.Default.UpdateCacheForSCD(oldPath, newPath);
                             foreach (var (key, _) in keys)
                                 song.Files[key] = newRel;
                             renamed.Add((song, keys, oldPath, newPath));
@@ -518,6 +523,7 @@ namespace Pickles_Playlist_Editor
                             BPMDetector.UpdateCacheForSCD(newPath, oldPath);
                             KeyDetector.UpdateCacheForSCD(newPath, oldPath);
                             AiScoreCache.Default.UpdateCacheForSCD(newPath, oldPath);
+                            SongTagCache.Default.UpdateCacheForSCD(newPath, oldPath);
                         }
                         foreach (var (key, oldRel) in keys)
                             song.Files[key] = oldRel;
@@ -542,6 +548,7 @@ namespace Pickles_Playlist_Editor
             BPMDetector.UpdateCacheForSCD(oldFull, newFull);
             KeyDetector.UpdateCacheForSCD(oldFull, newFull);
             AiScoreCache.Default.UpdateCacheForSCD(oldFull, newFull);
+            SongTagCache.Default.UpdateCacheForSCD(oldFull, newFull);
         }
 
         internal static string GetNonCollidingPath(string path)
@@ -1561,7 +1568,10 @@ namespace Pickles_Playlist_Editor
             {
                 string rel = GetScdPath(song);
                 if (!string.IsNullOrEmpty(rel))
+                {
                     AiScoreCache.Default.Forget(Path.Combine(Settings.PenumbraLocation, Settings.ModName, rel));
+                    SongTagCache.Default.Forget(Path.Combine(Settings.PenumbraLocation, Settings.ModName, rel));
+                }
             }
             DeleteGroupOnly();
             ReclaimUnusedAudioDirectories(new[] { scdDir });

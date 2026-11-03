@@ -23,6 +23,9 @@ namespace Pickles_Playlist_Editor.Utils
             return (true, band.Value, Percent(stored!.Value));
         }
 
+        /// <summary>The song tooltip's percent: any real score, even below the chip's threshold; null when off or unscored.</summary>
+        public static int? TooltipPercent(int? stored, bool enabled) => enabled && stored is >= 0 ? Percent(stored.Value) : null;
+
         /// <summary>Whole percent, rounded down so it agrees with the band; 0 and 100 only for exact scores.</summary>
         public static int Percent(int stored)
         {

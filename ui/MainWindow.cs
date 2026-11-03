@@ -268,7 +268,8 @@ namespace Pickles_Playlist_Editor
 
             RefreshAiScoreUi(reload: false); // before the tree is built, so chips show on first load
             LoadPlaylists();
-            _aiModKey = Utils.AiScoreCache.Key(Utils.PenumbraMeta.ModRoot); // no scan at startup
+            _aiModKey = Utils.AiScoreCache.Key(Utils.PenumbraMeta.ModRoot); // no AI scan at startup
+            StartSongTagScan(); // quiet; reads only songs whose tags aren't known yet
 
             _ = CheckForUpdatesAsync();
             if (string.IsNullOrWhiteSpace(Settings.PenumbraLocation) || string.IsNullOrWhiteSpace(Settings.ModName))

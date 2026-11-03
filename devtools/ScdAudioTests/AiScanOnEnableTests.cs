@@ -336,18 +336,20 @@ public class AiScanOnEnableTests
         string cont = Method(Src("ui/MainWindow.AiScore.cs"), "internal void ContinueAiScoreAfterSettings");
         int key = At(cont, "AiScoreCache.Key(Utils.PenumbraMeta.ModRoot)");
         int assign = At(cont, "_aiModKey = key;");
+        // Retargeted for song tags: the reload and the tag scan come before the AI-off return, so both scans see the new mod.
+        int reload = At(cont, "if (modChanged && !libraryFresh) LoadPlaylists();");
+        int tagScan = At(cont, "StartSongTagScan(modChanged);");
         int enabled = At(cont, "if (!Settings.AiScoreEnabled)");
         int cancel = At(cont, "if (modChanged) _aiGate.CancelRunning();");
-        int reload = At(cont, "if (modChanged && !libraryFresh) LoadPlaylists();");
+        int gate = At(cont, "if (_aiScanWanted || modChanged)");
         int start = At(cont, "StartLibraryAiScan();");
-        Assert.True(key < assign && assign < enabled && enabled < cancel && cancel < reload && reload < start);
+        Assert.True(key < assign && assign < reload && reload < tagScan && tagScan < enabled && enabled < cancel && cancel < gate && gate < start);
+        Assert.Equal(1, Regex.Matches(cont, Regex.Escape("LoadPlaylists();")).Count);
         // AI off: only the key is updated. AI on: a wanted scan or a mod change starts one, and the wish is used up.
         Assert.True(At(cont, "_aiModKey != null && key != _aiModKey") < assign);
         Assert.Contains("if (!Settings.AiScoreEnabled) { _aiScanWanted = false; return; }", cont);
-        int gate = At(cont, "if (_aiScanWanted || modChanged)");
-        Assert.True(cancel < gate && gate < reload);
         int used = cont.IndexOf("_aiScanWanted = false;", gate, StringComparison.Ordinal);
-        Assert.True(used > reload && used < start);
+        Assert.True(used > gate && used < start);
 
         string loaded = Method(Src("ui/MainWindow.cs"), "private void PlaylistTreeView_Loaded");
         Assert.True(At(loaded, "LoadPlaylists();") < At(loaded, "_aiModKey = Utils.AiScoreCache.Key(Utils.PenumbraMeta.ModRoot);"));
