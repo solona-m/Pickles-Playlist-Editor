@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -211,9 +211,10 @@ namespace Pickles_Playlist_Editor
                 _nowPlayingSongName = opt.Name;
 
                 NowPlayingLabel.Text = opt.Name;
-                Player.Play(songPath, onEnded: () =>
+                // Re-checked on the UI thread: a Play or Stop in between makes the ended song stale.
+                Player.Play(songPath, onEnded: gen =>
                 {
-                    DispatcherQueue.TryEnqueue(() => PlayNext(isAutoAdvance: true));
+                    DispatcherQueue.TryEnqueue(() => { if (Player.IsCurrent(gen)) PlayNext(isAutoAdvance: true); });
                 });
                 UpdatePlayPauseIcon();
                 _playbackTimer.Start();

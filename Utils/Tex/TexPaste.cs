@@ -80,7 +80,7 @@ namespace Pickles_Playlist_Editor.Utils.Tex
         ///
         /// For previews. <see cref="PasteRect"/> clones the whole texture and walks the mip chain,
         /// which for the 22 MB laptop atlas is a large-object allocation every time the user nudges
-        /// the fit control — on a 32-bit build that churn is worth avoiding. This encodes and decodes
+        /// the fit control, churn worth avoiding. This encodes and decodes
         /// only the blocks the rectangle covers at mip 0, which is the level a preview shows anyway,
         /// and allocates nothing bigger than the rectangle.
         /// </summary>

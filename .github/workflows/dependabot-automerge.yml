@@ -35,7 +35,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      # ScdAudioTests references the app, so this builds it too (win-x86, as the releases do).
+      # ScdAudioTests references the app, so this builds it too (win-x64, as the releases do).
       - name: Test the app
         run: dotnet test devtools/ScdAudioTests/ScdAudioTests.csproj -c Release
 

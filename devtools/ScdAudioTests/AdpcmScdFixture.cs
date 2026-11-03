@@ -104,7 +104,7 @@ public sealed class AdpcmScdFixture : IDisposable
         return copy;
     }
 
-    private static void RunFfmpeg(string args)
+    internal static void RunFfmpeg(string args)
     {
         using var p = Process.Start(new ProcessStartInfo(Path.Combine(AppContext.BaseDirectory, "ffmpeg.exe"), args)
         {
