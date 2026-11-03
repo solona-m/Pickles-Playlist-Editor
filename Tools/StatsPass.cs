@@ -58,9 +58,12 @@ namespace Pickles_Playlist_Editor.Tools
         public static bool ShouldRun(string? lastCompleted, string? attempt, string running, bool modReadable) =>
             modReadable && !string.IsNullOrEmpty(running) && lastCompleted != running && AttemptsFor(attempt, running) < MaxAttempts;
 
-        /// <summary>Only a run that got as far as saving and then failed counts; a cancel (closing, mod change) never does.</summary>
-        public static bool CountsAsFailedAttempt(bool reachedApply, StatsPassEnd end, int saveFailures) =>
-            reachedApply && (end == StatsPassEnd.Error || (end == StatsPassEnd.Finished && saveFailures > 0));
+        /// <summary>
+        /// An attempt is recorded when the automatic run starts. It is kept for an Error or failed saves, and a crash keeps
+        /// it by never ending; a clean finish or a cancel (closing, an exit, a mod change) takes it back.
+        /// </summary>
+        public static bool KeepsAttempt(StatsPassEnd end, int saveFailures) =>
+            end == StatsPassEnd.Error || (end == StatsPassEnd.Finished && saveFailures > 0);
 
         public static string NextAttempt(string? attempt, string running) => $"{running}|{AttemptsFor(attempt, running) + 1}";
 

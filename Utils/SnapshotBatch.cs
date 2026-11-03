@@ -13,14 +13,13 @@ namespace Pickles_Playlist_Editor.Utils
 
         public Scope Enter() => new(this);
 
-        /// <summary>True when a snapshot should be skipped: inside a batch that has already taken its one.</summary>
-        internal static bool SkipSnapshot()
+        /// <summary>True when a snapshot should be skipped: inside a batch that already has its one.</summary>
+        internal static bool SkipSnapshot() => s_current is { _taken: true };
+
+        /// <summary>A snapshot now exists (written, or identical to the newest); later saves in the batch skip theirs.</summary>
+        internal static void Taken()
         {
-            var b = s_current;
-            if (b == null) return false;
-            if (b._taken) return true;
-            b._taken = true;
-            return false;
+            if (s_current is { } b) b._taken = true;
         }
 
         public readonly struct Scope : IDisposable

@@ -118,18 +118,22 @@ public class BackgroundComputeStatsWiringTests
     }
 
     [Fact] // [AC-background-compute-stats-5] [EDGE-background-compute-stats-17] [EDGE-background-compute-stats-18] [EDGE-background-compute-stats-42]
-    public void AutoRun_AttemptRecordedAtStart_TakenBackOnCleanFinishOrCancel()
+    public void AutoRun_AttemptRecordedAtStart_TakenBackOnCleanFinishCancelOrExit()
     {
-        // Second review: recorded before any work, so a crash during analysis counts toward the cap too.
+        // Recorded before any work, so a crash during analysis counts toward the cap; every exit path takes it back.
         Assert.Equal(1, AppSources().Sum(s => Count(s, "Settings.AutoStatsAttempt = AutoStatsRules.NextAttempt(")));
         string run = Run();
-        int record = At(run, "Settings.AutoStatsAttempt = AutoStatsRules.NextAttempt(attemptBefore, AppVersion.Display);");
+        int record = At(run, "Settings.AutoStatsAttempt = AutoStatsRules.NextAttempt(_autoAttemptBefore, AppVersion.Display);");
         Assert.True(record < At(run, "try\n            {"), "recorded before the run's work starts");
         Assert.True(At(run, "if (ticket.Kind == StatsPassKind.Auto)\n            {") < record);
         string fin = run[At(run, "finally")..];
-        Assert.Matches(@"if \(ticket\.Kind == StatsPassKind\.Auto && \(end == StatsPassEnd\.Cancelled \|\| \(end == StatsPassEnd\.Finished && saveErrors\.Count == 0\)\)\)\s*Settings\.AutoStatsAttempt = attemptBefore \?\? """";", fin);
-        Assert.Matches(@"reachedApply = true;\s*\(renamed, saved\) = await ApplyStatsNamesAsync\(", run);
+        Assert.Contains("if (ticket.Kind == StatsPassKind.Auto) SettleAutoAttempt(AutoStatsRules.KeepsAttempt(end, saveErrors.Count));", fin);
         Assert.True(At(fin, "_statsGate.End(ticket);") < At(fin, "ClearStatsProgress();"), "the gate is released first");
+        string exit = Method(Stats(), "internal void PrepareForExit");
+        Assert.True(At(exit, "SettleAutoAttempt(keep: false);") < At(exit, "StatsCacheWrites.HoldForExit();"));
+        string settle = Method(Stats(), "private void SettleAutoAttempt");
+        Assert.Matches(@"if \(_autoAttemptBefore is not string before\) return;\s*_autoAttemptBefore = null;\s*if \(!keep\) Settings\.AutoStatsAttempt = before;", settle);
+        Assert.Equal(0, AppSources().Sum(s => Count(s, "CountsAsFailedAttempt") + Count(s, "reachedApply")));
     }
 
     [Fact] // [AC-background-compute-stats-3] [AC-background-compute-stats-5] [EDGE-background-compute-stats-5] [EDGE-background-compute-stats-18] [EDGE-background-compute-stats-41]
@@ -267,7 +271,10 @@ public class BackgroundComputeStatsWiringTests
         Assert.Contains("using (snapshots.Enter()) pl.Save();", apply);
         Assert.True(At(apply, "var snapshots = new SnapshotBatch();") < At(apply, "foreach (string name in Playlists.Keys.Where("));
         foreach (var f in new[] { "Utils/PenumbraMeta.cs", "Utils/V3GroupFileStore.cs" })
+        {
             Assert.Matches(@"if \(ourWrite\) ModFolderGuard\.NoteWrite\(\);\s*if \(SnapshotBatch\.SkipSnapshot\(\)\) return null;", Src(f));
+            Assert.Equal(2, Count(Src(f), "SnapshotBatch.Taken();")); // only once a snapshot exists: written, or identical to the newest
+        }
     }
 
     [Fact] // [EDGE-background-compute-stats-18] [EDGE-background-compute-stats-38] [EDGE-background-compute-stats-39]

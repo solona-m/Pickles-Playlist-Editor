@@ -576,12 +576,16 @@ namespace Pickles_Playlist_Editor.Utils
                     var newest = existing[0];
                     if (newest.Length == bytes.Length
                         && Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(newest.FullName))) == hash)
+                    {
+                        SnapshotBatch.Taken();
                         return newest.FullName; // unchanged since last snapshot — nothing to record
+                    }
                 }
 
                 string dest = Path.Combine(SnapshotDirFor(modName),
                     $"meta_{DateTime.Now:yyyyMMdd_HHmmss_fff}.json");
                 File.WriteAllBytes(dest, bytes);
+                SnapshotBatch.Taken();
                 PruneSnapshots(modName);
                 return dest;
             }

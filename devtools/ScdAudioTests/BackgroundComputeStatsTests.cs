@@ -42,11 +42,12 @@ public class BackgroundComputeStatsTests
         Assert.Equal("2.11.15|1", AutoStatsRules.NextAttempt("2.11.14|3", "2.11.15"));
         Assert.Equal("2.11.15|3", AutoStatsRules.NextAttempt("2.11.15|2", "2.11.15"));
 
-        foreach (var e in Enum.GetValues<StatsPassEnd>()) Assert.False(AutoStatsRules.CountsAsFailedAttempt(false, e, 3));
-        Assert.True(AutoStatsRules.CountsAsFailedAttempt(true, StatsPassEnd.Error, 0));
-        Assert.True(AutoStatsRules.CountsAsFailedAttempt(true, StatsPassEnd.Finished, 1));
-        Assert.False(AutoStatsRules.CountsAsFailedAttempt(true, StatsPassEnd.Finished, 0));
-        Assert.False(AutoStatsRules.CountsAsFailedAttempt(true, StatsPassEnd.Cancelled, 5));
+        // recorded at start; kept for an Error or failed saves, taken back for a clean finish or a cancel
+        Assert.True(AutoStatsRules.KeepsAttempt(StatsPassEnd.Error, 0));
+        Assert.True(AutoStatsRules.KeepsAttempt(StatsPassEnd.Finished, 1));
+        Assert.False(AutoStatsRules.KeepsAttempt(StatsPassEnd.Finished, 0));
+        Assert.False(AutoStatsRules.KeepsAttempt(StatsPassEnd.Cancelled, 0));
+        Assert.False(AutoStatsRules.KeepsAttempt(StatsPassEnd.Cancelled, 5));
     }
 
     [Fact] // [AC-background-compute-stats-5] [EDGE-background-compute-stats-3] [EDGE-background-compute-stats-5] [EDGE-background-compute-stats-41]
@@ -425,15 +426,21 @@ public class BackgroundComputeStatsTests
     [Fact] // [EDGE-background-compute-stats-5] one manifest snapshot per batch, and only inside it
     public void SnapshotBatch_OneSnapshotPerBatch_OnlyInsideTheScope()
     {
-        Assert.False(SnapshotBatch.SkipSnapshot()); // outside any batch: always snapshot
+        SnapshotBatch.Taken(); // outside any batch: no effect
+        Assert.False(SnapshotBatch.SkipSnapshot());
         var batch = new SnapshotBatch();
-        using (batch.Enter()) Assert.False(SnapshotBatch.SkipSnapshot()); // the batch's one
-        Assert.False(SnapshotBatch.SkipSnapshot()); // a user edit between saves still snapshots
         using (batch.Enter())
         {
-            Assert.True(SnapshotBatch.SkipSnapshot());
-            Assert.True(SnapshotBatch.SkipSnapshot());
+            Assert.False(SnapshotBatch.SkipSnapshot()); // first save: snapshot
+            // its snapshot failed (no Taken), so the next save tries again
         }
+        using (batch.Enter())
+        {
+            Assert.False(SnapshotBatch.SkipSnapshot());
+            SnapshotBatch.Taken();
+        }
+        Assert.False(SnapshotBatch.SkipSnapshot()); // a user edit between saves still snapshots
+        using (batch.Enter()) Assert.True(SnapshotBatch.SkipSnapshot());
         using (new SnapshotBatch().Enter()) Assert.False(SnapshotBatch.SkipSnapshot()); // a new batch gets its own
     }
 

@@ -18,6 +18,7 @@ namespace Pickles_Playlist_Editor
         private readonly StatsPassGate _statsGate; // built in the constructor: it links to _closingCts
         private bool _autoStatsAgain, _namingRefreshInFlight, _restoreInFlight;
         private int _nativeModalOpen;
+        private string? _autoAttemptBefore; // set while an automatic run's attempt is recorded and not yet settled
         private (string Text, int Percent)? _statsProgress, _aiProgress;
         // First-load playlists and songs whose names got stats in memory only (BackfillStatsFromCacheIfNeeded).
         private readonly HashSet<Playlist> _backfilledPlaylists = new(ReferenceEqualityComparer.Instance);
@@ -54,13 +55,11 @@ namespace Pickles_Playlist_Editor
         {
             var ct = ticket.Token;
             string modKey = ModKey();
-            bool reachedApply = false;
-            // Recorded up front, so a crash mid-run counts toward the cap; taken back on a clean finish or a cancel.
-            string? attemptBefore = null;
+            // Recorded up front, so a crash mid-run counts toward the cap; taken back on a clean finish, a cancel or an exit.
             if (ticket.Kind == StatsPassKind.Auto)
             {
-                attemptBefore = Settings.AutoStatsAttempt;
-                Settings.AutoStatsAttempt = AutoStatsRules.NextAttempt(attemptBefore, AppVersion.Display);
+                _autoAttemptBefore = Settings.AutoStatsAttempt;
+                Settings.AutoStatsAttempt = AutoStatsRules.NextAttempt(_autoAttemptBefore, AppVersion.Display);
             }
             var end = StatsPassEnd.Error;
             int analysed = 0, failedRels = 0, renamed = 0, saved = 0, entryCount = 0;
@@ -80,7 +79,6 @@ namespace Pickles_Playlist_Editor
                 var failedSet = new HashSet<string>(failed, StringComparer.Ordinal);
                 failedSongs.AddRange(entries.Where(e => failedSet.Contains(e.Rel)).Select(e => $"{e.PlaylistName}/{e.Name}"));
 
-                reachedApply = true;
                 (renamed, saved) = await ApplyStatsNamesAsync(plan, modKey,
                     ticket.Kind == StatsPassKind.Manual ? StatsRenameMode.Rebuild : StatsRenameMode.Additive, saveErrors, ct,
                     ticket.Kind == StatsPassKind.Manual ? targets.Select(t => t.playlist.Name ?? "").ToHashSet() : null);
@@ -94,9 +92,7 @@ namespace Pickles_Playlist_Editor
             {
                 _statsGate.End(ticket); // first, so nothing below can leave the gate held
                 try { ClearStatsProgress(); } catch (Exception ex) { Logger.LogWarn("Stats: status bar not cleared: {Error}", ex.Message); }
-                // Only an Error, or saves that failed, keep the attempt; a crash keeps it by never getting here.
-                if (ticket.Kind == StatsPassKind.Auto && (end == StatsPassEnd.Cancelled || (end == StatsPassEnd.Finished && saveErrors.Count == 0)))
-                    Settings.AutoStatsAttempt = attemptBefore ?? "";
+                if (ticket.Kind == StatsPassKind.Auto) SettleAutoAttempt(AutoStatsRules.KeepsAttempt(end, saveErrors.Count));
                 Logger.LogInfo("Stats pass {Kind} ended {End}: {Analysed} analysed, {Failed} failed, {Renamed} renamed, {Saved} playlist(s) saved, {SaveFailed} save failure(s)",
                     ticket.Kind, end, analysed, failedRels, renamed, saved, saveErrors.Count);
                 if (_autoStatsAgain && !_closingCts.IsCancellationRequested)
@@ -316,7 +312,16 @@ namespace Pickles_Playlist_Editor
         internal void PrepareForExit()
         {
             try { _closingCts.Cancel(); } catch { }
+            SettleAutoAttempt(keep: false); // an exit is not a failed attempt; the run's finally may never get to run
             StatsCacheWrites.HoldForExit();
+        }
+
+        // Takes back (or keeps) the attempt recorded when the automatic run started. Idempotent.
+        private void SettleAutoAttempt(bool keep)
+        {
+            if (_autoAttemptBefore is not string before) return;
+            _autoAttemptBefore = null;
+            if (!keep) Settings.AutoStatsAttempt = before;
         }
 
         /// <summary>The exit didn't happen after all: let cache writes through again.</summary>
