@@ -103,7 +103,7 @@ namespace Pickles_Playlist_Editor
         public static string AiScoreLowDisk(long mb, string folder) => string.Format(_r.GetString("AiScore_LowDisk"), mb, folder);
         public static string AiScore_Ready => _r.GetString("AiScore_Ready");
         public static string AiScoreRuntimeFailed(string reason) => string.Format(_r.GetString("AiScore_RuntimeFailed"), reason);
-        public static string AiScoreTooltip(string score) => string.Format(_r.GetString("AiScore_Tooltip"), score);
+        public static string AiScoreTooltip(int percent) => string.Format(_r.GetString("AiScore_Tooltip"), percent);
         public static string AiScoreSummary(int scored, int noScore, int failed, int cached) =>
             string.Format(_r.GetString("AiScore_Summary"), scored, noScore, failed, cached);
         public static string AiScore_SummarySkipped => _r.GetString("AiScore_SummarySkipped");

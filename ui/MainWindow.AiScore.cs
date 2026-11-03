@@ -60,14 +60,14 @@ namespace Pickles_Playlist_Editor
         // Cache-only, like the Camelot chip: tree builds never score.
         private static void ApplyAiChip(PlaylistNodeContent node)
         {
-            var (visible, band, raw) = AiScoreDisplay.For(s_showAiChips ? AiScoreCache.Default.TryGetForRel(node.ScdRel) : null, s_showAiChips);
+            var (visible, band, percent) = AiScoreDisplay.For(s_showAiChips ? AiScoreCache.Default.TryGetForRel(node.ScdRel) : null, s_showAiChips);
             if (!visible)
             {
                 node.AiVisibility = Visibility.Collapsed;
                 return;
             }
             node.AiText = AppStrings.Get(AiScoreText.BandKey(band));
-            node.AiTooltip = AppStrings.AiScoreTooltip(raw);
+            node.AiTooltip = AppStrings.AiScoreTooltip(percent);
             node.AiAutomationName = node.AiText + ", " + node.AiTooltip;
             node.AiBrush = new SolidColorBrush(band switch
             {

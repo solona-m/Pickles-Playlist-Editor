@@ -423,7 +423,7 @@ Wil je doorgaan?</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Waarschijnlijk AI</value></data>
   <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Onduidelijk</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Waarschijnlijk menselijk</value></data>
-  <data name="AiScore_Tooltip" xml:space="preserve"><value>AI-waarschijnlijkheid {0} (0 = mens, 1 = AI). Een schatting, geen bewijs.</value></data>
+  <data name="AiScore_Tooltip" xml:space="preserve"><value>AI-waarschijnlijkheid: {0}%. Een schatting, geen bewijs.</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>AI-waarschijnlijkheid: {0} gescoord, {3} al gescoord, {1} zonder score (stil of te kort), {2} konden niet worden gelezen.</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>De AI-waarschijnlijkheid is overgeslagen: de bestanden zijn niet klaar.</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>AI-waarschijnlijkheid</value></data>
