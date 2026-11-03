@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Pickles_Playlist_Editor.Tools
 {
@@ -37,6 +39,17 @@ namespace Pickles_Playlist_Editor.Tools
 
         /// <summary>Mirror first; GitHub stays the origin, so a missing or down mirror only costs one request.</summary>
         public static string[] BaseUrls(string tag) => [MirrorBase + tag + "/", GitHubBase + tag + "/"];
+
+        public static AiAsset Ffmpeg => Files.Single(f => f.Name == "ffmpeg.exe");
+        public static AiAsset Model => Files.Single(f => f.Name.EndsWith(".onnx", StringComparison.Ordinal));
+
+        public static long TotalBytes => Files.Sum(f => f.Bytes);
+
+        /// <summary>Where a pinned file lives once downloaded: root, tag folder, name.</summary>
+        public static string LocalPath(AiAsset asset, string? root = null) => Path.Combine(root ?? DefaultRoot, asset.Tag, asset.Name);
+
+        /// <summary>The download hosts in the order tried, for the consent text.</summary>
+        public static IReadOnlyList<string> SourceHosts => [new Uri(MirrorBase).Host, new Uri(GitHubBase).Host];
 
         /// <summary>Next to Velopack's "current" folder, which updates replace wholesale.</summary>
         public static string DefaultRoot => Path.Combine(
