@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Collections.Generic;
 using Pickles_Playlist_Editor.Utils;
 using System;
 using System.IO;
@@ -49,12 +51,19 @@ namespace Pickles_Playlist_Editor.Tools
             catch { return null; }
         }
 
+        // The Vorbis comment fields a generator's note can be in.
+        private static readonly string[] MarkerKeys =
+            ["COMMENT", "DESCRIPTION", "ENCODED_BY", "ENCODED-BY", "SOFTWARE", "PUBLISHER", "ORGANIZATION", "COPYRIGHT", "LICENSE"];
+
         public static SongTags? FromOgg(byte[] ogg)
         {
             try
             {
                 using var r = new NVorbis.VorbisReader(new MemoryStream(ogg), true);
-                return SongTags.From(r.Tags.GetTagMulti("ARTIST"), r.Tags.GetTagMulti("ALBUM"), r.Tags.GetTagMulti("TITLE"));
+                // by name: NVorbis 0.10's Tags.All throws (a failing dictionary cast)
+                var comments = MarkerKeys.SelectMany(k => r.Tags.GetTagMulti(k).Select(v => new KeyValuePair<string, string>(k, v)));
+                return SongTags.From(r.Tags.GetTagMulti("ARTIST"), r.Tags.GetTagMulti("ALBUM"), r.Tags.GetTagMulti("TITLE"),
+                    AiGeneratorMarker.Detect(comments));
             }
             catch { return null; }
         }

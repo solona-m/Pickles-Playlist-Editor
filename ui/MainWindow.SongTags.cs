@@ -32,7 +32,7 @@ namespace Pickles_Playlist_Editor
             {
                 foreach (var n in nodes)
                 {
-                    if (!string.IsNullOrEmpty(n.ScdRel)) ApplySongTooltip(n, modRoot);
+                    if (!string.IsNullOrEmpty(n.ScdRel)) { ApplyAiChip(n, modRoot); ApplySongTooltip(n, modRoot); } // tags can make a chip
                     Walk(n.Children);
                 }
             }
@@ -76,8 +76,8 @@ namespace Pickles_Playlist_Editor
                         finally { LibraryReadGate.Shared.Exit(); }
                     }
                 });
-                Logger.LogInfo("Song tags: {Read} read ({Tagged} with artist or album), {Unreadable} unreadable, {Known} already known, {Refused} skipped",
-                    result.Read, result.Tagged, result.Unreadable, result.AlreadyKnown, result.Refused);
+                Logger.LogInfo("Song tags: {Read} read ({Tagged} with artist or album, {Marked} tagged as AI-made), {Unreadable} unreadable, {Known} already known, {Refused} skipped",
+                    result.Read, result.Tagged, result.Marked, result.Unreadable, result.AlreadyKnown, result.Refused);
                 if (result.Read > 0)
                 {
                     if (IsFilterActive) LoadPlaylists(SearchTextBox.Text.Trim());

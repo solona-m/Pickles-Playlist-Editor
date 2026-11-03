@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace Pickles_Playlist_Editor.Tools
 {
-    internal readonly record struct SongTagScanResult(int Read, int Tagged, int Unreadable, int AlreadyKnown, int Refused);
+    internal readonly record struct SongTagScanResult(int Read, int Tagged, int Unreadable, int AlreadyKnown, int Refused, int Marked = 0);
 
     /// <summary>Reads tags for every path the cache doesn't know yet, one at a time. Stores survive a cancel.</summary>
     internal static class SongTagScan
@@ -15,7 +15,7 @@ namespace Pickles_Playlist_Editor.Tools
         public static SongTagScanResult Run(IReadOnlyList<string> fullPaths, SongTagCache cache, Func<string, SongTags?> read,
             CancellationToken ct, Action<int>? onStored = null)
         {
-            int stored = 0, tagged = 0, unreadable = 0, known = 0, refused = 0;
+            int stored = 0, tagged = 0, unreadable = 0, known = 0, refused = 0, marked = 0;
             var seen = new HashSet<string>(StringComparer.Ordinal);
             try
             {
@@ -32,12 +32,13 @@ namespace Pickles_Playlist_Editor.Tools
                     if (!cache.StoreIfUnchanged(p, tags, gen)) { refused++; continue; }
                     stored++;
                     if (tags.HasArtistOrAlbum) tagged++;
+                    if (tags.IsAiTagged) marked++;
                     onStored?.Invoke(stored);
                     if (stored % FlushEvery == 0) cache.Flush();
                 }
             }
             finally { cache.Flush(); }
-            return new SongTagScanResult(stored, tagged, unreadable, known, refused);
+            return new SongTagScanResult(stored, tagged, unreadable, known, refused, marked);
         }
     }
 }

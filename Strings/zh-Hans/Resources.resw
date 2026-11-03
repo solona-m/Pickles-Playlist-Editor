@@ -430,6 +430,9 @@
   <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>统计已完成，等待更新歌曲名称...</value></data>
   <data name="Stats_AlreadyRunning" xml:space="preserve"><value>“计算统计”已在后台运行。请在底部进度条完成后重试。</value></data>
   <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0}：无法分析音频</value></data>
+  <data name="AiScore_Tagged" xml:space="preserve"><value>标记为使用 {0} 制作。</value></data>
+  <data name="AiScore_Band_Certain" xml:space="preserve"><value>确定为 AI</value></data>
+  <data name="AiScore_TooltipTagged" xml:space="preserve"><value>AI 可能性：{0}%。</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>AI 可能性：{0}%。这是估计，不是证据。</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>AI 可能性：已评分 {0} 首，之前已评分 {3} 首，{1} 首无评分（静音或太短），{2} 首无法读取。</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>已跳过 AI 可能性评分：其文件尚未就绪。</value></data>

@@ -430,6 +430,9 @@ Do you want to proceed?</value></data>
   <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>Stats ready, waiting to update song names...</value></data>
   <data name="Stats_AlreadyRunning" xml:space="preserve"><value>Compute Stats is already running in the background. Try again when the progress bar at the bottom has finished.</value></data>
   <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0}: audio could not be analysed</value></data>
+  <data name="AiScore_Tagged" xml:space="preserve"><value>Tagged as made with {0}.</value></data>
+  <data name="AiScore_Band_Certain" xml:space="preserve"><value>Certainly AI</value></data>
+  <data name="AiScore_TooltipTagged" xml:space="preserve"><value>AI likelihood: {0}%.</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>AI likelihood: {0}%. An estimate, not proof.</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>AI-likelihood: {0} scored, {3} already scored, {1} without a score (silent or too short), {2} couldn't be read.</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>The AI-likelihood score was skipped: its files aren't ready.</value></data>

@@ -152,7 +152,7 @@ public sealed class SongTagReaderTests : IDisposable
 public sealed class SongTagsTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "scd-audio-tests", "tags-" + Guid.NewGuid().ToString("N"));
-    private string CachePath => Path.Combine(_dir, "song_tags_cache_v1.json");
+    private string CachePath => Path.Combine(_dir, "song_tags_cache_v2.json");
     private SongTagCache Cache() => new(CachePath);
     public void Dispose() { try { Directory.Delete(_dir, true); } catch { } }
 
@@ -212,18 +212,19 @@ public sealed class SongTagsTests : IDisposable
         Assert.Null(Cache().TryGet(@"C:\M\0.scd"));
     }
 
-    [Theory] // [EDGE-song-tags-tooltip-17]
-    [InlineData("{ not json")]
-    [InlineData("{\"version\":99,\"songs\":{\"c:\\\\m\\\\a.scd\":[\"x\",\"y\",\"z\"]}}")]
-    public void Cache_CorruptOrWrongVersion_LoadsEmpty_ThenReplaced(string content)
+    [Theory] // [EDGE-song-tags-tooltip-17] [EDGE-gh-20-source-tags-ai-marker-16]
+    [InlineData("{ not json", ".bad")]
+    [InlineData("{\"version\":99,\"songs\":{\"c:\\\\m\\\\a.scd\":[\"x\",\"y\",\"z\"]}}", ".v99.bak")]
+    public void Cache_CorruptOrWrongVersion_LoadsEmpty_ThenReplaced(string content, string asideSuffix)
     {
         Directory.CreateDirectory(_dir);
         File.WriteAllText(CachePath, content);
         var c = Cache();
         Assert.Null(c.TryGet(@"C:\M\a.scd"));
+        Assert.Equal(content, File.ReadAllText(CachePath + asideSuffix)); // renamed aside, never overwritten
         c.Store(@"C:\M\b.scd", Wcl);
         var root = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(CachePath));
-        Assert.Equal(1, root!["version"]!.GetValue<int>());
+        Assert.Equal(2, root!["version"]!.GetValue<int>());
         Assert.Equal(Wcl, Cache().TryGet(@"C:\M\b.scd"));
     }
 

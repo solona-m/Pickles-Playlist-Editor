@@ -141,7 +141,8 @@
                                     <TextBlock Text="{x:Bind CamelotText, Mode=OneWay}"
                                                Foreground="Black" FontSize="12" FontWeight="SemiBold"/>
                                 </Border>
-                                <!-- AI-likelihood chip: amber, grey or green, never red; the tooltip has the score. -->
+                                <!-- AI-likelihood chip: amber/pale amber for model estimates; red "Certainly AI" only when the file's own
+                                     tags name an AI generator. The tooltip has the score and the reason. -->
                                 <Border Visibility="{x:Bind AiVisibility, Mode=OneWay}"
                                         Background="{x:Bind AiBrush, Mode=OneWay}"
                                         ToolTipService.ToolTip="{x:Bind AiTooltip, Mode=OneWay}"

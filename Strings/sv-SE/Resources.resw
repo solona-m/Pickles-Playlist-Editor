@@ -430,6 +430,9 @@ Vill du fortsätta?</value></data>
   <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>Statistiken är klar, väntar på att uppdatera låtnamnen...</value></data>
   <data name="Stats_AlreadyRunning" xml:space="preserve"><value>Beräkna statistik körs redan i bakgrunden. Försök igen när förloppsindikatorn längst ned är klar.</value></data>
   <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0}: ljudet kunde inte analyseras</value></data>
+  <data name="AiScore_Tagged" xml:space="preserve"><value>Märkt som gjord med {0}.</value></data>
+  <data name="AiScore_Band_Certain" xml:space="preserve"><value>Säkert AI</value></data>
+  <data name="AiScore_TooltipTagged" xml:space="preserve"><value>AI-sannolikhet: {0} %.</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>AI-sannolikhet: {0} %. En uppskattning, inte ett bevis.</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>AI-sannolikhet: {0} fick poäng, {3} hade redan poäng, {1} utan poäng (tysta eller för korta), {2} kunde inte läsas.</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>AI-sannolikheten hoppades över: dess filer är inte klara.</value></data>

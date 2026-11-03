@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace Pickles_Playlist_Editor.Utils
 {
-    internal enum AiBand { LikelyHuman, Unclear, PossiblyAi, LikelyAi }
+    internal enum AiBand { LikelyHuman, Unclear, PossiblyAi, LikelyAi, CertainAi }
 
     internal enum AiScoreOutcome { Scored, NoScore, Failed }
 
@@ -25,6 +25,24 @@ namespace Pickles_Playlist_Editor.Utils
 
         /// <summary>The song tooltip's percent: any real score, even below the chip's threshold; null when off or unscored.</summary>
         public static int? TooltipPercent(int? stored, bool enabled) => enabled && stored is >= 0 ? Percent(stored.Value) : null;
+
+        // A file whose own tags name an AI generator shows 100% and sorts above every model score; the model's
+        // number stays in AiScoreCache untouched.
+        public const int TaggedPercent = 100, TaggedSortKey = 1001;
+
+        /// <summary>The chip for one song: "Certainly AI" when tagged by a generator, otherwise <see cref="For"/>.</summary>
+        public static (bool Visible, AiBand Band, int Percent, bool Tagged) ForSong(int? stored, string? aiTool, bool enabled)
+        {
+            if (enabled && !string.IsNullOrEmpty(aiTool)) return (true, AiBand.CertainAi, TaggedPercent, true);
+            var (visible, band, percent) = For(stored, enabled);
+            return (visible, band, percent, false);
+        }
+
+        public static int? TooltipPercentForSong(int? stored, string? aiTool, bool enabled) =>
+            enabled && !string.IsNullOrEmpty(aiTool) ? TaggedPercent : TooltipPercent(stored, enabled);
+
+        /// <summary>The sort-by-AI key: tagged songs above every model score, unscored ones null.</summary>
+        public static int? SortKey(int? stored, string? aiTool) => !string.IsNullOrEmpty(aiTool) ? TaggedSortKey : stored;
 
         /// <summary>Whole percent, rounded down so it agrees with the band; 0 and 100 only for exact scores.</summary>
         public static int Percent(int stored)

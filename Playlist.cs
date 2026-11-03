@@ -251,6 +251,8 @@ namespace Pickles_Playlist_Editor
 
                 // From the bytes just encoded, so the new song needs no tag read; never fails the import.
                 try { if (Pickles_Playlist_Editor.Tools.SongTagReader.FromScdBytes(encoded) is { } tags) SongTagCache.Default.Store(targetPath, tags); } catch { }
+                // mp3/m4a/flac/wav: the SCD carries no tags, so keep the source file's (#20); never fails the import
+                try { if (Pickles_Playlist_Editor.Tools.SourceTagReader.ForImport(file, Pickles_Playlist_Editor.Tools.SourceTagReader.Read) is { } src) SongTagCache.Default.StoreSource(targetPath, src); } catch { }
 
                 string targetRelative = Path.Combine(playlistScdDirectory, Path.GetFileName(targetPath));
 
@@ -1749,7 +1751,8 @@ namespace Pickles_Playlist_Editor
         internal void SortByAiLikelihood(SortDirection direction) => ReorderOptions(options =>
         {
             var (off, songs) = SplitOff(options);
-            return Rejoin(off, OrderByAiScore(songs, o => AiScoreCache.Default.TryGetForRel(GetScdPath(o)), direction));
+            return Rejoin(off, OrderByAiScore(songs, o => AiScoreDisplay.SortKey(AiScoreCache.Default.TryGetForRel(GetScdPath(o)),
+                SongTagCache.Default.TryGetForRel(GetScdPath(o))?.AiTool), direction)); // a generator-tagged song ranks as 100%
         });
 
         internal static List<Option> OrderByAiScore(IEnumerable<Option> songs, Func<Option, int?> stored, SortDirection direction)

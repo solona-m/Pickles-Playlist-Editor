@@ -9,6 +9,7 @@ namespace Pickles_Playlist_Editor.Utils
     {
         // One encode: padding and (optionally) normalization share the same filter chain.
         // Tags are dropped: large ones (e.g. Serato DJ data) bloat the Vorbis header and play silent in game.
+        // Artist, album and comment-type tags are read into SongTagCache instead (#20).
         // The loop tags ImportOgg reads are carried over.
         public static void ConvertToOgg(string sourcePath, string oggName, bool normalize)
         {
@@ -31,17 +32,13 @@ namespace Pickles_Playlist_Editor.Utils
         // " -metadata LoopStart=N -metadata LoopEnd=N" for whichever the source has, else "".
         private static string LoopTagArgs(string sourcePath)
         {
-            string meta = Path.Combine(Path.GetTempPath(), "pickles-meta-" + Guid.NewGuid().ToString("N") + ".txt");
             try
             {
-                Run($"-y -i \"{sourcePath}\" -f ffmetadata \"{meta}\"");
                 string args = "";
-                foreach (string line in File.ReadLines(meta))
+                foreach (var (rawKey, rawValue) in ReadFfMetadata(sourcePath))
                 {
-                    int eq = line.IndexOf('=');
-                    if (eq <= 0) continue;
-                    string key = line[..eq].Trim();
-                    if (!long.TryParse(line[(eq + 1)..].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long samples))
+                    string key = rawKey.Trim();
+                    if (!long.TryParse(rawValue.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long samples))
                         continue;
                     if (key.Equals("LoopStart", StringComparison.OrdinalIgnoreCase))
                         args += $" -metadata LoopStart={samples}";
@@ -54,6 +51,20 @@ namespace Pickles_Playlist_Editor.Utils
             {
                 Logger.LogWarn("Could not read loop tags from '{File}': {Error}", sourcePath, ex.Message);
                 return "";
+            }
+        }
+
+        /// <summary>
+        /// The source file's global tags, via ffmpeg's ffmetadata output. Bounded (15 s by default): a stuck read is killed,
+        /// never left to stall an import. Throws on failure; callers decide how quietly.
+        /// </summary>
+        internal static IReadOnlyList<KeyValuePair<string, string>> ReadFfMetadata(string sourcePath, TimeSpan? timeout = null)
+        {
+            string meta = Path.Combine(Path.GetTempPath(), "pickles-meta-" + Guid.NewGuid().ToString("N") + ".txt");
+            try
+            {
+                Run($"-y -i \"{sourcePath}\" -f ffmetadata \"{meta}\"", timeout ?? TimeSpan.FromSeconds(15));
+                return FfMetadata.ParseGlobal(File.ReadAllText(meta, System.Text.Encoding.UTF8));
             }
             finally
             {
@@ -171,7 +182,7 @@ namespace Pickles_Playlist_Editor.Utils
             File.Move(tmp, oggName,true);
         }
 
-        private static string Run(string arguments)
+        private static string Run(string arguments, TimeSpan? timeout = null)
         {
             using var process = new Process();
             process.StartInfo.FileName = "ffmpeg.exe";
@@ -182,8 +193,24 @@ namespace Pickles_Playlist_Editor.Utils
             process.StartInfo.Arguments = arguments;
 
             process.Start();
-            string message = process.StandardError.ReadToEnd();
-            process.WaitForExit();
+            string message;
+            if (timeout is { } limit)
+            {
+                // Read stderr alongside, so a full pipe can't hold the wait; on expiry kill, wait, and let the caller clean up.
+                var stderr = process.StandardError.ReadToEndAsync();
+                if (!process.WaitForExit(limit))
+                {
+                    try { process.Kill(entireProcessTree: true); } catch { }
+                    process.WaitForExit(TimeSpan.FromSeconds(5)); // bounded too, in case the kill failed
+                    throw new TimeoutException($"ffmpeg did not finish within {limit.TotalSeconds:0} s");
+                }
+                message = stderr.GetAwaiter().GetResult();
+            }
+            else
+            {
+                message = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+            }
 
             if (process.ExitCode != 0)
             {
