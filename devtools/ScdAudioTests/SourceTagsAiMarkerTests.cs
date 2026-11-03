@@ -191,13 +191,13 @@ public sealed class SourceTagsAiMarkerFfmpegTests : IDisposable
     {
         string src = SourceFiles.Make(_fx, "slow", ".flac", Abc);
         int before = SourceFiles.TempMetaFiles();
+        var ffmpegBefore = System.Diagnostics.Process.GetProcessesByName("ffmpeg").Select(p => p.Id).ToHashSet();
         Assert.Throws<TimeoutException>(() => FFMpeg.ReadFfMetadata(src, TimeSpan.FromMilliseconds(1)));
         Assert.Equal(before, SourceFiles.TempMetaFiles()); // killed, waited for, then deleted
-        Assert.Null(SourceTagReader.ForImport(src, p =>
-        {
-            try { return SourceTagReader.FromFields(FFMpeg.ReadFfMetadata(p, TimeSpan.FromMilliseconds(1))); }
-            catch (TimeoutException) { return null; }
-        }));
+        Assert.Null(SourceTagReader.Read(src, TimeSpan.FromMilliseconds(1)));
+        Assert.Equal(before, SourceFiles.TempMetaFiles());
+        // no ffmpeg started by these calls is still alive
+        Assert.All(System.Diagnostics.Process.GetProcessesByName("ffmpeg"), p => Assert.Contains(p.Id, ffmpegBefore));
     }
 
     [Theory] // [EDGE-gh-20-source-tags-ai-marker-1] [EDGE-gh-20-source-tags-ai-marker-9]
@@ -263,6 +263,32 @@ public sealed class SourceTagsAiMarkerFfmpegTests : IDisposable
         Assert.Equal(v1Before, File.ReadAllBytes(v1));
     }
 
+    [Fact] // [AC-gh-20-source-tags-ai-marker-8] [EDGE-gh-20-source-tags-ai-marker-9]
+    public void ScdReader_SunoArtistUdioTitle_NotFlagged()
+    {
+        string scd = TaggedScd.Wrap(_fx, TaggedScd.Ogg(_fx, "names", "-metadata artist=Suno -metadata title=Udio", seconds: 2), "names");
+        var t = SongTagReader.FromScdBytes(File.ReadAllBytes(scd))!.Value;
+        Assert.Equal("Suno", t.Artist);
+        Assert.Equal("", t.AiTool);
+    }
+
+    [Theory] // [AC-gh-20-source-tags-ai-marker-4] [EDGE-gh-20-source-tags-ai-marker-10] every Vorbis key FromOgg asks for
+    [InlineData("COMMENT")]
+    [InlineData("DESCRIPTION")]
+    [InlineData("ENCODED_BY")]
+    [InlineData("ENCODED-BY")]
+    [InlineData("SOFTWARE")]
+    [InlineData("PUBLISHER")]
+    [InlineData("ORGANIZATION")]
+    [InlineData("COPYRIGHT")]
+    [InlineData("LICENSE")]
+    public void ScdReader_EachMarkerKey_Flags(string key)
+    {
+        string name = "k" + key.Replace("-", "");
+        string scd = TaggedScd.Wrap(_fx, TaggedScd.Ogg(_fx, name, $"-metadata {key}=\"made with suno\"", seconds: 2), name);
+        Assert.Equal("Suno", SongTagReader.FromScdBytes(File.ReadAllBytes(scd))!.Value.AiTool);
+    }
+
     [Fact] // [EDGE-gh-20-source-tags-ai-marker-29]
     public void ScdReader_Adpcm_NoMarker()
     {
@@ -307,6 +333,12 @@ public sealed class SourceTagsAiMarkerTests : IDisposable
         Assert.Equal("v\\al", p[3].Value);
         Assert.DoesNotContain(p, x => x.Key == "handler_name");
         Assert.Empty(FfMetadata.ParseGlobal(""));
+
+        // a value ending in an escaped backslash does not continue onto the next key
+        var even = FfMetadata.ParseGlobal("a=x\\\\\nb=y\n");
+        Assert.Equal(new[] { "a", "b" }, even.Select(x => x.Key));
+        Assert.Equal("x\\", even[0].Value);
+        Assert.Equal("y", even[1].Value);
     }
 
     // ── marker vocabulary ──
@@ -482,6 +514,20 @@ public sealed class SourceTagsAiMarkerTests : IDisposable
         Assert.Equal(value, Cache().TryGet(@"C:\M\d.scd"));
     }
 
+    [Fact] // [EDGE-gh-20-source-tags-ai-marker-15] [EDGE-gh-20-source-tags-ai-marker-16]
+    public void Cache_DuplicateKeys_SetAsideNotThrown()
+    {
+        Directory.CreateDirectory(_dir);
+        const string dup = "{\"version\":2,\"songs\":{\"k\":[\"a\",\"b\",\"c\",\"\"],\"k\":[\"a\",\"b\",\"c\",\"\"]}}";
+        File.WriteAllText(ScdPath, dup);
+        var c = Cache();
+        Assert.Null(c.TryGet(@"C:\M\k.scd"));
+        c.Forget(@"C:\M\k.scd");
+        c.Store(@"C:\M\new.scd", Tagged);
+        Assert.Equal(dup, File.ReadAllText(ScdPath + ".bad"));
+        Assert.Equal(Tagged, Cache().TryGet(@"C:\M\new.scd"));
+    }
+
     [Fact] // [EDGE-gh-20-source-tags-ai-marker-14]
     public void Cache_DefaultPaths()
     {
@@ -546,6 +592,8 @@ public sealed class SourceTagsAiMarkerTests : IDisposable
         fresh.Flush();
         Assert.Null(Cache().TryGet(@"C:\M\srconly2.scd"));
         Assert.Null(fresh.TryGet(@"C:\M\srconly2.scd"));
+        Assert.Equal(scd, Cache().TryGet(@"C:\M\elsewhere.scd"));
+        Assert.Null(Cache().TryGet(@"C:\M\scdonly2.scd"));
     }
 
     [Fact] // [EDGE-gh-20-source-tags-ai-marker-27]

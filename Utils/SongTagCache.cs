@@ -154,8 +154,6 @@ namespace Pickles_Playlist_Editor.Utils
             private bool _loaded, _dirty;
             private long _changes; // counts edits, so a flush that raced one stays dirty
 
-            public string FilePath => path;
-
             // Caller holds the lock. An I/O failure leaves it unloaded (no writes, retried on the next access).
             private bool EnsureLoaded()
             {
@@ -186,16 +184,18 @@ namespace Pickles_Playlist_Editor.Utils
             private Dictionary<string, SongTags>? Parse(string json, out int? fileVersion)
             {
                 fileVersion = null;
-                JsonNode? root;
-                try { root = JsonNode.Parse(json); }
-                catch (JsonException) { return null; }
-                if (root is not JsonObject obj) return null;
-                try { fileVersion = obj["version"]?.GetValue<int>(); } catch { return null; }
-                if (fileVersion != version || obj["songs"] is not JsonObject songs) return null;
-                var result = new Dictionary<string, SongTags>();
-                foreach (var (key, node) in songs)
-                    if (Decode(node) is { } t) result[key] = t;
-                return result;
+                // JsonObject builds lazily, so a duplicate key can throw at any access: all of it counts as unreadable
+                try
+                {
+                    if (JsonNode.Parse(json) is not JsonObject obj) return null;
+                    try { fileVersion = obj["version"]?.GetValue<int>(); } catch (Exception ex) when (ex is FormatException or InvalidOperationException) { return null; }
+                    if (fileVersion != version || obj["songs"] is not JsonObject songs) return null;
+                    var result = new Dictionary<string, SongTags>();
+                    foreach (var (key, node) in songs)
+                        if (Decode(node) is { } t) result[key] = t;
+                    return result;
+                }
+                catch (Exception ex) when (ex is JsonException or ArgumentException or InvalidOperationException or FormatException) { return null; }
             }
 
             private SongTags? Decode(JsonNode? node)

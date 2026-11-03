@@ -12,9 +12,11 @@ namespace Pickles_Playlist_Editor.Tools
     /// </summary>
     internal static class SourceTagReader
     {
-        public static SongTags? Read(string sourcePath)
+        public static SongTags? Read(string sourcePath) => Read(sourcePath, null);
+
+        internal static SongTags? Read(string sourcePath, TimeSpan? timeout)
         {
-            try { return FromFields(FFMpeg.ReadFfMetadata(sourcePath)); }
+            try { return FromFields(FFMpeg.ReadFfMetadata(sourcePath, timeout)); }
             catch (Exception ex)
             {
                 Logger.LogWarn("Could not read tags from '{File}': {Error}", Path.GetFileName(sourcePath), ex.Message);

@@ -201,7 +201,7 @@ namespace Pickles_Playlist_Editor.Utils
                 if (!process.WaitForExit(limit))
                 {
                     try { process.Kill(entireProcessTree: true); } catch { }
-                    process.WaitForExit();
+                    process.WaitForExit(TimeSpan.FromSeconds(5)); // bounded too, in case the kill failed
                     throw new TimeoutException($"ffmpeg did not finish within {limit.TotalSeconds:0} s");
                 }
                 message = stderr.GetAwaiter().GetResult();
