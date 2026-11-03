@@ -401,7 +401,7 @@ Wil je doorgaan?</value></data>
   <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>Sorteren op AI-waarschijnlijkheid</value></data>
   <data name="AiScoreLabel.Text" xml:space="preserve"><value>AI-waarschijnlijkheid</value></data>
   <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>Inschatten hoe waarschijnlijk elk nummer door AI is gemaakt</value></data>
-  <data name="AiScore_Hint" xml:space="preserve"><value>Een lokale machine-learningclassificatie (SONICS), geen generatieve AI. Je nummers verlaten deze computer nooit. Inschakelen downloadt eenmalig ongeveer {0} MB; daarna wordt je bibliotheek op de achtergrond gescoord, en Statistieken berekenen scoort nummers die je later toevoegt.</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>Een lokale machine-learningclassificatie (SONICS), geen generatieve AI. Je nummers verlaten deze computer nooit. Inschakelen downloadt eenmalig ongeveer {0} MB; daarna wordt je bibliotheek op de achtergrond gescoord, net als nummers die je later toevoegt.</value></data>
   <data name="AiScore_Consent_Title" xml:space="preserve"><value>AI-waarschijnlijkheid inschakelen?</value></data>
   <data name="AiScore_Consent_Content" xml:space="preserve"><value>De score komt van SONICS, een machine-learningclassificatie die op deze computer draait. Het is geen generatieve AI en je nummers verlaten deze computer nooit. Het is een schatting, geen bewijs.&#10;&#10;Het model en de audiodecoder die het nodig heeft worden eenmalig gedownload (ongeveer {0} MB) van {2} naar {1}.</value></data>
   <data name="AiScore_Redownload_Content" xml:space="preserve"><value>De bestanden voor de AI-waarschijnlijkheid ontbreken, zijn beschadigd of verouderd. Opnieuw downloaden (ongeveer {0} MB)? Je nummers verlaten deze computer nooit.</value></data>
@@ -418,7 +418,7 @@ Wil je doorgaan?</value></data>
   <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>de download is geannuleerd.</value></data>
   <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>De AI-bestanden zijn nog niet beschikbaar om te downloaden. Probeer het later opnieuw.</value></data>
   <data name="AiScore_LowDisk" xml:space="preserve"><value>Er is niet genoeg vrije ruimte: ongeveer {0} MB is nodig in {1}.</value></data>
-  <data name="AiScore_Ready" xml:space="preserve"><value>De AI-waarschijnlijkheid staat aan. Nummers in je bibliotheek die nog geen score hebben, worden nu op de achtergrond met lage prioriteit gescoord; de labels verschijnen zodra ze klaar zijn. Statistieken berekenen scoort nummers die je later toevoegt.</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>De AI-waarschijnlijkheid staat aan. Nummers in je bibliotheek die nog geen score hebben, worden nu op de achtergrond met lage prioriteit gescoord; de labels verschijnen zodra ze klaar zijn. Nummers die je later toevoegt, worden op dezelfde manier gescoord.</value></data>
   <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>De AI-waarschijnlijkheid kon niet worden uitgevoerd: {0}</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Waarschijnlijk AI</value></data>
   <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Mogelijk AI</value></data>

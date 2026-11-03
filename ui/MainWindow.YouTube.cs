@@ -22,6 +22,7 @@ namespace Pickles_Playlist_Editor
             // Held until after the overlay comes down: the error dialog is useless to a
             // user who is still staring at a "Please Wait" spinner behind it.
             string? errorMessage = null;
+            bool imported = false;
 
             try
             {
@@ -77,6 +78,7 @@ namespace Pickles_Playlist_Editor
                     LoadPlaylists();
                 }
                 SetProgressBarPercent(100);
+                imported = true;
             }
             catch (Exception ex)
             {
@@ -93,6 +95,7 @@ namespace Pickles_Playlist_Editor
                 CleanupYtTempFiles(result.DownloadedFiles);
             }
 
+            if (imported) RequestAiScanAfterImport(); // before the reports, so scoring runs while they are read
             if (errorMessage != null)
                 await ShowDialogAsync(AppStrings.Dlg_Error, errorMessage);
             else if (result.Fallbacks.Count > 0)

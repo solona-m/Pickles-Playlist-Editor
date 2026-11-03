@@ -401,7 +401,7 @@ Vill du fortsätta?</value></data>
   <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>Sortera efter AI-sannolikhet</value></data>
   <data name="AiScoreLabel.Text" xml:space="preserve"><value>AI-sannolikhet</value></data>
   <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>Uppskatta hur troligt det är att varje låt är AI-genererad</value></data>
-  <data name="AiScore_Hint" xml:space="preserve"><value>En lokal maskininlärningsklassificerare (SONICS), inte generativ AI. Dina låtar lämnar aldrig den här datorn. Att slå på den laddar ner ungefär {0} MB en gång; sedan bedöms ditt bibliotek i bakgrunden, och Beräkna statistik bedömer låtar du lägger till senare.</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>En lokal maskininlärningsklassificerare (SONICS), inte generativ AI. Dina låtar lämnar aldrig den här datorn. Att slå på den laddar ner ungefär {0} MB en gång; sedan bedöms ditt bibliotek i bakgrunden, liksom låtar du lägger till senare.</value></data>
   <data name="AiScore_Consent_Title" xml:space="preserve"><value>Slå på AI-sannolikhet?</value></data>
   <data name="AiScore_Consent_Content" xml:space="preserve"><value>Poängen kommer från SONICS, en maskininlärningsklassificerare som körs på den här datorn. Det är inte generativ AI, och dina låtar lämnar aldrig den här datorn. Det är en uppskattning, inte ett bevis.&#10;&#10;Modellen och ljudavkodaren den behöver laddas ner en gång (ungefär {0} MB) från {2} till {1}.</value></data>
   <data name="AiScore_Redownload_Content" xml:space="preserve"><value>Filerna för AI-sannolikheten saknas, är skadade eller inaktuella. Ladda ner dem igen (ungefär {0} MB)? Dina låtar lämnar aldrig den här datorn.</value></data>
@@ -418,7 +418,7 @@ Vill du fortsätta?</value></data>
   <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>nedladdningen avbröts.</value></data>
   <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>AI-filerna finns inte att ladda ner än. Försök igen senare.</value></data>
   <data name="AiScore_LowDisk" xml:space="preserve"><value>Det finns inte tillräckligt med ledigt utrymme: ungefär {0} MB behövs i {1}.</value></data>
-  <data name="AiScore_Ready" xml:space="preserve"><value>AI-sannolikheten är på. Låtar i ditt bibliotek som inte har bedömts än bedöms nu i bakgrunden med låg prioritet; etiketterna visas allt eftersom. Beräkna statistik bedömer låtar du lägger till senare.</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>AI-sannolikheten är på. Låtar i ditt bibliotek som inte har bedömts än bedöms nu i bakgrunden med låg prioritet; etiketterna visas allt eftersom. Låtar du lägger till senare bedöms på samma sätt.</value></data>
   <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>AI-sannolikheten kunde inte köras: {0}</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Troligen AI</value></data>
   <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Möjligen AI</value></data>

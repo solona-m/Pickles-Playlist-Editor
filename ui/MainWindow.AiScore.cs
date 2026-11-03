@@ -13,7 +13,7 @@ using Windows.UI;
 
 namespace Pickles_Playlist_Editor
 {
-    // The AI-likelihood score: opt-in, the library scan on turn-on, the AI pass of Compute Stats, chips and sort.
+    // The AI-likelihood score: opt-in, the library scan (on turn-on and after imports), the AI pass of Compute Stats, chips and sort.
     public sealed partial class MainWindow
     {
         private AiAssetDownloadService? _aiAssets;
@@ -71,6 +71,18 @@ namespace Pickles_Playlist_Editor
         }
 
         private void StartLibraryAiScan() => _ = RunAiScorePhaseAsync(Library.SongTargets(Playlists.Values), AiPass.Library);
+
+        /// <summary>After an import: score the new songs in the background; scored songs are skipped. Never throws.</summary>
+        internal void RequestAiScanAfterImport()
+        {
+            try
+            {
+                if (!Settings.AiScoreEnabled || _closingCts.IsCancellationRequested) return;
+                Logger.LogInfo("AI scan requested after an import");
+                StartLibraryAiScan();
+            }
+            catch (Exception ex) { Logger.LogError("AI scan after an import could not start: {Error}", ex); }
+        }
 
         /// <summary>Shows or hides the AI sort item and chips to match the setting.</summary>
         internal void RefreshAiScoreUi(bool reload)
