@@ -60,9 +60,13 @@ namespace Pickles_Playlist_Editor.Tools
                     bool nextSource = false;
                     try
                     {
-                        using var headers = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                        headers.CancelAfter(_readTimeout);
-                        using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, headers.Token).ConfigureAwait(false);
+                        HttpResponseMessage headerResponse;
+                        using (var headers = CancellationTokenSource.CreateLinkedTokenSource(ct))
+                        {
+                            headers.CancelAfter(_readTimeout); // headers only; each body read has its own timer
+                            headerResponse = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, headers.Token).ConfigureAwait(false);
+                        }
+                        using var response = headerResponse;
                         long? declared = response.Content.Headers.ContentLength;
                         if (!response.IsSuccessStatusCode)
                         {
@@ -160,6 +164,9 @@ namespace Pickles_Playlist_Editor.Tools
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { throw new LocalDiskException(ex); }
                     onProgress?.Invoke(got);
                 }
+                // The last buffered bytes are written here; a full disk must still read as Disk.
+                try { await file.FlushAsync(ct).ConfigureAwait(false); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { throw new LocalDiskException(ex); }
             }
             return (got, Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant());
         }
