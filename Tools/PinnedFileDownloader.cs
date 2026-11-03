@@ -49,9 +49,11 @@ namespace Pickles_Playlist_Editor.Tools
             Action<long>? onProgress, CancellationToken ct)
         {
             var last = new AiAssetResult(false, AiAssetFailure.Transport, asset.Name, "no sources");
+            bool everySourceNotFound = baseUrls.Length > 0;
             foreach (var baseUrl in baseUrls)
             {
                 string url = baseUrl + asset.Name;
+                int? finalStatus = null; // this source's last answer, if it was an HTTP error
                 for (int attempt = 1; attempt <= MaxAttempts; attempt++)
                 {
                     ct.ThrowIfCancellationRequested();
@@ -68,6 +70,7 @@ namespace Pickles_Playlist_Editor.Tools
                         }
                         using var response = headerResponse;
                         long? declared = response.Content.Headers.ContentLength;
+                        finalStatus = response.IsSuccessStatusCode ? null : (int)response.StatusCode;
                         if (!response.IsSuccessStatusCode)
                         {
                             last = new(false, AiAssetFailure.Http, asset.Name, $"HTTP {(int)response.StatusCode} from {url}");
@@ -118,6 +121,7 @@ namespace Pickles_Playlist_Editor.Tools
                     catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException && !ct.IsCancellationRequested)
                     {
                         // An OperationCanceledException that is not the caller's is the stall timeout.
+                        finalStatus = null;
                         last = new(false, AiAssetFailure.Transport, asset.Name, $"{asset.Name}: {ex.Message} ({url})");
                         Utils.Logger.LogWarn("AI asset: {Detail} (attempt {Attempt})", last.Detail, attempt);
                     }
@@ -126,8 +130,10 @@ namespace Pickles_Playlist_Editor.Tools
                     if (nextSource) break;
                     if (attempt < MaxAttempts) await Task.Delay(_backoff(attempt, retryAfter), ct).ConfigureAwait(false);
                 }
+                if (finalStatus is not (404 or 410)) everySourceNotFound = false;
             }
-            return last;
+            // Nowhere has the file (e.g. the release isn't published yet): a different message from a server fault.
+            return everySourceNotFound ? last with { Failure = AiAssetFailure.NotFound } : last;
         }
 
         private static TimeSpan? RetryAfter(RetryConditionHeaderValue? h)

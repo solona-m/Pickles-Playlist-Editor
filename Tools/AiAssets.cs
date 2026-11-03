@@ -6,7 +6,8 @@ namespace Pickles_Playlist_Editor.Tools
     /// <summary>One pinned release asset of the AI score. Files that load each other (.onnx and .onnx.data) share a tag.</summary>
     internal sealed record AiAsset(string Name, string Tag, long Bytes, string Sha256);
 
-    internal enum AiAssetFailure { None, Http, Checksum, Transport, Disk }
+    /// <summary>NotFound: every source answered 404 or 410 for the file.</summary>
+    internal enum AiAssetFailure { None, Http, Checksum, Transport, Disk, NotFound }
 
     internal sealed record AiAssetResult(bool Ok, AiAssetFailure Failure, string? FileName, string Detail)
     {
