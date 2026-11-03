@@ -203,7 +203,7 @@ namespace Pickles_Playlist_Editor
                 ScdRel = Playlist.GetScdPath(song) ?? "",
             };
             ApplyCamelotChip(node, song);
-            ApplyAiChip(node);
+            ApplyAiChip(node, modRoot);
             ApplySongTooltip(node, modRoot);
             return node;
         }

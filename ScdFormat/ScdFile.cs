@@ -160,7 +160,7 @@ namespace VfxEditor.ScdFormat {
                 var oldEntry = file.Audio[0];
 
                 ScdAudioEntry newEntry = null;
-                switch (Path.GetExtension(path))
+                switch (Path.GetExtension(path).ToLowerInvariant()) // ".OGG" keeps its tags like ".ogg"
                 {
                     case ".ogg":
                         newEntry = ScdVorbis.ImportOgg(path, oldEntry);

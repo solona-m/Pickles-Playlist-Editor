@@ -18,7 +18,13 @@ namespace Pickles_Playlist_Editor
                 if (t.Artist.Length > 0) lines.Add(string.Format(getString(ArtistKey), t.Artist));
                 if (t.Album.Length > 0) lines.Add(string.Format(getString(AlbumKey), t.Album));
             }
-            if (AiScoreDisplay.TooltipPercent(aiStored, aiEnabled) is int pct)
+            if (aiEnabled && tags is { IsAiTagged: true } tagged)
+            {
+                // the file says an AI generator made it: 100%, and why, instead of the model's estimate
+                lines.Add(string.Format(getString(AiScoreText.TooltipTaggedKey), AiScoreDisplay.TaggedPercent));
+                lines.Add(string.Format(getString(AiScoreText.TaggedKey), tagged.AiTool));
+            }
+            else if (AiScoreDisplay.TooltipPercent(aiStored, aiEnabled) is int pct)
                 lines.Add(string.Format(getString("AiScore_Tooltip"), pct));
             return lines.Count == 0 ? null : string.Join("\n", lines);
         }

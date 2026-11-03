@@ -6,21 +6,26 @@ using System.Text;
 namespace Pickles_Playlist_Editor.Utils
 {
     /// <summary>
-    /// A song's artist, album and title, from the Vorbis comments in its SCD. Title is kept for later features
-    /// (album art lookup) and is never shown or searched. All empty means "read, nothing found".
+    /// A song's artist, album and title, from the Vorbis comments in its SCD or, for mp3/m4a/flac/wav imports, from the
+    /// source file. Title is kept for later features and is never shown or searched. AiTool: the AI generator the file's
+    /// own tags name ("Suno"/"Udio"), or "". MarkerText: the source file's comment-type fields, kept so the marker
+    /// vocabulary can be re-applied without the source. All empty means "read, nothing found".
     /// </summary>
-    internal readonly record struct SongTags(string Artist, string Album, string Title)
+    internal readonly record struct SongTags(string Artist, string Album, string Title, string AiTool = "", string MarkerText = "")
     {
         public const int MaxLength = 200;
 
         public static SongTags None => new("", "", "");
 
-        public bool IsEmpty => Artist.Length == 0 && Album.Length == 0 && Title.Length == 0;
+        public bool IsEmpty => Artist.Length == 0 && Album.Length == 0 && Title.Length == 0 && AiTool.Length == 0 && MarkerText.Length == 0;
 
         public bool HasArtistOrAlbum => Artist.Length > 0 || Album.Length > 0;
 
-        public static SongTags From(IEnumerable<string?> artists, IEnumerable<string?> albums, IEnumerable<string?> titles) =>
-            new(Join(artists), Join(albums), Join(titles));
+        public bool IsAiTagged => AiTool.Length > 0;
+
+        public static SongTags From(IEnumerable<string?> artists, IEnumerable<string?> albums, IEnumerable<string?> titles,
+            string aiTool = "", string markerText = "") =>
+            new(Join(artists), Join(albums), Join(titles), aiTool ?? "", markerText ?? "");
 
         /// <summary>Several values joined with ", ", case-insensitive duplicates dropped, first spelling kept.</summary>
         private static string Join(IEnumerable<string?> values)
@@ -58,7 +63,10 @@ namespace Pickles_Playlist_Editor.Utils
         }
 
         // Never splits a surrogate pair (an emoji), which would make the cache unsavable.
-        private static string Cap(string s) =>
-            s.Length <= MaxLength ? s : s[..(char.IsHighSurrogate(s[MaxLength - 1]) ? MaxLength - 1 : MaxLength)] + "…";
+        private static string Cap(string s) => s.Length <= MaxLength ? s : SafeCut(s, MaxLength) + "…";
+
+        /// <summary>At most <paramref name="max"/> chars, never ending on half a surrogate pair.</summary>
+        internal static string SafeCut(string s, int max) =>
+            s.Length <= max ? s : s[..(char.IsHighSurrogate(s[max - 1]) ? max - 1 : max)];
     }
 }

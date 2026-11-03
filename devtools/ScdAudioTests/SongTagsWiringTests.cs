@@ -186,5 +186,10 @@ public class SongTagsWiringTests
         string between = pl[aiForget..store];
         Assert.True(Count(between, "}") >= 1);
         Assert.True(store < At(pl, "string targetRelative = Path.Combine(playlistScdDirectory", reused));
+        // [AC-gh-20-source-tags-ai-marker-1] [AC-gh-20-source-tags-ai-marker-9] the source file's tags, after both branches too
+        int source = At(pl, "try { if (Pickles_Playlist_Editor.Tools.SourceTagReader.ForImport(file, Pickles_Playlist_Editor.Tools.SourceTagReader.Read) is { } src) SongTagCache.Default.StoreSource(targetPath, src); } catch { }", reused);
+        Assert.True(store < source);
+        Assert.True(Count(pl[aiForget..source], "}") >= 1);
+        Assert.True(source < At(pl, "string targetRelative = Path.Combine(playlistScdDirectory", reused));
     }
 }

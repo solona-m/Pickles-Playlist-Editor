@@ -100,19 +100,22 @@ namespace Pickles_Playlist_Editor
         }
 
         // Cache-only, like the Camelot chip: tree builds never score.
-        private static void ApplyAiChip(PlaylistNodeContent node)
+        private static void ApplyAiChip(PlaylistNodeContent node, string? modRoot = null)
         {
-            var (visible, band, percent) = AiScoreDisplay.For(s_showAiChips ? AiScoreCache.Default.TryGetForRel(node.ScdRel) : null, s_showAiChips);
+            string? tool = s_showAiChips ? SongTagCache.Default.TryGetForRel(node.ScdRel, modRoot)?.AiTool : null;
+            var (visible, band, percent, tagged) = AiScoreDisplay.ForSong(
+                s_showAiChips ? AiScoreCache.Default.TryGetForRel(node.ScdRel) : null, tool, s_showAiChips);
             if (!visible)
             {
                 node.AiVisibility = Visibility.Collapsed;
                 return;
             }
             node.AiText = AppStrings.Get(AiScoreText.BandKey(band));
-            node.AiTooltip = AppStrings.AiScoreTooltip(percent);
-            node.AiAutomationName = node.AiText + ", " + node.AiTooltip;
-            // amber, not red: an estimate, not an accusation; paler for Possibly AI
-            node.AiBrush = new SolidColorBrush(band == AiBand.LikelyAi ? Color.FromArgb(255, 0xF2, 0xA3, 0x3A) : Color.FromArgb(255, 0xF5, 0xD0, 0x8A));
+            node.AiTooltip = AiScoreText.ChipTooltip(tagged ? tool : null, percent, AppStrings.Get);
+            node.AiAutomationName = AiScoreText.AutomationName(node.AiText, node.AiTooltip, tagged);
+            // amber for model estimates (an estimate, not an accusation); red only when the file itself names an AI generator
+            uint argb = AiScoreText.ChipArgb(band);
+            node.AiBrush = new SolidColorBrush(Color.FromArgb((byte)(argb >> 24), (byte)(argb >> 16), (byte)(argb >> 8), (byte)argb));
             node.AiVisibility = Visibility.Visible;
         }
 
