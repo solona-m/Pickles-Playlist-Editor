@@ -222,6 +222,9 @@ public sealed class AiScoreOptInTests : IDisposable
         string src = File.ReadAllText(Path.Combine(RuntimeTargetTests.RepoRoot(), "ui", "AppStrings.cs"));
         foreach (Match m in Regex.Matches(src, @"GetString\(""((?:AiScore|Prog_AiScoring|Summary_AiScore)[^""]*)""\)")) yield return m.Groups[1].Value;
         yield return "SortByAiMenuItem.Text"; yield return "AiScoreLabel.Text"; yield return "AiScoreCheckBox.Content";
+        // Keys fetched by name through AppStrings.Get, anywhere in the UI.
+        foreach (var f in Directory.GetFiles(Path.Combine(RuntimeTargetTests.RepoRoot(), "ui"), "*.cs"))
+            foreach (Match m in Regex.Matches(File.ReadAllText(f), @"AppStrings\.Get\(""([^""]+)""\)")) yield return m.Groups[1].Value;
     }
 
     [Fact] // [AC-ai-score-2] [AC-ai-score-3] [EDGE-ai-score-34]
