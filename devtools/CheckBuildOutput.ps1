@@ -1,4 +1,5 @@
 # Checks a self-contained win-x64 build (or -Publish) folder: bundled runtime, WinUI resources, x64 with no 32-bit native file. Exit 1 on any FAIL.
+# [AC-x64-naudio-1] [EDGE-x64-naudio-21] [EDGE-x64-naudio-23] [EDGE-x64-naudio-25] [EDGE-x64-naudio-28]
 param([string]$Dir, [int]$ExpectMajor = 10, [switch]$Publish)
 
 $repo = Split-Path $PSScriptRoot -Parent
@@ -84,7 +85,7 @@ $x86 = @(Get-ChildItem $Dir -Recurse -File -Include *.dll, *.exe | Where-Object 
 foreach ($f in $x86) { Write-Output "  32-bit: $f" }
 Check 'no 32-bit native file in the payload' ($x86.Count -eq 0)
 Check 'libzplay.dll absent' (-not (Test-Path (Join-Path $Dir 'libzplay.dll')))
-foreach ($dll in 'SoundTouch.Net.dll', 'NAudio.WinMM.dll', 'NVorbis.dll', 'THIRD-PARTY-NOTICES.md', 'licenses\LGPL-2.1.txt', 'licenses\NAudio-MIT.txt', 'licenses\NVorbis-MIT.txt') {
+foreach ($dll in 'SoundTouch.Net.dll', 'NAudio.WinMM.dll', 'NVorbis.dll', 'THIRD-PARTY-NOTICES.md', 'licenses\LGPL-2.1.txt', 'licenses\NAudio-MIT.txt', 'licenses\NAudio.Vorbis-MIT.txt', 'licenses\NVorbis-MIT.txt') {
     Check $dll (Test-Path (Join-Path $Dir $dll))
 }
 

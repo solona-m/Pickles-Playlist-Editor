@@ -23,13 +23,13 @@ namespace Pickles_Playlist_Editor.Utils
                 using (var reader = new VorbisWaveReader(oggPath))
                 {
                     duration = TimeSpan.FromSeconds(Math.Round(reader.TotalTime.TotalSeconds));
-                    bpm = Detect(reader, 1);
+                    bpm = Detect(reader, halveRate: false);
                 }
-                // SoundTouch finds nothing above ~190 BPM; claiming twice the rate halves the tempo into its range.
+                // SoundTouch finds nothing above ~190 BPM; claiming half the rate halves the tempo into its range.
                 if (!(bpm > 0))
                 {
                     using var reader = new VorbisWaveReader(oggPath);
-                    bpm = Detect(reader, 2);
+                    bpm = Detect(reader, halveRate: true);
                 }
                 return new Result(FoldToLegacyRange(bpm), duration);
             }
@@ -40,10 +40,10 @@ namespace Pickles_Playlist_Editor.Utils
             }
         }
 
-        private static float Detect(VorbisWaveReader reader, int rateMultiplier)
+        private static float Detect(VorbisWaveReader reader, bool halveRate)
         {
             int ch = reader.WaveFormat.Channels;
-            var detector = new SoundTouch.BpmDetect(ch, reader.WaveFormat.SampleRate * rateMultiplier);
+            var detector = new SoundTouch.BpmDetect(ch, halveRate ? reader.WaveFormat.SampleRate / 2 : reader.WaveFormat.SampleRate);
             var buf = new float[4096 * ch];
             long frames = 0, maxFrames = (long)(MaxAnalysis.TotalSeconds * reader.WaveFormat.SampleRate);
             int n;
@@ -52,7 +52,7 @@ namespace Pickles_Playlist_Editor.Utils
                 detector.InputSamples(buf.AsSpan(0, n), n / ch);
                 frames += n / ch;
             }
-            return detector.GetBpm() * rateMultiplier;
+            return halveRate ? detector.GetBpm() * 2 : detector.GetBpm();
         }
 
         /// <summary>Halves or doubles into the range libZPlay reported, so sorting and cached values stay comparable. 0 = not detected.</summary>

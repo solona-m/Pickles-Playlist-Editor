@@ -43,12 +43,25 @@ internal sealed class FakeAudioOutput : Pickles_Playlist_Editor.Utils.IAudioOutp
 {
     public ISampleProvider? Source;
     public bool Playing, Paused, Disposed;
+    public bool ThrowOnInit, ThrowOnPlay, ThrowOnPause;
     public int StopCalls;
     public event Action<Exception?>? Stopped;
 
-    public void Init(ISampleProvider source) => Source = source;
-    public void Play() { Playing = true; Paused = false; }
-    public void Pause() { Paused = true; }
+    public void Init(ISampleProvider source)
+    {
+        if (ThrowOnInit) throw new InvalidOperationException("no device");
+        Source = source;
+    }
+    public void Play()
+    {
+        if (ThrowOnPlay) throw new InvalidOperationException("device busy");
+        Playing = true; Paused = false;
+    }
+    public void Pause()
+    {
+        if (ThrowOnPause) throw new InvalidOperationException("pause refused");
+        Paused = true;
+    }
     public void Stop() { StopCalls++; Playing = false; }
     public void Dispose() => Disposed = true;
 

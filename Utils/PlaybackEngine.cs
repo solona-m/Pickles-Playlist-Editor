@@ -173,12 +173,13 @@ namespace Pickles_Playlist_Editor.Utils
             var session = _session;
             _output = null;
             _session = null;
+            // Reader first, so a playback thread still inside Read gets 0 and queues no more of the old song.
+            session?.Close();
             if (output != null)
             {
                 try { output.Stop(); } catch (Exception ex) { _warn($"Audio output stop failed: {ex.Message}"); }
                 DisposeQuietly(output);
             }
-            session?.Close();
         }
 
         private void DisposeQuietly(IAudioOutput? output)
@@ -194,7 +195,8 @@ namespace Pickles_Playlist_Editor.Utils
             private readonly ISampleProvider _samples;
             private readonly object _readerLock = new();
             private readonly Action<string> _warn;
-            private bool _closed, _warned;
+            private volatile bool _closed;
+            private bool _warned, _disposed;
             private long _positionTicks;
 
             public TimeSpan Duration { get; }
@@ -215,7 +217,7 @@ namespace Pickles_Playlist_Editor.Utils
             {
                 lock (_readerLock)
                 {
-                    if (_closed) return 0;
+                    if (_closed) { DisposeReaderOnce(); return 0; }
                     try
                     {
                         int n = _samples.Read(buffer, offset, count);
@@ -253,19 +255,24 @@ namespace Pickles_Playlist_Editor.Utils
 
             public void Close()
             {
+                _closed = true;
                 if (!Monitor.TryEnter(_readerLock, 1000))
                 {
+                    // The busy Read disposes the reader when it next runs.
                     _warn("Closing the decoder timed out; the file stays open until the decoder returns.");
-                    _closed = true;
                     return;
                 }
-                try
-                {
-                    _closed = true;
-                    _reader.Dispose();
-                }
-                catch (Exception ex) { _warn($"Closing the decoder failed: {ex.Message}"); }
+                try { DisposeReaderOnce(); }
                 finally { Monitor.Exit(_readerLock); }
+            }
+
+            // Caller holds _readerLock.
+            private void DisposeReaderOnce()
+            {
+                if (_disposed) return;
+                _disposed = true;
+                try { _reader.Dispose(); }
+                catch (Exception ex) { _warn($"Closing the decoder failed: {ex.Message}"); }
             }
         }
     }

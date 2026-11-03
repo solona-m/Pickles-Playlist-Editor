@@ -1,9 +1,7 @@
 ﻿using Pickles_Playlist_Editor.Tools;
-using System;
 using Pickles_Playlist_Editor.Utils;
+using System;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Pickles_Playlist_Editor
 {
@@ -24,8 +22,8 @@ namespace Pickles_Playlist_Editor
         {
             Utils.Logger.LogInfo("Play: requested '{File}'", filePath);
 
-            // Release any existing playback handle before writing a new temporary file.
-            if (IsPlaying) Stop();
+            // Always tear down first: a song that ended on its own still holds its temp file open.
+            Stop();
 
             CleanupExtractedTempFile();
 

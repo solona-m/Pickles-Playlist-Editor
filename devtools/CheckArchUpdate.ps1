@@ -1,5 +1,6 @@
 # Proves an installed x86 Velopack app takes an x64 update on the same channel: installs devtools\ArchProbe as x86 0.0.1,
 # packs it as x64 0.0.2 into the same local feed, lets it update itself, then checks it runs as x64 and uninstalls.
+# [AC-x64-naudio-8] [EDGE-x64-naudio-22] [EDGE-x64-naudio-23] [EDGE-x64-naudio-29]
 # Also packs the real build (bin\...\win-x64) to read its nuspec. Every pack writes under the work dir. Exit 1 on any FAIL.
 param([string]$Work = (Join-Path $env:TEMP "PicklesArchProbe-$([guid]::NewGuid().ToString('N'))"))
 
@@ -45,7 +46,7 @@ try {
     Start-Sleep 3
     $deadline = (Get-Date).AddSeconds(120)
     while ((Get-Process Update -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$inst*" }) -and (Get-Date) -lt $deadline) { Start-Sleep 1 }
-    Check 'after the update it runs as x64 0.0.2' ((Probe @()) -eq '0.0.2 X64')
+    Check 'after the update (delta in the feed) it runs as x64 0.0.2' ((Probe @()) -eq '0.0.2 X64')
 
     $realOut = Join-Path $Work 'realpack'
     $real = Join-Path $repo 'bin\Release\net10.0-windows10.0.19041.0\win-x64'
@@ -58,6 +59,9 @@ try {
     } finally { $zip.Dispose() }
     Check 'real build nuspec machineArchitecture x64' ($nuspec -match '<machineArchitecture>x64</machineArchitecture>')
     Check 'real build nuspec channel win' ($nuspec -match '<channel>win</channel>')
+    $upd = [IO.File]::ReadAllBytes((Join-Path $inst 'Update.exe')); $pe = [BitConverter]::ToInt32($upd, 0x3C)
+    Write-Output "INFO Velopack Update.exe machine 0x$('{0:x}' -f [BitConverter]::ToUInt16($upd, $pe + 4)) (added at pack time, outside the app payload)"
+    Check 'delta package built for 0.0.2' (Test-Path (Join-Path $rel "$id-0.0.2-delta.nupkg"))
 }
 finally {
     $u = Join-Path $inst 'Update.exe'

@@ -7,9 +7,13 @@ Pickles Playlist Editor ships these components. Full license texts are in the `l
 - Source: https://github.com/owoudenberg/soundtouch.net, a C# port of SoundTouch by Olli Parviainen
 - Used unmodified, as the separate `SoundTouch.Net.dll`. You may replace that file with your own build of the same library.
 
-## NAudio 2.2.1, NAudio.Vorbis 1.5.0
+## NAudio 2.2.1
 - License: MIT (`licenses/NAudio-MIT.txt`)
-- Source: https://github.com/naudio/NAudio, https://github.com/naudio/Vorbis
+- Source: https://github.com/naudio/NAudio
+
+## NAudio.Vorbis 1.5.0
+- License: MIT (`licenses/NAudio.Vorbis-MIT.txt`)
+- Source: https://github.com/naudio/Vorbis
 
 ## NVorbis 0.10.4
 - License: MIT (`licenses/NVorbis-MIT.txt`)

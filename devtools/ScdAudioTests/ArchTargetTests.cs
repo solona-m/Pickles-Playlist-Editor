@@ -1,5 +1,6 @@
 using System.Reflection.PortableExecutable;
 using System.Text.RegularExpressions;
+using Microsoft.Win32;
 using PersistentCollection;
 using Xunit;
 
@@ -45,7 +46,7 @@ public class ArchTargetTests
         Assert.DoesNotContain("libzplay", text, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact] // [AC-x64-naudio-1]
+    [Fact] // [AC-x64-naudio-1] [EDGE-x64-naudio-21]
     public void LibZPlay_IsGone()
     {
         Assert.False(File.Exists(Path.Combine(RepoRoot(), "libzplay.dll")));
@@ -93,6 +94,8 @@ public class ArchTargetTests
         Assert.Equal(File.ReadAllBytes(Path.Combine(st.Dir, "LICENSE", "LICENSE")), File.ReadAllBytes(Path.Combine(root, "licenses", "LGPL-2.1.txt")));
         Assert.True(File.Exists(Path.Combine(root, "licenses", "NAudio-MIT.txt")));
         Assert.True(File.Exists(Path.Combine(root, "licenses", "NVorbis-MIT.txt")));
+        Assert.Contains("Andrew Ward", File.ReadAllText(Path.Combine(root, "licenses", "NAudio.Vorbis-MIT.txt")));
+        Assert.Contains("NAudio.Vorbis-MIT.txt", notices);
 
         string csproj = File.ReadAllText(Path.Combine(root, "Pickles Playlist Editor.csproj"));
         Assert.Contains(@"<None Update=""THIRD-PARTY-NOTICES.md"">", csproj);
@@ -109,7 +112,7 @@ public class ArchTargetTests
         Assert.Contains("THIRD-PARTY-NOTICES.md", readme);
     }
 
-    [Theory] // [AC-x64-naudio-2] caches written by the x86 build still read on x64
+    [Theory] // [AC-x64-naudio-2] [EDGE-x64-naudio-18] caches written by the x86 build still read on x64
     [InlineData("bpm_cache.dat", 128)]
     [InlineData("duration_cache.dat", 213)]
     public void X86Caches_StillRead(string file, int expected)
@@ -119,12 +122,26 @@ public class ArchTargetTests
         Assert.Equal(expected, d[@"C:\fixture\a.scd"]);
     }
 
-    [Fact] // [AC-x64-naudio-2]
+    [Fact] // [AC-x64-naudio-2] [EDGE-x64-naudio-18]
     public void X86KeyCache_StillReads()
     {
         string copy = CopyFixture("key_cache.dat");
         var d = new PersistentDictionary<string, string>(copy);
         Assert.Equal("Am", d[@"C:\fixture\a.scd"]);
+    }
+
+    [SkippableFact] // [AC-x64-naudio-2] [EDGE-x64-naudio-19] HKCU\Software is shared by the 32- and 64-bit views.
+    public void Settings_SameIn32And64BitRegistryViews()
+    {
+        static string[]? Values(RegistryView view)
+        {
+            using var hkcu = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, view);
+            using var key = hkcu.OpenSubKey(@"SOFTWARE\ScdConverter");
+            return key?.GetValueNames().OrderBy(n => n).Select(n => $"{n}={key.GetValue(n)}").ToArray();
+        }
+        var x86 = Values(RegistryView.Registry32);
+        Skip.If(x86 == null, "no saved settings on this machine");
+        Assert.Equal(x86, Values(RegistryView.Registry64));
     }
 
     private static string CopyFixture(string file)

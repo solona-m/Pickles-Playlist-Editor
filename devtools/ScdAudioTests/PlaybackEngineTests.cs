@@ -57,7 +57,7 @@ public sealed class PlaybackEngineTests : IDisposable
         Assert.Equal(new[] { genA, genB }, ended.ToArray());
     }
 
-    [Fact] // [AC-x64-naudio-3]
+    [Fact] // [AC-x64-naudio-3] [EDGE-x64-naudio-2]
     public void Stop_NeverInvokesOnEnded()
     {
         var engine = NewEngine();
@@ -97,7 +97,7 @@ public sealed class PlaybackEngineTests : IDisposable
         }
     }
 
-    [Fact] // [AC-x64-naudio-3] [EDGE-x64-naudio-31]
+    [Fact] // [AC-x64-naudio-3] [EDGE-x64-naudio-31] [EDGE-x64-naudio-1]
     public void StoppedA_DuringOpenB_AfterGenBump_NoOnEndedForA()
     {
         string ogg = _fx.MakeSineOgg(2);
@@ -199,7 +199,7 @@ public sealed class PlaybackEngineTests : IDisposable
         Assert.True(engine.IsPlaying);
     }
 
-    [Fact] // [EDGE-x64-naudio-9]
+    [Fact] // [EDGE-x64-naudio-7]
     public void Seek_IsClampedShortOfTheEnd()
     {
         var engine = NewEngine();
@@ -210,21 +210,174 @@ public sealed class PlaybackEngineTests : IDisposable
         Assert.Equal(TimeSpan.Zero, engine.Position);
     }
 
+    private static float Peak(ISampleProvider source)
+    {
+        var buf = new float[44100];
+        int got = 0, n;
+        while (got < buf.Length && (n = source.Read(buf, got, buf.Length - got)) > 0) got += n;
+        return buf.Take(got).Max(Math.Abs);
+    }
+
+    [Fact] // [AC-x64-naudio-4] [EDGE-x64-naudio-10]
+    public void Volume_ScalesTheSamples_BeforeAndDuringPlayback()
+    {
+        string ogg = _fx.MakeSineOgg(6);
+        var engine = NewEngine();
+        engine.Open(ogg, _ => { });
+        float full = Peak(Last.Source!);
+        Assert.True(full > 0.05f, $"full peak {full}");
+
+        engine.Volume = 40; // live change
+        Assert.InRange(Peak(Last.Source!) / full, 0.38f, 0.42f);
+        engine.Volume = 0;
+        Assert.Equal(0f, Peak(Last.Source!));
+
+        engine.Volume = 150; // clamped
+        Assert.Equal(100, engine.Volume);
+        engine.Volume = -5;
+        Assert.Equal(0, engine.Volume);
+        engine.Volume = 25; // carried into the next song
+        engine.Open(ogg, _ => { });
+        Assert.InRange(Peak(Last.Source!) / full, 0.23f, 0.27f);
+    }
+
     [Fact] // [AC-x64-naudio-4]
-    public void Duration_AndVolume()
+    public void Duration_IsTheTrackLength_AndZeroWhenStopped()
     {
         var engine = NewEngine();
-        engine.Volume = 150;
-        Assert.Equal(100, engine.Volume);
-        engine.Volume = 40;
         engine.Open(_fx.MakeSineOgg(3), _ => { });
         Assert.InRange(engine.Duration.TotalSeconds, 2.9, 3.1);
-        Assert.Equal(40, engine.Volume);
         engine.Stop();
         Assert.Equal(TimeSpan.Zero, engine.Duration);
     }
 
-    [Fact] // [AC-x64-naudio-4]
+    [Fact] // [EDGE-x64-naudio-8]
+    public void NothingOpen_EveryCallIsANoOp()
+    {
+        var engine = NewEngine();
+        engine.Seek(TimeSpan.FromSeconds(3));
+        engine.TogglePause();
+        engine.Stop();
+        engine.Volume = 50;
+        Assert.Equal(TimeSpan.Zero, engine.Position);
+        Assert.Equal(TimeSpan.Zero, engine.Duration);
+        Assert.False(engine.IsPlaying);
+        Assert.False(engine.IsPaused);
+        Assert.Empty(_warnings);
+    }
+
+    [Fact] // [EDGE-x64-naudio-7]
+    public void Seek_OnTrackShorterThanOneSecond_GoesToStart()
+    {
+        var engine = NewEngine();
+        engine.Open(_fx.MakeSineOgg(0.6), _ => { });
+        engine.Seek(TimeSpan.FromSeconds(0.4));
+        Assert.Equal(TimeSpan.Zero, engine.Position);
+        Assert.True(engine.IsPlaying);
+    }
+
+    [Fact] // [EDGE-x64-naudio-12]
+    public void AfterNaturalEnd_StopOrOpen_ReleasesTheFile()
+    {
+        foreach (bool reopen in new[] { false, true })
+        {
+            string copy = Path.Combine(_fx.Dir, $"ended-{reopen}.ogg");
+            File.Copy(_fx.MakeSineOgg(1), copy);
+            var engine = NewEngine();
+            int ended = 0;
+            engine.Open(copy, _ => Interlocked.Increment(ref ended));
+            Last.DrainAndEnd();
+            Assert.True(WaitFor(() => ended == 1));
+            Assert.ThrowsAny<IOException>(() => File.Delete(copy)); // held until the next call
+            if (reopen) engine.Open(_fx.MakeSineOgg(1), _ => { }); else engine.Stop();
+            File.Delete(copy);
+            Assert.False(File.Exists(copy));
+        }
+    }
+
+    [Fact] // [EDGE-x64-naudio-12] Play tears the old song down before it deletes the old temp file.
+    public void PlayerPlay_StopsBeforeCleaningUp()
+    {
+        string src = File.ReadAllText(Path.Combine(RuntimeTargetTests.RepoRoot(), "Utils", "Player.cs"));
+        string play = src[src.IndexOf("public static void Play(", StringComparison.Ordinal)..];
+        play = play[..play.IndexOf("ExtractOgg", StringComparison.Ordinal)];
+        int stop = play.IndexOf("Stop();", StringComparison.Ordinal);
+        Assert.True(stop >= 0 && stop < play.IndexOf("CleanupExtractedTempFile();", StringComparison.Ordinal));
+        Assert.DoesNotContain("if (IsPlaying) Stop();", play);
+    }
+
+    [Fact] // [AC-x64-naudio-4] [EDGE-x64-naudio-4]
+    public void InitThrows_ReportsPlaybackCouldNotStart_AndReleasesEverything()
+    {
+        string copy = Path.Combine(_fx.Dir, "init.ogg");
+        File.Copy(_fx.MakeSineOgg(2), copy);
+        FakeAudioOutput? made = null;
+        var engine = new PlaybackEngine(() => made = new FakeAudioOutput { ThrowOnInit = true }, w => _warnings.Enqueue(w));
+        var ex = Assert.Throws<InvalidOperationException>(() => engine.Open(copy, _ => { }));
+        Assert.StartsWith("Playback could not be started", ex.Message);
+        Assert.False(engine.IsPlaying);
+        Assert.True(made!.Disposed);
+        File.Delete(copy);
+    }
+
+    [Fact] // [AC-x64-naudio-4] [EDGE-x64-naudio-4]
+    public void PlayThrows_ReportsPlaybackCouldNotStart_AndTearsDown()
+    {
+        string copy = Path.Combine(_fx.Dir, "play.ogg");
+        File.Copy(_fx.MakeSineOgg(2), copy);
+        FakeAudioOutput? made = null;
+        var engine = new PlaybackEngine(() => made = new FakeAudioOutput { ThrowOnPlay = true }, w => _warnings.Enqueue(w));
+        var ex = Assert.Throws<InvalidOperationException>(() => engine.Open(copy, _ => { }));
+        Assert.StartsWith("Playback could not be started", ex.Message);
+        Assert.False(engine.IsPlaying);
+        Assert.True(made!.Disposed);
+        File.Delete(copy);
+    }
+
+    [Fact] // [AC-x64-naudio-4] [EDGE-x64-naudio-5]
+    public void Open_GarbageFile_ThrowsDecoderMessage()
+    {
+        string junk = Path.Combine(_fx.Dir, "junk.ogg");
+        File.WriteAllBytes(junk, Enumerable.Range(0, 4096).Select(i => (byte)i).ToArray());
+        var ex = Assert.Throws<InvalidOperationException>(() => NewEngine().Open(junk, _ => { }));
+        Assert.StartsWith("The audio decoder could not open this track", ex.Message);
+    }
+
+    [Fact] // [AC-x64-naudio-3] [EDGE-x64-naudio-3]
+    public void DeviceError_LogsAndStops_WithoutAdvancing()
+    {
+        var engine = NewEngine();
+        int ended = 0;
+        engine.Open(_fx.MakeSineOgg(2), _ => Interlocked.Increment(ref ended));
+        Last.FireStopped(new IOException("device unplugged"));
+        Thread.Sleep(300);
+        Assert.Equal(0, ended);
+        Assert.False(engine.IsPlaying);
+        Assert.Single(_warnings, w => w.Contains("device unplugged"));
+    }
+
+    [Fact] // [EDGE-x64-naudio-11]
+    public void PauseRefused_StateUnchanged_Logged()
+    {
+        var engine = NewEngine();
+        engine.Open(_fx.MakeSineOgg(2), _ => { });
+        Last.ThrowOnPause = true;
+        engine.TogglePause();
+        Assert.False(engine.IsPaused);
+        Assert.True(engine.IsPlaying);
+        Assert.Single(_warnings, w => w.StartsWith("Pause/resume refused"));
+    }
+
+    [Fact] // [AC-x64-naudio-10]
+    public void RealtimeEqualizer_IsGone()
+    {
+        var names = typeof(OggAnalysis).Assembly.GetType("Pickles_Playlist_Editor.Player")!
+            .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).Select(m => m.Name).ToList();
+        Assert.DoesNotContain("ApplyRealtimeEqualizer", names);
+        Assert.DoesNotContain("DisableRealtimeEqualizer", names);
+    }
+
+    [Fact] // [AC-x64-naudio-4] [EDGE-x64-naudio-5]
     public void Open_MissingFile_ThrowsDecoderMessage()
     {
         var engine = NewEngine();
@@ -233,7 +386,7 @@ public sealed class PlaybackEngineTests : IDisposable
         Assert.False(engine.IsPlaying);
     }
 
-    [Fact] // [EDGE-x64-naudio-26]
+    [Fact] // [EDGE-x64-naudio-26] [EDGE-x64-naudio-6]
     public void ReadAfterStop_Silent_DecoderFailure_WarnsOnce()
     {
         var engine = NewEngine();

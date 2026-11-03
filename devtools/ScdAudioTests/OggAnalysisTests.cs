@@ -23,24 +23,27 @@ public sealed class OggAnalysisTests : IDisposable
         Assert.InRange(r.Bpm, bpm - 1, bpm + 1);
     }
 
-    [Fact] // [AC-x64-naudio-5] libZPlay reported a 180 BPM click as half that.
+    [Fact] // [AC-x64-naudio-5] [EDGE-x64-naudio-13] libZPlay reported a 180 BPM click as half that.
     public void FastClickTrack_FoldsLikeLibZPlay()
     {
         var r = OggAnalysis.Analyze(_fx.MakeClickOgg(180, 30));
         Assert.InRange(r.Bpm, 89, 91);
     }
 
-    [Fact] // [AC-x64-naudio-5] SoundTouch alone finds nothing at 200 BPM; the half-rate retry finds a tempo.
-    public void VeryFastClickTrack_StillGetsATempo()
+    [Fact] // [AC-x64-naudio-5] [EDGE-x64-naudio-13] SoundTouch alone finds nothing at 200 BPM; the half-rate retry does.
+    public void VeryFastClickTrack_FoldsLikeLibZPlay()
     {
         var r = OggAnalysis.Analyze(_fx.MakeClickOgg(200, 30));
-        Assert.InRange(r.Bpm, OggAnalysis.MinBpm, OggAnalysis.MaxBpm);
+        Assert.InRange(r.Bpm, 99, 101);
     }
 
-    [Fact] // [AC-x64-naudio-5]
-    public void MonoAndOtherRates_Work()
+    [Theory] // [AC-x64-naudio-5] [EDGE-x64-naudio-15]
+    [InlineData(1, 22050)]
+    [InlineData(1, 48000)]
+    [InlineData(2, 48000)]
+    public void MonoAndOtherRates_Work(int channels, int rate)
     {
-        var r = OggAnalysis.Analyze(_fx.MakeClickOgg(120, 30, channels: 1, rate: 22050));
+        var r = OggAnalysis.Analyze(_fx.MakeClickOgg(120, 30, channels, rate));
         Assert.InRange(r.Bpm, 119, 121);
     }
 
@@ -51,7 +54,7 @@ public sealed class OggAnalysisTests : IDisposable
         Assert.Equal(TimeSpan.FromSeconds(8), OggAnalysis.Analyze(_fx.MakeSineOgg(7.6)).Duration);
     }
 
-    [Fact] // [AC-x64-naudio-5] [EDGE-x64-naudio-16]
+    [Fact] // [AC-x64-naudio-5] [EDGE-x64-naudio-14]
     public void Silence_GivesZeroBpm_RealDuration()
     {
         var r = OggAnalysis.Analyze(_fx.MakeSilenceOgg(10));
@@ -59,7 +62,7 @@ public sealed class OggAnalysisTests : IDisposable
         Assert.Equal(TimeSpan.FromSeconds(10), r.Duration);
     }
 
-    [Fact] // [AC-x64-naudio-7] [EDGE-x64-naudio-15]
+    [Fact] // [AC-x64-naudio-7] [EDGE-x64-naudio-16]
     public void UnreadableFile_NeverThrows()
     {
         string junk = Path.Combine(_fx.Dir, "junk.ogg");
@@ -71,17 +74,17 @@ public sealed class OggAnalysisTests : IDisposable
     [Fact] // [EDGE-x64-naudio-17]
     public void DetectBpm_StopsAtMaxLength()
     {
-        // Past the analysis window the beat changes; the result must still be the first tempo.
+        // Past the window the beat changes for three times as long, which would win if the window were ignored.
         double window = OggAnalysis.MaxAnalysis.TotalSeconds;
         string a = _fx.MakeClickOgg(120, window + 1);
-        string b = _fx.MakeClickOgg(97, 60);
+        string b = _fx.MakeClickOgg(97, 3 * window);
         string joined = Path.Combine(_fx.Dir, "joined.ogg");
         string list = Path.Combine(_fx.Dir, "list.txt");
         File.WriteAllText(list, $"file '{a.Replace("\\", "/")}'\nfile '{b.Replace("\\", "/")}'\n");
         AdpcmScdFixture.RunFfmpeg($"-y -v error -f concat -safe 0 -i \"{list}\" -c copy \"{joined}\"");
         var r = OggAnalysis.Analyze(joined);
         Assert.InRange(r.Bpm, 119, 121);
-        Assert.InRange(r.Duration.TotalSeconds, window + 60, window + 62);
+        Assert.InRange(r.Duration.TotalSeconds, 4 * window, 4 * window + 2);
     }
 
     [Theory] // [AC-x64-naudio-5]
