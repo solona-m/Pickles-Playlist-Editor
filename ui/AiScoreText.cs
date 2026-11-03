@@ -9,6 +9,7 @@ namespace Pickles_Playlist_Editor
         public static string BandKey(AiBand band) => band switch
         {
             AiBand.LikelyAi => "AiScore_Band_Ai",
+            AiBand.PossiblyAi => "AiScore_Band_PossiblyAi",
             AiBand.LikelyHuman => "AiScore_Band_Human",
             _ => "AiScore_Band_Unclear",
         };

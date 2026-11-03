@@ -256,7 +256,7 @@ public sealed class AiScoreOptInTests : IDisposable
             Assert.Contains("not generative AI", en[key]);
             Assert.Contains("never leave", en[key]);
         }
-        foreach (var key in new[] { "AiScore_Band_Ai", "AiScore_Band_Unclear", "AiScore_Band_Human", "AiScore_Tooltip", "AiScore_Summary" })
+        foreach (var key in new[] { "AiScore_Band_Ai", "AiScore_Band_PossiblyAi", "AiScore_Band_Unclear", "AiScore_Band_Human", "AiScore_Tooltip", "AiScore_Summary" })
             foreach (var bad in new[] { "fake", "detected", "caught", "cheat", "proof that" })
                 Assert.DoesNotContain(bad, en[key], StringComparison.OrdinalIgnoreCase);
         Assert.Contains("estimate, not proof", en["AiScore_Tooltip"], StringComparison.OrdinalIgnoreCase);

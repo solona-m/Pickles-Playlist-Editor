@@ -421,6 +421,7 @@ Voulez-vous continuer ?</value></data>
   <data name="AiScore_Ready" xml:space="preserve"><value>La probabilité d'IA est activée. Lancez Calculer les statistiques sur une playlist pour noter ses morceaux.</value></data>
   <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>La probabilité d'IA n'a pas pu s'exécuter : {0}</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Probablement IA</value></data>
+  <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Peut-être IA</value></data>
   <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Incertain</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Probablement humain</value></data>
   <data name="AiScore_Tooltip" xml:space="preserve"><value>Probabilité d'IA : {0} %. Une estimation, pas une preuve.</value></data>
