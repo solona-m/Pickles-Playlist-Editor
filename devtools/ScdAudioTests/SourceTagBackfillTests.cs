@@ -609,6 +609,7 @@ public sealed class SourceTagBackfillWiringTests
             {
                 foreach (string pathy in new[] { "root", "FullName", "dir.", "entry.", ".Path)", "ScdFullPath," })
                     Assert.DoesNotContain(pathy, call.Replace("Path.GetFileName(song.ScdFullPath)", "").Replace("Path.GetFileName(c.Path)", ""));
+                Assert.DoesNotMatch(@"\bfolder\b", call); // the picked folder's path
             }
         Assert.Contains("Path.GetFileName(song.ScdFullPath)", core);
         Assert.Contains("Path.GetFileName(c.Path)", core);
