@@ -56,6 +56,7 @@ namespace Pickles_Playlist_Editor.Tools
             if (_cache.TryGet(fullScdPath) is not null) { Cached++; return AiSongOutcome.Cached; }
             if (_score == null) return AiSongOutcome.Unavailable;
 
+            long generation = _cache.Generation(fullScdPath); // the window stays usable, so the file may move meanwhile
             AiScoreResult result;
             try
             {
@@ -67,14 +68,17 @@ namespace Pickles_Playlist_Editor.Tools
 
             switch (result.Outcome)
             {
-                case AiScoreOutcome.Scored:
-                    _cache.Store(fullScdPath, AiScoreMath.ToStored(result.Score!.Value));
+                case AiScoreOutcome.Scored when _cache.StoreIfUnchanged(fullScdPath, AiScoreMath.ToStored(result.Score!.Value), generation):
                     Scored++;
                     return AiSongOutcome.Scored;
-                case AiScoreOutcome.NoScore:
-                    _cache.Store(fullScdPath, AiScoreMath.NoScore);
+                case AiScoreOutcome.NoScore when _cache.StoreIfUnchanged(fullScdPath, AiScoreMath.NoScore, generation):
                     NoScore++;
                     return AiSongOutcome.NoScore;
+                case AiScoreOutcome.Scored or AiScoreOutcome.NoScore:
+                    // Moved, renamed or deleted while it was scored: the result may not belong to the path any more.
+                    Logger.LogInfo("AI score for '{File}' dropped: the file moved while it was scored", Path.GetFileName(fullScdPath));
+                    Failed++;
+                    return AiSongOutcome.Failed;
                 default:
                     // Not cached: it is tried again next time.
                     Logger.LogWarn("AI score failed for '{File}': {Error}", Path.GetFileName(fullScdPath), result.Error ?? "unknown");

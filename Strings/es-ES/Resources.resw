@@ -428,4 +428,5 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>Se omitió la probabilidad de IA: sus archivos no están listos.</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>Probabilidad de IA</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>Puntuando probabilidad de IA {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>La puntuación de IA ya está en curso. Vuelve a ejecutar Calcular estadísticas cuando termine para puntuar estas canciones.</value></data>
 </root>

@@ -428,4 +428,5 @@ Wil je doorgaan?</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>De AI-waarschijnlijkheid is overgeslagen: de bestanden zijn niet klaar.</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>AI-waarschijnlijkheid</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>AI-waarschijnlijkheid scoren {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>De AI-scoring loopt al. Voer Statistieken berekenen opnieuw uit als die klaar is om deze nummers te scoren.</value></data>
 </root>

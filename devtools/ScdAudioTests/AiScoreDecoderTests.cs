@@ -104,7 +104,12 @@ public sealed class AiScoreDecoderTests : IDisposable
     [Fact] // [EDGE-ai-score-10] time spent classifying a window is not counted as decoder silence
     public void SlowInference_NotMistakenForSilence()
     {
-        string src = File.ReadAllText(Path.Combine(RuntimeTargetTests.RepoRoot(), "Tools", "AiAudioDecoder.cs"));
-        Assert.Contains("finally { watch.Touch(); }", src);
+        // One full window of non-silent samples (bytes 0x3E = 0.186 as float), then exit.
+        const string script = "$o=[Console]::OpenStandardOutput(); $b=[Text.Encoding]::ASCII.GetBytes('>' * 7680000); $o.Write($b,0,$b.Length); $o.Flush()";
+        int calls = 0;
+        var r = AiAudioDecoder.Run("powershell.exe", ["-NoProfile", "-Command", script],
+            _ => { calls++; Thread.Sleep(3000); return 0f; }, TimeSpan.FromSeconds(2), CancellationToken.None);
+        Assert.Equal(1, calls);
+        Assert.Equal(AiScoreOutcome.Scored, r.Outcome); // a 3 s classification outlasted the 2 s limit without a kill
     }
 }

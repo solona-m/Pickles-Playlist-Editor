@@ -115,7 +115,6 @@ namespace Pickles_Playlist_Editor
             finally { _dialogGate.Release(); }
         }
 
-
         public async Task<ContentDialogResult> ShowDialogAsync(
             string title, string content,
             string primary = "OK", string? secondary = null, string close = "")

@@ -428,4 +428,5 @@ Voulez-vous continuer ?</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>La probabilité d'IA a été ignorée : ses fichiers ne sont pas prêts.</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>Probabilité d'IA</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>Calcul de la probabilité d'IA {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>Le calcul de la probabilité d'IA est déjà en cours. Relancez Calculer les statistiques quand il sera terminé pour noter ces morceaux.</value></data>
 </root>

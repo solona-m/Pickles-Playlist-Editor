@@ -125,6 +125,26 @@ public sealed class AiScoreCacheTests : IDisposable
         for (int i = 0; i < 200; i++) Assert.Equal(i, reopened.TryGet($@"C:\M\{i}.scd"));
     }
 
+    [Fact] // [AC-ai-score-8] [EDGE-ai-score-43] a late result never lands on a path that changed hands while it was scored
+    public void StoreIfUnchanged_RefusesAfterForgetOrMove()
+    {
+        var c = New();
+        long g = c.Generation(@"C:\M\P.scd");
+        Assert.True(c.StoreIfUnchanged(@"C:\M\P.scd", 900, g));
+        Assert.Equal(900, c.TryGet(@"C:\M\P.scd"));
+
+        g = c.Generation(@"C:\M\P.scd");
+        c.Store(@"C:\M\Y.scd", 100);
+        c.UpdateCacheForSCD(@"C:\M\Y.scd", "c:/m/p.scd"); // another song moved onto P meanwhile
+        Assert.False(c.StoreIfUnchanged(@"C:\M\P.scd", 950, g));
+        Assert.Equal(100, c.TryGet(@"C:\M\P.scd"));
+
+        g = c.Generation(@"C:\M\Q.scd");
+        c.Forget(@"C:\M\Q.scd");
+        Assert.False(c.StoreIfUnchanged(@"C:\M\Q.scd", 5, g));
+        Assert.Null(c.TryGet(@"C:\M\Q.scd"));
+    }
+
     [Fact] // [EDGE-ai-score-25] a new model tag gets its own empty cache file
     public void DefaultCache_IsNamedForTheModelTag()
     {

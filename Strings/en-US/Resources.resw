@@ -428,4 +428,5 @@ Do you want to proceed?</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>The AI-likelihood score was skipped: its files aren't ready.</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>AI-likelihood score</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>Scoring AI likelihood {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI scoring is already running. Run Compute Stats again when it has finished to score these songs.</value></data>
 </root>

@@ -1,6 +1,7 @@
 using PersistentCollection;
 using Pickles_Playlist_Editor.Tools;
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Pickles_Playlist_Editor.Utils
@@ -15,6 +16,7 @@ namespace Pickles_Playlist_Editor.Utils
         private PersistentDictionary<string, int>? _map;
         private bool _opened;
         private readonly object _lock = new();
+        private readonly Dictionary<string, long> _generation = new(); // bumped by Forget and moves, per key
 
         private static readonly Lazy<AiScoreCache> s_default = new(() => new AiScoreCache(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Pickles Playlist Editor",
@@ -75,6 +77,26 @@ namespace Pickles_Playlist_Editor.Utils
         public static string FullPathOf(string relScd) =>
             Path.Combine(Settings.PenumbraLocation, Settings.ModName, Playlist.NormalizeRelativeModPath(relScd));
 
+        /// <summary>Taken before scoring a path; <see cref="StoreIfUnchanged"/> refuses if the path changed hands since.</summary>
+        public long Generation(string fullPath)
+        {
+            lock (_lock) return _generation.TryGetValue(Key(fullPath), out long g) ? g : 0;
+        }
+
+        /// <summary>Stores unless the path was forgotten or moved since <paramref name="generation"/> (another song may own it now).</summary>
+        public bool StoreIfUnchanged(string fullPath, int value, long generation)
+        {
+            string key = Key(fullPath);
+            lock (_lock)
+            {
+                if ((_generation.TryGetValue(key, out long g) ? g : 0) != generation) return false;
+                try { if (Map(true) is { } m) m[key] = value; } catch { }
+                return true;
+            }
+        }
+
+        private void Bump(string key) => _generation[key] = (_generation.TryGetValue(key, out long g) ? g : 0) + 1;
+
         public void Store(string fullPath, int value)
         {
             lock (_lock)
@@ -85,9 +107,11 @@ namespace Pickles_Playlist_Editor.Utils
 
         public void Forget(string fullPath)
         {
+            string key = Key(fullPath);
             lock (_lock)
             {
-                try { Map(false)?.Remove(Key(fullPath)); } catch { }
+                Bump(key);
+                try { Map(false)?.Remove(key); } catch { }
             }
         }
 
@@ -98,6 +122,8 @@ namespace Pickles_Playlist_Editor.Utils
             if (from == to) return;
             lock (_lock)
             {
+                Bump(from);
+                Bump(to);
                 try
                 {
                     if (Map(false) is not { } m) return;

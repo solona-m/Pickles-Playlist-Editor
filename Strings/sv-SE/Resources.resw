@@ -428,4 +428,5 @@ Vill du fortsätta?</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>AI-sannolikheten hoppades över: dess filer är inte klara.</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>AI-sannolikhet</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>Beräknar AI-sannolikhet {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI-bedömningen körs redan. Kör Beräkna statistik igen när den är klar för att ge de här låtarna poäng.</value></data>
 </root>

@@ -71,7 +71,7 @@ public class AiScoreSortAndWiringTests
         Assert.DoesNotContain("SetProgressBarText", phase);
         Assert.DoesNotContain("SetProgressBarPercent", phase);
         Assert.Contains("SetBackgroundProgress(", phase);
-        Assert.Contains("Interlocked.Exchange(ref _aiPhaseRunning, 1) == 1) return;", phase);
+        Assert.Matches(@"Interlocked\.Exchange\(ref _aiPhaseRunning, 1\) == 1\)[^{]*\{\s*await ShowDialogAsync\(AppStrings\.Summary_AiScore, AppStrings\.Get\(""AiScore_AlreadyRunning""\)\);\s*return;", phase);
         Assert.Matches(@"finally\s*\{\s*ClearBackgroundProgress\(\);\s*Interlocked\.Exchange\(ref _aiPhaseRunning, 0\);", phase);
         string setter = Method(Src("ui/MainWindow.AiScore.cs"), "private void SetBackgroundProgress");
         Assert.DoesNotContain("BusyOverlay", setter);

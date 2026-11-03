@@ -428,4 +428,5 @@ Möchtest du fortfahren?</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit wurde übersprungen: ihre Dateien sind nicht bereit.</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>KI-Wahrscheinlichkeit</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>KI-Wahrscheinlichkeit wird bewertet {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>Die KI-Bewertung läuft bereits. Führe „Statistik berechnen“ erneut aus, wenn sie fertig ist, um diese Songs zu bewerten.</value></data>
 </root>

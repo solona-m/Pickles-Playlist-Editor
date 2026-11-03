@@ -120,6 +120,23 @@ public sealed class AiScoreRunTests : IDisposable
         Assert.Equal(0, SonicsModel.ActiveLeases);
     }
 
+    [Fact] // [AC-ai-score-8] [EDGE-ai-score-43] the song is moved and another takes its path while it is scored
+    public void PathChangesHandsMidScore_ResultDropped()
+    {
+        var cache = Cache();
+        string scd = VorbisScd();
+        string other = _fx.PathFor("other.scd");
+        cache.Store(other, 120);
+        using var run = new AiScoreRun(cache, (_, _) =>
+        {
+            cache.UpdateCacheForSCD(scd, _fx.PathFor("moved.scd")); // X moves away
+            cache.UpdateCacheForSCD(other, scd);                    // Y moves into X's old path
+            return new(AiScoreOutcome.Scored, 0.97, 1, 0, null);
+        }, null);
+        Assert.Equal(AiSongOutcome.Failed, run.ScoreSong(scd));
+        Assert.Equal(120, cache.TryGet(scd)); // still Y's score, not X's 970
+    }
+
     [Fact] // [EDGE-ai-score-48]
     public void AllCached_NoDecoderCalls()
     {

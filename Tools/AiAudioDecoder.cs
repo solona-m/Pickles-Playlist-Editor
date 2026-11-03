@@ -56,13 +56,18 @@ namespace Pickles_Playlist_Editor.Tools
                 using var watch = new InactivityStream(process.StandardOutput.BaseStream);
                 using var timer = new Timer(_ =>
                 {
-                    if (DateTime.UtcNow - watch.LastData > inactivity) { watch.TimedOut = true; Kill(process); }
+                    if (!watch.Busy && DateTime.UtcNow - watch.LastData > inactivity) { watch.TimedOut = true; Kill(process); }
                 }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
                 using var onCancel = ct.Register(() => Kill(process));
 
                 AiScoreResult result;
                 // The decoder waits while a window is classified; that is not silence.
-                float Timed(float[] w) { try { return logit(w); } finally { watch.Touch(); } }
+                float Timed(float[] w)
+                {
+                    watch.Busy = true;
+                    try { return logit(w); }
+                    finally { watch.Busy = false; watch.Touch(); }
+                }
                 try { result = AiScoreMath.Aggregate(watch, Timed, ct, buffer); }
                 catch (OperationCanceledException) { Kill(process); throw; }
                 catch (Exception ex) { Kill(process); result = AiScoreResult.Fail("scoring failed: " + ex.Message); }
@@ -95,6 +100,7 @@ namespace Pickles_Playlist_Editor.Tools
         {
             private long _lastTicks = DateTime.UtcNow.Ticks;
             public volatile bool TimedOut;
+            public volatile bool Busy; // a window is being classified: the decoder is waiting on us
             public DateTime LastData => new(Interlocked.Read(ref _lastTicks), DateTimeKind.Utc);
             public void Touch() => Interlocked.Exchange(ref _lastTicks, DateTime.UtcNow.Ticks);
 

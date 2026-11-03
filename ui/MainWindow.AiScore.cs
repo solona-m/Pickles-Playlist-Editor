@@ -7,7 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.UI;
@@ -108,7 +107,11 @@ namespace Pickles_Playlist_Editor
         /// </summary>
         private async Task RunAiScorePhaseAsync(List<(Playlist playlist, Option option)> targets)
         {
-            if (Interlocked.Exchange(ref _aiPhaseRunning, 1) == 1) return; // one AI pass at a time
+            if (Interlocked.Exchange(ref _aiPhaseRunning, 1) == 1) // one AI pass at a time
+            {
+                await ShowDialogAsync(AppStrings.Summary_AiScore, AppStrings.Get("AiScore_AlreadyRunning"));
+                return;
+            }
             try
             {
                 var cache = AiScoreCache.Default;

@@ -428,4 +428,5 @@
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>已跳过 AI 可能性评分：其文件尚未就绪。</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>AI 可能性评分</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>正在评估 AI 可能性 {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI 评分已在进行中。完成后再次运行“计算统计”即可为这些歌曲评分。</value></data>
 </root>
