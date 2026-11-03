@@ -53,6 +53,7 @@ namespace Pickles_Playlist_Editor
                         App.MainWindow.SetProgressBarPercent));
                     App.MainWindow.ClearProgressDisplay();
                     App.MainWindow.AddCreatedPlaylist(playlistName);
+                    if (!string.IsNullOrEmpty(directory)) App.MainWindow.RequestAiScanAfterImport();
                 }
                 catch (Exception ex)
                 {

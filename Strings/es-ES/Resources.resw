@@ -401,7 +401,7 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>Ordenar por probabilidad de IA</value></data>
   <data name="AiScoreLabel.Text" xml:space="preserve"><value>Probabilidad de IA</value></data>
   <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>Estimar la probabilidad de que cada canción esté generada por IA</value></data>
-  <data name="AiScore_Hint" xml:space="preserve"><value>Un clasificador local de aprendizaje automático (SONICS), no IA generativa. Tus canciones nunca salen de este equipo. Al activarlo se descargan unos {0} MB una sola vez; después tu biblioteca se puntúa en segundo plano, y Calcular estadísticas puntúa las canciones que añadas más tarde.</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>Un clasificador local de aprendizaje automático (SONICS), no IA generativa. Tus canciones nunca salen de este equipo. Al activarlo se descargan unos {0} MB una sola vez; después tu biblioteca se puntúa en segundo plano, igual que las canciones que añadas más tarde.</value></data>
   <data name="AiScore_Consent_Title" xml:space="preserve"><value>¿Activar la probabilidad de IA?</value></data>
   <data name="AiScore_Consent_Content" xml:space="preserve"><value>La puntuación viene de SONICS, un clasificador de aprendizaje automático que se ejecuta en este equipo. No es IA generativa y tus canciones nunca salen de este equipo. Es una estimación, no una prueba.&#10;&#10;El modelo y el decodificador de audio que necesita se descargan una vez (unos {0} MB) desde {2} en {1}.</value></data>
   <data name="AiScore_Redownload_Content" xml:space="preserve"><value>Faltan los archivos de la probabilidad de IA, están dañados o desactualizados. ¿Descargarlos de nuevo (unos {0} MB)? Tus canciones nunca salen de este equipo.</value></data>
@@ -418,7 +418,7 @@ Lo que hay ahora se guarda antes, así que después puedes cargar otra copia. Tu
   <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>se canceló la descarga.</value></data>
   <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>Los archivos de IA aún no están disponibles para descargar. Inténtalo más tarde.</value></data>
   <data name="AiScore_LowDisk" xml:space="preserve"><value>No hay suficiente espacio libre: se necesitan unos {0} MB en {1}.</value></data>
-  <data name="AiScore_Ready" xml:space="preserve"><value>La probabilidad de IA está activada. Las canciones de tu biblioteca que aún no tienen puntuación se puntúan ahora en segundo plano, con prioridad baja; las etiquetas aparecen a medida que se puntúan. Calcular estadísticas puntúa las canciones que añadas más tarde.</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>La probabilidad de IA está activada. Las canciones de tu biblioteca que aún no tienen puntuación se puntúan ahora en segundo plano, con prioridad baja; las etiquetas aparecen a medida que se puntúan. Las canciones que añadas más tarde se puntúan de la misma forma.</value></data>
   <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>No se pudo ejecutar la probabilidad de IA: {0}</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Probable IA</value></data>
   <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Posiblemente IA</value></data>

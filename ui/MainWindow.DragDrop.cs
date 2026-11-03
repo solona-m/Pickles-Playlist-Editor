@@ -482,6 +482,7 @@ namespace Pickles_Playlist_Editor
             var expandNode = FindPlaylistNode(targetPlaylist.Name);
             if (expandNode != null) expandNode.IsExpanded = true;
             ClearProgressDisplay();
+            RequestAiScanAfterImport();
         }
     }
 }
