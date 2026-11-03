@@ -122,10 +122,12 @@ public sealed class AiScoreOptInTests : IDisposable
     [Fact] // [AC-ai-score-3] [EDGE-ai-score-17]
     public async Task Cancel_AwaitsTaskThenCancelled()
     {
-        var ui = new FakeUi { DuringWork = async cts => { await Task.Delay(50); cts.Cancel(); } };
+        // Cancel once the second download has started, so the first is known to be complete (no fixed delay).
+        var secondStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ui = new FakeUi { DuringWork = async cts => { await secondStarted.Task.WaitAsync(TimeSpan.FromSeconds(30)); cts.Cancel(); } };
         using var svc = Service(async (req, ct) =>
         {
-            if (req.RequestUri!.Segments[^1] != "a.exe") { await Task.Delay(Timeout.Infinite, ct); }
+            if (req.RequestUri!.Segments[^1] != "a.exe") { secondStarted.TrySetResult(); await Task.Delay(Timeout.Infinite, ct); }
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(_bodies[req.RequestUri.Segments[^1]]) };
         });
         Assert.Equal(AiOptInOutcome.Cancelled, await Run(ui, svc));
