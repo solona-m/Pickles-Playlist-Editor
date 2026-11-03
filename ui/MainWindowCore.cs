@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml.Controls;
+﻿using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml;
@@ -199,9 +199,11 @@ namespace Pickles_Playlist_Editor
                 Name = song.Name,
                 DisplayText = song.Name,
                 Level = 2,
-                IconGlyph = PlaylistNodeContent.SongGlyph
+                IconGlyph = PlaylistNodeContent.SongGlyph,
+                ScdRel = Playlist.GetScdPath(song) ?? "",
             };
             ApplyCamelotChip(node, song);
+            ApplyAiChip(node);
             return node;
         }
 
@@ -587,6 +589,7 @@ namespace Pickles_Playlist_Editor
                                         string scdFull = Path.Combine(Settings.PenumbraLocation, Settings.ModName,
                                             Playlist.NormalizeRelativeModPath(rel));
                                         if (File.Exists(scdFull)) File.Delete(scdFull);
+                                        Utils.AiScoreCache.Default.Forget(scdFull);
                                     }
                                     catch { /* best-effort; a leftover file is harmless and Cleanup reclaims it */ }
                                 }

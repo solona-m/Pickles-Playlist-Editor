@@ -243,8 +243,9 @@ namespace Pickles_Playlist_Editor
                     // CreateNew, not a plain write: GetNonCollidingPath says the name is free, and if
                     // something claimed it in between, failing is right. Nothing here may clobber
                     // audio another playlist is pointing at.
-                    using var stream = new FileStream(targetPath, FileMode.CreateNew);
-                    stream.Write(encoded, 0, encoded.Length);
+                    using (var stream = new FileStream(targetPath, FileMode.CreateNew))
+                        stream.Write(encoded, 0, encoded.Length);
+                    AiScoreCache.Default.Forget(targetPath); // a new song at a path a deleted one had
                 }
 
                 string targetRelative = Path.Combine(playlistScdDirectory, Path.GetFileName(targetPath));
@@ -466,6 +467,7 @@ namespace Pickles_Playlist_Editor
                             File.Move(oldPath, newPath);
                             BPMDetector.UpdateCacheForSCD(oldPath, newPath);
                             KeyDetector.UpdateCacheForSCD(oldPath, newPath);
+                            AiScoreCache.Default.UpdateCacheForSCD(oldPath, newPath);
                             foreach (var (key, _) in keys)
                                 song.Files[key] = newRel;
                             renamed.Add((song, keys, oldPath, newPath));
@@ -515,6 +517,7 @@ namespace Pickles_Playlist_Editor
                             File.Move(newPath, oldPath);
                             BPMDetector.UpdateCacheForSCD(newPath, oldPath);
                             KeyDetector.UpdateCacheForSCD(newPath, oldPath);
+                            AiScoreCache.Default.UpdateCacheForSCD(newPath, oldPath);
                         }
                         foreach (var (key, oldRel) in keys)
                             song.Files[key] = oldRel;
@@ -538,6 +541,7 @@ namespace Pickles_Playlist_Editor
             string newFull = Path.Combine(Settings.PenumbraLocation, Settings.ModName, newRel);
             BPMDetector.UpdateCacheForSCD(oldFull, newFull);
             KeyDetector.UpdateCacheForSCD(oldFull, newFull);
+            AiScoreCache.Default.UpdateCacheForSCD(oldFull, newFull);
         }
 
         internal static string GetNonCollidingPath(string path)
@@ -1553,6 +1557,12 @@ namespace Pickles_Playlist_Editor
             // name-guess would either miss it or, worse, delete a folder belonging to someone else.
             string scdDir = GetCurrentScdDirectory();
 
+            foreach (var song in Options ?? new List<Option>())
+            {
+                string rel = GetScdPath(song);
+                if (!string.IsNullOrEmpty(rel))
+                    AiScoreCache.Default.Forget(Path.Combine(Settings.PenumbraLocation, Settings.ModName, rel));
+            }
             DeleteGroupOnly();
             ReclaimUnusedAudioDirectories(new[] { scdDir });
 
@@ -1730,6 +1740,25 @@ namespace Pickles_Playlist_Editor
         /// harmonic move. Sorting on the key string instead would only be alphabetical, which puts
         /// Am next to A# and makes the order musically meaningless. Undetected keys go last.
         /// </summary>
+        /// <summary>By cached AI score only (sorting never scores). Unscored and no-score songs stay last, in order.</summary>
+        internal void SortByAiLikelihood(SortDirection direction) => ReorderOptions(options =>
+        {
+            var (off, songs) = SplitOff(options);
+            return Rejoin(off, OrderByAiScore(songs, o => AiScoreCache.Default.TryGetForRel(GetScdPath(o)), direction));
+        });
+
+        internal static List<Option> OrderByAiScore(IEnumerable<Option> songs, Func<Option, int?> stored, SortDirection direction)
+        {
+            var scored = songs.Select(o => (Option: o, Score: stored(o))).ToList();
+            var known = scored.Where(x => x.Score is >= 0);
+            var unknown = scored.Where(x => x.Score is not >= 0).Select(x => x.Option);
+            var ordered = (direction == SortDirection.Ascending
+                ? known.OrderBy(x => x.Score)
+                : known.OrderByDescending(x => x.Score)).Select(x => x.Option).ToList(); // stable: ties keep their order
+            ordered.AddRange(unknown);
+            return ordered;
+        }
+
         internal void SortByCamelot(SortDirection direction) => ReorderOptions(options =>
         {
             var (off, songs) = SplitOff(options);

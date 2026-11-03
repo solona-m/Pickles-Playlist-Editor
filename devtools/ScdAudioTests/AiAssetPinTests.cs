@@ -59,11 +59,11 @@ public class AiAssetPinTests
         Assert.DoesNotContain(Path.DirectorySeparatorChar + "current" + Path.DirectorySeparatorChar, AiAssets.DefaultRoot + Path.DirectorySeparatorChar);
     }
 
-    [Fact] // [AC-ai-assets-download-8]
-    public void NoAppCodeCallsTheDownloader()
+    [Fact] // [AC-ai-assets-download-8] [AC-ai-score-1] step 3 made the AI-score opt-in its only caller
+    public void OnlyTheAiScoreOptInCallsTheDownloader()
     {
         string root = Root();
-        var own = new[] { "AiAssetDownloadService.cs", "PinnedFileDownloader.cs", "AiAssets.cs" };
+        var own = new[] { "AiAssetDownloadService.cs", "PinnedFileDownloader.cs", "AiAssets.cs", "MainWindow.AiScore.cs", "AiScoreOptIn.cs" };
         var callers = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
             .Where(f => !Regex.IsMatch(Path.GetRelativePath(root, f), @"^(devtools|bin|obj|Releases[^\\/]*)[\\/]", RegexOptions.IgnoreCase))
             .Where(f => !own.Contains(Path.GetFileName(f)))

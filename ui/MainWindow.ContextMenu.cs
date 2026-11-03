@@ -172,6 +172,9 @@ namespace Pickles_Playlist_Editor
             foreach (var playlist in touchedPlaylists)
                 SyncPlaylistNode(playlist);
             ShowOperationSummary(AppStrings.Summary_ComputeStats, processed, targetSongs.Count, errors);
+
+            // Phase 2, after phase 1's names are saved: AI scoring, in its own background pass.
+            if (Settings.AiScoreEnabled) await RunAiScorePhaseAsync(targetSongs);
         }
 
         /// <summary>

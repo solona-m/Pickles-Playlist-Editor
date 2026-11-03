@@ -91,6 +91,7 @@ namespace Pickles_Playlist_Editor
                 Settings.WindowSize = (size.Width, size.Height);
                 // Don't let a debounced Penumbra reload get dropped by closing mid-countdown.
                 Playlist.FlushPenumbraMod();
+                DisposeAiScore();
             };
         }
 
@@ -110,7 +111,7 @@ namespace Pickles_Playlist_Editor
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = this.Content.XamlRoot
             };
-            return await dialog.ShowAsync();
+            return await ShowGatedAsync(dialog);
         }
 
         // ─── File picker helpers
@@ -245,6 +246,7 @@ namespace Pickles_Playlist_Editor
             // No-ops when nothing is configured yet — see the second call site in OpenSettingsAsync.
             Utils.VersionBackup.TryCaptureOnBoot();
 
+            RefreshAiScoreUi(reload: false); // before the tree is built, so chips show on first load
             LoadPlaylists();
 
             _ = CheckForUpdatesAsync();
@@ -667,6 +669,7 @@ namespace Pickles_Playlist_Editor
             var dialog = new SettingsDialog { XamlRoot = this.Content.XamlRoot };
             await dialog.ShowAsync();
             RefreshBackground();
+            await ApplyAiScoreSettingAsync(dialog);
 
             if (dialog.NamingOptionsChanged)
                 await ApplyNamingOptionsAsync();
