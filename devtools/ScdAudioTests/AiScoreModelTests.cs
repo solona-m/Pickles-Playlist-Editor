@@ -58,9 +58,8 @@ public sealed class AiScoreModelTests(ITestOutputHelper log)
             double expected = reference.GetProperty(variant).GetDouble();
             double got = model.Logit(Synthetic(variant));
             log.WriteLine($"{variant}: ORT {got:F6}  PyTorch {expected:F6}  gap {Math.Abs(got - expected):E2}  p {AiScoreMath.Sigmoid(got):F4} vs {AiScoreMath.Sigmoid(expected):F4}");
-            // ORT and PyTorch differ in float rounding (measured: logit gap 4e-4 and 3.5e-3, probability gap < 6e-4);
-            // what matters is the cached 0..1000 score, which must agree within 2.
-            Assert.InRange(Math.Abs(AiScoreMath.ToStored(AiScoreMath.Sigmoid(got)) - AiScoreMath.ToStored(AiScoreMath.Sigmoid(expected))), 0, 2);
+            // ORT and PyTorch differ in float rounding (measured logit gaps 4e-4 and 3.5e-3); compared as probabilities.
+            Assert.InRange(Math.Abs(AiScoreMath.Sigmoid(got) - AiScoreMath.Sigmoid(expected)), 0, 1e-3);
         }
     }
 
@@ -92,6 +91,25 @@ public sealed class AiScoreModelTests(ITestOutputHelper log)
             Assert.Equal(AiScoreOutcome.Scored, r.Outcome);
             Assert.InRange(Math.Abs(r.Score!.Value - expected), 0, 0.005);
         }
+    }
+
+    [SkippableFact] // [EDGE-ai-score-27] one shared session; the last lease out unloads it
+    public void Lease_SharedAndDisposedWithLast()
+    {
+        string dir = RequireDir();
+        int creates = 0;
+        SonicsModel Factory() { creates++; return SonicsModel.Load(Path.Combine(dir, AiAssets.Model.Name)); }
+        var a = SonicsModel.Acquire(Factory);
+        var b = SonicsModel.Acquire(Factory);
+        Assert.Equal(1, creates);
+        Assert.Same(a.Model, b.Model);
+        a.Dispose();
+        a.Dispose(); // a second dispose does nothing
+        Assert.Equal(1, SonicsModel.ActiveLeases);
+        b.Dispose();
+        Assert.Equal(0, SonicsModel.ActiveLeases);
+        using var c = SonicsModel.Acquire(Factory);
+        Assert.Equal(2, creates);
     }
 
     [SkippableFact] // [EDGE-ai-score-44]

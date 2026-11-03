@@ -194,11 +194,6 @@ namespace Pickles_Playlist_Editor
         }
 
 
-        /// <summary>
-        /// Controls whether converted audio should be loudness-normalized.
-        /// Default: true.
-        /// Stored as integer 1 (true) or 0 (false) under the same registry subkey.
-        /// </summary>
         /// <summary>Accepts the forms a DWORD flag has been stored in; anything else is <paramref name="fallback"/>.</summary>
         internal static bool ParseFlag(object? value, bool fallback) => value switch
         {
@@ -224,6 +219,11 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        /// <summary>
+        /// Controls whether converted audio should be loudness-normalized.
+        /// Default: true.
+        /// Stored as integer 1 (true) or 0 (false) under the same registry subkey.
+        /// </summary>
         public static bool NormalizeVolume
         {
             get

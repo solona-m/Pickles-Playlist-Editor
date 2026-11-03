@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="Pickles_Playlist_Editor.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -143,7 +143,7 @@
                                 <Border Visibility="{x:Bind AiVisibility, Mode=OneWay}"
                                         Background="{x:Bind AiBrush, Mode=OneWay}"
                                         ToolTipService.ToolTip="{x:Bind AiTooltip, Mode=OneWay}"
-                                        AutomationProperties.Name="{x:Bind AiTooltip, Mode=OneWay}"
+                                        AutomationProperties.Name="{x:Bind AiAutomationName, Mode=OneWay}"
                                         CornerRadius="4" Padding="6,1,6,1" Margin="0,0,8,0"
                                         VerticalAlignment="Center">
                                     <TextBlock Text="{x:Bind AiText, Mode=OneWay}"

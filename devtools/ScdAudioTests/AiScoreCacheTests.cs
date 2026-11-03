@@ -86,6 +86,45 @@ public sealed class AiScoreCacheTests : IDisposable
         Assert.Equal(5, c.TryGet(@"C:\M\a.scd"));
     }
 
+    [Fact] // [AC-ai-score-1] lookups, moves and forgets never create a cache file; only a stored score does
+    public void NoFile_UntilAScoreIsStored()
+    {
+        string path = Path.Combine(_dir, "lazy.dat");
+        var c = new AiScoreCache(path);
+        Assert.Null(c.TryGet(@"C:\M\a.scd"));
+        c.Forget(@"C:\M\a.scd");
+        c.UpdateCacheForSCD(@"C:\M\a.scd", @"C:\M\b.scd");
+        Assert.False(File.Exists(path));
+        c.Store(@"C:\M\a.scd", 3);
+        Assert.True(File.Exists(path));
+    }
+
+    [Fact] // [EDGE-ai-score-26] a cache that can't be opened is skipped, never thrown
+    public void UnopenableFile_NullSafe()
+    {
+        Directory.CreateDirectory(_dir);
+        string blocker = Path.Combine(_dir, "blocker");
+        File.WriteAllText(blocker, "a file where a folder should be");
+        var c = new AiScoreCache(Path.Combine(blocker, "c.dat"));
+        Assert.Null(Record.Exception(() =>
+        {
+            c.Store(@"C:\M\a.scd", 1);
+            c.TryGet(@"C:\M\a.scd"); // may be kept in memory; nothing reaches disk
+            c.Forget(@"C:\M\a.scd");
+            c.UpdateCacheForSCD(@"C:\M\a.scd", @"C:\M\b.scd");
+        }));
+        Assert.False(File.Exists(Path.Combine(blocker, "c.dat")));
+    }
+
+    [Fact] // [EDGE-ai-score-27] two Compute Stats runs writing at once
+    public void ConcurrentStores_NoCorruption()
+    {
+        var c = New();
+        Parallel.For(0, 200, i => c.Store($@"C:\M\{i}.scd", i));
+        var reopened = New();
+        for (int i = 0; i < 200; i++) Assert.Equal(i, reopened.TryGet($@"C:\M\{i}.scd"));
+    }
+
     [Fact] // [EDGE-ai-score-25] a new model tag gets its own empty cache file
     public void DefaultCache_IsNamedForTheModelTag()
     {

@@ -97,6 +97,25 @@ namespace Pickles_Playlist_Editor
 
         // ─── Dialog helper ───────────────────────────────────────────────────────
 
+        private readonly SemaphoreSlim _dialogGate = new(1, 1);
+
+        /// <summary>
+        /// Shows one dialog through the gate, so a summary raised while another gated dialog is open waits its turn.
+        /// A collision with an ungated dialog is logged and reads as "closed".
+        /// </summary>
+        internal async Task<ContentDialogResult> ShowGatedAsync(ContentDialog dialog)
+        {
+            await _dialogGate.WaitAsync();
+            try { return await dialog.ShowAsync(); }
+            catch (COMException ex)
+            {
+                Utils.Logger.LogWarn("Dialog '{Title}' not shown: {Error}", dialog.Title as string ?? "", ex.Message);
+                return ContentDialogResult.None;
+            }
+            finally { _dialogGate.Release(); }
+        }
+
+
         public async Task<ContentDialogResult> ShowDialogAsync(
             string title, string content,
             string primary = "OK", string? secondary = null, string close = "")

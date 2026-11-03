@@ -61,10 +61,13 @@ namespace Pickles_Playlist_Editor.Tools
                 using var onCancel = ct.Register(() => Kill(process));
 
                 AiScoreResult result;
-                try { result = AiScoreMath.Aggregate(watch, logit, ct, buffer); }
+                // The decoder waits while a window is classified; that is not silence.
+                float Timed(float[] w) { try { return logit(w); } finally { watch.Touch(); } }
+                try { result = AiScoreMath.Aggregate(watch, Timed, ct, buffer); }
                 catch (OperationCanceledException) { Kill(process); throw; }
                 catch (Exception ex) { Kill(process); result = AiScoreResult.Fail("scoring failed: " + ex.Message); }
 
+                if (result.Outcome == AiScoreOutcome.Failed) Kill(process); // it may be blocked on a full pipe
                 if (!process.WaitForExit(10_000)) Kill(process);
                 ct.ThrowIfCancellationRequested();
                 if (watch.TimedOut) return AiScoreResult.Fail($"the decoder wrote nothing for {inactivity.TotalSeconds:0} s");
@@ -93,6 +96,7 @@ namespace Pickles_Playlist_Editor.Tools
             private long _lastTicks = DateTime.UtcNow.Ticks;
             public volatile bool TimedOut;
             public DateTime LastData => new(Interlocked.Read(ref _lastTicks), DateTimeKind.Utc);
+            public void Touch() => Interlocked.Exchange(ref _lastTicks, DateTime.UtcNow.Ticks);
 
             public override int Read(byte[] buffer, int offset, int count)
             {

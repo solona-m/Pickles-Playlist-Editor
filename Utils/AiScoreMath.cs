@@ -13,6 +13,16 @@ namespace Pickles_Playlist_Editor.Utils
         public static AiScoreResult Fail(string error) => new(AiScoreOutcome.Failed, null, 0, 0, error);
     }
 
+    /// <summary>What a song's AI chip shows: nothing unless the setting is on and a real score is cached.</summary>
+    internal static class AiScoreDisplay
+    {
+        public static (bool Visible, AiBand Band, string Raw) For(int? stored, bool enabled)
+        {
+            if (!enabled || AiScoreMath.Band(stored) is not AiBand band) return (false, AiBand.Unclear, "");
+            return (true, band, (stored!.Value / 1000.0).ToString("0.000"));
+        }
+    }
+
     /// <summary>
     /// SONICS scoring rules: 120 s windows of 16 kHz mono, the mean of sigmoid(logit) over the full audible windows,
     /// one zero-padded window for a shorter track. Silent windows are left out; silence alone gets no score.
@@ -100,21 +110,5 @@ namespace Pickles_Playlist_Editor.Utils
             if (scored == 0) return new(AiScoreOutcome.NoScore, null, full, skipped, null);
             return new(AiScoreOutcome.Scored, probSum / scored, scored, skipped, null);
         }
-    }
-
-    /// <summary>Lowers the current thread's priority for a block and always restores it.</summary>
-    internal readonly struct ThreadPriorityScope : IDisposable
-    {
-        private readonly ThreadPriority _saved;
-        private ThreadPriorityScope(ThreadPriority saved) => _saved = saved;
-
-        public static ThreadPriorityScope BelowNormal()
-        {
-            var saved = Thread.CurrentThread.Priority;
-            Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
-            return new ThreadPriorityScope(saved);
-        }
-
-        public void Dispose() => Thread.CurrentThread.Priority = _saved;
     }
 }

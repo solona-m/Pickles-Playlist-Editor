@@ -58,6 +58,45 @@ public class AiScoreMathTests
         Assert.NotEqual(0f, w[n - 2]);
     }
 
+    [Fact] // [EDGE-ai-score-4] a quiet short track is judged on its real samples, not the padding
+    public void QuietShortTrack_SilenceJudgedOnRealSamplesOnly()
+    {
+        // RMS ~0.0021 over 10 s; over the padded 120 s it would be ~0.0006, below the -60 dBFS line.
+        var r = AiScoreMath.Aggregate(F32(Tone(10 * 16000, amp: 0.003f)), _ => 0f, CancellationToken.None);
+        Assert.Equal(AiScoreOutcome.Scored, r.Outcome);
+    }
+
+    [Theory] // [AC-ai-score-1] [AC-ai-score-5] [EDGE-ai-score-22] off hides any score; otherwise band + raw
+    [InlineData(812, false, false, "", "")]
+    [InlineData(812, true, true, "LikelyAi", "0.812")]
+    [InlineData(300, true, true, "LikelyHuman", "0.300")]
+    [InlineData(450, true, true, "Unclear", "0.450")]
+    [InlineData(-1, true, false, "", "")]
+    [InlineData(null, true, false, "", "")]
+    public void Display_For(int? stored, bool enabled, bool visible, string band, string raw)
+    {
+        var saved = Thread.CurrentThread.CurrentCulture;
+        Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+        try
+        {
+            var d = AiScoreDisplay.For(stored, enabled);
+            Assert.Equal(visible, d.Visible);
+            if (visible) { Assert.Equal(band, d.Band.ToString()); Assert.Equal(raw, d.Raw); }
+        }
+        finally { Thread.CurrentThread.CurrentCulture = saved; }
+    }
+
+    [Theory] // [AC-ai-score-1] the stored flag's forms
+    [InlineData(null, false)]
+    [InlineData(1, true)]
+    [InlineData(0, false)]
+    [InlineData(1L, true)]
+    [InlineData("true", true)]
+    [InlineData("1", true)]
+    [InlineData("0", false)]
+    [InlineData("junk", false)]
+    public void ParseFlag_Forms(object? value, bool expected) => Assert.Equal(expected, Pickles_Playlist_Editor.Settings.ParseFlag(value, false));
+
     [Fact] // [AC-ai-score-6] [EDGE-ai-score-1]
     public void AllZero_NoScore()
     {

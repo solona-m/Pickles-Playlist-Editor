@@ -15,7 +15,7 @@ public sealed class AiScoreDecoderTests : IDisposable
 
     private static string BundledFfmpeg => Path.Combine(AppContext.BaseDirectory, "ffmpeg.exe");
 
-    [Fact] // [AC-ai-score-9] [EDGE-ai-score-11] [EDGE-ai-score-47]
+    [Fact] // [AC-ai-score-9] [EDGE-ai-score-11] [EDGE-ai-score-30] [EDGE-ai-score-47] -ac 1 downmixes any layout
     public void ArgumentList_Pinned()
     {
         string odd = "C:\\Users\\Zoë \"Q\"\\a b\\song é.ogg";
@@ -83,17 +83,28 @@ public sealed class AiScoreDecoderTests : IDisposable
     [Fact] // [AC-ai-score-4]
     public void Cancel_KillsTheDecoder()
     {
+        var started = DateTime.UtcNow;
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
         Assert.ThrowsAny<OperationCanceledException>(() =>
             AiAudioDecoder.Run("powershell.exe", ["-NoProfile", "-Command", "Start-Sleep 60"], _ => 0f, TimeSpan.FromSeconds(30), cts.Token));
+        Assert.True(DateTime.UtcNow - started < TimeSpan.FromSeconds(15), "the child was not killed on cancel");
     }
 
-    [Fact] // [AC-ai-score-4] the decoder child runs below normal priority
+    [Fact] // [AC-ai-score-4] the decoder child really runs below normal priority
     public void Decoder_RunsBelowNormal()
     {
+        string report = Path.Combine(_fx.Dir, "priority.txt");
+        var r = AiAudioDecoder.Run("powershell.exe",
+            ["-NoProfile", "-Command", $"Start-Sleep -Milliseconds 1500; (Get-Process -Id $PID).PriorityClass | Out-File -Encoding ascii '{report}'"],
+            _ => 0f, TimeSpan.FromSeconds(30), CancellationToken.None);
+        Assert.Equal("BelowNormal", File.ReadAllText(report).Trim());
+        Assert.DoesNotContain("FFMpeg.", File.ReadAllText(Path.Combine(RuntimeTargetTests.RepoRoot(), "Tools", "AiAudioDecoder.cs")));
+    }
+
+    [Fact] // [EDGE-ai-score-10] time spent classifying a window is not counted as decoder silence
+    public void SlowInference_NotMistakenForSilence()
+    {
         string src = File.ReadAllText(Path.Combine(RuntimeTargetTests.RepoRoot(), "Tools", "AiAudioDecoder.cs"));
-        Assert.Contains("PriorityClass = ProcessPriorityClass.BelowNormal", src);
-        Assert.Contains("psi.ArgumentList.Add", src);
-        Assert.DoesNotContain("FFMpeg.", src);
+        Assert.Contains("finally { watch.Touch(); }", src);
     }
 }

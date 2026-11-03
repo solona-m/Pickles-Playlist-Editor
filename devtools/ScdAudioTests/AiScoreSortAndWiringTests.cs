@@ -49,10 +49,11 @@ public class AiScoreSortAndWiringTests
         Assert.Contains("TryGetForRel", Method(Src("Playlist.cs"), "internal void SortByAiLikelihood")); // cache only, never scores
     }
 
-    [Fact] // [AC-ai-score-4] [EDGE-ai-score-38]
+    [Fact] // [AC-ai-score-1] [AC-ai-score-4] [EDGE-ai-score-38]
     public void ComputeStats_TwoPhases()
     {
         string handler = Method(Src("ui/MainWindow.ContextMenu.cs"), "private async void ComputeStatsMenuItem_Click");
+        Assert.Contains("if (Settings.AiScoreEnabled) await RunAiScorePhaseAsync(targetSongs);", handler); // no AI work while off
         int summary = handler.IndexOf("ShowOperationSummary(AppStrings.Summary_ComputeStats", StringComparison.Ordinal);
         int phase2 = handler.IndexOf("RunAiScorePhaseAsync(", StringComparison.Ordinal);
         Assert.True(summary > 0 && phase2 > summary, "phase 2 runs after the phase 1 summary");
@@ -61,6 +62,33 @@ public class AiScoreSortAndWiringTests
         string phase = Method(Src("ui/MainWindow.AiScore.cs"), "private async Task RunAiScorePhaseAsync");
         foreach (var bad in new[] { ".Save(", "UpdateName", "option.Name =" }) Assert.DoesNotContain(bad, phase);
         Assert.Matches(@"await Task\.Run\(\(\) =>[\s\S]*ScoreSong", phase);
+    }
+
+    [Fact] // [AC-ai-score-4] phase 2 keeps the window usable: status-bar progress, no overlay, one pass at a time
+    public void Phase2_NonBlockingProgress_SinglePass()
+    {
+        string phase = Method(Src("ui/MainWindow.AiScore.cs"), "private async Task RunAiScorePhaseAsync");
+        Assert.DoesNotContain("SetProgressBarText", phase);
+        Assert.DoesNotContain("SetProgressBarPercent", phase);
+        Assert.Contains("SetBackgroundProgress(", phase);
+        Assert.Contains("Interlocked.Exchange(ref _aiPhaseRunning, 1) == 1) return;", phase);
+        Assert.Matches(@"finally\s*\{\s*ClearBackgroundProgress\(\);\s*Interlocked\.Exchange\(ref _aiPhaseRunning, 0\);", phase);
+        string setter = Method(Src("ui/MainWindow.AiScore.cs"), "private void SetBackgroundProgress");
+        Assert.DoesNotContain("BusyOverlay", setter);
+        Assert.DoesNotContain("IsHitTestVisible", setter);
+    }
+
+    [Fact] // [EDGE-ai-score-33] [EDGE-ai-score-48] songs without an SCD are skipped; all-cached loads no model and asks nothing
+    public void Phase2_SkipsEmptyPaths_AndCachedBeforeLoading()
+    {
+        string phase = Method(Src("ui/MainWindow.AiScore.cs"), "private async Task RunAiScorePhaseAsync");
+        Assert.Contains(".Where(p => !string.IsNullOrEmpty(p))", phase);
+        int filter = phase.IndexOf("cache.TryGet(p) is null", StringComparison.Ordinal);
+        int empty = phase.IndexOf("if (paths.Count == 0)", StringComparison.Ordinal);
+        int ensure = phase.IndexOf("EnsureAiReadyForStatsAsync()", StringComparison.Ordinal);
+        int begin = phase.IndexOf("AiScoreRun.Begin(", StringComparison.Ordinal);
+        Assert.True(filter > 0 && filter < empty && empty < ensure && ensure < begin);
+        Assert.Contains(".Select(AiScoreCache.FullPathOf)", phase); // the same spelling as chips and sort
     }
 
     [Fact] // [AC-ai-score-4] chips refresh in place, every 10 songs and at the end
@@ -72,7 +100,7 @@ public class AiScoreSortAndWiringTests
         Assert.DoesNotContain("LoadPlaylists", refresh);
         string phase = Method(src, "private async Task RunAiScorePhaseAsync");
         Assert.Contains("% 10 == 0) _uiDispatcherQueue.TryEnqueue(RefreshAiChips)", phase);
-        Assert.Matches(@"SetProgressBarPercent\(100\);\s*RefreshAiChips\(\);", phase);
+        Assert.Matches(@"ClearBackgroundProgress\(\);\s*RefreshAiChips\(\);", phase);
     }
 
     [Fact] // [AC-ai-score-8] [EDGE-ai-score-41] [EDGE-ai-score-42]
@@ -100,7 +128,7 @@ public class AiScoreSortAndWiringTests
     [Fact] // [EDGE-ai-score-39] [EDGE-ai-score-50]
     public void DialogGate_OneShowAtATime_CatchesCollision()
     {
-        string src = Src("ui/MainWindow.AiScore.cs");
+        string src = Src("ui/MainWindow.cs");
         string gated = Method(src, "internal async Task<ContentDialogResult> ShowGatedAsync");
         Assert.Equal(1, Regex.Matches(gated, @"\.ShowAsync\(\)").Count);
         Assert.Contains("_dialogGate.WaitAsync()", gated);
@@ -110,6 +138,7 @@ public class AiScoreSortAndWiringTests
         string optIn = Src("ui/AiScoreOptIn.cs");
         Assert.DoesNotContain("_dialogGate", optIn);
         Assert.DoesNotContain(".ShowAsync(", optIn); // its dialogs go through the gate
+        Assert.Matches(@"dialog\.Closing \+= \(_, args\) =>\s*\{\s*if \(closing\) return;\s*args\.Cancel = true;", optIn); // Esc waits too
     }
 
     [Fact] // service ownership: one instance, disposed on close
@@ -123,7 +152,7 @@ public class AiScoreSortAndWiringTests
         Assert.False(File.Exists(Path.Combine(Root(), "ui", "AiDownloadDialog.xaml")));
     }
 
-    [Fact] // [AC-ai-score-1] off by default; the sort item starts hidden; settings only ask, the download runs after close
+    [Fact] // [AC-ai-score-1] [EDGE-ai-score-21] off by default; the sort item starts hidden; settings only ask, the download runs after close
     public void OffByDefault_AndOptInAfterClose()
     {
         Assert.Contains("ParseFlag(Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue(\"AiScoreEnabled\"), false)", Src("Settings.cs"));

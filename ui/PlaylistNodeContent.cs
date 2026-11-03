@@ -20,6 +20,7 @@ namespace Pickles_Playlist_Editor
         private Visibility _camelotVisibility = Visibility.Collapsed;
         private string _aiText = "";
         private string _aiTooltip = "";
+        private string _aiAutomationName = "";
         private SolidColorBrush? _aiBrush;
         private Visibility _aiVisibility = Visibility.Collapsed;
 
@@ -80,6 +81,13 @@ namespace Pickles_Playlist_Editor
         {
             get => _aiTooltip;
             set { _aiTooltip = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AiTooltip))); }
+        }
+
+        /// <summary>What a screen reader says for the chip: the band and the score.</summary>
+        public string AiAutomationName
+        {
+            get => _aiAutomationName;
+            set { _aiAutomationName = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AiAutomationName))); }
         }
 
         public SolidColorBrush? AiBrush

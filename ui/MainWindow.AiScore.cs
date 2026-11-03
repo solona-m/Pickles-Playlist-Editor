@@ -18,8 +18,8 @@ namespace Pickles_Playlist_Editor
     public sealed partial class MainWindow
     {
         private AiAssetDownloadService? _aiAssets;
-        private readonly CancellationTokenSource _aiDownloadCts = new();
-        private readonly SemaphoreSlim _dialogGate = new(1, 1);
+        private readonly CancellationTokenSource _closingCts = new(); // stops an AI scoring pass when the window closes
+        private int _aiPhaseRunning;
         private SortDirection _aiSortDirection = SortDirection.Ascending; // so the first click is Descending
         private static bool s_showAiChips;
 
@@ -28,24 +28,8 @@ namespace Pickles_Playlist_Editor
 
         private void DisposeAiScore()
         {
-            try { _aiDownloadCts.Cancel(); } catch { }
+            try { _closingCts.Cancel(); } catch { }
             _aiAssets?.Dispose();
-        }
-
-        /// <summary>
-        /// Shows one dialog through the gate, so a summary raised while another gated dialog is open waits its turn.
-        /// A collision with an ungated dialog is logged and reads as "closed".
-        /// </summary>
-        internal async Task<ContentDialogResult> ShowGatedAsync(ContentDialog dialog)
-        {
-            await _dialogGate.WaitAsync();
-            try { return await dialog.ShowAsync(); }
-            catch (COMException ex)
-            {
-                Logger.LogWarn("Dialog '{Title}' not shown: {Error}", dialog.Title as string ?? "", ex.Message);
-                return ContentDialogResult.None;
-            }
-            finally { _dialogGate.Release(); }
         }
 
         private ContentDialogOptInUi OptInUi() => new(() => this.Content.XamlRoot, ShowGatedAsync);
@@ -77,14 +61,15 @@ namespace Pickles_Playlist_Editor
         // Cache-only, like the Camelot chip: tree builds never score.
         private static void ApplyAiChip(PlaylistNodeContent node)
         {
-            int? stored = s_showAiChips ? AiScoreCache.Default.TryGetForRel(node.ScdRel) : null;
-            if (AiScoreMath.Band(stored) is not AiBand band)
+            var (visible, band, raw) = AiScoreDisplay.For(s_showAiChips ? AiScoreCache.Default.TryGetForRel(node.ScdRel) : null, s_showAiChips);
+            if (!visible)
             {
                 node.AiVisibility = Visibility.Collapsed;
                 return;
             }
             node.AiText = AppStrings.Get(AiScoreText.BandKey(band));
-            node.AiTooltip = AppStrings.AiScoreTooltip((stored!.Value / 1000.0).ToString("0.000"));
+            node.AiTooltip = AppStrings.AiScoreTooltip(raw);
+            node.AiAutomationName = node.AiText + ", " + node.AiTooltip;
             node.AiBrush = new SolidColorBrush(band switch
             {
                 AiBand.LikelyAi => Color.FromArgb(255, 0xF2, 0xA3, 0x3A),     // amber, not red: an estimate, not an accusation
@@ -123,19 +108,27 @@ namespace Pickles_Playlist_Editor
         /// </summary>
         private async Task RunAiScorePhaseAsync(List<(Playlist playlist, Option option)> targets)
         {
+            if (Interlocked.Exchange(ref _aiPhaseRunning, 1) == 1) return; // one AI pass at a time
             try
             {
+                var cache = AiScoreCache.Default;
+                var all = targets.Select(t => Playlist.GetScdPath(t.option)).Where(p => !string.IsNullOrEmpty(p))
+                    .Select(AiScoreCache.FullPathOf).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                var paths = all.Where(p => cache.TryGet(p) is null).ToList();
+                int alreadyCached = all.Count - paths.Count;
+                if (paths.Count == 0)
+                {
+                    // Nothing to score: no model load and no download prompt.
+                    await ShowDialogAsync(AppStrings.Summary_AiScore, AppStrings.AiScoreSummary(0, 0, 0, alreadyCached));
+                    return;
+                }
                 if (!await EnsureAiReadyForStatsAsync())
                 {
                     await ShowDialogAsync(AppStrings.Summary_AiScore, AppStrings.AiScore_SummarySkipped);
                     return;
                 }
-                string modRoot = Path.Combine(Settings.PenumbraLocation, Settings.ModName);
-                var paths = targets.Select(t => Playlist.GetScdPath(t.option)).Where(p => !string.IsNullOrEmpty(p))
-                    .Select(p => Path.Combine(modRoot, p)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-                SetProgressBarText(AppStrings.ProgAiScoring(0, paths.Count));
-                SetProgressBarPercent(0);
-                var ct = _aiDownloadCts.Token;
+                SetBackgroundProgress(AppStrings.ProgAiScoring(0, paths.Count), 0);
+                var ct = _closingCts.Token;
 
                 var (run, unavailable) = await Task.Run(() =>
                 {
@@ -147,23 +140,38 @@ namespace Pickles_Playlist_Editor
                         {
                             r.ScoreSong(paths[i], ct);
                             int done = i + 1;
-                            SetProgressBarText(AppStrings.ProgAiScoring(done, paths.Count));
-                            SetProgressBarPercent(done * 100 / paths.Count);
+                            SetBackgroundProgress(AppStrings.ProgAiScoring(done, paths.Count), done * 100 / paths.Count);
                             if (done % 10 == 0) _uiDispatcherQueue.TryEnqueue(RefreshAiChips);
                         }
                         return (r, (string?)null);
                     }
                     finally { r.Dispose(); }
                 });
-                SetProgressBarPercent(100);
+                ClearBackgroundProgress();
                 RefreshAiChips();
                 await ShowDialogAsync(AppStrings.Summary_AiScore, unavailable != null
                     ? AppStrings.AiScoreRuntimeFailed(unavailable)
-                    : AppStrings.AiScoreSummary(run.Scored, run.NoScore, run.Failed, run.Cached));
+                    : AppStrings.AiScoreSummary(run.Scored, run.NoScore, run.Failed, run.Cached + alreadyCached));
             }
             catch (OperationCanceledException) { } // the window is closing
             catch (Exception ex) { Logger.LogError("AI score pass failed: {Error}", ex); }
+            finally
+            {
+                ClearBackgroundProgress();
+                Interlocked.Exchange(ref _aiPhaseRunning, 0);
+            }
         }
+
+        // Phase 2 reports in the status bar only: unlike SetProgressBarText it puts up no overlay, so the
+        // window stays usable during a long scoring pass.
+        private void SetBackgroundProgress(string text, int percent)
+        {
+            if (!_uiDispatcherQueue.HasThreadAccess) { _uiDispatcherQueue.TryEnqueue(() => SetBackgroundProgress(text, percent)); return; }
+            ProgressLabel.Text = text;
+            ProgressBar1.Value = Math.Clamp(percent, 0, 100);
+        }
+
+        private void ClearBackgroundProgress() => SetBackgroundProgress("", 0);
 
         private void SortByAi_Click(object sender, RoutedEventArgs e)
         {

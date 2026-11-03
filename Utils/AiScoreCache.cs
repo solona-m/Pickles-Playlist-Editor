@@ -11,7 +11,9 @@ namespace Pickles_Playlist_Editor.Utils
     /// </summary>
     internal sealed class AiScoreCache
     {
-        private readonly PersistentDictionary<string, int>? _map;
+        private readonly string _path;
+        private PersistentDictionary<string, int>? _map;
+        private bool _opened;
         private readonly object _lock = new();
 
         private static readonly Lazy<AiScoreCache> s_default = new(() => new AiScoreCache(Path.Combine(
@@ -20,10 +22,18 @@ namespace Pickles_Playlist_Editor.Utils
 
         public static AiScoreCache Default => s_default.Value;
 
-        public AiScoreCache(string path)
+        public AiScoreCache(string path) => _path = path;
+
+        // Opened on first use. Lookups, moves and forgets on a cache that was never written create no file, so a
+        // user who never turned the score on gets none. Caller holds _lock.
+        private PersistentDictionary<string, int>? Map(bool create)
         {
-            try { Directory.CreateDirectory(Path.GetDirectoryName(path)!); } catch { }
-            _map = TryOpenOrRecreate(path);
+            if (_opened) return _map;
+            if (!create && !File.Exists(_path)) return null;
+            try { Directory.CreateDirectory(Path.GetDirectoryName(_path)!); } catch { }
+            _map = TryOpenOrRecreate(_path);
+            _opened = true;
+            return _map;
         }
 
         private static PersistentDictionary<string, int>? TryOpenOrRecreate(string path)
@@ -46,10 +56,9 @@ namespace Pickles_Playlist_Editor.Utils
 
         public int? TryGet(string fullPath)
         {
-            if (_map == null) return null;
             lock (_lock)
             {
-                try { return _map.TryGetValue(Key(fullPath), out int v) ? v : null; }
+                try { return Map(false) is { } m && m.TryGetValue(Key(fullPath), out int v) ? v : null; }
                 catch { return null; }
             }
         }
@@ -58,44 +67,46 @@ namespace Pickles_Playlist_Editor.Utils
         public int? TryGetForRel(string relScd)
         {
             if (string.IsNullOrWhiteSpace(relScd)) return null;
-            try { return TryGet(Path.Combine(Settings.PenumbraLocation, Settings.ModName, Playlist.NormalizeRelativeModPath(relScd))); }
+            try { return TryGet(FullPathOf(relScd)); }
             catch { return null; }
         }
 
+        /// <summary>A song's SCD path as every AI-score caller spells it.</summary>
+        public static string FullPathOf(string relScd) =>
+            Path.Combine(Settings.PenumbraLocation, Settings.ModName, Playlist.NormalizeRelativeModPath(relScd));
+
         public void Store(string fullPath, int value)
         {
-            if (_map == null) return;
             lock (_lock)
             {
-                try { _map[Key(fullPath)] = value; } catch { }
+                try { if (Map(true) is { } m) m[Key(fullPath)] = value; } catch { }
             }
         }
 
         public void Forget(string fullPath)
         {
-            if (_map == null) return;
             lock (_lock)
             {
-                try { _map.Remove(Key(fullPath)); } catch { }
+                try { Map(false)?.Remove(Key(fullPath)); } catch { }
             }
         }
 
         /// <summary>Moves a score with its file. A destination with no source score is cleared, so it can't keep a stale one.</summary>
         public void UpdateCacheForSCD(string oldFullPath, string newFullPath)
         {
-            if (_map == null) return;
             string from = Key(oldFullPath), to = Key(newFullPath);
             if (from == to) return;
             lock (_lock)
             {
                 try
                 {
-                    if (_map.TryGetValue(from, out int v))
+                    if (Map(false) is not { } m) return;
+                    if (m.TryGetValue(from, out int v))
                     {
-                        _map[to] = v;
-                        _map.Remove(from);
+                        m[to] = v;
+                        m.Remove(from);
                     }
-                    else _map.Remove(to);
+                    else m.Remove(to);
                 }
                 catch { }
             }

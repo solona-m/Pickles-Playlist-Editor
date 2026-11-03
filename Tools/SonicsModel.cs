@@ -21,6 +21,7 @@ namespace Pickles_Playlist_Editor.Tools
         private static bool s_telemetryOff;
 
         private readonly InferenceSession _session;
+        private readonly RunOptions _runOptions = new();
         private readonly object _runLock = new();
 
         private SonicsModel(InferenceSession session) => _session = session;
@@ -45,15 +46,19 @@ namespace Pickles_Playlist_Editor.Tools
             };
             options.AddSessionConfigEntry("session.intra_op.allow_spinning", "0");
             var session = new InferenceSession(onnxPath, options);
-            string? error = ValidateSignature(
-                session.InputMetadata.ToDictionary(kv => kv.Key, kv => (kv.Value.ElementDataType, kv.Value.Dimensions)),
-                session.OutputMetadata.ToDictionary(kv => kv.Key, kv => (kv.Value.ElementDataType, kv.Value.Dimensions)));
-            if (error != null)
+            try
+            {
+                string? error = ValidateSignature(
+                    session.InputMetadata.ToDictionary(kv => kv.Key, kv => (kv.Value.ElementDataType, kv.Value.Dimensions)),
+                    session.OutputMetadata.ToDictionary(kv => kv.Key, kv => (kv.Value.ElementDataType, kv.Value.Dimensions)));
+                if (error != null) throw new InvalidOperationException("Unexpected AI model: " + error);
+                return new SonicsModel(session);
+            }
+            catch
             {
                 session.Dispose();
-                throw new InvalidOperationException("Unexpected AI model: " + error);
+                throw;
             }
-            return new SonicsModel(session);
         }
 
         /// <summary>Null when the model takes audio float32 [1, 1920000] and returns a one-element logit.</summary>
@@ -77,12 +82,16 @@ namespace Pickles_Playlist_Editor.Tools
             lock (_runLock)
             {
                 using var input = OrtValue.CreateTensorValueFromMemory(window, new long[] { 1, WindowSamples });
-                using var results = _session.Run(new RunOptions(), new[] { InputName }, new[] { input }, new[] { OutputName });
+                using var results = _session.Run(_runOptions, new[] { InputName }, new[] { input }, new[] { OutputName });
                 return results[0].GetTensorDataAsSpan<float>()[0];
             }
         }
 
-        public void Dispose() => _session.Dispose();
+        public void Dispose()
+        {
+            _session.Dispose();
+            _runOptions.Dispose();
+        }
 
         // One session shared by every run that is in progress; the last one out unloads ~87 MB of weights.
         private static readonly object s_leaseLock = new();

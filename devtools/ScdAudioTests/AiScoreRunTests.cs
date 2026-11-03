@@ -63,7 +63,7 @@ public sealed class AiScoreRunTests : IDisposable
         Assert.Equal(1, run.Failed);
     }
 
-    [Fact] // [EDGE-ai-score-12]
+    [Fact] // [EDGE-ai-score-12] [EDGE-ai-score-43] unreadable, or moved away mid-pass: Failed, nothing thrown
     public void UnreadableScd_Failed_NeverThrows()
     {
         string bad = _fx.PathFor("bad.scd");

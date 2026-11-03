@@ -1735,11 +1735,6 @@ namespace Pickles_Playlist_Editor
             return Rejoin(off, zigzag);
         });
 
-        /// <summary>
-        /// Orders songs so the set walks the Camelot wheel — every neighbouring pair is a valid
-        /// harmonic move. Sorting on the key string instead would only be alphabetical, which puts
-        /// Am next to A# and makes the order musically meaningless. Undetected keys go last.
-        /// </summary>
         /// <summary>By cached AI score only (sorting never scores). Unscored and no-score songs stay last, in order.</summary>
         internal void SortByAiLikelihood(SortDirection direction) => ReorderOptions(options =>
         {
@@ -1759,6 +1754,11 @@ namespace Pickles_Playlist_Editor
             return ordered;
         }
 
+        /// <summary>
+        /// Orders songs so the set walks the Camelot wheel — every neighbouring pair is a valid
+        /// harmonic move. Sorting on the key string instead would only be alphabetical, which puts
+        /// Am next to A# and makes the order musically meaningless. Undetected keys go last.
+        /// </summary>
         internal void SortByCamelot(SortDirection direction) => ReorderOptions(options =>
         {
             var (off, songs) = SplitOff(options);

@@ -122,8 +122,7 @@ public sealed class AiScoreOptInTests : IDisposable
     [Fact] // [AC-ai-score-3] [EDGE-ai-score-17]
     public async Task Cancel_AwaitsTaskThenCancelled()
     {
-        var gate = new TaskCompletionSource();
-        var ui = new FakeUi { DuringWork = async cts => { await Task.Delay(50); cts.Cancel(); gate.TrySetResult(); } };
+        var ui = new FakeUi { DuringWork = async cts => { await Task.Delay(50); cts.Cancel(); } };
         using var svc = Service(async (req, ct) =>
         {
             if (req.RequestUri!.Segments[^1] != "a.exe") { await Task.Delay(Timeout.Infinite, ct); }

@@ -137,14 +137,24 @@ namespace Pickles_Playlist_Editor
             using var cts = new CancellationTokenSource();
             Task<AiAssetResult>? running = null;
             bool closing = false;
+            void RequestCancel()
+            {
+                cts.Cancel();
+                dialog.CloseButtonText = "";
+                text.Text = AppStrings.AiScore_Cancelling;
+            }
             dialog.CloseButtonClick += (_, args) =>
             {
                 if (closing) return;
                 args.Cancel = true; // stay open until the download has actually stopped
-                cts.Cancel();
-                dialog.IsSecondaryButtonEnabled = false;
-                dialog.CloseButtonText = "";
-                text.Text = AppStrings.AiScore_Cancelling;
+                RequestCancel();
+            };
+            // Esc, or anything else that closes it, is a cancel too, and also waits for the download.
+            dialog.Closing += (_, args) =>
+            {
+                if (closing) return;
+                args.Cancel = true;
+                RequestCancel();
             };
             var progress = new ThrottledProgress<AiAssetProgress>(new Progress<AiAssetProgress>(p =>
             {
