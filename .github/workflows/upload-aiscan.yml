@@ -1,0 +1,78 @@
+name: Upload AI Score Assets
+
+# Publishes the AI score's big downloads (the gyan.dev full-build ffmpeg.exe with libsoxr, and the SONICS model)
+# as pinned assets of an immutable aiscan-v<N> release, mirrored by dl.solona.info. They are too big to commit
+# and to bundle; the app fetches them once per machine, only when the AI score is turned on.
+#
+# This run stages ffmpeg.exe from GyanD's pinned archive into a DRAFT release, after Stage-AiscanAssets.ps1 has
+# checked every pin. The model files are then uploaded from the developer's machine, and the draft published:
+#   devtools\aiscan\Publish-AiscanModels.ps1 -Tag aiscan-v<N> -Dir <folder with the model files>
+# A draft is never public, so no client or mirror can see a half-filled release. It is never made "Latest",
+# which would take over the README's /releases/latest setup link.
+
+on:
+  push:
+    tags:
+      - 'aiscan-*'
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Resolve tag
+        shell: pwsh
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          $tag = $env:REF_NAME
+          if ($tag -cnotmatch '^aiscan-v\d+\z') { Write-Error "Tag '$tag' is not aiscan-v<N>"; exit 1 }
+          $listed = (Get-Content devtools/aiscan/releases.json -Raw | ConvertFrom-Json).PSObject.Properties.Name -ccontains $tag
+          if (-not $listed) { Write-Error "Tag '$tag' is not in devtools/aiscan/releases.json"; exit 1 }
+          "TAG=$tag" | Out-File -Append $env:GITHUB_ENV
+
+      # The built-in token gets 403 creating releases in this repo, so every gh release call uses RELEASE_TOKEN.
+      - name: Refuse to overwrite an existing release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          # `gh release view` exits non-zero when the release is absent, the normal case here; read the exit
+          # code instead of letting PowerShell 7.4+ turn it into a terminating error.
+          $PSNativeCommandUseErrorActionPreference = $false
+          gh release view $env:TAG *> $null
+          $exists = ($LASTEXITCODE -eq 0)
+          $global:LASTEXITCODE = 0
+          if ($exists) {
+            Write-Error "Release $env:TAG already exists. Its assets are immutable because the app pins their checksums and the mirror caches them: push a new tag (aiscan-v<N+1>) and update the pins instead."
+            exit 1
+          }
+
+      - name: Stage and verify
+        shell: pwsh
+        run: |
+          & ./devtools/aiscan/Stage-AiscanAssets.ps1 -Tag $env:TAG -Manifest devtools/aiscan/releases.json `
+            -OutDir "$env:RUNNER_TEMP\aiscan" -CacheDir "$env:RUNNER_TEMP\aiscan-cache" | Tee-Object -FilePath "$env:RUNNER_TEMP\stage.txt"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Create draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          gh release create $env:TAG --draft --latest=false --verify-tag `
+            --title "AI score assets ($env:TAG)" --notes-file devtools/aiscan/release-notes.md `
+            @((Get-ChildItem "$env:RUNNER_TEMP\aiscan" -File).FullName)
+
+      - name: Summary
+        shell: pwsh
+        run: |
+          $lines = @("Draft $env:TAG created. Next: devtools\aiscan\Publish-AiscanModels.ps1 -Tag $env:TAG -Dir <folder>", '```')
+          $lines += Get-Content "$env:RUNNER_TEMP\stage.txt"
+          $lines += '```'
+          $lines | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY

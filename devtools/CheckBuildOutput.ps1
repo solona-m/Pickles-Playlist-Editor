@@ -89,6 +89,14 @@ foreach ($dll in 'SoundTouch.Net.dll', 'NAudio.WinMM.dll', 'NVorbis.dll', 'THIRD
     Check $dll (Test-Path (Join-Path $Dir $dll))
 }
 
+# The bundled ffmpeg stays the tracked essentials build; the AI score's full build and model are downloads, never payload.
+$ff = Join-Path $Dir 'ffmpeg.exe'
+Check 'ffmpeg.exe' (Test-Path $ff)
+Check 'ffmpeg.exe x64' ((Test-Path $ff) -and (Get-PeKind $ff) -eq 'x64')
+Check 'ffmpeg.exe matches tracked essentials' ((Test-Path $ff) -and (Get-FileHash $ff).Hash -eq (Get-FileHash (Join-Path $repo 'ffmpeg.exe')).Hash)
+Check 'licenses\FFmpeg-GPL-3.0.txt' (Test-Path (Join-Path $Dir 'licenses\FFmpeg-GPL-3.0.txt'))
+Check 'no model files in payload' (@(Get-ChildItem $Dir -Recurse -File -Include *.onnx, *.onnx.data).Count -eq 0)
+
 if ($failed) { Write-Output "$failed check(s) failed"; exit 1 }
 Write-Output 'All checks passed'
 exit 0
