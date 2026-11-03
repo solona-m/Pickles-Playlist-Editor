@@ -439,4 +439,22 @@ Möchtest du fortfahren?</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>KI-Wahrscheinlichkeit</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>KI-Wahrscheinlichkeit wird bewertet {0}/{1}...</value></data>
   <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>Die KI-Bewertung läuft bereits im Hintergrund. Diese Songs werden danach bewertet.</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>Tags aus Ordner ergänzen…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>Tags aus Ordner ergänzen</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>Wähle den Ordner mit deinen Original-Songdateien (Unterordner werden mit durchsucht)</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>Prüfe, welche Songs Tags brauchen…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>Suche Originaldateien… {0} Audiodateien geprüft</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>Lese Tags {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>Tags für {0} von {1} Songs ohne Tags ergänzt, aus {2} durchsuchten Audiodateien.</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>{0} davon sind als mit Suno oder Udio erstellt markiert.</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>Schalte die KI-Wahrscheinlichkeit in den Einstellungen ein, um ihre „Sicher KI“-Markierung zu sehen.</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} hatten schon Tags und wurden nicht verändert.</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} hatten keine Datei mit passendem Namen in diesem Ordner.</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} wurden übersprungen: mehr als eine mögliche Datei, eine nicht passende Länge oder eine Änderung während des Laufs.</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} passten zu einer Datei ohne Tags oder zu einer, die nicht gelesen werden konnte.</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} passten zu Dateien, die nur online gespeichert sind (OneDrive o. Ä.). Mache sie offline verfügbar und starte das erneut.</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>Der Ordner konnte nicht gelesen werden: {0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>Deine gespeicherten Song-Tags konnten nicht geöffnet werden, daher wurde nichts geändert. Versuche es später erneut.</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>„Tags aus Ordner ergänzen“ läuft bereits im Hintergrund. Versuche es erneut, wenn der Fortschrittsbalken unten fertig ist.</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>Diese Songs haben bereits Tags.</value></data>
 </root>

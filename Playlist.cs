@@ -182,6 +182,22 @@ namespace Pickles_Playlist_Editor
             return referenced;
         }
 
+        /// <summary>The song name an import gives a file: its stem, or its folder's name for a "bpmloop" file.</summary>
+        internal static string ImportSongName(string file)
+        {
+            string root = Path.GetFileNameWithoutExtension(file);
+            if (root.Equals("bpmloop", StringComparison.OrdinalIgnoreCase))
+                root = (Path.GetDirectoryName(file) ?? "").Split(Path.DirectorySeparatorChar).Last();
+            return root;
+        }
+
+        /// <summary>The .scd stem an import writes for a file before any _N collision suffix; "" when nothing usable is left.</summary>
+        internal static string ImportScdStem(string file)
+        {
+            string s = SanitizeFileName(Path.GetFileName(ImportSongName(file)));
+            return string.IsNullOrWhiteSpace(s) ? "" : s;
+        }
+
         static Option AddFiles(string playlistName, Playlist group, string file,
             HashSet<string> referencedScdPaths = null)
         {
@@ -189,17 +205,12 @@ namespace Pickles_Playlist_Editor
             try
             {
                 ScdFile scdFile = ScdFile.Import(file);
-                string filenameroot = Path.GetFileNameWithoutExtension(file);
-                if (filenameroot.Equals("bpmloop", StringComparison.OrdinalIgnoreCase))
-                {
-                    filenameroot = Path.GetDirectoryName(file);
-                    filenameroot = filenameroot.Split(Path.DirectorySeparatorChar).Last();
-                }
+                string filenameroot = ImportSongName(file);
                 string playlistScdDirectory = ResolvePlaylistScdDirectory(playlistName, group);
                 string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistScdDirectory);
                 Directory.CreateDirectory(outDir);
 
-                string safeFileName = SanitizeFileName(Path.GetFileName(filenameroot));
+                string safeFileName = ImportScdStem(file);
                 if (string.IsNullOrWhiteSpace(safeFileName))
                     safeFileName = "audio";
 

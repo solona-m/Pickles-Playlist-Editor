@@ -439,4 +439,22 @@ Vill du fortsätta?</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>AI-sannolikhet</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>Beräknar AI-sannolikhet {0}/{1}...</value></data>
   <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI-bedömningen körs redan i bakgrunden. De här låtarna bedöms efter den.</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>Fyll i taggar från mapp…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>Fyll i taggar från mapp</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>Välj mappen med dina ursprungliga låtfiler (undermappar söks också)</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>Kontrollerar vilka låtar som behöver taggar…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>Letar efter originalfiler… {0} ljudfiler kontrollerade</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>Läser taggar {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>Fyllde i taggar för {0} av {1} låtar utan taggar, från {2} genomsökta ljudfiler.</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>{0} av dem är taggade som gjorda med Suno eller Udio.</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>Slå på AI-sannolikhet i Inställningar för att se deras Säkert AI-tagg.</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} hade redan taggar och lämnades som de var.</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} hade ingen fil med matchande namn i den mappen.</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} hoppades över: mer än en möjlig fil, en längd som inte stämde eller en ändring medan det kördes.</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} matchade en fil utan taggar, eller en som inte kunde läsas.</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} matchade filer som bara finns lagrade online (OneDrive eller liknande). Gör dem tillgängliga offline och kör igen.</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>Mappen kunde inte läsas: {0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>Dina sparade låttaggar kunde inte öppnas, så inget ändrades. Försök igen senare.</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>Fyll i taggar från mapp körs redan i bakgrunden. Försök igen när förloppsindikatorn längst ned är klar.</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>De här låtarna har redan taggar.</value></data>
 </root>

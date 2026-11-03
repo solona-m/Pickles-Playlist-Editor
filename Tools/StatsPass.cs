@@ -80,7 +80,7 @@ namespace Pickles_Playlist_Editor.Tools
         }
     }
 
-    /// <summary>The status bar's two background slots: stats wins over AI; nothing when both are empty.</summary>
+    /// <summary>Two status-bar slots: the first wins; nothing when both are empty. Nested for backfill over stats over AI.</summary>
     internal static class BackgroundStatus
     {
         public static (string Text, int Percent)? Pick((string Text, int Percent)? stats, (string Text, int Percent)? ai) =>

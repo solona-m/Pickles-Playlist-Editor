@@ -439,4 +439,22 @@ Do you want to proceed?</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>AI-likelihood score</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>Scoring AI likelihood {0}/{1}...</value></data>
   <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI scoring is already running in the background. These songs will be scored after it.</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>Backfill tags from folder…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>Backfill tags from folder</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>Choose the folder with your original song files (subfolders are searched too)</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>Checking which songs need tags…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>Looking for original files… {0} audio files checked</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>Reading tags {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>Filled tags for {0} of {1} songs without tags, from {2} audio files searched.</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>{0} of them are tagged as made with Suno or Udio.</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>Turn on the AI-likelihood score in Settings to see their Certainly AI tags.</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} already had tags and were left as they were.</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} had no file with a matching name in that folder.</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} were skipped: more than one possible file, a length that didn't match, or a change while this ran.</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} matched a file with no tags, or one that couldn't be read.</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} matched files that are only stored online (OneDrive or similar). Make them available offline and run this again.</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>The folder couldn't be read: {0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>Your saved song tags couldn't be opened, so nothing was changed. Try again later.</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>Backfill tags is already running in the background. Try again when the progress bar at the bottom has finished.</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>These songs already have tags.</value></data>
 </root>

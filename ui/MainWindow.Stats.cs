@@ -285,7 +285,7 @@ namespace Pickles_Playlist_Editor
             while (busy()) await Task.Delay(1000, ct);
         }
 
-        // ── Status bar: two background slots, stats shown over AI ──
+        // ── Status bar: background slots, backfill over stats over AI ──
 
         private void SetStatsProgress(string text, int percent)
         {
@@ -301,7 +301,7 @@ namespace Pickles_Playlist_Editor
         {
             if (!_uiDispatcherQueue.HasThreadAccess) { _uiDispatcherQueue.TryEnqueue(RenderBackgroundProgress); return; }
             if (_busyOverlayVisible) return;
-            var show = BackgroundStatus.Pick(_statsProgress, _aiProgress);
+            var show = BackgroundStatus.Pick(_backfillProgress, BackgroundStatus.Pick(_statsProgress, _aiProgress)); // the job the user just started first
             ProgressLabel.Text = show?.Text ?? "";
             ProgressBar1.Value = Math.Clamp(show?.Percent ?? 0, 0, 100);
             UpdateStatusBarVisibility();

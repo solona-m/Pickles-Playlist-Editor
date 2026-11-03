@@ -116,6 +116,27 @@ namespace Pickles_Playlist_Editor.Utils
             _source.Flush();
         }
 
+        /// <summary>True when the source-tag file is loaded or can be (checked before a backfill writes anything).</summary>
+        public bool CanLoadSource()
+        {
+            lock (_lock) return _source.CanLoad();
+        }
+
+        /// <summary>
+        /// Source tags for a song that shows none, in memory only (call <see cref="Flush"/>). Refused when the path was
+        /// forgotten or moved since, already has source tags, its SCD tags now show artist/album/AI, or the file can't load.
+        /// </summary>
+        public bool StoreSourceIfUntagged(string fullPath, SongTags tags, long generation)
+        {
+            string key = AiScoreCache.Key(fullPath);
+            lock (_lock)
+            {
+                if ((_generation.TryGetValue(key, out long g) ? g : 0) != generation) return false;
+                if (_scd.TryGet(key) is { } s && (s.HasArtistOrAlbum || s.IsAiTagged)) return false;
+                return _source.TrySetIfAbsent(key, tags);
+            }
+        }
+
         public void Forget(string fullPath)
         {
             string key = AiScoreCache.Key(fullPath);
@@ -241,6 +262,16 @@ namespace Pickles_Playlist_Editor.Utils
                 _map[key] = tags;
                 _removedWhileUnloaded.Remove(key);
                 Changed();
+            }
+
+            public bool CanLoad() => EnsureLoaded();
+
+            // Refused while unloaded: an unloaded Set would win over the file's entry when it loads later.
+            public bool TrySetIfAbsent(string key, SongTags tags)
+            {
+                if (!EnsureLoaded() || _map.ContainsKey(key)) return false;
+                Set(key, tags);
+                return true;
             }
 
             public void Remove(string key)

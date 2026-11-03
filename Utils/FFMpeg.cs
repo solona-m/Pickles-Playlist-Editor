@@ -58,18 +58,38 @@ namespace Pickles_Playlist_Editor.Utils
         /// The source file's global tags, via ffmpeg's ffmetadata output. Bounded (15 s by default): a stuck read is killed,
         /// never left to stall an import. Throws on failure; callers decide how quietly.
         /// </summary>
-        internal static IReadOnlyList<KeyValuePair<string, string>> ReadFfMetadata(string sourcePath, TimeSpan? timeout = null)
+        internal static IReadOnlyList<KeyValuePair<string, string>> ReadFfMetadata(string sourcePath, TimeSpan? timeout = null) =>
+            ReadFfMetadataWithDuration(sourcePath, timeout).Fields;
+
+        /// <summary>As <see cref="ReadFfMetadata"/>, plus the input's duration from the same run (null when ffmpeg can't tell).</summary>
+        internal static (IReadOnlyList<KeyValuePair<string, string>> Fields, TimeSpan? Duration) ReadFfMetadataWithDuration(
+            string sourcePath, TimeSpan? timeout = null, bool lowPriority = false)
         {
             string meta = Path.Combine(Path.GetTempPath(), "pickles-meta-" + Guid.NewGuid().ToString("N") + ".txt");
             try
             {
-                Run($"-y -i \"{sourcePath}\" -f ffmetadata \"{meta}\"", timeout ?? TimeSpan.FromSeconds(15));
-                return FfMetadata.ParseGlobal(File.ReadAllText(meta, System.Text.Encoding.UTF8));
+                string stderr = Run($"-y -i \"{sourcePath}\" -f ffmetadata \"{meta}\"", timeout ?? TimeSpan.FromSeconds(15), lowPriority);
+                return (FfMetadata.ParseGlobal(File.ReadAllText(meta, System.Text.Encoding.UTF8)), ParseDuration(stderr));
             }
             finally
             {
                 try { File.Delete(meta); } catch { }
             }
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex s_duration =
+            new(@"Duration:\s*(\d+):(\d\d):(\d\d(?:\.\d+)?)", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        /// <summary>The first "Duration: HH:MM:SS.xx" in ffmpeg's stderr; null for "N/A" or none.</summary>
+        internal static TimeSpan? ParseDuration(string? stderr)
+        {
+            if (string.IsNullOrEmpty(stderr)) return null;
+            var m = s_duration.Match(stderr);
+            if (!m.Success) return null;
+            double secs = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) * 3600
+                + int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture) * 60
+                + double.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
+            return TimeSpan.FromSeconds(secs);
         }
 
         public static void StripVideo(string oggName)
@@ -182,7 +202,7 @@ namespace Pickles_Playlist_Editor.Utils
             File.Move(tmp, oggName,true);
         }
 
-        private static string Run(string arguments, TimeSpan? timeout = null)
+        private static string Run(string arguments, TimeSpan? timeout = null, bool lowPriority = false)
         {
             using var process = new Process();
             process.StartInfo.FileName = "ffmpeg.exe";
@@ -193,6 +213,11 @@ namespace Pickles_Playlist_Editor.Utils
             process.StartInfo.Arguments = arguments;
 
             process.Start();
+            if (lowPriority)
+            {
+                try { process.PriorityClass = ProcessPriorityClass.BelowNormal; }
+                catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { } // already exited
+            }
             string message;
             if (timeout is { } limit)
             {

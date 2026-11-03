@@ -439,4 +439,22 @@ Wil je doorgaan?</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>AI-waarschijnlijkheid</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>AI-waarschijnlijkheid scoren {0}/{1}...</value></data>
   <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>De AI-scoring loopt al op de achtergrond. Deze nummers worden daarna gescoord.</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>Tags aanvullen uit map…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>Tags aanvullen uit map</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>Kies de map met je originele songbestanden (submappen worden ook doorzocht)</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>Controleren welke nummers tags nodig hebben…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>Originele bestanden zoeken… {0} audiobestanden gecontroleerd</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>Tags lezen {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>Tags aangevuld voor {0} van {1} nummers zonder tags, uit {2} doorzochte audiobestanden.</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>{0} daarvan zijn gemarkeerd als gemaakt met Suno of Udio.</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>Zet de AI-waarschijnlijkheid aan in Instellingen om hun Zeker AI-label te zien.</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} hadden al tags en zijn niet gewijzigd.</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} hadden geen bestand met een overeenkomende naam in die map.</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} zijn overgeslagen: meer dan één mogelijk bestand, een lengte die niet klopte of een wijziging tijdens het uitvoeren.</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} kwamen overeen met een bestand zonder tags of een bestand dat niet gelezen kon worden.</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} kwamen overeen met bestanden die alleen online staan (OneDrive of vergelijkbaar). Maak ze offline beschikbaar en voer dit opnieuw uit.</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>De map kon niet gelezen worden: {0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>Je opgeslagen songtags konden niet worden geopend, dus er is niets gewijzigd. Probeer het later opnieuw.</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>Tags aanvullen uit map loopt al op de achtergrond. Probeer het opnieuw als de voortgangsbalk onderaan klaar is.</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>Deze nummers hebben al tags.</value></data>
 </root>
