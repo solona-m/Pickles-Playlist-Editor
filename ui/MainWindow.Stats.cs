@@ -304,6 +304,7 @@ namespace Pickles_Playlist_Editor
             var show = BackgroundStatus.Pick(_statsProgress, _aiProgress);
             ProgressLabel.Text = show?.Text ?? "";
             ProgressBar1.Value = Math.Clamp(show?.Percent ?? 0, 0, 100);
+            UpdateStatusBarVisibility();
         }
 
         // ── Exit: closing, the update restart and the language restart all pass through here ──
