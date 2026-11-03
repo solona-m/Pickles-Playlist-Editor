@@ -562,6 +562,7 @@ namespace Pickles_Playlist_Editor.Utils
             try
             {
                 if (ourWrite) ModFolderGuard.NoteWrite();
+                if (SnapshotBatch.SkipSnapshot()) return null; // this batch already has its one
 
                 string path = MetaPathFor(modRoot);
                 if (!File.Exists(path)) return null;

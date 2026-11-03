@@ -16,7 +16,7 @@ namespace Pickles_Playlist_Editor
     public sealed partial class MainWindow
     {
         private readonly StatsPassGate _statsGate; // built in the constructor: it links to _closingCts
-        private bool _autoStatsAgain, _namingRefreshInFlight;
+        private bool _autoStatsAgain, _namingRefreshInFlight, _restoreInFlight;
         private int _nativeModalOpen;
         private (string Text, int Percent)? _statsProgress, _aiProgress;
         // First-load playlists and songs whose names got stats in memory only (BackfillStatsFromCacheIfNeeded).
@@ -55,6 +55,13 @@ namespace Pickles_Playlist_Editor
             var ct = ticket.Token;
             string modKey = ModKey();
             bool reachedApply = false;
+            // Recorded up front, so a crash mid-run counts toward the cap; taken back on a clean finish or a cancel.
+            string? attemptBefore = null;
+            if (ticket.Kind == StatsPassKind.Auto)
+            {
+                attemptBefore = Settings.AutoStatsAttempt;
+                Settings.AutoStatsAttempt = AutoStatsRules.NextAttempt(attemptBefore, AppVersion.Display);
+            }
             var end = StatsPassEnd.Error;
             int analysed = 0, failedRels = 0, renamed = 0, saved = 0, entryCount = 0;
             var failedSongs = new List<string>();
@@ -85,12 +92,13 @@ namespace Pickles_Playlist_Editor
             catch (Exception ex) { end = StatsPassEnd.Error; Logger.LogError("Stats pass failed: {Error}", ex); }
             finally
             {
-                ClearStatsProgress();
-                if (ticket.Kind == StatsPassKind.Auto && AutoStatsRules.CountsAsFailedAttempt(reachedApply, end, saveErrors.Count))
-                    Settings.AutoStatsAttempt = AutoStatsRules.NextAttempt(Settings.AutoStatsAttempt, AppVersion.Display);
+                _statsGate.End(ticket); // first, so nothing below can leave the gate held
+                try { ClearStatsProgress(); } catch (Exception ex) { Logger.LogWarn("Stats: status bar not cleared: {Error}", ex.Message); }
+                // Only an Error, or saves that failed, keep the attempt; a crash keeps it by never getting here.
+                if (ticket.Kind == StatsPassKind.Auto && (end == StatsPassEnd.Cancelled || (end == StatsPassEnd.Finished && saveErrors.Count == 0)))
+                    Settings.AutoStatsAttempt = attemptBefore ?? "";
                 Logger.LogInfo("Stats pass {Kind} ended {End}: {Analysed} analysed, {Failed} failed, {Renamed} renamed, {Saved} playlist(s) saved, {SaveFailed} save failure(s)",
                     ticket.Kind, end, analysed, failedRels, renamed, saved, saveErrors.Count);
-                _statsGate.End(ticket);
                 if (_autoStatsAgain && !_closingCts.IsCancellationRequested)
                 {
                     _autoStatsAgain = false;
@@ -157,6 +165,7 @@ namespace Pickles_Playlist_Editor
             }
 
             do expected = await Compute(); while (OptionStatsNaming.Parts.FromSettings() != parts);
+            var snapshots = new SnapshotBatch(); // one manifest snapshot for the whole step, not one per playlist
 
             // A manual run on a selection renames only in the playlists it was started on.
             foreach (string name in Playlists.Keys.Where(n => onlyPlaylists == null || onlyPlaylists.Contains(n)).ToList())
@@ -181,7 +190,7 @@ namespace Pickles_Playlist_Editor
                         bool ok = false;
                         try
                         {
-                            pl.Save();
+                            using (snapshots.Enter()) pl.Save();
                             _backfilledPlaylists.Remove(pl);
                             ok = true;
                         }
@@ -268,7 +277,7 @@ namespace Pickles_Playlist_Editor
 
         /// <summary>Names are only applied when nothing else could be editing the playlists.</summary>
         private bool IsQuietForApply() =>
-            !_busyOverlayVisible && !_dragInProgress && !_namingRefreshInFlight && !IsDialogOpen() && !IsMenuOpen()
+            !_busyOverlayVisible && !_dragInProgress && !_namingRefreshInFlight && !_restoreInFlight && !IsDialogOpen() && !IsMenuOpen()
             && _nativeModalOpen == 0 && OpenPopups().Count == 0;
 
         private Task WaitUntilIdleAsync(CancellationToken ct) => IsForegroundBusy() ? PollAsync(IsForegroundBusy, ct) : Task.CompletedTask;

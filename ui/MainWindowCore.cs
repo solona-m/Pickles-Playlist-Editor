@@ -402,7 +402,9 @@ namespace Pickles_Playlist_Editor
                     TimeSpan? duration = BPMDetector.TryGetCachedDuration(scdPath);
                     if (!bpm.HasValue && string.IsNullOrEmpty(key) && !duration.HasValue) continue;
 
+                    string before = option.Name;
                     OptionStatsNaming.UpdateName(option, bpm, key, duration);
+                    if (option.Name == before) continue;
                     // In memory only; a stats run may save these (MainWindow.Stats.cs).
                     _backfilledPlaylists.Add(playlist);
                     _backfilledOptions.Add(option);
@@ -699,6 +701,7 @@ namespace Pickles_Playlist_Editor
                 Utils.VersionBackup.TryCaptureBeforeUpdate(targetVersion);
 
                 await mgr.DownloadUpdatesAsync(update);
+                Playlist.FlushPenumbraMod();
                 PrepareForExit(); // this exit skips AppWindow.Closing
                 try { mgr.ApplyUpdatesAndRestart(update); }
                 catch { ResumeAfterAbortedExit(); throw; }

@@ -118,13 +118,18 @@ public class BackgroundComputeStatsWiringTests
     }
 
     [Fact] // [AC-background-compute-stats-5] [EDGE-background-compute-stats-17] [EDGE-background-compute-stats-18] [EDGE-background-compute-stats-42]
-    public void AutoRun_FailedAttemptRecordedOnlyInFinally()
+    public void AutoRun_AttemptRecordedAtStart_TakenBackOnCleanFinishOrCancel()
     {
+        // Second review: recorded before any work, so a crash during analysis counts toward the cap too.
         Assert.Equal(1, AppSources().Sum(s => Count(s, "Settings.AutoStatsAttempt = AutoStatsRules.NextAttempt(")));
         string run = Run();
+        int record = At(run, "Settings.AutoStatsAttempt = AutoStatsRules.NextAttempt(attemptBefore, AppVersion.Display);");
+        Assert.True(record < At(run, "try\n            {"), "recorded before the run's work starts");
+        Assert.True(At(run, "if (ticket.Kind == StatsPassKind.Auto)\n            {") < record);
         string fin = run[At(run, "finally")..];
-        Assert.Matches(@"if \(ticket\.Kind == StatsPassKind\.Auto && AutoStatsRules\.CountsAsFailedAttempt\(reachedApply, end, saveErrors\.Count\)\)\s*Settings\.AutoStatsAttempt = AutoStatsRules\.NextAttempt\(", fin);
+        Assert.Matches(@"if \(ticket\.Kind == StatsPassKind\.Auto && \(end == StatsPassEnd\.Cancelled \|\| \(end == StatsPassEnd\.Finished && saveErrors\.Count == 0\)\)\)\s*Settings\.AutoStatsAttempt = attemptBefore \?\? """";", fin);
         Assert.Matches(@"reachedApply = true;\s*\(renamed, saved\) = await ApplyStatsNamesAsync\(", run);
+        Assert.True(At(fin, "_statsGate.End(ticket);") < At(fin, "ClearStatsProgress();"), "the gate is released first");
     }
 
     [Fact] // [AC-background-compute-stats-3] [AC-background-compute-stats-5] [EDGE-background-compute-stats-5] [EDGE-background-compute-stats-18] [EDGE-background-compute-stats-41]
@@ -185,8 +190,11 @@ public class BackgroundComputeStatsWiringTests
         Assert.Contains("is ContentDialog", dialog);
         Assert.Contains("_dialogGate.CurrentCount == 0", dialog);
         string quiet = Method(stats, "private bool IsQuietForApply");
-        foreach (var signal in new[] { "_busyOverlayVisible", "_dragInProgress", "_namingRefreshInFlight", "IsDialogOpen()", "IsMenuOpen()", "_nativeModalOpen", "OpenPopups()" })
+        foreach (var signal in new[] { "_busyOverlayVisible", "_dragInProgress", "_namingRefreshInFlight", "_restoreInFlight", "IsDialogOpen()", "IsMenuOpen()", "_nativeModalOpen", "OpenPopups()" })
             Assert.Contains(signal, quiet);
+        string revert = Method(Src("ui/MainWindow.ModFolderNotices.cs"), "private async void RevertUndoButton_Click");
+        Assert.True(At(revert, "_restoreInFlight = true;") < At(revert, "BackupCatalog.Restore(entry)"));
+        Assert.Matches(@"finally\s*\{[^}]*LoadPlaylists\(\);\s*_restoreInFlight = false;", revert);
         Assert.Contains("GetOpenPopupsForXamlRoot", Method(stats, "private IReadOnlyList<Microsoft.UI.Xaml.Controls.Primitives.Popup> OpenPopups"));
         string menu = Method(stats, "private bool IsMenuOpen");
         foreach (var f in new[] { "_treeContextMenu.IsOpen", "_rootContextMenu.IsOpen", "AddSongsFlyout.IsOpen", "SortFlyout.IsOpen" })
@@ -250,12 +258,16 @@ public class BackgroundComputeStatsWiringTests
     {
         string apply = Apply();
         Assert.Equal(1, Count(Stats(), ".Save("));
-        Assert.Matches(@"if \(dirty\)\s*\{\s*bool ok = false;\s*try\s*\{\s*pl\.Save\(\);\s*_backfilledPlaylists\.Remove\(pl\);\s*ok = true;\s*\}\s*catch \(Exception ex\)\s*\{\s*StatsRename\.Revert\(changes\);", apply);
-        int save = At(apply, "pl.Save();");
+        Assert.Matches(@"if \(dirty\)\s*\{\s*bool ok = false;\s*try\s*\{\s*using \(snapshots\.Enter\(\)\) pl\.Save\(\);\s*_backfilledPlaylists\.Remove\(pl\);\s*ok = true;\s*\}\s*catch \(Exception ex\)\s*\{\s*StatsRename\.Revert\(changes\);", apply);
+        int save = At(apply, "using (snapshots.Enter()) pl.Save();");
         int revert = At(apply, "StatsRename.Revert(changes);", save);
         Assert.True(At(apply, "if (ok)", revert) < At(apply, "UpdateStatsNodes(pl, changes)", revert), "the tree is updated only after a save that worked");
         Assert.DoesNotContain("UpdateStatsNodes(", apply[save..revert]);
         Assert.Contains("_backfilledPlaylists.Contains(pl)", apply);
+        Assert.Contains("using (snapshots.Enter()) pl.Save();", apply);
+        Assert.True(At(apply, "var snapshots = new SnapshotBatch();") < At(apply, "foreach (string name in Playlists.Keys.Where("));
+        foreach (var f in new[] { "Utils/PenumbraMeta.cs", "Utils/V3GroupFileStore.cs" })
+            Assert.Matches(@"if \(ourWrite\) ModFolderGuard\.NoteWrite\(\);\s*if \(SnapshotBatch\.SkipSnapshot\(\)\) return null;", Src(f));
     }
 
     [Fact] // [EDGE-background-compute-stats-18] [EDGE-background-compute-stats-38] [EDGE-background-compute-stats-39]
@@ -266,6 +278,7 @@ public class BackgroundComputeStatsWiringTests
         int dl = At(update, "await mgr.DownloadUpdatesAsync(update);");
         Assert.True(dl < At(update, "PrepareForExit();", dl) && At(update, "PrepareForExit();", dl) < At(update, "ApplyUpdatesAndRestart(", dl));
         Assert.Contains("catch { ResumeAfterAbortedExit(); throw; }", update);
+        Assert.Matches(@"Playlist\.FlushPenumbraMod\(\);\s*PrepareForExit\(\);", update);
         string lang = Method(Src("ui/SettingsDialog.xaml.cs"), "private void PromptRestartForLanguage");
         int prep = At(lang, "App.MainWindow.PrepareForExit();");
         int restart = At(lang, "AppInstance.Restart(");
@@ -305,6 +318,9 @@ public class BackgroundComputeStatsWiringTests
         string backfill = Method(Src("ui/MainWindowCore.cs"), "private void BackfillStatsFromCacheIfNeeded");
         int update = At(backfill, "OptionStatsNaming.UpdateName(option, bpm, key, duration);");
         Assert.True(update < At(backfill, "_backfilledPlaylists.Add(playlist);") && update < At(backfill, "_backfilledOptions.Add(option);"));
+        // only a name it actually changed: otherwise the automatic run would save playlists with nothing new
+        int unchanged = At(backfill, "if (option.Name == before) continue;");
+        Assert.True(At(backfill, "string before = option.Name;") < update && update < unchanged && unchanged < At(backfill, "_backfilledPlaylists.Add(playlist);"));
         string stats = Stats();
         Assert.Contains("new HashSet<Playlist> _backfilledPlaylists", stats.Replace("readonly HashSet<Playlist> _backfilledPlaylists = new(", "new HashSet<Playlist> _backfilledPlaylists"));
         Assert.Equal(2, Count(stats, "new(ReferenceEqualityComparer.Instance)"));
@@ -317,6 +333,7 @@ public class BackgroundComputeStatsWiringTests
         string fin = Run()[At(Run(), "finally")..];
         Assert.Matches(@"if \(_autoStatsAgain && !_closingCts\.IsCancellationRequested\)\s*\{\s*_autoStatsAgain = false;\s*MaybeStartAutoStats\(\);", fin);
         Assert.Contains("if (modChanged) _statsGate.CancelRunning();", Method(Src("ui/MainWindow.AiScore.cs"), "internal void ContinueAiScoreAfterSettings"));
-        Assert.Contains("_statsGate = new StatsPassGate(_closingCts.Token);", Method(Src("ui/MainWindow.cs"), "public MainWindow()"));
+        string ctor = Method(Src("ui/MainWindow.cs"), "public MainWindow()");
+        Assert.True(At(ctor, "_statsGate = new StatsPassGate(_closingCts.Token);") < At(ctor, "this.InitializeComponent();"));
     }
 }

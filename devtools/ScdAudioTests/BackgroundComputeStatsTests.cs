@@ -195,14 +195,17 @@ public class BackgroundComputeStatsTests
     public async Task LibraryReadGate_FifoHandover_NoBarging()
     {
         var gate = new LibraryReadGate();
-        await gate.EnterAsync(CancellationToken.None); // A
-        var order = new List<string>();
-        var b = Task.Run(async () => { await gate.EnterAsync(CancellationToken.None); order.Add("B"); gate.Exit(); });
-        await Task.Delay(100);
+        await gate.EnterAsync(CancellationToken.None); // A holds
+        var b = gate.EnterAsync(CancellationToken.None); // B queues (registered synchronously)
+        Assert.False(b.IsCompleted);
+        gate.Exit(); // handed to B, not freed
+        var aAgain = gate.EnterAsync(CancellationToken.None); // A can't barge past B
+        await b;
+        Assert.False(aAgain.IsCompleted);
+        gate.Exit(); // B done
+        await aAgain;
         gate.Exit();
-        var aAgain = gate.EnterAsync(CancellationToken.None).ContinueWith(_ => { order.Add("A"); gate.Exit(); });
-        await Task.WhenAll(b, aAgain);
-        Assert.Equal(new[] { "B", "A" }, order);
+        Assert.True(gate.IsFree);
 
         int turnsA = 0, turnsB = 0;
         async Task Loop(Action turn) { for (int i = 0; i < 20; i++) { await gate.EnterAsync(CancellationToken.None); turn(); await Task.Yield(); gate.Exit(); } }
@@ -395,6 +398,43 @@ public class BackgroundComputeStatsTests
         var pl = new Playlist { Name = "P" };
         var entries = StatsPlan.Snapshot([(pl, Song("off", "p/o.scd")), (pl, Song("DEFAULT", "p/d.scd")), (pl, Song("Song", "p/s.scd"))], RelOf, _ => false);
         Assert.Equal(new[] { "Song" }, entries.Select(e => e.Name));
+    }
+
+    [Fact] // [EDGE-background-compute-stats-9] [EDGE-background-compute-stats-37] the Backfilled flag comes from the predicate
+    public void StatsPlan_Snapshot_TakesBackfilledFromPredicate()
+    {
+        var pl = new Playlist { Name = "P" };
+        var a = Song("A (120 BPM)", "p/a.scd");
+        var b = Song("B", "p/b.scd");
+        var entries = StatsPlan.Snapshot([(pl, a), (pl, b)], RelOf, o => ReferenceEquals(o, a));
+        Assert.True(entries.Single(e => e.Rel == "p/a.scd").Backfilled);
+        Assert.False(entries.Single(e => e.Rel == "p/b.scd").Backfilled);
+    }
+
+    [Fact] // [AC-background-compute-stats-4] [EDGE-background-compute-stats-3] nothing to add: not dirty, not saved
+    public void StatsRename_AllPartsOff_NotBackfilled_NotDirty()
+    {
+        var e = new StatsEntry("P", "p/a.scd", "p\\a.scd", "A", false);
+        var expected = StatsRename.ExpectedNames([e], _ => Full, None, StatsRenameMode.Additive);
+        var (changes, dirty, matched) = StatsRename.ApplyOne(new Playlist { Name = "P", Options = [Song("A", "p/a.scd")] }, expected, RelOf, false);
+        Assert.Empty(changes);
+        Assert.False(dirty);
+        Assert.Equal(1, matched);
+    }
+
+    [Fact] // [EDGE-background-compute-stats-5] one manifest snapshot per batch, and only inside it
+    public void SnapshotBatch_OneSnapshotPerBatch_OnlyInsideTheScope()
+    {
+        Assert.False(SnapshotBatch.SkipSnapshot()); // outside any batch: always snapshot
+        var batch = new SnapshotBatch();
+        using (batch.Enter()) Assert.False(SnapshotBatch.SkipSnapshot()); // the batch's one
+        Assert.False(SnapshotBatch.SkipSnapshot()); // a user edit between saves still snapshots
+        using (batch.Enter())
+        {
+            Assert.True(SnapshotBatch.SkipSnapshot());
+            Assert.True(SnapshotBatch.SkipSnapshot());
+        }
+        using (new SnapshotBatch().Enter()) Assert.False(SnapshotBatch.SkipSnapshot()); // a new batch gets its own
     }
 
     [Fact] // [EDGE-background-compute-stats-5]
