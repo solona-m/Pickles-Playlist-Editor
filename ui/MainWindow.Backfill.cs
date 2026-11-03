@@ -57,10 +57,9 @@ namespace Pickles_Playlist_Editor
             SetBackfillProgress(AppStrings.Prog_BackfillPreparing, 0);
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(_closingCts.Token);
             var ct = cts.Token;
-            BackfillResult result;
             try
             {
-                result = await Task.Run(() =>
+                var result = await Task.Run(() =>
                 {
                     using (ThreadPriorityScope.Background())
                         return SourceTagBackfill.Run(library, alreadyHad, folder, SongTagCache.Default,
@@ -69,26 +68,21 @@ namespace Pickles_Playlist_Editor
                                 ? AppStrings.ProgBackfillScanning(a) : AppStrings.ProgBackfillReading(a, b), b > 0 ? a * 100 / b : 0),
                             n => { if (n % SourceTagBackfill.FlushEvery == 0) _uiDispatcherQueue.TryEnqueue(RefreshSongTooltips); });
                 });
+                SetBackfillProgress("", 0);
+                Logger.LogInfo("Backfill: {Outcome}; {Filled} of {Targets} filled ({Ai} AI-tagged), {Already} already had tags, {NoMatch} no match, {Skipped} skipped, {NoTags} no tags, {Cloud} cloud-only",
+                    result.Outcome, result.Filled, result.Targets, result.AiTagged, result.AlreadyHad, result.NoMatch, result.Skipped, result.NoTags, result.CloudOnly);
+                if (_closingCts.IsCancellationRequested) return;
+                // Always: the step before the walk can also have stored tags a song's SCD carried.
+                if (IsFilterActive) LoadPlaylists(SearchTextBox.Text.Trim());
+                else RefreshSongTooltips();
+                await ShowDialogAsync(AppStrings.Summary_BackfillTags, BackfillText.Summary(result, Settings.AiScoreEnabled, AppStrings.Get));
             }
-            catch (Exception ex)
-            {
-                Logger.LogError("Backfill tags failed: {Error}", ex);
-                return;
-            }
+            catch (Exception ex) { Logger.LogError("Backfill tags failed: {Error}", ex); }
             finally
             {
                 SetBackfillProgress("", 0);
                 _backfillRunning = false;
             }
-            Logger.LogInfo("Backfill: {Outcome}; {Filled} of {Targets} filled ({Ai} AI-tagged), {Already} already had tags, {NoMatch} no match, {Skipped} skipped, {NoTags} no tags, {Cloud} cloud-only",
-                result.Outcome, result.Filled, result.Targets, result.AiTagged, result.AlreadyHad, result.NoMatch, result.Skipped, result.NoTags, result.CloudOnly);
-            if (result.Filled > 0)
-            {
-                if (IsFilterActive) LoadPlaylists(SearchTextBox.Text.Trim());
-                else RefreshSongTooltips();
-            }
-            if (!_closingCts.IsCancellationRequested)
-                await ShowDialogAsync(AppStrings.Summary_BackfillTags, BackfillText.Summary(result, Settings.AiScoreEnabled, AppStrings.Get));
         }
 
         private void SetBackfillProgress(string text, int percent)

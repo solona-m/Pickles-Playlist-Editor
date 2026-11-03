@@ -321,14 +321,24 @@ public sealed class SourceTagBackfillTests : IDisposable
             lib.Add(Song($"pl\\S{i}.scd"));
             Source($"n{i % 7}\\S{i}.mp3", Tags("A" + i));
         }
-        var walk = SourceTagBackfill.Walk(Src, new HashSet<string>(lib.Select(l => Path.GetFileNameWithoutExtension(l.ScdFullPath)), StringComparer.OrdinalIgnoreCase),
+        var walk = SourceFolderWalk.Walk(Src, new HashSet<string>(lib.Select(l => Path.GetFileNameWithoutExtension(l.ScdFullPath)), StringComparer.OrdinalIgnoreCase),
             new HashSet<string>(StringComparer.OrdinalIgnoreCase), default);
         Assert.Equal(550, walk.FilesChecked);
         Assert.Equal(250, walk.Exact.Count);
 
         var progress = new List<(string, int, int)>();
+        var filledCalls = new List<int>();
+        int seenMidRun = -1;
+        _onRead = _ =>
+        {
+            if (_readCalls.Count != 102) return; // 101 stored by now: the 100th triggered a flush
+            var mid = new SongTagCache(Path.Combine(_dir, "tags_v2.json"), Path.Combine(_dir, "source_v1.json"));
+            seenMidRun = lib.Count(l => mid.TryGet(l.ScdFullPath)?.Artist.StartsWith('A') == true);
+        };
         var r = SourceTagBackfill.Run(lib, 0, Src, _cache, Read, _ => SongTags.None, SourceTagBackfill.ScdDuration, default,
-            (p, a, b) => progress.Add((p, a, b)));
+            (p, a, b) => progress.Add((p, a, b)), filledCalls.Add);
+        Assert.InRange(seenMidRun, 100, 101);
+        Assert.Equal(Enumerable.Range(1, 250), filledCalls);
         Assert.Equal(250, r.Filled);
         Assert.Equal(550, r.FilesChecked);
         Assert.Equal(250, _readCalls.Count);
@@ -358,6 +368,59 @@ public sealed class SourceTagBackfillTests : IDisposable
         var r = Run([Song("pl\\A.scd")], root: Path.Combine(_dir, "nope"));
         Assert.Equal(BackfillOutcome.FolderUnreadable, r.Outcome);
         Assert.NotEmpty(r.FolderError);
+    }
+
+    [SkippableFact] // [AC-gh-20-backfill-tags-8] [EDGE-gh-20-backfill-tags-16]
+    public void Run_RootAccessDenied_FolderUnreadable()
+    {
+        var song = Song("pl\\A.scd");
+        Source("A.mp3", Tags("A"));
+        var info = new DirectoryInfo(Src);
+        var rule = new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!, FileSystemRights.ListDirectory, AccessControlType.Deny);
+        var acl = info.GetAccessControl();
+        acl.AddAccessRule(rule);
+        info.SetAccessControl(acl);
+        try
+        {
+            bool denied;
+            try { Directory.EnumerateFileSystemEntries(Src).ToList(); denied = false; } catch (UnauthorizedAccessException) { denied = true; }
+            Skip.IfNot(denied, "the deny rule did not take");
+            var r = Run([song]);
+            Assert.Equal(BackfillOutcome.FolderUnreadable, r.Outcome);
+            Assert.Empty(_readCalls);
+        }
+        finally
+        {
+            acl.RemoveAccessRule(rule);
+            info.SetAccessControl(acl);
+        }
+    }
+
+    [SkippableFact] // [AC-gh-20-backfill-tags-9] [EDGE-gh-20-backfill-tags-19]
+    public void Run_CloudOnlyCandidate_CountedNeverRead()
+    {
+        var song = Song("pl\\Cloud.scd");
+        string file = Source("Cloud.m4a", Tags("A"));
+        File.SetAttributes(file, FileAttributes.Offline);
+        Skip.IfNot((File.GetAttributes(file) & FileAttributes.Offline) != 0, "the Offline attribute did not stick");
+        var r = Run([song]);
+        Assert.Equal(1, r.CloudOnly);
+        Assert.Equal(0, r.Filled);
+        Assert.Empty(_readCalls);
+    }
+
+    [Fact] // [AC-gh-20-backfill-tags-9] [EDGE-gh-20-backfill-tags-18]
+    public void Walk_DepthCapped()
+    {
+        string deep = Src;
+        for (int i = 0; i <= SourceTagBackfill.MaxDepth; i++) deep = Path.Combine(deep, "d");
+        Directory.CreateDirectory(deep);
+        File.WriteAllBytes(Path.Combine(deep, "TooDeep.mp3"), []); // depth MaxDepth + 1
+        File.WriteAllBytes(Path.Combine(Path.GetDirectoryName(deep)!, "JustFits.mp3"), []); // depth MaxDepth
+        var w = SourceFolderWalk.Walk(Src, new HashSet<string>(["TooDeep", "JustFits"], StringComparer.OrdinalIgnoreCase),
+            new HashSet<string>(), default);
+        Assert.True(w.Exact.ContainsKey("JustFits"));
+        Assert.False(w.Exact.ContainsKey("TooDeep"));
     }
 }
 
@@ -395,7 +458,7 @@ public sealed class SourceTagBackfillWalkTests : IDisposable
         File.SetAttributes(Path.Combine(_dir, "sys"), FileAttributes.Directory | FileAttributes.System);
         string cloud = Touch("Cloud.m4a");
         File.SetAttributes(cloud, FileAttributes.Offline);
-        var w = SourceTagBackfill.Walk(_dir, Set("Song", "Hidden", "Sys", "Cloud"), Set(), default);
+        var w = SourceFolderWalk.Walk(_dir, Set("Song", "Hidden", "Sys", "Cloud"), Set(), default);
         Assert.Single(w.Exact["Song"]);
         Assert.False(w.Exact.ContainsKey("Hidden"));
         Assert.False(w.Exact.ContainsKey("Sys"));
@@ -408,7 +471,7 @@ public sealed class SourceTagBackfillWalkTests : IDisposable
         var mk = Process.Start(new ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{_dir}\"") { CreateNoWindow = true, UseShellExecute = false })!;
         mk.WaitForExit();
         Skip.IfNot(Directory.Exists(link), "junctions unavailable");
-        w = SourceTagBackfill.Walk(_dir, Set("Song"), Set(), default);
+        w = SourceFolderWalk.Walk(_dir, Set("Song"), Set(), default);
         Assert.Single(w.Exact["Song"]);
         Directory.Delete(link);
 
@@ -422,7 +485,7 @@ public sealed class SourceTagBackfillWalkTests : IDisposable
         info.SetAccessControl(acl);
         try
         {
-            w = SourceTagBackfill.Walk(_dir, Set("Song", "Song_9"), Set(), default);
+            w = SourceFolderWalk.Walk(_dir, Set("Song", "Song_9"), Set(), default);
             Assert.Single(w.Exact["Song"]);
             Assert.False(w.Exact.ContainsKey("Song_9"));
         }
@@ -482,6 +545,9 @@ public sealed class SourceTagBackfillFfmpegTests : IDisposable
         Assert.Null(SourceTagReader.ReadForBackfill(Path.Combine(nested, "Broken.mp3")).Tags);
         Assert.Null(FFMpeg.ParseDuration("  Duration: N/A, bitrate: N/A"));
         Assert.Equal(TimeSpan.FromSeconds(83.5), FFMpeg.ParseDuration("  Duration: 00:01:23.50, start: 0"));
+        // a tag value can't pose as the length: only a line that starts with "Duration:"
+        Assert.Equal(TimeSpan.FromSeconds(5), FFMpeg.ParseDuration(
+            "    comment         : fake Duration: 00:03:00.00\n  Duration: 00:00:05.00, start: 0"));
 
         var cache = new SongTagCache(_fx.PathFor("t_v2.json"), _fx.PathFor("s_v1.json"));
         var r = SourceTagBackfill.Run(
@@ -522,7 +588,11 @@ public sealed class SourceTagBackfillWiringTests
         Assert.Contains("CreateLinkedTokenSource(_closingCts.Token)", ui);
         Assert.Contains("if (_closingCts.IsCancellationRequested) {", ui);
         Assert.Contains("if (_backfillRunning) { await ShowDialogAsync(AppStrings.Summary_BackfillTags, AppStrings.Backfill_AlreadyRunning)", ui);
-        Assert.Contains("if (!_closingCts.IsCancellationRequested)\n", ui.Replace("\r\n", "\n"));
+        // closing: no refresh and no dialog after the run
+        string after = ui[ui.IndexOf("var result = await Task.Run(")..];
+        int bail = after.IndexOf("if (_closingCts.IsCancellationRequested) return;");
+        Assert.True(bail > 0 && bail < after.IndexOf("RefreshSongTooltips();") && bail < after.IndexOf("ShowDialogAsync("));
+        Assert.Contains("SongTagCache.Default.Flush()", Src("ui", "MainWindow.Stats.cs")); // PrepareForExit keeps fills since the last flush
         Assert.True(ui.IndexOf("SetBackfillProgress(AppStrings.Prog_BackfillPreparing, 0)") < ui.IndexOf("Task.Run("));
         Assert.Contains("BPMDetector.TryGetCachedDuration(Playlist.GetScdPath(", ui);
         Assert.DoesNotContain("ModFolderChanged", ui);
@@ -532,10 +602,16 @@ public sealed class SourceTagBackfillWiringTests
         Assert.Contains("is not ScdVorbis", core);
         Assert.Contains("NVorbis.VorbisReader(new MemoryStream(", core);
         Assert.DoesNotContain("WithExtracted", core);
-        // the backfill's own log lines: counts and file names only
-        foreach (string line in core.Split('\n').Where(l => l.Contains("Logger.Log")))
-            Assert.DoesNotContain("root", line);
+        // the backfill's own log calls: counts and file names only (each call's arguments, continuation lines included)
+        foreach (string file in new[] { core, Src("Tools", "SourceFolderWalk.cs"), ui })
+            foreach (var call in System.Text.RegularExpressions.Regex.Matches(file, @"Logger\.Log\w+\((.*?)\);", System.Text.RegularExpressions.RegexOptions.Singleline)
+                .Select(m => m.Groups[1].Value))
+            {
+                foreach (string pathy in new[] { "root", "FullName", "dir.", "entry.", ".Path)", "ScdFullPath," })
+                    Assert.DoesNotContain(pathy, call.Replace("Path.GetFileName(song.ScdFullPath)", "").Replace("Path.GetFileName(c.Path)", ""));
+            }
         Assert.Contains("Path.GetFileName(song.ScdFullPath)", core);
+        Assert.Contains("Path.GetFileName(c.Path)", core);
 
         string ff = Src("Utils", "FFMpeg.cs");
         Assert.Contains("if (lowPriority)", ff);

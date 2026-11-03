@@ -6,13 +6,13 @@ using System.Linq;
 
 namespace Pickles_Playlist_Editor.Tools
 {
+    /// <summary>A source file's tags (null when unreadable) and its duration (null when unknown).</summary>
+    internal readonly record struct SourceRead(SongTags? Tags, TimeSpan? Duration);
+
     /// <summary>
     /// Artist, album, title and comment-type tags from an imported mp3/m4a/flac/wav itself (#20): the SCD made from it
     /// carries no tags on purpose, so these go to the tag cache only. Never throws.
     /// </summary>
-    /// <summary>A source file's tags (null when unreadable) and its duration (null when unknown).</summary>
-    internal readonly record struct SourceRead(SongTags? Tags, TimeSpan? Duration);
-
     internal static class SourceTagReader
     {
         public static SongTags? Read(string sourcePath) => Read(sourcePath, null);

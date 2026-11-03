@@ -78,9 +78,10 @@ namespace Pickles_Playlist_Editor.Utils
         }
 
         private static readonly System.Text.RegularExpressions.Regex s_duration =
-            new(@"Duration:\s*(\d+):(\d\d):(\d\d(?:\.\d+)?)", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            new(@"^[ \t]*Duration:[ \t]*(\d+):(\d\d):(\d\d(?:\.\d+)?)",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.Multiline);
 
-        /// <summary>The first "Duration: HH:MM:SS.xx" in ffmpeg's stderr; null for "N/A" or none.</summary>
+        /// <summary>The first "Duration: HH:MM:SS.xx" line in ffmpeg's stderr (not a tag value); null for "N/A" or none.</summary>
         internal static TimeSpan? ParseDuration(string? stderr)
         {
             if (string.IsNullOrEmpty(stderr)) return null;

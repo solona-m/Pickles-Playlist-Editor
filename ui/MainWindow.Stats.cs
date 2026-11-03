@@ -314,6 +314,7 @@ namespace Pickles_Playlist_Editor
         {
             try { _closingCts.Cancel(); } catch { }
             SettleAutoAttempt(keep: false); // an exit is not a failed attempt; the run's finally may never get to run
+            try { SongTagCache.Default.Flush(); } catch { } // a backfill's fills since its last flush
             StatsCacheWrites.HoldForExit();
         }
 
