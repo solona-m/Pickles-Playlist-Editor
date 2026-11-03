@@ -25,7 +25,7 @@ namespace Pickles_Playlist_Editor.Utils.Tex
         /// <summary>
         /// Plans a load, capping the longest edge at <paramref name="maxEdge"/>.
         ///
-        /// The cap matters on a 32-bit build: a modern phone photograph at full size is a 100 MB
+        /// The cap matters: a modern phone photograph at full size is a 100 MB
         /// buffer for a picture that ends up a few hundred pixels wide.
         /// </summary>
         public static PictureLoadPlan For(uint rawWidth, uint rawHeight, uint orientedWidth, uint maxEdge)

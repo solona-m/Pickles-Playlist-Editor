@@ -35,7 +35,7 @@ public class WindowsAppSdkTargetTests
     private static string MajorMinor() => $"{WinAppSdkVersion().Major}.{WinAppSdkVersion().Minor}";
 
     // A restored package of the app: its resolved version and folder.
-    private static (string Version, string Dir) Package(string id)
+    internal static (string Version, string Dir) Package(string id)
     {
         using var assets = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoRoot(), "obj", "project.assets.json")));
         string folder = assets.RootElement.GetProperty("packageFolders").EnumerateObject().First().Name;
@@ -46,7 +46,7 @@ public class WindowsAppSdkTargetTests
 
     private static (string Version, string Dir) RuntimePackage() => Package("Microsoft.WindowsAppSDK.Runtime");
 
-    private static string MsixFolder() => Path.Combine(RuntimePackage().Dir, "tools", "MSIX", "win10-x86");
+    private static string MsixFolder() => Path.Combine(RuntimePackage().Dir, "tools", "MSIX", "win10-x64");
 
     private static XDocument MsixManifest(string msix)
     {
@@ -86,7 +86,7 @@ public class WindowsAppSdkTargetTests
     {
         var winui = Package("Microsoft.WindowsAppSDK.WinUI");
         Assert.Equal(WinAppSdkVersion(), Version.Parse(winui.Version));
-        string shipped = Path.Combine(winui.Dir, "runtimes-framework", "win-x86", "native", "Microsoft.ui.xaml.dll");
+        string shipped = Path.Combine(winui.Dir, "runtimes-framework", "win-x64", "native", "Microsoft.ui.xaml.dll");
         string bundled = Path.Combine(AppContext.BaseDirectory, "Microsoft.ui.xaml.dll");
         Assert.True(File.Exists(bundled), "Microsoft.ui.xaml.dll not bundled");
         Assert.Equal(File.ReadAllBytes(shipped), File.ReadAllBytes(bundled));

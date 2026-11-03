@@ -1,52 +1,29 @@
-﻿using libZPlay;
-using Pickles_Playlist_Editor.Tools;
+﻿using Pickles_Playlist_Editor.Tools;
+using Pickles_Playlist_Editor.Utils;
 using System;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Pickles_Playlist_Editor
 {
     internal static class Player
     {
-        static ZPlay player = new ZPlay();
+        private static readonly PlaybackEngine s_engine = new(() => new WaveOutAudioOutput());
         private static readonly object _playerLock = new object();
-        private static readonly int[] EqualizerBands = [64, 250, 1000, 4000, 12000];
 
-        enum PauseState
-        {
-            PAUSED,
-            PLAYING,
-            STOPPED
-        }
+        public static bool IsPlaying => s_engine.IsPlaying;
+        public static bool IsPaused => s_engine.IsPaused;
 
-        // Written on the UI thread, read by the playback monitor on a thread-pool thread
-        // where it is the sole gate on auto-advance — needs a barrier to be visible.
-        private static volatile PauseState currentState = PauseState.STOPPED;
-        public static bool IsPlaying => currentState == PauseState.PLAYING || currentState == PauseState.PAUSED;
-        public static bool IsPaused => currentState == PauseState.PAUSED;
-
-        private static int _volume = 100;
-
-        // Nullable: cleared by the owning monitor when it disposes its own source.
-        private static CancellationTokenSource? monitorCts;
         private static string? extractedTempOggPath;
 
-        // Tracks whether libZPlay currently holds an open stream. Calling StopPlayback /
-        // Close / StartPlayback against a closed stream is a native-side crash with no
-        // managed exception and no stack — nothing survives it to be logged.
-        private static bool _streamOpen;
+        /// <summary>True while no Play or Stop has happened since the session with this generation started.</summary>
+        public static bool IsCurrent(long generation) => s_engine.IsCurrent(generation);
 
-        // Added optional onEnded callback parameter
-        public static void Play(string filePath, Action? onEnded = null)
+        public static void Play(string filePath, Action<long>? onEnded = null)
         {
             Utils.Logger.LogInfo("Play: requested '{File}'", filePath);
 
-            // Release any existing playback handle before writing a new temporary file.
-            if (currentState == PauseState.PLAYING || currentState == PauseState.PAUSED)
-            {
-                Stop();
-            }
+            // Always tear down first: a song that ended on its own still holds its temp file open.
+            Stop();
 
             CleanupExtractedTempFile();
 
@@ -148,201 +125,29 @@ namespace Pickles_Playlist_Editor
             return name;
         }
 
-        public static void PlayOgg(string oggPath, Action? onEnded = null)
+        public static void PlayOgg(string oggPath, Action<long>? onEnded = null)
         {
-            if (currentState == PauseState.PLAYING || currentState == PauseState.PAUSED)
-            {
-                Stop();
-            }
-
             lock (_playerLock)
             {
                 Utils.Logger.LogInfo("PlayOgg: opening '{File}'", oggPath);
-
-                // Every libZPlay call returns a success flag. Ignoring it meant a failed
-                // OpenFile was followed by StartPlayback against a stream that was never
-                // opened — an access violation inside the native DLL, which kills the
-                // process outright and cannot be caught by any managed handler.
-                if (!player.OpenFile(oggPath, TStreamFormat.sfOgg))
+                try { s_engine.Open(oggPath, onEnded); }
+                catch (InvalidOperationException ex)
                 {
-                    string error = SafeGetError();
-                    currentState = PauseState.STOPPED;
-                    Utils.Logger.LogError("PlayOgg: OpenFile failed for '{File}': {Error}", oggPath, error);
-                    throw new InvalidOperationException($"The audio decoder could not open this track: {error}");
+                    Utils.Logger.LogError("PlayOgg: could not play '{File}': {Error}", oggPath, ex.Message);
+                    throw;
                 }
-
-                _streamOpen = true;
-                player.SetPlayerVolume(_volume, _volume);
-
-                if (!player.StartPlayback())
-                {
-                    string error = SafeGetError();
-                    Utils.Logger.LogError("PlayOgg: StartPlayback failed for '{File}': {Error}", oggPath, error);
-                    CloseStreamNoThrow();
-                    currentState = PauseState.STOPPED;
-                    throw new InvalidOperationException($"Playback could not be started: {error}");
-                }
-
-                currentState = PauseState.PLAYING;
             }
-
             Utils.Logger.LogInfo("PlayOgg: playback started");
-            StartPlaybackMonitor(onEnded);
         }
 
-        private static string SafeGetError()
-        {
-            try { return player.GetError() ?? "unknown error"; }
-            catch (Exception ex) { return $"unknown error ({ex.GetType().Name})"; }
-        }
-
-        // Caller must hold _playerLock.
-        private static void CloseStreamNoThrow()
-        {
-            if (!_streamOpen) return;
-            try { player.Close(); }
-            catch (Exception ex) { Utils.Logger.LogWarn("Player.Close failed: {Error}", ex.Message); }
-            finally { _streamOpen = false; }
-        }
-
-        private static void StartPlaybackMonitor(Action? onEnded)
-        {
-            // Each monitor owns its CancellationTokenSource and disposes it on the way out.
-            // Cancel alone leaked one CTS (plus its timer/callback registrations) per
-            // track, but disposing the outgoing source here instead would race the task
-            // still unwinding on it — Task.Delay's ct.Register would throw.
-            var cts = new CancellationTokenSource();
-            var previous = monitorCts;
-            monitorCts = cts;
-            var ct = cts.Token;
-
-            CancelNoThrow(previous);
-
-            Task.Run(async () =>
-            {
-                bool loggedPollError = false;
-                try
-                {
-                    try
-                    {
-                        while (!ct.IsCancellationRequested)
-                        {
-                            try
-                            {
-                                // Check playback status; break when playback is no longer active
-                                var status = new TStreamStatus();
-                                lock (_playerLock)
-                                {
-                                    if (!_streamOpen) break;
-                                    player.GetStatus(ref status);
-                                }
-                                if (!status.fPlay)
-                                {
-                                    break;
-                                }
-
-                                // Optionally you can also check position vs length if needed:
-                                // var pos = new TStreamTime();
-                                // player.GetPosition(ref pos);
-                                // var info = new TStreamInfo();
-                                // player.GetStreamInfo(ref info);
-                                // if (info.Length.ms > 0 && pos.ms >= info.Length.ms) break;
-                            }
-                            catch (Exception ex)
-                            {
-                                // Keep polling, but don't lose the fact that it happened —
-                                // repeated status failures are a symptom worth seeing in a log.
-                                if (!loggedPollError)
-                                {
-                                    loggedPollError = true;
-                                    Utils.Logger.LogWarn("Playback monitor: status poll failed: {Error}", ex.Message);
-                                }
-                            }
-
-                            await Task.Delay(500, ct);
-                        }
-                    }
-                    catch (TaskCanceledException) { return; }
-                    catch (Exception ex)
-                    {
-                        Utils.Logger.LogCrash("Playback monitor", ex);
-                        return;
-                    }
-
-                    // Only auto-advance if this monitor is still the current one. A newer
-                    // Play() cancels this token, and without the check the outgoing monitor
-                    // could skip a track the user just started.
-                    if (ct.IsCancellationRequested || currentState != PauseState.PLAYING) return;
-
-                    Utils.Logger.LogInfo("Playback monitor: track ended, invoking auto-advance");
-                    try
-                    {
-                        onEnded?.Invoke();
-                    }
-                    catch (Exception ex)
-                    {
-                        Utils.Logger.LogCrash("Playback onEnded callback", ex);
-                    }
-                }
-                finally
-                {
-                    // This monitor is done with the token, so it owns the disposal.
-                    // Clear the shared reference first so Stop() can't cancel a disposed source.
-                    Interlocked.CompareExchange(ref monitorCts, null, cts);
-                    cts.Dispose();
-                }
-            }, ct);
-        }
-
-        // Cancel() throws ObjectDisposedException once the owning monitor has disposed it,
-        // which is an expected race rather than an error.
-        private static void CancelNoThrow(CancellationTokenSource? source)
-        {
-            if (source == null) return;
-            try { source.Cancel(); }
-            catch (ObjectDisposedException) { }
-        }
-
-        /// <summary>
-        /// Toggles pause/resume. The state flips only if libZPlay actually honoured the
-        /// request — flipping first meant a refused pause left the UI showing "paused"
-        /// while audio kept playing, and the next click then tried to resume a stream
-        /// that was never paused.
-        /// </summary>
         public static void Pause()
         {
-            lock (_playerLock)
-            {
-                if (!_streamOpen) return;
-
-                if (currentState == PauseState.PLAYING)
-                {
-                    if (player.PausePlayback()) currentState = PauseState.PAUSED;
-                    else Utils.Logger.LogWarn("Pause: PausePlayback refused: {Error}", SafeGetError());
-                    return;
-                }
-
-                if (currentState == PauseState.PAUSED)
-                {
-                    if (player.ResumePlayback()) currentState = PauseState.PLAYING;
-                    else Utils.Logger.LogWarn("Pause: ResumePlayback refused: {Error}", SafeGetError());
-                }
-            }
+            lock (_playerLock) s_engine.TogglePause();
         }
 
         public static void Stop()
         {
-            currentState = PauseState.STOPPED;
-            CancelNoThrow(monitorCts);
-            lock (_playerLock)
-            {
-                if (_streamOpen)
-                {
-                    try { player.StopPlayback(); }
-                    catch (Exception ex) { Utils.Logger.LogWarn("Player.StopPlayback failed: {Error}", ex.Message); }
-                    CloseStreamNoThrow();
-                }
-            }
+            lock (_playerLock) s_engine.Stop();
             CleanupExtractedTempFile();
         }
 
@@ -414,93 +219,14 @@ namespace Pickles_Playlist_Editor
             }
         }
 
-        // Every one of these guards must be evaluated INSIDE _playerLock and against
-        // _streamOpen, never against currentState from outside it. Checking outside is a
-        // check-then-act race: Stop() can close the stream between the check and the
-        // native call, and calling into libZPlay with no open stream is an access
-        // violation that kills the process without producing a managed exception.
+        public static TimeSpan GetPosition() => s_engine.Position;
 
-        public static TimeSpan GetPosition()
-        {
-            var time = new TStreamTime();
-            lock (_playerLock)
-            {
-                if (!_streamOpen) return TimeSpan.Zero;
-                player.GetPosition(ref time);
-            }
-            return TimeSpan.FromMilliseconds(time.ms);
-        }
+        public static TimeSpan GetDuration() => s_engine.Duration;
 
-        public static TimeSpan GetDuration()
-        {
-            var info = new TStreamInfo();
-            lock (_playerLock)
-            {
-                if (!_streamOpen) return TimeSpan.Zero;
-                player.GetStreamInfo(ref info);
-            }
-            return TimeSpan.FromMilliseconds(info.Length.ms);
-        }
+        public static void Seek(TimeSpan position) => s_engine.Seek(position);
 
-        public static void Seek(TimeSpan position)
-        {
-            var time = new TStreamTime { ms = (uint)Math.Max(0, position.TotalMilliseconds) };
-            lock (_playerLock)
-            {
-                if (!_streamOpen) return;
-                player.Seek(TTimeFormat.tfMillisecond, ref time, TSeekMethod.smFromBeginning);
-            }
-        }
+        public static int GetVolume() => s_engine.Volume;
 
-        public static int GetVolume() => _volume;
-
-        public static void SetVolume(int percent)
-        {
-            _volume = Math.Clamp(percent, 0, 100);
-            lock (_playerLock)
-            {
-                if (!_streamOpen) return;
-                player.SetPlayerVolume(_volume, _volume);
-            }
-        }
-
-        public static void ApplyRealtimeEqualizer(EqualizerSettings settings)
-        {
-            lock (_playerLock)
-            {
-                if (!_streamOpen) return;
-
-                int[] points = (int[])EqualizerBands.Clone();
-                if (!player.SetEqualizerPoints(ref points, points.Length))
-                    return;
-
-                int[] bandGains =
-                [
-                    ConvertToBandGain(settings.BassGain),
-                    ConvertToBandGain(settings.LowMidGain),
-                    ConvertToBandGain(settings.MidGain),
-                    ConvertToBandGain(settings.HighMidGain),
-                    ConvertToBandGain(settings.TrebleGain)
-                ];
-
-                player.EnableEqualizer(true);
-                player.SetEqualizerParam(0, ref bandGains, bandGains.Length);
-            }
-        }
-
-        public static void DisableRealtimeEqualizer()
-        {
-            lock (_playerLock)
-            {
-                if (!_streamOpen) return;
-                player.EnableEqualizer(false);
-            }
-        }
-
-        private static int ConvertToBandGain(float gain)
-        {
-            return (int)Math.Round(gain);
-        }
-
+        public static void SetVolume(int percent) => s_engine.Volume = percent;
     }
 }

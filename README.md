@@ -21,7 +21,8 @@ a.	NOTE: Windows is pissy about non-commercial software. You may need to click m
 
 2) That setup exe is the only thing you need to download. When setup completes, the program launches. You can also launch it from your start menu.
 a.	The installer bundles .NET and the Windows App Runtime; no separate .NET install is required.
-b.	If your PC doesn't have Microsoft's WebView2 runtime yet (some Windows 10 PCs), setup installs it for you first.
+b.	The program needs 64-bit Windows 10 or 11, like the game itself.
+c.	If your PC doesn't have Microsoft's WebView2 runtime yet (some Windows 10 PCs), setup installs it for you first.
 
 3)	(optional) if you don't want to reload the mod after every change, open penumbra. Click the settings tab at top left. Expand Advanced. Check Enable HTTP API.
 
@@ -95,6 +96,8 @@ These pictures live in your VFX mod, which is usually NOT the same mod as your m
 One thing worth knowing: the table picture is shared by all four table sizes (Lala, Small, Medium and Tall), because they all use the same texture file. Changing it changes every size at once.
 
 Animated GIFs work on the table panel, and so do animated WebP and APNG files and short MP4 or WebM clips (only the first 10 seconds of a clip is used, at up to 30 frames a second). The game can't play any of these, so the editor does what DJ Moon Base does by hand: every frame becomes its own texture, and the table effect shows each one in turn on a loop at the animation's own speed. An animation with more frames than the surface allows is thinned to fit and keeps its loop length. On the Pickles table each frame is a small texture of just the panel, about 0.35 MB; on other tables each frame is a full copy of the table texture, about 1 to 1.5 MB. The card tells you the total before you press Apply. On a mod whose author already animated the table (like DJ Moon Base), your animation replaces theirs, and it can have at most as many frames as theirs. On DJ Pickles the laptop screen animates too, each frame a small texture of just the screen (about 0.7 MB). There the table takes up to 32 frames and the laptop up to 16 (other tables keep 48), and each can be put back on its own. On mods where the laptop can't be animated (DJ Moon Base and DJ Solona among them, for now), it takes the first frame as a still; the lid badge always does. Put the original back removes that animation completely. Its backup is kept under the mod's folder name, so if you rename an animated mod's folder the editor can no longer undo it and you'll need to reinstall the mod to change the table.
+
+Third-party components and licenses: see THIRD-PARTY-NOTICES.md.
 
 Thanks to 0ceal0t for VFXEditor: https://github.com/0ceal0t/Dalamud-VFXEditor. Thanks to Meo for finding the fixed_position flag which was the missing piece to enable stereo and for the new baseline scd settings.
 

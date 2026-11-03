@@ -201,7 +201,7 @@ namespace Pickles_Playlist_Editor.Utils
         /// <summary>
         /// Reads a still into the format the texture code works in.
         ///
-        /// Capped on the way in rather than after decoding: this is an x86 process, and a modern
+        /// Capped on the way in rather than after decoding: a modern
         /// phone photograph at full size is a 100 MB buffer for a picture that ends up 656 pixels
         /// wide. The cap is generous next to the panels and costs nothing at ordinary sizes.
         ///

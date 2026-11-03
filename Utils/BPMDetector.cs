@@ -1,5 +1,4 @@
-﻿using libZPlay;
-using PersistentCollection;
+﻿using PersistentCollection;
 using Pickles_Playlist_Editor.Tools;
 using System;
 using System.IO;
@@ -51,59 +50,8 @@ namespace Pickles_Playlist_Editor.Utils
 
         static private SongAttributes GetAttribtesFromFile(string oggFile)
         {
-            ZPlay player = null;
-            try
-            {
-                player = new ZPlay();
-                int duration = 0;
-
-                // Open the OGG file
-                if (!player.OpenFile(oggFile, TStreamFormat.sfOgg))
-                {
-                    Console.WriteLine("Failed to open audio file.");
-                    return new SongAttributes();
-                }
-
-                // Attempt to get stream info (duration) and cache it
-                try
-                {
-                    var info = new TStreamInfo();
-                    player.GetStreamInfo(ref info);
-                    // info.Length.ms holds length in milliseconds
-                    var ms = info.Length.ms;
-                    if (ms > 0)
-                    {
-                        duration = (int)Math.Round(ms / 1000.0);
-                    }
-                }
-                catch
-                {
-                    // ignore failures to obtain duration but continue BPM detection
-                }
-
-                // Detect BPM
-                int retval = 0;
-
-                // Parameters: using peak method (tbmDefault recommended in libZPlay docs)
-                try
-                {
-                    retval = player.DetectBPM(TBPMDetectionMethod.dmPeaks);
-                }
-                catch
-                {
-                    retval = 0;
-                }
-
-                return new SongAttributes() { BPM = retval, Duration = new TimeSpan(0, 0, duration) };
-            }
-            catch (Exception ex)
-            {
-                return new SongAttributes();
-            }
-            finally
-            {
-                player?.Close();
-            }
+            var r = OggAnalysis.Analyze(oggFile);
+            return new SongAttributes() { BPM = r.Bpm, Duration = r.Duration };
         }
 
         public static TimeSpan GetDuration(string scdFile)
