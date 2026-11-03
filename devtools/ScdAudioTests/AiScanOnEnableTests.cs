@@ -330,7 +330,7 @@ public class AiScanOnEnableTests
         }
     }
 
-    [Fact] // [AC-ai-scan-on-enable-10] [EDGE-ai-scan-on-enable-23] [EDGE-ai-scan-on-enable-24]
+    [Fact] // [AC-ai-scan-on-enable-1] [AC-ai-scan-on-enable-10] [EDGE-ai-scan-on-enable-23] [EDGE-ai-scan-on-enable-24]
     public void ModChange_CancelsAndRescans()
     {
         string cont = Method(Src("ui/MainWindow.AiScore.cs"), "internal void ContinueAiScoreAfterSettings");
@@ -341,6 +341,13 @@ public class AiScanOnEnableTests
         int reload = At(cont, "if (modChanged && !libraryFresh) LoadPlaylists();");
         int start = At(cont, "StartLibraryAiScan();");
         Assert.True(key < assign && assign < enabled && enabled < cancel && cancel < reload && reload < start);
+        // AI off: only the key is updated. AI on: a wanted scan or a mod change starts one, and the wish is used up.
+        Assert.True(At(cont, "_aiModKey != null && key != _aiModKey") < assign);
+        Assert.Contains("if (!Settings.AiScoreEnabled) { _aiScanWanted = false; return; }", cont);
+        int gate = At(cont, "if (_aiScanWanted || modChanged)");
+        Assert.True(cancel < gate && gate < reload);
+        int used = cont.IndexOf("_aiScanWanted = false;", gate, StringComparison.Ordinal);
+        Assert.True(used > reload && used < start);
 
         string loaded = Method(Src("ui/MainWindow.cs"), "private void PlaylistTreeView_Loaded");
         Assert.True(At(loaded, "LoadPlaylists();") < At(loaded, "_aiModKey = Utils.AiScoreCache.Key(Utils.PenumbraMeta.ModRoot);"));
