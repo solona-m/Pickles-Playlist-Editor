@@ -16,10 +16,17 @@ namespace Pickles_Playlist_Editor.Utils
     /// <summary>What a song's AI chip shows: nothing unless the setting is on and a real score is cached.</summary>
     internal static class AiScoreDisplay
     {
-        public static (bool Visible, AiBand Band, string Raw) For(int? stored, bool enabled)
+        public static (bool Visible, AiBand Band, int Percent) For(int? stored, bool enabled)
         {
-            if (!enabled || AiScoreMath.Band(stored) is not AiBand band) return (false, AiBand.Unclear, "");
-            return (true, band, (stored!.Value / 1000.0).ToString("0.000"));
+            if (!enabled || AiScoreMath.Band(stored) is not AiBand band) return (false, AiBand.Unclear, 0);
+            return (true, band, Percent(stored!.Value));
+        }
+
+        /// <summary>Whole percent; 0 and 100 only for exact scores, so a near-certain one never reads as certain.</summary>
+        public static int Percent(int stored)
+        {
+            int p = (int)Math.Round(stored / 10.0, MidpointRounding.AwayFromZero);
+            return stored > 0 && stored < 1000 ? Math.Clamp(p, 1, 99) : p;
         }
     }
 

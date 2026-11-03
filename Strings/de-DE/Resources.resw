@@ -423,7 +423,7 @@ Möchtest du fortfahren?</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Wahrscheinlich KI</value></data>
   <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Unklar</value></data>
   <data name="AiScore_Band_Human" xml:space="preserve"><value>Wahrscheinlich menschlich</value></data>
-  <data name="AiScore_Tooltip" xml:space="preserve"><value>KI-Wahrscheinlichkeit {0} (0 = menschlich, 1 = KI). Eine Schätzung, kein Beweis.</value></data>
+  <data name="AiScore_Tooltip" xml:space="preserve"><value>KI-Wahrscheinlichkeit: {0} %. Eine Schätzung, kein Beweis.</value></data>
   <data name="AiScore_Summary" xml:space="preserve"><value>KI-Wahrscheinlichkeit: {0} bewertet, {3} bereits bewertet, {1} ohne Wert (still oder zu kurz), {2} konnten nicht gelesen werden.</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit wurde übersprungen: ihre Dateien sind nicht bereit.</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>KI-Wahrscheinlichkeit</value></data>

@@ -67,24 +67,29 @@ public class AiScoreMathTests
     }
 
     [Theory] // [AC-ai-score-1] [AC-ai-score-5] [EDGE-ai-score-22] off hides any score; otherwise band + raw
-    [InlineData(812, false, false, "", "")]
-    [InlineData(812, true, true, "LikelyAi", "0.812")]
-    [InlineData(300, true, true, "LikelyHuman", "0.300")]
-    [InlineData(450, true, true, "Unclear", "0.450")]
-    [InlineData(-1, true, false, "", "")]
-    [InlineData(null, true, false, "", "")]
-    public void Display_For(int? stored, bool enabled, bool visible, string band, string raw)
+    [InlineData(812, false, false, "", 0)]
+    [InlineData(812, true, true, "LikelyAi", 81)]
+    [InlineData(300, true, true, "LikelyHuman", 30)]
+    [InlineData(455, true, true, "Unclear", 46)]
+    [InlineData(-1, true, false, "", 0)]
+    [InlineData(null, true, false, "", 0)]
+    public void Display_For(int? stored, bool enabled, bool visible, string band, int percent)
     {
-        var saved = Thread.CurrentThread.CurrentCulture;
-        Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
-        try
-        {
-            var d = AiScoreDisplay.For(stored, enabled);
-            Assert.Equal(visible, d.Visible);
-            if (visible) { Assert.Equal(band, d.Band.ToString()); Assert.Equal(raw, d.Raw); }
-        }
-        finally { Thread.CurrentThread.CurrentCulture = saved; }
+        var d = AiScoreDisplay.For(stored, enabled);
+        Assert.Equal(visible, d.Visible);
+        if (visible) { Assert.Equal(band, d.Band.ToString()); Assert.Equal(percent, d.Percent); }
     }
+
+    [Theory] // near-certain scores never read as 0% or 100%
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    [InlineData(4, 1)]
+    [InlineData(5, 1)]
+    [InlineData(994, 99)]
+    [InlineData(997, 99)]
+    [InlineData(999, 99)]
+    [InlineData(1000, 100)]
+    public void Display_Percent_Clamps(int stored, int percent) => Assert.Equal(percent, AiScoreDisplay.Percent(stored));
 
     [Theory] // [AC-ai-score-1] the stored flag's forms
     [InlineData(null, false)]
