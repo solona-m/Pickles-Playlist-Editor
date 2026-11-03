@@ -43,7 +43,10 @@ namespace Pickles_Playlist_Editor.Tools
 
         public string PathFor(AiAsset asset) => Path.Combine(_root, asset.Tag, asset.Name);
 
-        /// <summary>Returns at once; concurrent callers share one run. Cancellation throws OperationCanceledException.</summary>
+        /// <summary>
+        /// Returns at once; concurrent callers share one run, governed by the first caller's token.
+        /// Cancellation throws OperationCanceledException.
+        /// </summary>
         public Task<AiAssetResult> EnsureAsync(IProgress<AiAssetProgress>? progress, CancellationToken ct)
         {
             _gate.Wait(ct);

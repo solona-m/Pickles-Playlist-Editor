@@ -43,12 +43,14 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           # `gh release view` exits non-zero when the release is absent, the normal case here; read the exit
-          # code instead of letting PowerShell 7.4+ turn it into a terminating error.
+          # code instead of letting PowerShell 7.4+ turn it into a terminating error. Only "release not found"
+          # counts as absent: an auth or network failure must not be taken as a free tag.
           $PSNativeCommandUseErrorActionPreference = $false
-          gh release view $env:TAG *> $null
-          $exists = ($LASTEXITCODE -eq 0)
+          $out = (gh release view $env:TAG 2>&1) -join "`n"
+          $code = $LASTEXITCODE
           $global:LASTEXITCODE = 0
-          if ($exists) {
+          if ($code -ne 0 -and $out -notmatch 'release not found') { Write-Error "Could not check for release $($env:TAG): $out"; exit 1 }
+          if ($code -eq 0) {
             Write-Error "Release $env:TAG already exists. Its assets are immutable because the app pins their checksums and the mirror caches them: push a new tag (aiscan-v<N+1>) and update the pins instead."
             exit 1
           }

@@ -25,7 +25,7 @@ namespace Pickles_Playlist_Editor.Tools
         public PinnedFileDownloader(HttpMessageHandler? handler = null, Func<int, TimeSpan?, TimeSpan>? backoff = null, TimeSpan? readTimeout = null)
         {
             _http = handler == null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
-            _http.Timeout = Timeout.InfiniteTimeSpan; // _readTimeout is the stall detector
+            _http.Timeout = Timeout.InfiniteTimeSpan; // _readTimeout bounds the wait for headers and each read instead
             _http.DefaultRequestHeaders.UserAgent.ParseAdd("PicklesPlaylistEditor/" + Utils.AppVersion.Display.Replace(' ', '-'));
             _backoff = backoff ?? DefaultBackoff;
             _readTimeout = readTimeout ?? TimeSpan.FromSeconds(60);
@@ -60,7 +60,10 @@ namespace Pickles_Playlist_Editor.Tools
                     bool nextSource = false;
                     try
                     {
-                        using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+                        using var headers = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                        headers.CancelAfter(_readTimeout);
+                        using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, headers.Token).ConfigureAwait(false);
+                        long? declared = response.Content.Headers.ContentLength;
                         if (!response.IsSuccessStatusCode)
                         {
                             last = new(false, AiAssetFailure.Http, asset.Name, $"HTTP {(int)response.StatusCode} from {url}");
@@ -68,10 +71,23 @@ namespace Pickles_Playlist_Editor.Tools
                             if (!IsRetryable(response.StatusCode)) { nextSource = true; }
                             else retryAfter = RetryAfter(response.Headers.RetryAfter);
                         }
+                        else if (declared is long len && len != asset.Bytes)
+                        {
+                            // The source says it is serving a different file; don't download it to find out.
+                            last = new(false, AiAssetFailure.Checksum, asset.Name, $"{asset.Name}: {url} serves {len} bytes, pinned {asset.Bytes}");
+                            Utils.Logger.LogWarn("AI asset: {Detail}", last.Detail);
+                            nextSource = true;
+                        }
                         else
                         {
-                            var (got, sha) = await ReceiveAsync(response, tmp, onProgress, ct).ConfigureAwait(false);
-                            if (got != asset.Bytes)
+                            var (got, sha) = await ReceiveAsync(response, tmp, asset.Bytes, onProgress, ct).ConfigureAwait(false);
+                            if (got > asset.Bytes)
+                            {
+                                last = new(false, AiAssetFailure.Checksum, asset.Name, $"{asset.Name}: {url} sent more than the pinned {asset.Bytes} bytes");
+                                Utils.Logger.LogWarn("AI asset: {Detail}", last.Detail);
+                                nextSource = true;
+                            }
+                            else if (got != asset.Bytes)
                             {
                                 last = new(false, AiAssetFailure.Transport, asset.Name, $"{asset.Name}: {got} of {asset.Bytes} bytes from {url}");
                                 Utils.Logger.LogWarn("AI asset: {Detail}", last.Detail);
@@ -88,6 +104,12 @@ namespace Pickles_Playlist_Editor.Tools
                                 return Promote(tmp, destPath, asset);
                             }
                         }
+                    }
+                    catch (LocalDiskException ex)
+                    {
+                        // Our own disk, not the network: retrying or another source can't help.
+                        Utils.Logger.LogWarn("AI asset: cannot write {File}: {Error}", tmp, ex.InnerException?.Message ?? ex.Message);
+                        return new(false, AiAssetFailure.Disk, asset.Name, $"{asset.Name}: cannot write the download: {ex.InnerException?.Message}");
                     }
                     catch (Exception ex) when (ex is HttpRequestException or IOException or OperationCanceledException && !ct.IsCancellationRequested)
                     {
@@ -111,12 +133,18 @@ namespace Pickles_Playlist_Editor.Tools
             return null;
         }
 
-        private async Task<(long Bytes, string Sha)> ReceiveAsync(HttpResponseMessage response, string tmp, Action<long>? onProgress, CancellationToken ct)
+        /// <summary>A failure writing our own temp file, kept apart from network IOExceptions.</summary>
+        private sealed class LocalDiskException(Exception inner) : Exception(inner.Message, inner);
+
+        private async Task<(long Bytes, string Sha)> ReceiveAsync(HttpResponseMessage response, string tmp, long limit, Action<long>? onProgress, CancellationToken ct)
         {
             using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             long got = 0;
-            await using (var body = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false))
-            await using (var file = new FileStream(tmp, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferSize, useAsync: true))
+            await using var body = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+            FileStream file;
+            try { file = new FileStream(tmp, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferSize, useAsync: true); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { throw new LocalDiskException(ex); }
+            await using (file)
             {
                 var buf = new byte[BufferSize];
                 while (true)
@@ -125,9 +153,11 @@ namespace Pickles_Playlist_Editor.Tools
                     stall.CancelAfter(_readTimeout);
                     int n = await body.ReadAsync(buf, stall.Token).ConfigureAwait(false);
                     if (n == 0) break;
-                    hash.AppendData(buf, 0, n);
-                    await file.WriteAsync(buf.AsMemory(0, n), ct).ConfigureAwait(false);
                     got += n;
+                    if (got > limit) break; // a wrong file; stop before it fills the disk
+                    hash.AppendData(buf, 0, n);
+                    try { await file.WriteAsync(buf.AsMemory(0, n), ct).ConfigureAwait(false); }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { throw new LocalDiskException(ex); }
                     onProgress?.Invoke(got);
                 }
             }

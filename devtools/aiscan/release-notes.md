@@ -3,7 +3,7 @@ when you turn the AI score on. Do not install them by hand.
 
 ## FFmpeg full build (`ffmpeg.exe`)
 - Build: `9.0.2-full_build-www.gyan.dev`, from https://www.gyan.dev/ffmpeg/builds/ (archive: https://github.com/GyanD/codexffmpeg/releases/tag/9.0.2)
-- Licence: GPL v3. The full text is in the app's `licenses/FFmpeg-GPL-3.0.txt`.
+- Licence: GPL v3. Full text: https://github.com/solona-m/Pickles-Playlist-Editor/blob/aiscan-v1/licenses/FFmpeg-GPL-3.0.txt (also shipped with the app as `licenses/FFmpeg-GPL-3.0.txt`).
 - Source code: https://github.com/FFmpeg/FFmpeg/commit/946fcce07b . The build configuration is printed by `ffmpeg.exe -buildconf`.
 - Unmodified. Used for its libsoxr resampler.
 

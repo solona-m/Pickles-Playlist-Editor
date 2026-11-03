@@ -45,6 +45,7 @@ public sealed class AiAssetDownloadTests : IDisposable
             (attempt, retryAfter) => { waits?.Add(retryAfter ?? TimeSpan.Zero); return TimeSpan.Zero; }, readTimeout);
 
     private static HttpResponseMessage Ok(byte[] body) => new(HttpStatusCode.OK) { Content = new ByteArrayContent(body) };
+    private static HttpResponseMessage Chunked(byte[] body) => new(HttpStatusCode.OK) { Content = new StreamContent(new CountingStream(body, _ => { })) };
     private static HttpResponseMessage Status(int code) => new((HttpStatusCode)code) { Content = new ByteArrayContent([]) };
     private string NameOf(HttpRequestMessage req) => req.RequestUri!.Segments[^1];
     private bool IsMirror(HttpRequestMessage req) => req.RequestUri!.ToString().StartsWith(Mirror, StringComparison.Ordinal);
@@ -120,7 +121,7 @@ public sealed class AiAssetDownloadTests : IDisposable
             if (!IsMirror(req)) return Serve(req);
             Interlocked.Increment(ref mirrorHits);
             var b = _bodies[NameOf(req)];
-            return Task.FromResult(Ok(b[..(b.Length / 2)]));
+            return Task.FromResult(Chunked(b[..(b.Length / 2)])); // no Content-Length: the transfer just stops early
         });
         Assert.True((await svc.EnsureAsync(null, CancellationToken.None)).Ok);
         Assert.Equal(3 * _pins.Count, mirrorHits);
@@ -354,14 +355,93 @@ public sealed class AiAssetDownloadTests : IDisposable
     }
 
     [Fact] // [AC-ai-assets-download-7]
-    public async Task Ensure_DoesNotCompleteWhileGateHeld()
+    public async Task Ensure_RunsOffTheCallingThread_AndReturnsBeforeTheWork()
     {
         var gate = new TaskCompletionSource();
-        using var svc = Service(async (req, _) => { await gate.Task; return Ok(_bodies[NameOf(req)]); });
+        using var entered = new ManualResetEventSlim();
+        int workThread = 0;
+        using var svc = Service(async (req, _) =>
+        {
+            if (Interlocked.CompareExchange(ref workThread, Environment.CurrentManagedThreadId, 0) == 0) entered.Set();
+            await gate.Task;
+            return Ok(_bodies[NameOf(req)]);
+        });
+        int caller = Environment.CurrentManagedThreadId;
         var run = svc.EnsureAsync(null, CancellationToken.None);
         Assert.False(run.IsCompleted);
+        Assert.True(entered.Wait(10000)); // this thread stays busy, so the work must be on another one
+        Assert.NotEqual(caller, workThread);
         gate.SetResult();
         Assert.True((await run).Ok);
+    }
+
+    [Fact] // [EDGE-ai-assets-download-11] a server that never sends headers
+    public async Task HeaderStall_TimesOut_ThenFallsBack()
+    {
+        using var svc = Service(async (req, ct) =>
+        {
+            if (IsMirror(req)) await Task.Delay(Timeout.Infinite, ct);
+            return Ok(_bodies[NameOf(req)]);
+        }, readTimeout: TimeSpan.FromMilliseconds(200));
+        var run = svc.EnsureAsync(null, CancellationToken.None);
+        Assert.Same(run, await Task.WhenAny(run, Task.Delay(TimeSpan.FromSeconds(30))));
+        Assert.True((await run).Ok);
+        AssertAllPresent();
+    }
+
+    [Fact] // [EDGE-ai-assets-download-5] a source serving a bigger file is a wrong source, not a slow one
+    public async Task OversizeBody_StopsEarly_ThenGitHub()
+    {
+        int maxRead = 0;
+        using var svc = Service((req, _) =>
+        {
+            if (!IsMirror(req)) return Serve(req);
+            var big = new byte[_bodies[NameOf(req)].Length * 4];
+            var stream = new CountingStream(big, n => maxRead = Math.Max(maxRead, n));
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(stream) });
+        });
+        Assert.True((await svc.EnsureAsync(null, CancellationToken.None)).Ok);
+        foreach (var p in _pins) Assert.Single(_requests, u => u == Mirror + Tag + "/" + p.Name);
+        Assert.True(maxRead < _bodies[_pins[0].Name].Length * 2, $"read {maxRead}");
+        AssertAllPresent();
+    }
+
+    [Fact] // [EDGE-ai-assets-download-5]
+    public async Task ContentLengthMismatch_SkipsSourceWithoutDownloading()
+    {
+        using var svc = Service((req, _) => IsMirror(req) ? Task.FromResult(Ok(new byte[100])) : Serve(req));
+        Assert.True((await svc.EnsureAsync(null, CancellationToken.None)).Ok);
+        foreach (var p in _pins) Assert.Single(_requests, u => u == Mirror + Tag + "/" + p.Name);
+        AssertAllPresent();
+    }
+
+    [Fact] // [AC-ai-assets-download-7] [EDGE-ai-assets-download-14] an existing folder we may not write into
+    public async Task UnwritableTagFolder_ReturnsDiskFailure_WithoutRetrying()
+    {
+        string dir = Path.Combine(_root, Tag);
+        Directory.CreateDirectory(dir);
+        var info = new DirectoryInfo(dir);
+        var me = System.Security.Principal.WindowsIdentity.GetCurrent().User!;
+        var deny = new System.Security.AccessControl.FileSystemAccessRule(me,
+            System.Security.AccessControl.FileSystemRights.CreateFiles | System.Security.AccessControl.FileSystemRights.WriteData,
+            System.Security.AccessControl.AccessControlType.Deny);
+        var acl = info.GetAccessControl();
+        acl.AddAccessRule(deny);
+        info.SetAccessControl(acl);
+        try
+        {
+            using var svc = Service((req, _) => Serve(req));
+            var r = await svc.EnsureAsync(null, CancellationToken.None);
+            Assert.False(r.Ok);
+            Assert.Equal(AiAssetFailure.Disk, r.Failure);
+            Assert.Equal(_pins[0].Name, r.FileName);
+            Assert.Single(_requests); // no retry, no second source
+        }
+        finally
+        {
+            acl.RemoveAccessRule(deny);
+            info.SetAccessControl(acl);
+        }
     }
 
     [Fact] // [EDGE-ai-assets-download-27]
@@ -461,6 +541,28 @@ public sealed class AiAssetDownloadTests : IDisposable
             ct.ThrowIfCancellationRequested();
             return await base.ReadAsync(buffer[..Math.Min(buffer.Length, 256 * 1024)], ct);
         }
+    }
+
+    /// <summary>A non-seekable body (so no Content-Length, like a chunked transfer) that reports how far the reader got.</summary>
+    private sealed class CountingStream(byte[] body, Action<int> onPosition) : Stream
+    {
+        private readonly MemoryStream _inner = new(body);
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override int Read(byte[] buffer, int offset, int count) { int n = _inner.Read(buffer, offset, count); onPosition((int)_inner.Position); return n; }
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken ct = default)
+        {
+            int n = await _inner.ReadAsync(buffer, ct);
+            onPosition((int)_inner.Position);
+            return n;
+        }
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     /// <summary>Sends nothing until cancelled.</summary>

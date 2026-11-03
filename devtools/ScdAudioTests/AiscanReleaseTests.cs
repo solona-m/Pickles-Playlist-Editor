@@ -73,6 +73,7 @@ public sealed class AiscanReleaseTests : IDisposable
         int create = wf.IndexOf("gh release create", StringComparison.Ordinal);
         Assert.True(refuse > 0 && create > refuse);
         Assert.Contains("$PSNativeCommandUseErrorActionPreference = $false", wf);
+        Assert.Contains("-notmatch 'release not found'", wf); // only a real "not found" counts as a free tag
         string createLine = wf[create..wf.IndexOf("@((", create, StringComparison.Ordinal)];
         foreach (var flag in new[] { "--draft", "--latest=false", "--verify-tag", "--notes-file devtools/aiscan/release-notes.md" }) Assert.Contains(flag, createLine);
         Assert.Contains("devtools/aiscan/releases.json", wf);
@@ -129,6 +130,88 @@ public sealed class AiscanReleaseTests : IDisposable
         Assert.Contains("FAIL", output);
         Assert.True(EmptyOrMissing(outDir));
     }
+
+    [Fact] // [EDGE-ai-assets-download-18] a failed run never empties a folder it did not start with
+    public void Stage_FailureLeavesAPreExistingOutDirAlone()
+    {
+        string outDir = OutDir();
+        Directory.CreateDirectory(outDir);
+        File.WriteAllText(Path.Combine(outDir, "keep.txt"), "mine");
+        foreach (var tag in new[] { "aiscan-x", "aiscan-v1" }) // bad tag; good tag but non-empty OutDir
+        {
+            var (code, _) = Ps(Script("Stage-AiscanAssets.ps1"), null, "-Tag", tag, "-OutDir", outDir, "-CacheDir", Path.Combine(_dir, "cache"), "-Offline");
+            Assert.NotEqual(0, code);
+            Assert.Equal("mine", File.ReadAllText(Path.Combine(outDir, "keep.txt")));
+        }
+    }
+
+    private static string? SevenZip()
+    {
+        var dirs = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(';')
+            .Append(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "7-Zip"));
+        foreach (var dir in dirs)
+        {
+            if (string.IsNullOrWhiteSpace(dir)) continue;
+            string exe = Path.Combine(dir.Trim(), "7z.exe");
+            if (File.Exists(exe)) return exe;
+        }
+        return null;
+    }
+
+    /// <summary>A real .7z holding the bundled essentials ffmpeg.exe at fake/bin/ffmpeg.exe, pinned in a manifest.</summary>
+    private (string Manifest, string Cache) EssentialsArchive(string? exeSha = null, string version = "essentials_build-www.gyan.dev")
+    {
+        string sevenZip = SevenZip() ?? throw new SkipException("7-Zip not found");
+        string src = Path.Combine(_dir, "src-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(src, "fake", "bin"));
+        string exe = Path.Combine(src, "fake", "bin", "ffmpeg.exe");
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "ffmpeg.exe"), exe);
+        string cache = Path.Combine(_dir, "cache-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(cache);
+        string archive = Path.Combine(cache, "fake-archive.7z");
+        var psi = new ProcessStartInfo(sevenZip) { WorkingDirectory = src, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true };
+        foreach (var a in new[] { "a", "-mx0", archive, "fake" }) psi.ArgumentList.Add(a);
+        using (var p = Process.Start(psi)!) { p.StandardOutput.ReadToEnd(); p.WaitForExit(); Assert.Equal(0, p.ExitCode); }
+        string Hex(string f) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(f))).ToLowerInvariant();
+        string manifest = FakeManifest(new FileInfo(archive).Length, Hex(archive), exeSha ?? Hex(exe), new FileInfo(exe).Length);
+        var json = JsonNode.Parse(File.ReadAllText(manifest))!;
+        json["aiscan-v1"]![0]!["source"]!["version"] = version;
+        File.WriteAllText(manifest, json.ToJsonString());
+        return (manifest, cache);
+    }
+
+    [SkippableFact] // [AC-ai-assets-download-2] [EDGE-ai-assets-download-18]
+    public void Stage_ExeHashMismatch_Fails()
+    {
+        var (manifest, cache) = EssentialsArchive(exeSha: new string('a', 64));
+        string outDir = OutDir();
+        var (code, output) = Ps(Script("Stage-AiscanAssets.ps1"), null, "-Tag", "aiscan-v1", "-Manifest", manifest, "-OutDir", outDir, "-CacheDir", cache, "-Offline");
+        Assert.NotEqual(0, code);
+        Assert.Contains("ffmpeg.exe: SHA-256 mismatch", output);
+        Assert.True(EmptyOrMissing(outDir));
+    }
+
+    [SkippableFact] // [AC-ai-assets-download-2] [EDGE-ai-assets-download-18]
+    public void Stage_WrongBuildString_Fails()
+    {
+        var (manifest, cache) = EssentialsArchive(version: "9.0.2-full_build-www.gyan.dev");
+        var (code, output) = Ps(Script("Stage-AiscanAssets.ps1"), null, "-Tag", "aiscan-v1", "-Manifest", manifest, "-OutDir", OutDir(), "-CacheDir", cache, "-Offline");
+        Assert.NotEqual(0, code);
+        Assert.Contains("is not 9.0.2-full_build-www.gyan.dev", output);
+    }
+
+    [SkippableFact] // [AC-ai-assets-download-2] [EDGE-ai-assets-download-18] the bundled essentials build has no soxr
+    public void Stage_BuildWithoutSoxr_Fails()
+    {
+        var (manifest, cache) = EssentialsArchive();
+        string outDir = OutDir();
+        var (code, output) = Ps(Script("Stage-AiscanAssets.ps1"), null, "-Tag", "aiscan-v1", "-Manifest", manifest, "-OutDir", outDir, "-CacheDir", cache, "-Offline");
+        Assert.NotEqual(0, code);
+        Assert.Contains("no --enable-libsoxr", output);
+        Assert.True(EmptyOrMissing(outDir));
+    }
+
+    // Not tested: a missing extractor (no 7z and no tar.exe), which would mean hiding System32's tar.exe.
 
     [Fact] // [EDGE-ai-assets-download-18]
     public void Stage_UsesEndAnchoredTagRegex()
@@ -202,7 +285,7 @@ public sealed class AiscanReleaseTests : IDisposable
         Assert.Contains("--enable-libsoxr", output);
         Assert.Contains("soxr: 16000 samples", output);
         Assert.Contains("new(\"ffmpeg.exe\", \"aiscan-v1\", 227823104L,", output);
-        Assert.Empty(Directory.GetFiles(Path.GetTempPath(), "soxr.*", SearchOption.TopDirectoryOnly));
+        Assert.Empty(Directory.GetDirectories(Path.GetTempPath(), "aiscan-x-*")); // its soxr work folder is gone
     }
 
     // ---------- publish script ----------
@@ -215,14 +298,16 @@ public sealed class AiscanReleaseTests : IDisposable
         if ($args[0] -eq 'release' -and $args[1] -eq 'upload') {
             if ($env:FAKE_GH_UPLOAD -eq 'noop') { exit 0 }
             $f = Get-Item $args[3]; $size = $f.Length; if ($env:FAKE_GH_UPLOAD -eq 'badsize') { $size = $size - 1 }
-            $s.assets = @($s.assets) + @([pscustomobject]@{ name = $f.Name; size = $size })
+            $a = [pscustomobject]@{ name = $f.Name; size = $size }
+            if ($env:FAKE_GH_DIGEST -eq $f.Name) { $a | Add-Member digest ('sha256:' + ('0' * 64)) }
+            $s.assets = @($s.assets) + @($a)
             ConvertTo-Json -Depth 5 -InputObject $s | Set-Content $state; exit 0
         }
         if ($args[0] -eq 'release' -and $args[1] -eq 'edit') { exit 0 }
         exit 1
         """;
 
-    private (string Dir, string Manifest, Dictionary<string, string> Env, string Log) PublishSetup(bool draft, bool preUploadOnnx = false, bool corrupt = false)
+    private (string Dir, string Manifest, Dictionary<string, string> Env, string Log) PublishSetup(bool draft, bool preUploadOnnx = false, bool corrupt = false, int preUploadSize = 300)
     {
         string files = Path.Combine(_dir, "models-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(files);
@@ -242,7 +327,7 @@ public sealed class AiscanReleaseTests : IDisposable
         File.WriteAllText(mpath, manifest.ToJsonString());
 
         var assets = new JsonArray(new JsonObject { ["name"] = "ffmpeg.exe", ["size"] = 1000 });
-        if (preUploadOnnx) assets.Add(new JsonObject { ["name"] = "m.onnx", ["size"] = 300 });
+        if (preUploadOnnx) assets.Add(new JsonObject { ["name"] = "m.onnx", ["size"] = preUploadSize });
         string state = Path.Combine(files, "state.json");
         File.WriteAllText(state, new JsonObject { ["tag_name"] = "aiscan-v1", ["draft"] = draft, ["assets"] = assets }.ToJsonString());
         string log = Path.Combine(files, "gh.log");
@@ -311,13 +396,35 @@ public sealed class AiscanReleaseTests : IDisposable
         Assert.Single(log, l => l.StartsWith("release upload"));
     }
 
+    [Fact] // [AC-ai-assets-download-4] [EDGE-ai-assets-download-19]
+    public void Publish_ExistingAssetOfWrongSize_Refuses()
+    {
+        var s = PublishSetup(draft: true, preUploadOnnx: true, preUploadSize: 299);
+        var (code, output) = Publish(s);
+        Assert.NotEqual(0, code);
+        Assert.Contains("different size", output);
+        Assert.DoesNotContain("release edit", File.ReadAllText(s.Log));
+    }
+
+    [Fact] // [AC-ai-assets-download-4] [EDGE-ai-assets-download-19]
+    public void Publish_DigestMismatchAfterUpload_DoesNotPublish()
+    {
+        var s = PublishSetup(draft: true);
+        s.Env["FAKE_GH_DIGEST"] = "m.onnx.data";
+        var (code, output) = Publish(s);
+        Assert.NotEqual(0, code);
+        Assert.Contains("has digest", output);
+        Assert.DoesNotContain("release edit", File.ReadAllText(s.Log));
+    }
+
     [Fact] // [AC-ai-assets-download-4]
     public void ReleaseNotes_CreditFfmpegGplAndSonics()
     {
         string notes = File.ReadAllText(Script("release-notes.md"));
         foreach (var s in new[]
         {
-            "GPL", "github.com/FFmpeg/FFmpeg", "licenses/FFmpeg-GPL-3.0.txt", "9.0.2-full_build-www.gyan.dev", "commit/946fcce07b",
+            "GPL", "github.com/FFmpeg/FFmpeg", "licenses/FFmpeg-GPL-3.0.txt",
+            "https://github.com/solona-m/Pickles-Playlist-Editor/blob/aiscan-v1/licenses/FFmpeg-GPL-3.0.txt", "9.0.2-full_build-www.gyan.dev", "commit/946fcce07b",
             "SONICS", "awsaf49", "cc49422a98b5b92700876c608d0f9cdf27214a3e",
             "MIT", "Copyright (c)", "Permission is hereby granted, free of charge",
             "The above copyright notice and this permission notice shall be included", "THE SOFTWARE IS PROVIDED \"AS IS\"", "CC BY-NC",

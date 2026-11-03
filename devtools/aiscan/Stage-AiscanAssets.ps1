@@ -16,9 +16,10 @@ $ErrorActionPreference = 'Stop'
 if (-not $Manifest) { $Manifest = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) 'releases.json' } # PS 5.1: no $PSScriptRoot in param defaults
 $ProgressPreference = 'SilentlyContinue'
 
+$script:owned = $false # OutDir is emptied on failure only once this run has checked it started empty
 function Fail([string]$msg) {
     Write-Output "FAIL $msg"
-    if (Test-Path $OutDir) { Get-ChildItem $OutDir -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue }
+    if ($script:owned -and (Test-Path $OutDir)) { Get-ChildItem $OutDir -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue }
     exit 1
 }
 function Sha([string]$path) { (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant() }
@@ -36,6 +37,7 @@ foreach ($e in $entries) {
 
 New-Item -ItemType Directory -Force $OutDir, $CacheDir | Out-Null
 if (@(Get-ChildItem $OutDir -Force).Count) { Fail "$OutDir is not empty" }
+$script:owned = $true
 
 $sevenZip = (Get-Command 7z -ErrorAction SilentlyContinue).Source
 if (-not $sevenZip -and (Test-Path "$env:ProgramFiles\7-Zip\7z.exe")) { $sevenZip = "$env:ProgramFiles\7-Zip\7z.exe" }
@@ -70,18 +72,18 @@ foreach ($e in $entries) {
         }
 
         if ($e.name -eq 'ffmpeg.exe') {
-            $version = (& $exe -hide_banner -version | Select-Object -First 1)
+            $version = (& $exe -nostdin -hide_banner -version | Select-Object -First 1)
             if ($version -notmatch 'version') { Fail "ffmpeg -version printed '$version'" }
             if ($version -notlike "*$($s.version)*") { Fail "build '$version' is not $($s.version)" }
             Write-Output "build: $version"
-            $conf = (& $exe -hide_banner -buildconf) -join "`n"
+            $conf = (& $exe -nostdin -hide_banner -buildconf) -join "`n"
             if ($conf -notmatch '--enable-libsoxr') { Fail 'build has no --enable-libsoxr' }
             Write-Output 'buildconf: --enable-libsoxr'
 
             # Binary output goes to a file: a PowerShell pipeline would turn it into text lines.
             $f32 = Join-Path $work 'soxr.f32'; $err = Join-Path $work 'soxr.err'
             $p = Start-Process -FilePath $exe -NoNewWindow -Wait -PassThru -RedirectStandardError $err -ArgumentList @(
-                '-v', 'error', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=44100:duration=1',
+                '-nostdin', '-v', 'error', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=44100:duration=1',
                 '-af', 'aresample=16000:resampler=soxr:precision=20', '-ac', '1', '-f', 'f32le', '-y', "`"$f32`"")
             $len = if (Test-Path $f32) { (Get-Item $f32).Length } else { -1 }
             $errText = if (Test-Path $err) { (Get-Content $err -Raw) } else { '' }
