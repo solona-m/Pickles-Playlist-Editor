@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Dispatching;
+using Pickles_Playlist_Editor.Tools;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -36,6 +37,7 @@ namespace Pickles_Playlist_Editor
 
         public MainWindow()
         {
+            _aiGate = new AiPassGate(_closingCts.Token);
             this.InitializeComponent();
             _uiDispatcherQueue = DispatcherQueue;
             InitializePlaybackTimer();
@@ -266,6 +268,7 @@ namespace Pickles_Playlist_Editor
 
             RefreshAiScoreUi(reload: false); // before the tree is built, so chips show on first load
             LoadPlaylists();
+            _aiModKey = Utils.AiScoreCache.Key(Utils.PenumbraMeta.ModRoot); // no scan at startup
 
             _ = CheckForUpdatesAsync();
             if (string.IsNullOrWhiteSpace(Settings.PenumbraLocation) || string.IsNullOrWhiteSpace(Settings.ModName))
@@ -693,6 +696,7 @@ namespace Pickles_Playlist_Editor
                 await ApplyNamingOptionsAsync();
             else
                 LoadPlaylists();
+            ContinueAiScoreAfterSettings(libraryFresh: true);
 
             // On a first run the boot capture necessarily no-opped: there was no configured mod
             // until the user filled this dialog in. This is the only point on that path where the

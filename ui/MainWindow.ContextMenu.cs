@@ -214,10 +214,7 @@ namespace Pickles_Playlist_Editor
                 return results;
             }
             if (node.Level == 0)
-                foreach (var pl in Playlists.Values)
-                    foreach (var opt in pl.Options)
-                        if (!string.IsNullOrEmpty(Playlist.GetScdPath(opt)))
-                            results.Add((pl, opt));
+                return Library.SongTargets(Playlists.Values);
             return results;
         }
 

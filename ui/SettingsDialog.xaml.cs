@@ -202,6 +202,7 @@ namespace Pickles_Playlist_Editor
 
             if (NamingOptionsChanged)
                 await App.MainWindow.ApplyNamingOptionsAsync();
+            App.MainWindow.ContinueAiScoreAfterSettings(libraryFresh: NamingOptionsChanged);
 
             if (UpdateChannelChanged)
                 await App.MainWindow.CheckForUpdatesAsync();
@@ -421,6 +422,7 @@ namespace Pickles_Playlist_Editor
 
             if (NamingOptionsChanged)
                 await App.MainWindow.ApplyNamingOptionsAsync();
+            App.MainWindow.ContinueAiScoreAfterSettings(libraryFresh: NamingOptionsChanged);
 
             if (UpdateChannelChanged)
                 await App.MainWindow.CheckForUpdatesAsync();

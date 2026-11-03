@@ -401,7 +401,7 @@ Möchtest du fortfahren?</value></data>
   <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>Nach KI-Wahrscheinlichkeit sortieren</value></data>
   <data name="AiScoreLabel.Text" xml:space="preserve"><value>KI-Wahrscheinlichkeit</value></data>
   <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>Schätzen, wie wahrscheinlich jeder Song KI-generiert ist</value></data>
-  <data name="AiScore_Hint" xml:space="preserve"><value>Ein lokaler Machine-Learning-Klassifikator (SONICS), keine generative KI. Deine Songs verlassen diesen Computer nie. Beim Einschalten werden einmalig etwa {0} MB heruntergeladen; die Werte berechnet „Statistik berechnen“.</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>Ein lokaler Machine-Learning-Klassifikator (SONICS), keine generative KI. Deine Songs verlassen diesen Computer nie. Beim Einschalten werden einmalig etwa {0} MB heruntergeladen; danach wird deine Bibliothek im Hintergrund bewertet, und „Statistik berechnen“ bewertet später hinzugefügte Songs.</value></data>
   <data name="AiScore_Consent_Title" xml:space="preserve"><value>KI-Wahrscheinlichkeit einschalten?</value></data>
   <data name="AiScore_Consent_Content" xml:space="preserve"><value>Der Wert stammt von SONICS, einem Machine-Learning-Klassifikator, der auf diesem Computer läuft. Das ist keine generative KI, und deine Songs verlassen diesen Computer nie. Es ist eine Schätzung, kein Beweis.&#10;&#10;Das Modell und der benötigte Audio-Decoder werden einmalig (etwa {0} MB) von {2} nach {1} heruntergeladen.</value></data>
   <data name="AiScore_Redownload_Content" xml:space="preserve"><value>Die Dateien für die KI-Wahrscheinlichkeit fehlen, sind beschädigt oder veraltet. Erneut herunterladen (etwa {0} MB)? Deine Songs verlassen diesen Computer nie.</value></data>
@@ -418,7 +418,7 @@ Möchtest du fortfahren?</value></data>
   <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>der Download wurde abgebrochen.</value></data>
   <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>Die KI-Dateien stehen noch nicht zum Download bereit. Versuche es später erneut.</value></data>
   <data name="AiScore_LowDisk" xml:space="preserve"><value>Es ist nicht genug Speicherplatz frei: etwa {0} MB werden in {1} benötigt.</value></data>
-  <data name="AiScore_Ready" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit ist eingeschaltet. Führe „Statistik berechnen“ für eine Playlist aus, um ihre Songs zu bewerten.</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit ist eingeschaltet. Alle noch nicht bewerteten Songs deiner Bibliothek werden jetzt im Hintergrund mit niedriger Priorität bewertet; die Markierungen erscheinen nach und nach. „Statistik berechnen“ bewertet später hinzugefügte Songs.</value></data>
   <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit konnte nicht ausgeführt werden: {0}</value></data>
   <data name="AiScore_Band_Ai" xml:space="preserve"><value>Wahrscheinlich KI</value></data>
   <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Möglicherweise KI</value></data>
@@ -429,5 +429,5 @@ Möchtest du fortfahren?</value></data>
   <data name="AiScore_SummarySkipped" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit wurde übersprungen: ihre Dateien sind nicht bereit.</value></data>
   <data name="Summary_AiScore" xml:space="preserve"><value>KI-Wahrscheinlichkeit</value></data>
   <data name="Prog_AiScoring" xml:space="preserve"><value>KI-Wahrscheinlichkeit wird bewertet {0}/{1}...</value></data>
-  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>Die KI-Bewertung läuft bereits. Führe „Statistik berechnen“ erneut aus, wenn sie fertig ist, um diese Songs zu bewerten.</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>Die KI-Bewertung läuft bereits im Hintergrund. Diese Songs werden danach bewertet.</value></data>
 </root>
