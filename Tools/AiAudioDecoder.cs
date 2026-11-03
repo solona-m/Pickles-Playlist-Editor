@@ -66,7 +66,7 @@ namespace Pickles_Playlist_Editor.Tools
                 {
                     watch.Busy = true;
                     try { return logit(w); }
-                    finally { watch.Busy = false; watch.Touch(); }
+                    finally { watch.Touch(); watch.Busy = false; } // new time first, so the timer never sees "not busy" with the old one
                 }
                 try { result = AiScoreMath.Aggregate(watch, Timed, ct, buffer); }
                 catch (OperationCanceledException) { Kill(process); throw; }
