@@ -9,6 +9,7 @@ namespace Pickles_Playlist_Editor.Utils
     {
         // One encode: padding and (optionally) normalization share the same filter chain.
         // Tags are dropped: large ones (e.g. Serato DJ data) bloat the Vorbis header and play silent in game.
+        // Artist, album and comment-type tags are read into SongTagCache instead (#20).
         // The loop tags ImportOgg reads are carried over.
         public static void ConvertToOgg(string sourcePath, string oggName, bool normalize)
         {
@@ -18,20 +19,26 @@ namespace Pickles_Playlist_Editor.Utils
             Run($"-i \"{sourcePath}\" -vn -map_metadata -1{LoopTagArgs(sourcePath)} -acodec libvorbis -f ogg -q:a 7 -af \"{filter}\" \"{oggName}\"");
         }
 
+        // Plain transcode to Vorbis: no padding or normalization, so it plays what the game plays.
+        // -y: the destination may already exist.
+        public static void TranscodeToOgg(string sourcePath, string oggName, long? loopStartSamples, long? loopEndSamples)
+        {
+            string loopArgs = "";
+            if (loopStartSamples.HasValue) loopArgs += $" -metadata LoopStart={loopStartSamples.Value}";
+            if (loopEndSamples.HasValue) loopArgs += $" -metadata LoopEnd={loopEndSamples.Value}";
+            Run($"-y -i \"{sourcePath}\" -vn -map_metadata -1{loopArgs} -acodec libvorbis -f ogg -q:a 7 \"{oggName}\"");
+        }
+
         // " -metadata LoopStart=N -metadata LoopEnd=N" for whichever the source has, else "".
         private static string LoopTagArgs(string sourcePath)
         {
-            string meta = Path.Combine(Path.GetTempPath(), "pickles-meta-" + Guid.NewGuid().ToString("N") + ".txt");
             try
             {
-                Run($"-y -i \"{sourcePath}\" -f ffmetadata \"{meta}\"");
                 string args = "";
-                foreach (string line in File.ReadLines(meta))
+                foreach (var (rawKey, rawValue) in ReadFfMetadata(sourcePath))
                 {
-                    int eq = line.IndexOf('=');
-                    if (eq <= 0) continue;
-                    string key = line[..eq].Trim();
-                    if (!long.TryParse(line[(eq + 1)..].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long samples))
+                    string key = rawKey.Trim();
+                    if (!long.TryParse(rawValue.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out long samples))
                         continue;
                     if (key.Equals("LoopStart", StringComparison.OrdinalIgnoreCase))
                         args += $" -metadata LoopStart={samples}";
@@ -45,10 +52,45 @@ namespace Pickles_Playlist_Editor.Utils
                 Logger.LogWarn("Could not read loop tags from '{File}': {Error}", sourcePath, ex.Message);
                 return "";
             }
+        }
+
+        /// <summary>
+        /// The source file's global tags, via ffmpeg's ffmetadata output. Bounded (15 s by default): a stuck read is killed,
+        /// never left to stall an import. Throws on failure; callers decide how quietly.
+        /// </summary>
+        internal static IReadOnlyList<KeyValuePair<string, string>> ReadFfMetadata(string sourcePath, TimeSpan? timeout = null) =>
+            ReadFfMetadataWithDuration(sourcePath, timeout).Fields;
+
+        /// <summary>As <see cref="ReadFfMetadata"/>, plus the input's duration from the same run (null when ffmpeg can't tell).</summary>
+        internal static (IReadOnlyList<KeyValuePair<string, string>> Fields, TimeSpan? Duration) ReadFfMetadataWithDuration(
+            string sourcePath, TimeSpan? timeout = null, bool lowPriority = false)
+        {
+            string meta = Path.Combine(Path.GetTempPath(), "pickles-meta-" + Guid.NewGuid().ToString("N") + ".txt");
+            try
+            {
+                string stderr = Run($"-y -i \"{sourcePath}\" -f ffmetadata \"{meta}\"", timeout ?? TimeSpan.FromSeconds(15), lowPriority);
+                return (FfMetadata.ParseGlobal(File.ReadAllText(meta, System.Text.Encoding.UTF8)), ParseDuration(stderr));
+            }
             finally
             {
                 try { File.Delete(meta); } catch { }
             }
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex s_duration =
+            new(@"^[ \t]*Duration:[ \t]*(\d+):(\d\d):(\d\d(?:\.\d+)?)",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.Multiline);
+
+        /// <summary>The first "Duration: HH:MM:SS.xx" line in ffmpeg's stderr (not a tag value); null for "N/A" or none.</summary>
+        internal static TimeSpan? ParseDuration(string? stderr)
+        {
+            if (string.IsNullOrEmpty(stderr)) return null;
+            var m = s_duration.Match(stderr);
+            if (!m.Success) return null;
+            double secs = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) * 3600
+                + int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture) * 60
+                + double.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
+            return TimeSpan.FromSeconds(secs);
         }
 
         public static void StripVideo(string oggName)
@@ -161,7 +203,7 @@ namespace Pickles_Playlist_Editor.Utils
             File.Move(tmp, oggName,true);
         }
 
-        private static string Run(string arguments)
+        private static string Run(string arguments, TimeSpan? timeout = null, bool lowPriority = false)
         {
             using var process = new Process();
             process.StartInfo.FileName = "ffmpeg.exe";
@@ -172,8 +214,29 @@ namespace Pickles_Playlist_Editor.Utils
             process.StartInfo.Arguments = arguments;
 
             process.Start();
-            string message = process.StandardError.ReadToEnd();
-            process.WaitForExit();
+            if (lowPriority)
+            {
+                try { process.PriorityClass = ProcessPriorityClass.BelowNormal; }
+                catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { } // already exited
+            }
+            string message;
+            if (timeout is { } limit)
+            {
+                // Read stderr alongside, so a full pipe can't hold the wait; on expiry kill, wait, and let the caller clean up.
+                var stderr = process.StandardError.ReadToEndAsync();
+                if (!process.WaitForExit(limit))
+                {
+                    try { process.Kill(entireProcessTree: true); } catch { }
+                    process.WaitForExit(TimeSpan.FromSeconds(5)); // bounded too, in case the kill failed
+                    throw new TimeoutException($"ffmpeg did not finish within {limit.TotalSeconds:0} s");
+                }
+                message = stderr.GetAwaiter().GetResult();
+            }
+            else
+            {
+                message = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+            }
 
             if (process.ExitCode != 0)
             {

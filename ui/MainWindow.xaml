@@ -24,7 +24,7 @@
         <CommandBar Grid.Row="0" DefaultLabelPosition="Right" HorizontalAlignment="Left">
             <AppBarButton x:Name="AddSongsButton" x:Uid="AddSongsButton" Label="Add Songs" Icon="Add" Click="AddSongsButton_Click">
                 <AppBarButton.Flyout>
-                    <MenuFlyout>
+                    <MenuFlyout x:Name="AddSongsFlyout">
                         <MenuFlyoutItem x:Name="FromMyComputerMenuItem" x:Uid="FromMyComputerMenuItem" Text="From My Computer" Click="fromMyComputerToolStripMenuItem_Click"/>
                         <MenuFlyoutItem x:Name="FromYouTubeMenuItem" x:Uid="FromYouTubeMenuItem" Text="From a Link" Click="YtDownloadButton_Click"/>
                     </MenuFlyout>
@@ -45,10 +45,11 @@
             <AppBarButton x:Name="SortByBPMButton" x:Uid="SortByBPMButton" Label="Sort" IsEnabled="False">
                 <AppBarButton.Icon><FontIcon Glyph="&#xE8CB;"/></AppBarButton.Icon>
                 <AppBarButton.Flyout>
-                    <MenuFlyout>
+                    <MenuFlyout x:Name="SortFlyout">
                         <MenuFlyoutItem x:Name="SortByBPMMenuItem" x:Uid="SortByBPMMenuItem" Text="Sort by BPM" Click="SortByBPM_Click"/>
                         <MenuFlyoutItem x:Name="SortByBPMZigZagMenuItem" x:Uid="SortByBPMZigZagMenuItem" Text="Alternate Fast/Slow" Click="SortByBPMZigZag_Click"/>
                         <MenuFlyoutItem x:Name="SortByKeyMenuItem" x:Uid="SortByKeyMenuItem" Text="Sort by Key (Harmonic)" Click="SortByCamelot_Click"/>
+                        <MenuFlyoutItem x:Name="SortByAiMenuItem" x:Uid="SortByAiMenuItem" Text="Sort by AI likelihood" Click="SortByAi_Click" Visibility="Collapsed"/>
                         <MenuFlyoutItem x:Name="SortByNameMenuItem" x:Uid="SortByNameMenuItem" Text="Sort by Name" Click="SortByName_Click"/>
                     </MenuFlyout>
                 </AppBarButton.Flyout>
@@ -120,8 +121,10 @@
                 <DataTemplate x:DataType="local:PlaylistNodeContent">
                     <TreeViewItem ItemsSource="{x:Bind Children}"
                                   IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}"
+                                  AutomationProperties.HelpText="{x:Bind SongHelpText, Mode=OneWay}"
                                   HorizontalContentAlignment="Stretch">
-                        <Grid>
+                        <!-- Transparent so the song tooltip covers the whole row, not just the text. -->
+                        <Grid Background="Transparent" ToolTipService.ToolTip="{x:Bind SongTooltip, Mode=OneWay}">
                             <!-- Row highlight. Drawn here rather than by the TreeView, whose only
                                  multi-select mode puts a checkbox on every row — selection is
                                  tracked in MainWindow.Selection.cs instead. -->
@@ -138,6 +141,17 @@
                                     <TextBlock Text="{x:Bind CamelotText, Mode=OneWay}"
                                                Foreground="Black" FontSize="12" FontWeight="SemiBold"/>
                                 </Border>
+                                <!-- AI-likelihood chip: amber/pale amber for model estimates; red "Certainly AI" only when the file's own
+                                     tags name an AI generator. The tooltip has the score and the reason. -->
+                                <Border Visibility="{x:Bind AiVisibility, Mode=OneWay}"
+                                        Background="{x:Bind AiBrush, Mode=OneWay}"
+                                        ToolTipService.ToolTip="{x:Bind AiTooltip, Mode=OneWay}"
+                                        AutomationProperties.Name="{x:Bind AiAutomationName, Mode=OneWay}"
+                                        CornerRadius="4" Padding="6,1,6,1" Margin="0,0,8,0"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind AiText, Mode=OneWay}"
+                                               Foreground="Black" FontSize="12" FontWeight="SemiBold"/>
+                                </Border>
                                 <TextBlock Text="{x:Bind DisplayText, Mode=OneWay}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Grid>
@@ -148,7 +162,7 @@
         </Grid>
 
         <!-- Progress bar -->
-        <Grid Grid.Row="4" Margin="4,2,4,4">
+        <Grid x:Name="StatusBarGrid" Grid.Row="4" Margin="4,2,4,4" Visibility="Collapsed">
             <ProgressBar x:Name="ProgressBar1" Minimum="0" Maximum="100" Value="0" Height="16"/>
             <TextBlock x:Name="ProgressLabel" Text="" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11"/>
         </Grid>

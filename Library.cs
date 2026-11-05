@@ -11,6 +11,17 @@ namespace Pickles_Playlist_Editor
 {
     public static partial class Library
     {
+        /// <summary>Every song in these playlists that has an SCD, in playlist then option order; not deduped.</summary>
+        internal static List<(Playlist playlist, Option option)> SongTargets(IEnumerable<Playlist> playlists)
+        {
+            var results = new List<(Playlist, Option)>();
+            foreach (var pl in playlists)
+                foreach (var opt in pl.Options)
+                    if (!string.IsNullOrEmpty(Playlist.GetScdPath(opt)))
+                        results.Add((pl, opt));
+            return results;
+        }
+
         public static void Cleanup()
         {
             var failed = new List<string>();
@@ -406,6 +417,8 @@ namespace Pickles_Playlist_Editor
 
                             Utils.BPMDetector.UpdateCacheForSCD(currentFull, candidateFull);
                             Utils.KeyDetector.UpdateCacheForSCD(currentFull, candidateFull);
+                            Utils.AiScoreCache.Default.UpdateCacheForSCD(currentFull, candidateFull);
+                            Utils.SongTagCache.Default.UpdateCacheForSCD(currentFull, candidateFull);
                             currentRel = candidateRel;
                         }
 

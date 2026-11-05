@@ -301,7 +301,7 @@
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX 模组</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>更改</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>这些模组有可以放图片的 DJ 桌。选择你在用的那个。</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>把图片拖到其中一个上，或用下面的按钮。在你点应用之前不会写入任何东西。</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>把图片拖到其中一个上，或用下面的按钮。拖到桌面板上的动态 GIF、WebP、APNG 或短视频会以动画播放。在你点应用之前不会写入任何东西。</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>桌面面板</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>笔记本屏幕</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>填满</value></data>
@@ -347,4 +347,114 @@
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>面板有 {0}% 留黑</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>拉伸了 {0}% 以适应</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>刚好合适</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — 动画，{1} 帧，循环 {2:0.0} 秒。模组会增大约 {3} MB。</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>为了放得下，已从 {1} 帧精简到 {0} 帧；循环时长不变。</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>这个动画太大，无法做成动画，所以使用它的第一帧。</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>只有桌面板和笔记本屏幕可以做成动画，所以使用这个动画的第一帧。</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>你的动画 — {0} 帧</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>这个模组已经让桌子动起来了（{0} 帧）。动态 GIF、WebP、APNG 或短视频会替换这段动画；图片会覆盖整个面板。</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>这个应用曾给这张桌子做过动画，但备份不见了（模组文件夹被改名了吗？）。重新安装模组才能修改桌子。</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>上一次对桌子动画的修改没有完成。把原版放回去来清理，或者重新应用。</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>这个模组的桌子无法做成动画：{0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>无法读取桌子：{0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>正在编码第 {0} 帧，共 {1} 帧…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>把桌子恢复成模组自带的样子吗？这会移除你的动画以及你放在桌子上的任何图片。</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>它的特效结构不是这个应用认识的样子</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>桌子特效由模组的默认文件开启</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>这个特效放不下更多帧了</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>选项“{0}”使用了不同的桌面图片</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>不同尺寸的桌子使用了不同的特效结构</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>{0} 不存在，已跳过。</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>现在无法读取 {0}（是不是有别的程序在用它？）。没有做任何修改；请再试一次。</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>自从这个对话框读取以来，桌子已经变了，所以没有写入任何东西。请再试一次。</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} 已经在模组里了，所以没有写入任何东西。</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>应用失败，且无法完全撤销（{0}）。请使用“放回原版”。</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} 已被模组更新修改，保持原样。</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} 在这个应用之外被编辑过，已保留。</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>暂时无法删除 {0}；下次应用动画时会移除。</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra 没有保留“{0}”里的新帧。请在 Penumbra 中重新加载模组并检查桌子。</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>修改桌子失败：{0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}：不止一个粒子显示桌面图片</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}：桌面板不是由恰好一个发射器项生成的</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}：模组自带的动画没有可以重用的帧</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>无法把 {0} 读取为特效文件</value></data>
+  <data name="Textures_AnimTrimmed" xml:space="preserve"><value>只使用这个片段的前 {0} 秒。</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>这个笔记本屏幕无法做成动画，所以使用这个动画的第一帧。</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>把笔记本屏幕恢复成模组自带的样子吗？这会移除你的笔记本动画以及你放在屏幕上的任何图片。</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>把桌子和笔记本屏幕恢复成模组自带的样子吗？这会移除两个动画。</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>无法保留这个模组里的另一个动画（{0}），所以没有写入任何内容。</value></data>
+  <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>无法从 SoundCloud 下载，正在 YouTube 上查找“{0}”的对应上传 ({1}/{2})</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>无法从 SoundCloud 下载的歌曲</value></data>
+  <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>无法从 SoundCloud 下载；已使用对应的 YouTube 上传：</value></data>
+  <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0}（YouTube：{1}）</value></data>
+  <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>无法从 SoundCloud 下载，已跳过：</value></data>
+  <data name="YTFallback_SkippedEntry" xml:space="preserve"><value>• {0}（{1}）</value></data>
+  <data name="YTFallback_More" xml:space="preserve"><value>……还有 {0} 首</value></data>
+  <data name="YTFallback_Reason_NoMatch" xml:space="preserve"><value>YouTube 上没有歌曲、艺人和时长都相同的上传</value></data>
+  <data name="YTFallback_Reason_NoDetails" xml:space="preserve"><value>SoundCloud 没有提供标题或时长</value></data>
+  <data name="YTFallback_Reason_SearchFailed" xml:space="preserve"><value>YouTube 搜索失败</value></data>
+  <data name="YTFallback_Reason_DownloadFailed" xml:space="preserve"><value>YouTube 下载失败</value></data>
+  <data name="YTFallback_Reason_RateLimited" xml:space="preserve"><value>SoundCloud 正在限制请求，请稍后再试</value></data>
+  <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube 要求登录，因此搜索已停止</value></data>
+  <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>只会在 YouTube 上查找前 {0} 首此类曲目</value></data>
+  <data name="YTFallback_NoneFound" xml:space="preserve"><value>在 YouTube 上也没有找到对应的上传。</value></data>
+  <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>按 AI 可能性排序</value></data>
+  <data name="AiScoreLabel.Text" xml:space="preserve"><value>AI 可能性评分</value></data>
+  <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>估计每首歌由 AI 生成的可能性</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>本地机器学习分类器（SONICS），不是生成式 AI。你的歌曲绝不会离开这台电脑。开启后会一次性下载约 {0} MB；之后会在后台为你的曲库评分，之后添加的歌曲也一样。</value></data>
+  <data name="AiScore_Consent_Title" xml:space="preserve"><value>开启 AI 可能性评分？</value></data>
+  <data name="AiScore_Consent_Content" xml:space="preserve"><value>评分来自 SONICS，一个在这台电脑上运行的机器学习分类器。它不是生成式 AI，你的歌曲绝不会离开这台电脑。这是估计，不是证据。&#10;&#10;模型及其所需的音频解码器会一次性（约 {0} MB）从 {2} 下载到 {1}。</value></data>
+  <data name="AiScore_Redownload_Content" xml:space="preserve"><value>AI 可能性所需的文件缺失、损坏或已过期。要重新下载吗（约 {0} MB）？你的歌曲绝不会离开这台电脑。</value></data>
+  <data name="AiScore_Btn_Download" xml:space="preserve"><value>下载</value></data>
+  <data name="AiScore_Downloading_Title" xml:space="preserve"><value>正在下载 AI 可能性文件</value></data>
+  <data name="AiScore_Progress" xml:space="preserve"><value>{0}（第 {1}/{2} 个）：{3}/{4} MB</value></data>
+  <data name="AiScore_Checking" xml:space="preserve"><value>正在检查 AI 文件…</value></data>
+  <data name="AiScore_Cancelling" xml:space="preserve"><value>正在取消…</value></data>
+  <data name="AiScore_DownloadFailed" xml:space="preserve"><value>未开启 AI 可能性评分：{0}</value></data>
+  <data name="AiScore_Fail_Http" xml:space="preserve"><value>下载服务器返回了错误。请稍后再试。</value></data>
+  <data name="AiScore_Fail_Checksum" xml:space="preserve"><value>下载的文件与校验值不符。</value></data>
+  <data name="AiScore_Fail_Transport" xml:space="preserve"><value>连接失败。请检查网络连接后重试。</value></data>
+  <data name="AiScore_Fail_Disk" xml:space="preserve"><value>无法将文件写入磁盘。</value></data>
+  <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>下载已取消。</value></data>
+  <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>AI 文件暂时还不能下载。请稍后再试。</value></data>
+  <data name="AiScore_LowDisk" xml:space="preserve"><value>可用空间不足：{1} 中需要约 {0} MB。</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>AI 可能性评分已开启。曲库中尚未评分的歌曲现在会在后台以低优先级评分；评分完成后标签会陆续出现。之后添加的歌曲也会以同样方式评分。</value></data>
+  <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>AI 可能性评分无法运行：{0}</value></data>
+  <data name="AiScore_Band_Ai" xml:space="preserve"><value>很可能是 AI</value></data>
+  <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>可能是 AI</value></data>
+  <data name="AiScore_Band_Unclear" xml:space="preserve"><value>不确定</value></data>
+  <data name="AiScore_Band_Human" xml:space="preserve"><value>可能是人类创作</value></data>
+  <data name="SongTip_Artist" xml:space="preserve"><value>艺术家：{0}</value></data>
+  <data name="SongTip_Album" xml:space="preserve"><value>专辑：{0}</value></data>
+  <data name="Prog_ComputingStatsCount" xml:space="preserve"><value>正在计算 BPM 和调性 {0}/{1}...</value></data>
+  <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>统计已完成，等待更新歌曲名称...</value></data>
+  <data name="Stats_AlreadyRunning" xml:space="preserve"><value>“计算统计”已在后台运行。请在底部进度条完成后重试。</value></data>
+  <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0}：无法分析音频</value></data>
+  <data name="AiScore_Tagged" xml:space="preserve"><value>标记为使用 {0} 制作。</value></data>
+  <data name="AiScore_Band_Certain" xml:space="preserve"><value>确定为 AI</value></data>
+  <data name="AiScore_TooltipTagged" xml:space="preserve"><value>AI 可能性：{0}%。</value></data>
+  <data name="AiScore_Tooltip" xml:space="preserve"><value>AI 可能性：{0}%。这是估计，不是证据。</value></data>
+  <data name="AiScore_Summary" xml:space="preserve"><value>AI 可能性：已评分 {0} 首，之前已评分 {3} 首，{1} 首无评分（静音或太短），{2} 首无法读取。</value></data>
+  <data name="AiScore_SummarySkipped" xml:space="preserve"><value>已跳过 AI 可能性评分：其文件尚未就绪。</value></data>
+  <data name="Summary_AiScore" xml:space="preserve"><value>AI 可能性评分</value></data>
+  <data name="Prog_AiScoring" xml:space="preserve"><value>正在评估 AI 可能性 {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI 评分已在后台进行中。这些歌曲会在它完成后评分。</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>从文件夹补全标签…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>从文件夹补全标签</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>选择存放原始歌曲文件的文件夹（也会搜索子文件夹）</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>正在检查哪些歌曲需要标签…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>正在查找原始文件… 已检查 {0} 个音频文件</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>正在读取标签 {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>已为 {1} 首无标签歌曲中的 {0} 首补全标签，共搜索 {2} 个音频文件。</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>其中 {0} 首被标记为使用 Suno 或 Udio 制作。</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>在设置中开启 AI 可能性评分，即可看到它们的“确定为 AI”标签。</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} 首已有标签，保持不变。</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} 首在该文件夹中没有名称匹配的文件。</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} 首已跳过：可能对应多个文件、时长不匹配，或运行期间发生了更改。</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} 首匹配到的文件没有标签或无法读取。</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} 首匹配到的文件仅存储在网上（OneDrive 等）。请将其设为离线可用后再运行一次。</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>无法读取该文件夹：{0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>无法打开已保存的歌曲标签，因此未做任何更改。请稍后重试。</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>“从文件夹补全标签”已在后台运行。请在底部进度条完成后重试。</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>这些歌曲已有标签。</value></data>
 </root>

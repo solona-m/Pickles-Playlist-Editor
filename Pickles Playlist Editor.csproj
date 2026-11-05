@@ -2,21 +2,23 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <RootNamespace>Pickles_Playlist_Editor</RootNamespace>
     <Nullable>enable</Nullable>
     <UseWinUI>true</UseWinUI>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <ApplicationIcon>pickle.ico</ApplicationIcon>
-    <AssemblyVersion>2.11.3.0</AssemblyVersion>
-    <FileVersion>2.11.3.0</FileVersion>
-    <PlatformTarget>x86</PlatformTarget>
+    <AssemblyVersion>2.11.18.0</AssemblyVersion>
+    <FileVersion>2.11.18.0</FileVersion>
+    <PlatformTarget>x64</PlatformTarget>
     <WindowsPackageType>None</WindowsPackageType>
     <!-- Bundle the Windows App Runtime with the app so unpackaged builds don't
          require a machine-wide runtime install (fixes the Win10 "Windows App
          Runtime is missing" prompt). Requires a RuntimeIdentifier. -->
-    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- Every build ships the .NET runtime, ProjectReference builds included. -->
+    <SelfContained>true</SelfContained>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <!-- Without this, `dotnet publish` silently drops the app's own .pri resource
          index and satellite resource folders for unpackaged (WindowsPackageType=None)
@@ -36,6 +38,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ScdAudioTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="pickle.ico" />
     <Content Include="Resources\pickle.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -48,7 +54,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260508005" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.6.4" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.1" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NAudio.Vorbis" Version="1.5.0" />
@@ -56,6 +62,7 @@
     <PackageReference Include="PersistentCollection" Version="2.0.12" />
     <PackageReference Include="SharpDX" Version="4.2.0" />
     <PackageReference Include="SharpDX.Mathematics" Version="4.2.0" />
+    <PackageReference Include="SoundTouch.Net" Version="2.3.2" />
     <!-- Windows DPAPI, for encrypting the stored SoundCloud oauth token at rest.
          Not part of the .NET base framework; Windows-only, which suits a WinUI app. -->
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.11" />
@@ -75,9 +82,10 @@
     <None Update="ffmpeg.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="libzplay.dll">
+    <None Update="THIRD-PARTY-NOTICES.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="licenses\*.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Update="README.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

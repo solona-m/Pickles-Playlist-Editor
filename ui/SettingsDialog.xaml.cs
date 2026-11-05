@@ -40,6 +40,8 @@ namespace Pickles_Playlist_Editor
                 ShowKeyInNameCheckBox.IsChecked = Settings.ShowKeyInName;
                 ShowCamelotInNameCheckBox.IsChecked = Settings.ShowCamelotInName;
                 ShowLengthInNameCheckBox.IsChecked = Settings.ShowLengthInName;
+                AiScoreCheckBox.IsChecked = Settings.AiScoreEnabled;
+                AiScoreHintText.Text = AppStrings.AiScoreHint(AiScoreText.DownloadMb);
                 BusNumberComboBox.SelectedIndex = BusNumberToIndex(Settings.BusNumber);
                 SelectCurrentLanguage();
                 UpdateCookieStatus();
@@ -196,8 +198,11 @@ namespace Pickles_Playlist_Editor
             // Same reasoning as the channel flag: OpenSettingsAsync already read and acted on
             // these when Hide() completed the first ShowAsync, so a change made in this second
             // pass is ours to apply.
+            await App.MainWindow.ApplyAiScoreSettingAsync(this);
+
             if (NamingOptionsChanged)
                 await App.MainWindow.ApplyNamingOptionsAsync();
+            App.MainWindow.ContinueAiScoreAfterSettings(libraryFresh: NamingOptionsChanged);
 
             if (UpdateChannelChanged)
                 await App.MainWindow.CheckForUpdatesAsync();
@@ -332,6 +337,11 @@ namespace Pickles_Playlist_Editor
         /// </summary>
         internal bool NamingOptionsChanged { get; private set; }
 
+        /// <summary>Ticked while off: the opt-in (consent, download) runs once the dialog has closed.</summary>
+        internal bool AiScoreOptInRequested { get; private set; }
+
+        internal bool AiScoreChanged { get; private set; }
+
         private void UpdateCookieStatus()
         {
             var status = Pickles_Playlist_Editor.Tools.YtDlpService.GetCookieStatus();
@@ -408,8 +418,11 @@ namespace Pickles_Playlist_Editor
             // Same reasoning as the channel flag: OpenSettingsAsync already read and acted on
             // these when Hide() completed the first ShowAsync, so a change made in this second
             // pass is ours to apply.
+            await App.MainWindow.ApplyAiScoreSettingAsync(this);
+
             if (NamingOptionsChanged)
                 await App.MainWindow.ApplyNamingOptionsAsync();
+            App.MainWindow.ContinueAiScoreAfterSettings(libraryFresh: NamingOptionsChanged);
 
             if (UpdateChannelChanged)
                 await App.MainWindow.CheckForUpdatesAsync();
@@ -451,6 +464,13 @@ namespace Pickles_Playlist_Editor
             Settings.ShowCamelotInName = ShowCamelotInNameCheckBox.IsChecked == true;
             Settings.ShowLengthInName = ShowLengthInNameCheckBox.IsChecked == true;
 
+            // Unticking turns the AI score off at once (files and cache are kept); ticking only asks,
+            // since turning it on needs a download that can't run inside this dialog.
+            bool aiWanted = AiScoreCheckBox.IsChecked == true, aiOn = Settings.AiScoreEnabled;
+            AiScoreOptInRequested = aiWanted && !aiOn;
+            AiScoreChanged = aiWanted != aiOn;
+            if (!aiWanted && aiOn) Settings.AiScoreEnabled = false;
+
             // Written only on a real change. With nothing stored, Settings.UpdateChannel derives
             // the channel from the running build, and that derived state is worth preserving: a
             // tester who opens Settings for some unrelated reason and clicks OK would otherwise be
@@ -489,9 +509,11 @@ namespace Pickles_Playlist_Editor
             if (result != 6) // not IDYES
                 return;
 
+            App.MainWindow.PrepareForExit(); // this exit skips AppWindow.Closing
             try
             {
                 Microsoft.Windows.AppLifecycle.AppInstance.Restart(string.Empty);
+                App.MainWindow.ResumeAfterAbortedExit(); // Restart returned: still running
             }
             catch
             {

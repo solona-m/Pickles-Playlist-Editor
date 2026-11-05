@@ -301,7 +301,7 @@ Do you want to proceed?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX Mod</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Change</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>These mods have a DJ table you can put pictures on. Pick the one you use.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Drop a picture onto one of these, or use the button underneath. Nothing is written until you press Apply.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Drop a picture onto one of these, or use the button underneath. An animated GIF, WebP, APNG or short video on the table panel plays as an animation. Nothing is written until you press Apply.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Table panel</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptop screen</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Fill</value></data>
@@ -347,4 +347,114 @@ Do you want to proceed?</value></data>
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% of the panel is left black</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>squashed {0}% to fit</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>fits the panel exactly</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animation, {1} frames, {2:0.0} s loop. Adds about {3} MB to the mod.</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>Thinned from {1} to {0} frames to fit; the loop keeps its length.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>This animation is too large to animate, so its first frame is used as a picture.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Only the table panel and the laptop screen can be animated, so the first frame of this animation is used.</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>Your animation — {0} frames</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>This mod already animates the table ({0} frames). An animated GIF, WebP, APNG or short video replaces that animation; a picture covers the whole panel.</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>This app animated this table, but its backup is gone (was the mod folder renamed?). Reinstall the mod to change the table.</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>The last change to the table animation did not finish. Put the original back to clean it up, or apply again.</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>The table can’t be animated in this mod: {0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>The table could not be read: {0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>Encoding frame {0} of {1}…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>Put the table back the way the mod shipped it? This removes your animation and any picture you put on the table.</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>its effect is not laid out the way this app knows</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>the table effect is switched on by the mod’s default files</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>the effect has no room for more frames</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>the option “{0}” uses a different table picture</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>the table sizes use different effect layouts</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>{0} is missing and was skipped.</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} can’t be read right now (is another program using it?). Nothing was changed; try again.</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>The table changed since this dialog read it, so nothing was written. Try again.</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} is already in the mod, so nothing was written.</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>Applying failed and could not be fully undone ({0}). Use “Put the original back”.</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} was changed by a mod update and was left as it is.</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} was edited outside this app and was kept.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} could not be deleted yet; it will be removed the next time you apply an animation.</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra did not keep the new frames in “{0}”. Reload the mod in Penumbra and check the table.</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>Changing the table failed: {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: more than one particle shows the table picture</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: the table panel isn’t spawned by exactly one emitter item</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: the mod’s own animation has no frame this app can reuse</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>{0} could not be read as an effect file</value></data>
+  <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Only the first {0} s of this clip is used.</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>This laptop screen can’t be animated, so the first frame of this animation is used.</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Put the laptop screen back the way the mod shipped it? This removes your laptop animation and any picture you put on the screen.</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>Put the table and the laptop screen back the way the mod shipped them? This removes both animations.</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>The other animation in this mod could not be kept ({0}), so nothing was written.</value></data>
+  <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>Not downloadable from SoundCloud, looking for a matching YouTube upload of "{0}" ({1}/{2})</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>Songs not downloadable from SoundCloud</value></data>
+  <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>Not downloadable from SoundCloud; matching YouTube upload used:</value></data>
+  <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0} (YouTube: {1})</value></data>
+  <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>Not downloadable from SoundCloud and left out:</value></data>
+  <data name="YTFallback_SkippedEntry" xml:space="preserve"><value>• {0} ({1})</value></data>
+  <data name="YTFallback_More" xml:space="preserve"><value>…and {0} more</value></data>
+  <data name="YTFallback_Reason_NoMatch" xml:space="preserve"><value>no YouTube upload with the same song, artist and length</value></data>
+  <data name="YTFallback_Reason_NoDetails" xml:space="preserve"><value>SoundCloud didn't give its title or length</value></data>
+  <data name="YTFallback_Reason_SearchFailed" xml:space="preserve"><value>the YouTube search didn't work</value></data>
+  <data name="YTFallback_Reason_DownloadFailed" xml:space="preserve"><value>the YouTube download didn't work</value></data>
+  <data name="YTFallback_Reason_RateLimited" xml:space="preserve"><value>SoundCloud is limiting requests; try again later</value></data>
+  <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube asked for a sign-in, so the search stopped</value></data>
+  <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>only the first {0} such tracks are looked up on YouTube</value></data>
+  <data name="YTFallback_NoneFound" xml:space="preserve"><value>No matching YouTube upload was found either.</value></data>
+  <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>Sort by AI likelihood</value></data>
+  <data name="AiScoreLabel.Text" xml:space="preserve"><value>AI-likelihood score</value></data>
+  <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>Estimate how likely each song is to be AI-generated</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>A local machine-learning classifier (SONICS), not generative AI. Your songs never leave this computer. Turning it on downloads about {0} MB once; your library is then scored in the background, and so are songs you add later.</value></data>
+  <data name="AiScore_Consent_Title" xml:space="preserve"><value>Turn on the AI-likelihood score?</value></data>
+  <data name="AiScore_Consent_Content" xml:space="preserve"><value>The score comes from SONICS, a machine-learning classifier that runs on this computer. It is not generative AI, and your songs never leave this computer. It is an estimate, not proof.&#10;&#10;The model and the audio decoder it needs are downloaded once (about {0} MB) from {2} into {1}.</value></data>
+  <data name="AiScore_Redownload_Content" xml:space="preserve"><value>The AI-likelihood files are missing, damaged or out of date. Download them again (about {0} MB)? Your songs never leave this computer.</value></data>
+  <data name="AiScore_Btn_Download" xml:space="preserve"><value>Download</value></data>
+  <data name="AiScore_Downloading_Title" xml:space="preserve"><value>Downloading the AI-likelihood files</value></data>
+  <data name="AiScore_Progress" xml:space="preserve"><value>{0} ({1} of {2}): {3} of {4} MB</value></data>
+  <data name="AiScore_Checking" xml:space="preserve"><value>Checking the AI files…</value></data>
+  <data name="AiScore_Cancelling" xml:space="preserve"><value>Cancelling…</value></data>
+  <data name="AiScore_DownloadFailed" xml:space="preserve"><value>The AI-likelihood score was not turned on: {0}</value></data>
+  <data name="AiScore_Fail_Http" xml:space="preserve"><value>the download server answered with an error. Try again later.</value></data>
+  <data name="AiScore_Fail_Checksum" xml:space="preserve"><value>a downloaded file didn't match its checksum.</value></data>
+  <data name="AiScore_Fail_Transport" xml:space="preserve"><value>the connection failed. Check your internet connection and try again.</value></data>
+  <data name="AiScore_Fail_Disk" xml:space="preserve"><value>the files couldn't be written to disk.</value></data>
+  <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>the download was cancelled.</value></data>
+  <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>The AI files aren't available for download yet. Try again later.</value></data>
+  <data name="AiScore_LowDisk" xml:space="preserve"><value>There isn't enough free space: about {0} MB is needed in {1}.</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>The AI-likelihood score is on. Any songs in your library that are not scored yet are now scored in the background, at low priority; tags appear as songs are scored. Songs you add later are scored the same way.</value></data>
+  <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>The AI-likelihood score couldn't run: {0}</value></data>
+  <data name="AiScore_Band_Ai" xml:space="preserve"><value>Likely AI</value></data>
+  <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Possibly AI</value></data>
+  <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Unclear</value></data>
+  <data name="AiScore_Band_Human" xml:space="preserve"><value>Likely human</value></data>
+  <data name="SongTip_Artist" xml:space="preserve"><value>Artist: {0}</value></data>
+  <data name="SongTip_Album" xml:space="preserve"><value>Album: {0}</value></data>
+  <data name="Prog_ComputingStatsCount" xml:space="preserve"><value>Computing BPM and key {0}/{1}...</value></data>
+  <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>Stats ready, waiting to update song names...</value></data>
+  <data name="Stats_AlreadyRunning" xml:space="preserve"><value>Compute Stats is already running in the background. Try again when the progress bar at the bottom has finished.</value></data>
+  <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0}: audio could not be analysed</value></data>
+  <data name="AiScore_Tagged" xml:space="preserve"><value>Tagged as made with {0}.</value></data>
+  <data name="AiScore_Band_Certain" xml:space="preserve"><value>Certainly AI</value></data>
+  <data name="AiScore_TooltipTagged" xml:space="preserve"><value>AI likelihood: {0}%.</value></data>
+  <data name="AiScore_Tooltip" xml:space="preserve"><value>AI likelihood: {0}%. An estimate, not proof.</value></data>
+  <data name="AiScore_Summary" xml:space="preserve"><value>AI-likelihood: {0} scored, {3} already scored, {1} without a score (silent or too short), {2} couldn't be read.</value></data>
+  <data name="AiScore_SummarySkipped" xml:space="preserve"><value>The AI-likelihood score was skipped: its files aren't ready.</value></data>
+  <data name="Summary_AiScore" xml:space="preserve"><value>AI-likelihood score</value></data>
+  <data name="Prog_AiScoring" xml:space="preserve"><value>Scoring AI likelihood {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI scoring is already running in the background. These songs will be scored after it.</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>Backfill tags from folder…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>Backfill tags from folder</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>Choose the folder with your original song files (subfolders are searched too)</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>Checking which songs need tags…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>Looking for original files… {0} audio files checked</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>Reading tags {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>Filled tags for {0} of {1} songs without tags, from {2} audio files searched.</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>{0} of them are tagged as made with Suno or Udio.</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>Turn on the AI-likelihood score in Settings to see their Certainly AI tags.</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} already had tags and were left as they were.</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} had no file with a matching name in that folder.</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} were skipped: more than one possible file, a length that didn't match, or a change while this ran.</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} matched a file with no tags, or one that couldn't be read.</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} matched files that are only stored online (OneDrive or similar). Make them available offline and run this again.</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>The folder couldn't be read: {0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>Your saved song tags couldn't be opened, so nothing was changed. Try again later.</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>Backfill tags is already running in the background. Try again when the progress bar at the bottom has finished.</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>These songs already have tags.</value></data>
 </root>

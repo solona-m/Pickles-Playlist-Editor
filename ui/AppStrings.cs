@@ -42,6 +42,28 @@ namespace Pickles_Playlist_Editor
         public static string Dlg_YTNoCookies => _r.GetString("Dlg_YTNoCookies");
         public static string Dlg_SCGeoBlocked => _r.GetString("Dlg_SCGeoBlocked");
         public static string Dlg_SCPaidTrack => _r.GetString("Dlg_SCPaidTrack");
+
+        // YouTube match for SoundCloud tracks that aren't downloadable there.
+        public static string Dlg_YouTubeFallback_Title => _r.GetString("Dlg_YouTubeFallback_Title");
+        public static string YTFallback_NoneFound => _r.GetString("YTFallback_NoneFound");
+        public static string YouTubeFallbackSearching(string title, int current, int total) =>
+            string.Format(_r.GetString("Prog_YouTubeFallbackSearching"), title, current, total);
+        public static FallbackReportFormats FallbackFormats() => new(
+            _r.GetString("YTFallback_SubstitutedHeader"),
+            _r.GetString("YTFallback_SubstitutedEntry"),
+            _r.GetString("YTFallback_SkippedHeader"),
+            _r.GetString("YTFallback_SkippedEntry"),
+            _r.GetString("YTFallback_More"),
+            new System.Collections.Generic.Dictionary<Tools.FallbackSkipReason, string>
+            {
+                [Tools.FallbackSkipReason.NoConfidentMatch] = _r.GetString("YTFallback_Reason_NoMatch"),
+                [Tools.FallbackSkipReason.NoDetails] = _r.GetString("YTFallback_Reason_NoDetails"),
+                [Tools.FallbackSkipReason.SearchFailed] = _r.GetString("YTFallback_Reason_SearchFailed"),
+                [Tools.FallbackSkipReason.DownloadFailed] = _r.GetString("YTFallback_Reason_DownloadFailed"),
+                [Tools.FallbackSkipReason.SoundCloudRateLimited] = _r.GetString("YTFallback_Reason_RateLimited"),
+                [Tools.FallbackSkipReason.YouTubeBlocked] = _r.GetString("YTFallback_Reason_YouTubeBlocked"),
+                [Tools.FallbackSkipReason.TooMany] = string.Format(_r.GetString("YTFallback_Reason_TooMany"), Tools.YtDlpService.MaxFallbackTracks),
+            });
         public static string Dlg_SCNotFound => _r.GetString("Dlg_SCNotFound");
         public static string Dlg_SCRateLimited => _r.GetString("Dlg_SCRateLimited");
         public static string Prog_ExtractingAudio => _r.GetString("Prog_ExtractingAudio");
@@ -65,7 +87,40 @@ namespace Pickles_Playlist_Editor
             string.Format(_r.GetString("Dlg_ModFolderUnreadable_Content"), modName);
         public static string Menu_ManageEQ => _r.GetString("Menu_ManageEQ");
         public static string Menu_ComputeStats => _r.GetString("Menu_ComputeStats");
+        // Backfill tags from folder
+        public static string Menu_BackfillTags => _r.GetString("Menu_BackfillTags");
+        public static string Summary_BackfillTags => _r.GetString("Summary_BackfillTags");
+        public static string Backfill_PickFolder => _r.GetString("Backfill_PickFolder");
+        public static string Prog_BackfillPreparing => _r.GetString("Prog_BackfillPreparing");
+        public static string ProgBackfillScanning(int files) => string.Format(_r.GetString("Prog_BackfillScanning"), files);
+        public static string ProgBackfillReading(int done, int total) => string.Format(_r.GetString("Prog_BackfillReading"), done, total);
+        public static string Backfill_AlreadyRunning => _r.GetString("Backfill_AlreadyRunning");
+        public static string Backfill_NothingToFill => _r.GetString("Backfill_NothingToFill");
+        // AI-likelihood score
+        public static string Get(string key) => _r.GetString(key);
+        public static string AiScoreHint(long mb) => string.Format(_r.GetString("AiScore_Hint"), mb);
+        public static string AiScore_Consent_Title => _r.GetString("AiScore_Consent_Title");
+        public static string AiScoreConsent(long mb, string folder, string sources) => string.Format(_r.GetString("AiScore_Consent_Content"), mb, folder, sources);
+        public static string AiScoreRedownload(long mb) => string.Format(_r.GetString("AiScore_Redownload_Content"), mb);
+        public static string AiScore_Btn_Download => _r.GetString("AiScore_Btn_Download");
+        public static string AiScore_Downloading_Title => _r.GetString("AiScore_Downloading_Title");
+        public static string AiScoreProgress(string file, int index, int count, long mbDone, long mbTotal) =>
+            string.Format(_r.GetString("AiScore_Progress"), file, index, count, mbDone, mbTotal);
+        public static string AiScore_Checking => _r.GetString("AiScore_Checking");
+        public static string AiScore_Cancelling => _r.GetString("AiScore_Cancelling");
+        public static string AiScoreDownloadFailed(string reason) => string.Format(_r.GetString("AiScore_DownloadFailed"), reason);
+        public static string AiScoreLowDisk(long mb, string folder) => string.Format(_r.GetString("AiScore_LowDisk"), mb, folder);
+        public static string AiScore_Ready => _r.GetString("AiScore_Ready");
+        public static string AiScoreRuntimeFailed(string reason) => string.Format(_r.GetString("AiScore_RuntimeFailed"), reason);
+        public static string AiScoreSummary(int scored, int noScore, int failed, int cached) =>
+            string.Format(_r.GetString("AiScore_Summary"), scored, noScore, failed, cached);
+        public static string AiScore_SummarySkipped => _r.GetString("AiScore_SummarySkipped");
+        public static string Summary_AiScore => _r.GetString("Summary_AiScore");
+        public static string ProgAiScoring(int done, int total) => string.Format(_r.GetString("Prog_AiScoring"), done, total);
         public static string Prog_ComputingStats => _r.GetString("Prog_ComputingStats");
+        public static string ProgComputingStats(int done, int total) => string.Format(_r.GetString("Prog_ComputingStatsCount"), done, total);
+        public static string Prog_StatsWaitingToApply => _r.GetString("Prog_StatsWaitingToApply");
+        public static string StatsAnalyseFailed(string song) => string.Format(_r.GetString("Stats_AnalyseFailed"), song);
         public static string Summary_ComputeStats => _r.GetString("Summary_ComputeStats");
         public static string Prog_ConvertingToStereo => _r.GetString("Prog_ConvertingToStereo");
         public static string Tree_PlaylistsRoot => _r.GetString("Tree_PlaylistsRoot");
@@ -301,5 +356,44 @@ namespace Pickles_Playlist_Editor
         };
         public static string TexturesApplied(int count) =>
             string.Format(_r.GetString(count == 1 ? "Textures_AppliedOne" : "Textures_Applied"), count);
+
+        // ---- animated table ---------------------------------------------------------------------
+        public static string TexturesAnimationPending(string file, int frames, double seconds, long megabytes) =>
+            string.Format(_r.GetString("Textures_AnimPending"), file, frames, seconds, megabytes);
+        public static string TexturesAnimationCapped(int kept, int source) =>
+            string.Format(_r.GetString("Textures_AnimCapped"), kept, source);
+        public static string TexturesAnimationTooLarge => _r.GetString("Textures_AnimTooLarge");
+        public static string TexturesAnimationTrimmed(int seconds) =>
+            string.Format(_r.GetString("Textures_AnimTrimmed"), seconds);
+        public static string TexturesAnimationTableOnly => _r.GetString("Textures_AnimTableOnly");
+        public static string TexturesYourAnimation(int frames) =>
+            string.Format(_r.GetString("Textures_YourAnimation"), frames);
+        public static string TexturesAuthorAnimation(int frames) =>
+            string.Format(_r.GetString("Textures_AuthorAnimation"), frames);
+        public static string TexturesAnimationOrphaned => _r.GetString("Textures_AnimOrphaned");
+        public static string TexturesAnimationInterrupted => _r.GetString("Textures_AnimInterrupted");
+        public static string TexturesAnimationUnsupported(string reason) =>
+            string.Format(_r.GetString("Textures_AnimUnsupported"), reason);
+        public static string TexturesAnimationScanFailed(string error) =>
+            string.Format(_r.GetString("Textures_AnimScanFailed"), error);
+        public static string TexturesEncodingFrame(int frame, int count) =>
+            string.Format(_r.GetString("Textures_EncodingFrame"), frame, count);
+        public static string Textures_ConfirmRestoreAnimation => _r.GetString("Textures_ConfirmRestoreAnimation");
+        public static string Textures_ConfirmRestoreLaptopAnimation => _r.GetString("Textures_ConfirmRestoreLaptopAnimation");
+        public static string Textures_ConfirmRestoreAllAnimations => _r.GetString("Textures_ConfirmRestoreAllAnimations");
+        public static string TexturesAnimationLaptopStill => _r.GetString("Textures_AnimLaptopStill");
+
+        /// <summary>True for the sentence the core writes when one animation could not be kept beside the other.</summary>
+        public static bool IsLayerNotKept(string text)
+        {
+            var parts = _r.GetString("Anim_LayerNotKept").Split("{0}");
+            return parts.Length == 2 && text.StartsWith(parts[0], StringComparison.Ordinal) && text.EndsWith(parts[1], StringComparison.Ordinal);
+        }
+
+        /// <summary>The sentence for a message from the animation core.</summary>
+        public static string TexturesAnimationMessage(Utils.AnimationMessage message, string arg) =>
+            message == Utils.AnimationMessage.Orphaned
+                ? TexturesAnimationOrphaned
+                : string.Format(_r.GetString("Anim_" + message), arg);
     }
 }

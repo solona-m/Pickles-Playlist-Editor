@@ -38,6 +38,9 @@ namespace Pickles_Playlist_Editor
             var computeStats = new MenuFlyoutItem { Text = AppStrings.Menu_ComputeStats };
             computeStats.Click += ComputeStatsMenuItem_Click;
             flyout.Items.Add(computeStats);
+            var backfill = new MenuFlyoutItem { Text = AppStrings.Menu_BackfillTags };
+            backfill.Click += BackfillTagsMenuItem_Click;
+            flyout.Items.Add(backfill);
             return flyout;
         }
 
@@ -50,6 +53,9 @@ namespace Pickles_Playlist_Editor
             var computeStats = new MenuFlyoutItem { Text = AppStrings.Menu_ComputeStats };
             computeStats.Click += ComputeStatsMenuItem_Click;
             flyout.Items.Add(computeStats);
+            var backfill = new MenuFlyoutItem { Text = AppStrings.Menu_BackfillTags };
+            backfill.Click += BackfillTagsMenuItem_Click;
+            flyout.Items.Add(backfill);
             return flyout;
         }
 
@@ -135,43 +141,9 @@ namespace Pickles_Playlist_Editor
         {
             var targetSongs = GetSongTargets();
             if (targetSongs.Count == 0) { await ShowDialogAsync(AppStrings.Menu_ComputeStats, AppStrings.Dlg_NoSongs); return; }
-            SetProgressBarText(AppStrings.Prog_ComputingStats);
-            SetProgressBarPercent(0);
-            int processed = 0;
-            var errors = new List<string>();
-            var touchedPlaylists = new HashSet<Playlist>();
-            var nameParts = OptionStatsNaming.Parts.FromSettings();
-            await Task.Run(() =>
-            {
-                foreach (var (playlist, option) in targetSongs)
-                {
-                    try
-                    {
-                        string scdPath = Playlist.GetScdPath(option);
-                        int bpm = BPMDetector.GetBPMFromSCD(scdPath);
-                        string key = KeyDetector.GetKeyFromSCD(scdPath);
-                        TimeSpan duration = BPMDetector.GetDuration(scdPath);
-                        OptionStatsNaming.UpdateName(option, bpm, key, duration, nameParts);
-                        touchedPlaylists.Add(playlist);
-                        processed++;
-                    }
-                    catch (Exception ex) { errors.Add($"{playlist.Name}/{option.Name}: {ex.Message}"); }
-                    finally { SetProgressBarPercent((int)((processed + errors.Count) / (double)targetSongs.Count * 100)); }
-                }
-                foreach (var playlist in touchedPlaylists)
-                {
-                    // One unsaveable playlist must not abort the whole batch (or escape this
-                    // Task.Run into an async void handler and kill the app) — report it and
-                    // carry on with the rest.
-                    try { playlist.Save(); }
-                    catch (Exception ex) { errors.Add($"{playlist.Name}: {ex.Message}"); }
-                }
-            });
-            SetProgressBarPercent(100);
-            // Song names changed (stats baked in) — refresh only the touched playlists' songs.
-            foreach (var playlist in touchedPlaylists)
-                SyncPlaylistNode(playlist);
-            ShowOperationSummary(AppStrings.Summary_ComputeStats, processed, targetSongs.Count, errors);
+            // In the background (status bar, no overlay); the summary and the AI phase follow when it finishes.
+            if (!StartStatsRun(targetSongs, StatsPassKind.Manual))
+                await ShowDialogAsync(AppStrings.Menu_ComputeStats, AppStrings.Get("Stats_AlreadyRunning"));
         }
 
         /// <summary>
@@ -211,10 +183,7 @@ namespace Pickles_Playlist_Editor
                 return results;
             }
             if (node.Level == 0)
-                foreach (var pl in Playlists.Values)
-                    foreach (var opt in pl.Options)
-                        if (!string.IsNullOrEmpty(Playlist.GetScdPath(opt)))
-                            results.Add((pl, opt));
+                return Library.SongTargets(Playlists.Values);
             return results;
         }
 

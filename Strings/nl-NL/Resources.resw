@@ -301,7 +301,7 @@ Wil je doorgaan?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX-mod</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Wijzigen</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>Deze mods hebben een dj-tafel waar je afbeeldingen op kunt zetten. Kies degene die je gebruikt.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Sleep een afbeelding op een van deze, of gebruik de knop eronder. Er wordt niets weggeschreven tot je op Toepassen drukt.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Sleep een afbeelding op een van deze, of gebruik de knop eronder. Een geanimeerde GIF, WebP of APNG of een korte video op het tafelpaneel speelt af als animatie. Er wordt niets weggeschreven tot je op Toepassen drukt.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Tafelpaneel</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptopscherm</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Vullen</value></data>
@@ -347,4 +347,114 @@ Wil je doorgaan?</value></data>
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% van het paneel blijft zwart</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>{0}% vervormd om te passen</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>past precies</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animatie, {1} frames, lus van {2:0.0} s. Maakt de mod ongeveer {3} MB groter.</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>Uitgedund van {1} naar {0} frames zodat het past; de lus blijft even lang.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Deze animatie is te groot om te animeren, dus het eerste frame wordt gebruikt.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Alleen het tafelpaneel en het laptopscherm kunnen worden geanimeerd, dus het eerste frame van deze animatie wordt gebruikt.</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>Jouw animatie — {0} frames</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Deze mod animeert de tafel al ({0} frames). Een geanimeerde GIF, WebP of APNG of een korte video vervangt die animatie; een afbeelding bedekt het hele paneel.</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Deze app heeft de tafel geanimeerd, maar de back-up is weg (is de modmap hernoemd?). Installeer de mod opnieuw om de tafel te wijzigen.</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>De laatste wijziging aan de tafelanimatie is niet afgerond. Zet het origineel terug om op te ruimen, of pas opnieuw toe.</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>De tafel kan in deze mod niet worden geanimeerd: {0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>De tafel kon niet worden gelezen: {0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>Frame {0} van {1} coderen…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>De tafel terugzetten zoals de mod hem levert? Dit verwijdert je animatie en elke afbeelding die je op de tafel hebt gezet.</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>het effect is niet opgebouwd zoals deze app het kent</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>het tafeleffect wordt aangezet door de standaardbestanden van de mod</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>het effect heeft geen ruimte voor meer frames</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>de optie ‘{0}’ gebruikt een andere tafelafbeelding</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>de tafelformaten gebruiken verschillende effectindelingen</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>{0} ontbreekt en is overgeslagen.</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} kan nu niet worden gelezen (gebruikt een ander programma het?). Er is niets gewijzigd; probeer het opnieuw.</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>De tafel is veranderd sinds dit venster hem las, dus er is niets weggeschreven. Probeer het opnieuw.</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} zit al in de mod, dus er is niets weggeschreven.</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>Toepassen is mislukt en kon niet volledig ongedaan worden gemaakt ({0}). Gebruik ‘Origineel terugzetten’.</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} is door een modupdate gewijzigd en is gelaten zoals het is.</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} is buiten deze app bewerkt en is bewaard.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} kon nog niet worden verwijderd; het wordt opgeruimd de volgende keer dat je een animatie toepast.</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra heeft de nieuwe frames in ‘{0}’ niet bewaard. Laad de mod opnieuw in Penumbra en controleer de tafel.</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>Het wijzigen van de tafel is mislukt: {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: meer dan één deeltje toont de tafelafbeelding</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: het tafelpaneel wordt niet door precies één emitteritem gemaakt</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: de eigen animatie van de mod heeft geen frame dat deze app kan hergebruiken</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>{0} kon niet als effectbestand worden gelezen</value></data>
+  <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Alleen de eerste {0} s van deze clip worden gebruikt.</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>Dit laptopscherm kan niet worden geanimeerd, dus het eerste frame van deze animatie wordt gebruikt.</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Het laptopscherm terugzetten zoals de mod het levert? Dit verwijdert je laptopanimatie en elke afbeelding die je op het scherm hebt gezet.</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>De tafel en het laptopscherm terugzetten zoals de mod ze levert? Dit verwijdert beide animaties.</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>De andere animatie in deze mod kon niet worden behouden ({0}), dus er is niets geschreven.</value></data>
+  <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>Niet te downloaden van SoundCloud, zoekt een overeenkomende YouTube-upload van "{0}" ({1}/{2})</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>Nummers die niet van SoundCloud te downloaden zijn</value></data>
+  <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>Niet te downloaden van SoundCloud; overeenkomende YouTube-upload gebruikt:</value></data>
+  <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0} (YouTube: {1})</value></data>
+  <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>Niet te downloaden van SoundCloud en weggelaten:</value></data>
+  <data name="YTFallback_SkippedEntry" xml:space="preserve"><value>• {0} ({1})</value></data>
+  <data name="YTFallback_More" xml:space="preserve"><value>…en nog {0}</value></data>
+  <data name="YTFallback_Reason_NoMatch" xml:space="preserve"><value>geen YouTube-upload met hetzelfde nummer, dezelfde artiest en lengte</value></data>
+  <data name="YTFallback_Reason_NoDetails" xml:space="preserve"><value>SoundCloud gaf geen titel of lengte</value></data>
+  <data name="YTFallback_Reason_SearchFailed" xml:space="preserve"><value>de YouTube-zoekopdracht werkte niet</value></data>
+  <data name="YTFallback_Reason_DownloadFailed" xml:space="preserve"><value>de YouTube-download werkte niet</value></data>
+  <data name="YTFallback_Reason_RateLimited" xml:space="preserve"><value>SoundCloud beperkt het aantal verzoeken; probeer het later opnieuw</value></data>
+  <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube vroeg om in te loggen, dus het zoeken is gestopt</value></data>
+  <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>alleen de eerste {0} van zulke nummers worden op YouTube gezocht</value></data>
+  <data name="YTFallback_NoneFound" xml:space="preserve"><value>Ook op YouTube is geen overeenkomende upload gevonden.</value></data>
+  <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>Sorteren op AI-waarschijnlijkheid</value></data>
+  <data name="AiScoreLabel.Text" xml:space="preserve"><value>AI-waarschijnlijkheid</value></data>
+  <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>Inschatten hoe waarschijnlijk elk nummer door AI is gemaakt</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>Een lokale machine-learningclassificatie (SONICS), geen generatieve AI. Je nummers verlaten deze computer nooit. Inschakelen downloadt eenmalig ongeveer {0} MB; daarna wordt je bibliotheek op de achtergrond gescoord, net als nummers die je later toevoegt.</value></data>
+  <data name="AiScore_Consent_Title" xml:space="preserve"><value>AI-waarschijnlijkheid inschakelen?</value></data>
+  <data name="AiScore_Consent_Content" xml:space="preserve"><value>De score komt van SONICS, een machine-learningclassificatie die op deze computer draait. Het is geen generatieve AI en je nummers verlaten deze computer nooit. Het is een schatting, geen bewijs.&#10;&#10;Het model en de audiodecoder die het nodig heeft worden eenmalig gedownload (ongeveer {0} MB) van {2} naar {1}.</value></data>
+  <data name="AiScore_Redownload_Content" xml:space="preserve"><value>De bestanden voor de AI-waarschijnlijkheid ontbreken, zijn beschadigd of verouderd. Opnieuw downloaden (ongeveer {0} MB)? Je nummers verlaten deze computer nooit.</value></data>
+  <data name="AiScore_Btn_Download" xml:space="preserve"><value>Downloaden</value></data>
+  <data name="AiScore_Downloading_Title" xml:space="preserve"><value>Bestanden voor de AI-waarschijnlijkheid downloaden</value></data>
+  <data name="AiScore_Progress" xml:space="preserve"><value>{0} ({1} van {2}): {3} van {4} MB</value></data>
+  <data name="AiScore_Checking" xml:space="preserve"><value>AI-bestanden controleren…</value></data>
+  <data name="AiScore_Cancelling" xml:space="preserve"><value>Annuleren…</value></data>
+  <data name="AiScore_DownloadFailed" xml:space="preserve"><value>De AI-waarschijnlijkheid is niet ingeschakeld: {0}</value></data>
+  <data name="AiScore_Fail_Http" xml:space="preserve"><value>de downloadserver gaf een fout. Probeer het later opnieuw.</value></data>
+  <data name="AiScore_Fail_Checksum" xml:space="preserve"><value>een gedownload bestand kwam niet overeen met de controlesom.</value></data>
+  <data name="AiScore_Fail_Transport" xml:space="preserve"><value>de verbinding is mislukt. Controleer je internetverbinding en probeer het opnieuw.</value></data>
+  <data name="AiScore_Fail_Disk" xml:space="preserve"><value>de bestanden konden niet naar schijf worden geschreven.</value></data>
+  <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>de download is geannuleerd.</value></data>
+  <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>De AI-bestanden zijn nog niet beschikbaar om te downloaden. Probeer het later opnieuw.</value></data>
+  <data name="AiScore_LowDisk" xml:space="preserve"><value>Er is niet genoeg vrije ruimte: ongeveer {0} MB is nodig in {1}.</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>De AI-waarschijnlijkheid staat aan. Nummers in je bibliotheek die nog geen score hebben, worden nu op de achtergrond met lage prioriteit gescoord; de labels verschijnen zodra ze klaar zijn. Nummers die je later toevoegt, worden op dezelfde manier gescoord.</value></data>
+  <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>De AI-waarschijnlijkheid kon niet worden uitgevoerd: {0}</value></data>
+  <data name="AiScore_Band_Ai" xml:space="preserve"><value>Waarschijnlijk AI</value></data>
+  <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Mogelijk AI</value></data>
+  <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Onduidelijk</value></data>
+  <data name="AiScore_Band_Human" xml:space="preserve"><value>Waarschijnlijk menselijk</value></data>
+  <data name="SongTip_Artist" xml:space="preserve"><value>Artiest: {0}</value></data>
+  <data name="SongTip_Album" xml:space="preserve"><value>Album: {0}</value></data>
+  <data name="Prog_ComputingStatsCount" xml:space="preserve"><value>BPM en toonsoort berekenen {0}/{1}...</value></data>
+  <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>Statistieken klaar, wachten om de nummernamen bij te werken...</value></data>
+  <data name="Stats_AlreadyRunning" xml:space="preserve"><value>Statistieken berekenen loopt al op de achtergrond. Probeer het opnieuw als de voortgangsbalk onderaan klaar is.</value></data>
+  <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0}: audio kon niet worden geanalyseerd</value></data>
+  <data name="AiScore_Tagged" xml:space="preserve"><value>Gelabeld als gemaakt met {0}.</value></data>
+  <data name="AiScore_Band_Certain" xml:space="preserve"><value>Zeker AI</value></data>
+  <data name="AiScore_TooltipTagged" xml:space="preserve"><value>AI-waarschijnlijkheid: {0}%.</value></data>
+  <data name="AiScore_Tooltip" xml:space="preserve"><value>AI-waarschijnlijkheid: {0}%. Een schatting, geen bewijs.</value></data>
+  <data name="AiScore_Summary" xml:space="preserve"><value>AI-waarschijnlijkheid: {0} gescoord, {3} al gescoord, {1} zonder score (stil of te kort), {2} konden niet worden gelezen.</value></data>
+  <data name="AiScore_SummarySkipped" xml:space="preserve"><value>De AI-waarschijnlijkheid is overgeslagen: de bestanden zijn niet klaar.</value></data>
+  <data name="Summary_AiScore" xml:space="preserve"><value>AI-waarschijnlijkheid</value></data>
+  <data name="Prog_AiScoring" xml:space="preserve"><value>AI-waarschijnlijkheid scoren {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>De AI-scoring loopt al op de achtergrond. Deze nummers worden daarna gescoord.</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>Tags aanvullen uit map…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>Tags aanvullen uit map</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>Kies de map met je originele songbestanden (submappen worden ook doorzocht)</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>Controleren welke nummers tags nodig hebben…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>Originele bestanden zoeken… {0} audiobestanden gecontroleerd</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>Tags lezen {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>Tags aangevuld voor {0} van {1} nummers zonder tags, uit {2} doorzochte audiobestanden.</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>{0} daarvan zijn gemarkeerd als gemaakt met Suno of Udio.</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>Zet de AI-waarschijnlijkheid aan in Instellingen om hun Zeker AI-label te zien.</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} hadden al tags en zijn niet gewijzigd.</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} hadden geen bestand met een overeenkomende naam in die map.</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} zijn overgeslagen: meer dan één mogelijk bestand, een lengte die niet klopte of een wijziging tijdens het uitvoeren.</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} kwamen overeen met een bestand zonder tags of een bestand dat niet gelezen kon worden.</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} kwamen overeen met bestanden die alleen online staan (OneDrive of vergelijkbaar). Maak ze offline beschikbaar en voer dit opnieuw uit.</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>De map kon niet gelezen worden: {0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>Je opgeslagen songtags konden niet worden geopend, dus er is niets gewijzigd. Probeer het later opnieuw.</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>Tags aanvullen uit map loopt al op de achtergrond. Probeer het opnieuw als de voortgangsbalk onderaan klaar is.</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>Deze nummers hebben al tags.</value></data>
 </root>

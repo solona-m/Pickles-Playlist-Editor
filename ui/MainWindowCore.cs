@@ -57,6 +57,7 @@ namespace Pickles_Playlist_Editor
                 BackfillStatsFromCacheIfNeeded();
 
                 RootPlaylistItems.Clear();
+                string? modRoot = SongTagCache.ModRootOrNull(Settings.PenumbraLocation, Settings.ModName); // once per load
 
                 var rootContent = new PlaylistNodeContent
                 {
@@ -101,13 +102,12 @@ namespace Pickles_Playlist_Editor
                                 playlistTime = playlistTime.Add(cachedTime);
                             }
 
-                            var songContent = CreateSongNode(song);
+                            var songContent = CreateSongNode(song, modRoot);
 
                             if (!string.IsNullOrEmpty(filter))
                             {
-                                var cmp = StringComparison.OrdinalIgnoreCase;
-                                if (playlist.Name?.IndexOf(filter, cmp) >= 0 ||
-                                    song.Name?.IndexOf(filter, cmp) >= 0)
+                                if (SongSearch.Matches(filter, playlist.Name, song.Name,
+                                    () => SongTagCache.Default.TryGetForRel(Playlist.GetScdPath(song) ?? "", modRoot)))
                                 {
                                     matchFound = true;
                                     playlistContent.AddChild(songContent);
@@ -192,24 +192,30 @@ namespace Pickles_Playlist_Editor
         // to a filtered rebuild instead.
         private bool IsFilterActive => !string.IsNullOrWhiteSpace(SearchTextBox?.Text);
 
-        private static PlaylistNodeContent CreateSongNode(Option song)
+        private static PlaylistNodeContent CreateSongNode(Option song, string? modRoot = null)
         {
             var node = new PlaylistNodeContent
             {
                 Name = song.Name,
                 DisplayText = song.Name,
                 Level = 2,
-                IconGlyph = PlaylistNodeContent.SongGlyph
+                IconGlyph = PlaylistNodeContent.SongGlyph,
+                ScdRel = Playlist.GetScdPath(song) ?? "",
             };
             ApplyCamelotChip(node, song);
+            ApplyAiChip(node, modRoot);
+            ApplySongTooltip(node, modRoot);
             return node;
         }
 
         // Cache-only: this runs for every song on every load, and GetKeyFromSCD would drag an FFT
         // analysis onto the UI thread per uncached song. No cached key simply means no chip.
-        private static void ApplyCamelotChip(PlaylistNodeContent node, Option song)
+        private static void ApplyCamelotChip(PlaylistNodeContent node, Option song) => ApplyCamelotChip(node, Playlist.GetScdPath(song));
+
+        private static void ApplyCamelotChip(PlaylistNodeContent node) => ApplyCamelotChip(node, node.ScdRel);
+
+        private static void ApplyCamelotChip(PlaylistNodeContent node, string? scd)
         {
-            var scd = Playlist.GetScdPath(song);
             if (string.IsNullOrEmpty(scd)) return;
 
             string? key = KeyDetector.TryGetCachedKey(scd);
@@ -396,7 +402,12 @@ namespace Pickles_Playlist_Editor
                     TimeSpan? duration = BPMDetector.TryGetCachedDuration(scdPath);
                     if (!bpm.HasValue && string.IsNullOrEmpty(key) && !duration.HasValue) continue;
 
+                    string before = option.Name;
                     OptionStatsNaming.UpdateName(option, bpm, key, duration);
+                    if (option.Name == before) continue;
+                    // In memory only; a stats run may save these (MainWindow.Stats.cs).
+                    _backfilledPlaylists.Add(playlist);
+                    _backfilledOptions.Add(option);
                 }
             }
         }
@@ -418,6 +429,7 @@ namespace Pickles_Playlist_Editor
             if (percent > 100) percent = 100;
             ProgressBar1.Value = percent;
             BusyProgressBar.Value = percent;
+            UpdateStatusBarVisibility();
 
             if (percent > 0 || !string.IsNullOrWhiteSpace(ProgressLabel.Text))
                 SetBusyOverlayVisible(true);
@@ -480,11 +492,19 @@ namespace Pickles_Playlist_Editor
             }
             ProgressLabel.Text = text;
             BusyProgressLabel.Text = text;
+            UpdateStatusBarVisibility();
 
             if (string.IsNullOrWhiteSpace(text))
                 SetBusyOverlayVisible(false);
             else
                 SetBusyOverlayVisible(true);
+        }
+
+        // The status bar shows only while there is progress text or a value.
+        private void UpdateStatusBarVisibility()
+        {
+            bool idle = string.IsNullOrEmpty(ProgressLabel.Text) && ProgressBar1.Value == 0;
+            StatusBarGrid.Visibility = idle ? Visibility.Collapsed : Visibility.Visible;
         }
 
         public void ClearProgressDisplay()
@@ -499,7 +519,9 @@ namespace Pickles_Playlist_Editor
             BusyProgressBar.Value = 0;
             ProgressLabel.Text = "";
             BusyProgressLabel.Text = "";
+            UpdateStatusBarVisibility();
             SetBusyOverlayVisible(false);
+            RenderBackgroundProgress(); // a background stats or AI pass shows again
         }
 
         private Storyboard GetSpinnerStoryboard()
@@ -587,6 +609,8 @@ namespace Pickles_Playlist_Editor
                                         string scdFull = Path.Combine(Settings.PenumbraLocation, Settings.ModName,
                                             Playlist.NormalizeRelativeModPath(rel));
                                         if (File.Exists(scdFull)) File.Delete(scdFull);
+                                        Utils.AiScoreCache.Default.Forget(scdFull);
+                                        Utils.SongTagCache.Default.Forget(scdFull);
                                     }
                                     catch { /* best-effort; a leftover file is harmless and Cleanup reclaims it */ }
                                 }
@@ -687,7 +711,10 @@ namespace Pickles_Playlist_Editor
                 Utils.VersionBackup.TryCaptureBeforeUpdate(targetVersion);
 
                 await mgr.DownloadUpdatesAsync(update);
-                mgr.ApplyUpdatesAndRestart(update);
+                Playlist.FlushPenumbraMod();
+                PrepareForExit(); // this exit skips AppWindow.Closing
+                try { mgr.ApplyUpdatesAndRestart(update); }
+                catch { ResumeAfterAbortedExit(); throw; }
             }
             catch (Exception ex)
             {

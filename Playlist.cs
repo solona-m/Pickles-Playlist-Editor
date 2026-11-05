@@ -182,6 +182,22 @@ namespace Pickles_Playlist_Editor
             return referenced;
         }
 
+        /// <summary>The song name an import gives a file: its stem, or its folder's name for a "bpmloop" file.</summary>
+        internal static string ImportSongName(string file)
+        {
+            string root = Path.GetFileNameWithoutExtension(file);
+            if (root.Equals("bpmloop", StringComparison.OrdinalIgnoreCase))
+                root = (Path.GetDirectoryName(file) ?? "").Split(Path.DirectorySeparatorChar).Last();
+            return root;
+        }
+
+        /// <summary>The .scd stem an import writes for a file before any _N collision suffix; "" when nothing usable is left.</summary>
+        internal static string ImportScdStem(string file)
+        {
+            string s = SanitizeFileName(Path.GetFileName(ImportSongName(file)));
+            return string.IsNullOrWhiteSpace(s) ? "" : s;
+        }
+
         static Option AddFiles(string playlistName, Playlist group, string file,
             HashSet<string> referencedScdPaths = null)
         {
@@ -189,17 +205,12 @@ namespace Pickles_Playlist_Editor
             try
             {
                 ScdFile scdFile = ScdFile.Import(file);
-                string filenameroot = Path.GetFileNameWithoutExtension(file);
-                if (filenameroot.Equals("bpmloop", StringComparison.OrdinalIgnoreCase))
-                {
-                    filenameroot = Path.GetDirectoryName(file);
-                    filenameroot = filenameroot.Split(Path.DirectorySeparatorChar).Last();
-                }
+                string filenameroot = ImportSongName(file);
                 string playlistScdDirectory = ResolvePlaylistScdDirectory(playlistName, group);
                 string outDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistScdDirectory);
                 Directory.CreateDirectory(outDir);
 
-                string safeFileName = SanitizeFileName(Path.GetFileName(filenameroot));
+                string safeFileName = ImportScdStem(file);
                 if (string.IsNullOrWhiteSpace(safeFileName))
                     safeFileName = "audio";
 
@@ -243,9 +254,16 @@ namespace Pickles_Playlist_Editor
                     // CreateNew, not a plain write: GetNonCollidingPath says the name is free, and if
                     // something claimed it in between, failing is right. Nothing here may clobber
                     // audio another playlist is pointing at.
-                    using var stream = new FileStream(targetPath, FileMode.CreateNew);
-                    stream.Write(encoded, 0, encoded.Length);
+                    using (var stream = new FileStream(targetPath, FileMode.CreateNew))
+                        stream.Write(encoded, 0, encoded.Length);
+                    AiScoreCache.Default.Forget(targetPath); // a new song at a path a deleted one had
+                    SongTagCache.Default.Forget(targetPath);
                 }
+
+                // From the bytes just encoded, so the new song needs no tag read; never fails the import.
+                try { if (Pickles_Playlist_Editor.Tools.SongTagReader.FromScdBytes(encoded) is { } tags) SongTagCache.Default.Store(targetPath, tags); } catch { }
+                // mp3/m4a/flac/wav: the SCD carries no tags, so keep the source file's (#20); never fails the import
+                try { if (Pickles_Playlist_Editor.Tools.SourceTagReader.ForImport(file, Pickles_Playlist_Editor.Tools.SourceTagReader.Read) is { } src) SongTagCache.Default.StoreSource(targetPath, src); } catch { }
 
                 string targetRelative = Path.Combine(playlistScdDirectory, Path.GetFileName(targetPath));
 
@@ -466,6 +484,8 @@ namespace Pickles_Playlist_Editor
                             File.Move(oldPath, newPath);
                             BPMDetector.UpdateCacheForSCD(oldPath, newPath);
                             KeyDetector.UpdateCacheForSCD(oldPath, newPath);
+                            AiScoreCache.Default.UpdateCacheForSCD(oldPath, newPath);
+                            SongTagCache.Default.UpdateCacheForSCD(oldPath, newPath);
                             foreach (var (key, _) in keys)
                                 song.Files[key] = newRel;
                             renamed.Add((song, keys, oldPath, newPath));
@@ -515,6 +535,8 @@ namespace Pickles_Playlist_Editor
                             File.Move(newPath, oldPath);
                             BPMDetector.UpdateCacheForSCD(newPath, oldPath);
                             KeyDetector.UpdateCacheForSCD(newPath, oldPath);
+                            AiScoreCache.Default.UpdateCacheForSCD(newPath, oldPath);
+                            SongTagCache.Default.UpdateCacheForSCD(newPath, oldPath);
                         }
                         foreach (var (key, oldRel) in keys)
                             song.Files[key] = oldRel;
@@ -538,6 +560,8 @@ namespace Pickles_Playlist_Editor
             string newFull = Path.Combine(Settings.PenumbraLocation, Settings.ModName, newRel);
             BPMDetector.UpdateCacheForSCD(oldFull, newFull);
             KeyDetector.UpdateCacheForSCD(oldFull, newFull);
+            AiScoreCache.Default.UpdateCacheForSCD(oldFull, newFull);
+            SongTagCache.Default.UpdateCacheForSCD(oldFull, newFull);
         }
 
         internal static string GetNonCollidingPath(string path)
@@ -1553,6 +1577,15 @@ namespace Pickles_Playlist_Editor
             // name-guess would either miss it or, worse, delete a folder belonging to someone else.
             string scdDir = GetCurrentScdDirectory();
 
+            foreach (var song in Options ?? new List<Option>())
+            {
+                string rel = GetScdPath(song);
+                if (!string.IsNullOrEmpty(rel))
+                {
+                    AiScoreCache.Default.Forget(Path.Combine(Settings.PenumbraLocation, Settings.ModName, rel));
+                    SongTagCache.Default.Forget(Path.Combine(Settings.PenumbraLocation, Settings.ModName, rel));
+                }
+            }
             DeleteGroupOnly();
             ReclaimUnusedAudioDirectories(new[] { scdDir });
 
@@ -1724,6 +1757,26 @@ namespace Pickles_Playlist_Editor
 
             return Rejoin(off, zigzag);
         });
+
+        /// <summary>By cached AI score only (sorting never scores). Unscored and no-score songs stay last, in order.</summary>
+        internal void SortByAiLikelihood(SortDirection direction) => ReorderOptions(options =>
+        {
+            var (off, songs) = SplitOff(options);
+            return Rejoin(off, OrderByAiScore(songs, o => AiScoreDisplay.SortKey(AiScoreCache.Default.TryGetForRel(GetScdPath(o)),
+                SongTagCache.Default.TryGetForRel(GetScdPath(o))?.AiTool), direction)); // a generator-tagged song ranks as 100%
+        });
+
+        internal static List<Option> OrderByAiScore(IEnumerable<Option> songs, Func<Option, int?> stored, SortDirection direction)
+        {
+            var scored = songs.Select(o => (Option: o, Score: stored(o))).ToList();
+            var known = scored.Where(x => x.Score is >= 0);
+            var unknown = scored.Where(x => x.Score is not >= 0).Select(x => x.Option);
+            var ordered = (direction == SortDirection.Ascending
+                ? known.OrderBy(x => x.Score)
+                : known.OrderByDescending(x => x.Score)).Select(x => x.Option).ToList(); // stable: ties keep their order
+            ordered.AddRange(unknown);
+            return ordered;
+        }
 
         /// <summary>
         /// Orders songs so the set walks the Camelot wheel — every neighbouring pair is a valid

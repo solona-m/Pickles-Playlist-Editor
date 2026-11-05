@@ -1,0 +1,12 @@
+<ContentDialog
+    x:Class="Pickles_Playlist_Editor.AiScoreIntroDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    PrimaryButtonText="OK"
+    DefaultButton="Primary">
+
+    <StackPanel Spacing="12" MaxWidth="460">
+        <TextBlock x:Name="HintText" TextWrapping="Wrap"/>
+        <CheckBox x:Name="EnableCheckBox" x:Uid="AiScoreCheckBox" Content="Estimate how likely each song is to be AI-generated" IsChecked="True"/>
+    </StackPanel>
+</ContentDialog>

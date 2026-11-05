@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Dispatching;
+using Pickles_Playlist_Editor.Tools;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -36,6 +37,8 @@ namespace Pickles_Playlist_Editor
 
         public MainWindow()
         {
+            _aiGate = new AiPassGate(_closingCts.Token);
+            _statsGate = new StatsPassGate(_closingCts.Token);
             this.InitializeComponent();
             _uiDispatcherQueue = DispatcherQueue;
             InitializePlaybackTimer();
@@ -91,10 +94,30 @@ namespace Pickles_Playlist_Editor
                 Settings.WindowSize = (size.Width, size.Height);
                 // Don't let a debounced Penumbra reload get dropped by closing mid-countdown.
                 Playlist.FlushPenumbraMod();
+                DisposeAiScore();
+                PrepareForExit();
             };
         }
 
         // ─── Dialog helper ───────────────────────────────────────────────────────
+
+        private readonly SemaphoreSlim _dialogGate = new(1, 1);
+
+        /// <summary>
+        /// Shows one dialog through the gate, so a summary raised while another gated dialog is open waits its turn.
+        /// A collision with an ungated dialog is logged and reads as "closed".
+        /// </summary>
+        internal async Task<ContentDialogResult> ShowGatedAsync(ContentDialog dialog)
+        {
+            await _dialogGate.WaitAsync();
+            try { return await dialog.ShowAsync(); }
+            catch (COMException ex)
+            {
+                Utils.Logger.LogWarn("Dialog '{Title}' not shown: {Error}", dialog.Title as string ?? "", ex.Message);
+                return ContentDialogResult.None;
+            }
+            finally { _dialogGate.Release(); }
+        }
 
         public async Task<ContentDialogResult> ShowDialogAsync(
             string title, string content,
@@ -110,7 +133,7 @@ namespace Pickles_Playlist_Editor
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = this.Content.XamlRoot
             };
-            return await dialog.ShowAsync();
+            return await ShowGatedAsync(dialog);
         }
 
         // ─── File picker helpers
@@ -122,10 +145,15 @@ namespace Pickles_Playlist_Editor
                 UseDescriptionForTitle = !string.IsNullOrWhiteSpace(description)
             };
 
-            return Task.FromResult(
-                dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
-                    ? dialog.SelectedPath
-                    : null);
+            _nativeModalOpen++; // its message loop can run dispatcher work; stats names wait
+            try
+            {
+                return Task.FromResult(
+                    dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
+                        ? dialog.SelectedPath
+                        : null);
+            }
+            finally { _nativeModalOpen--; }
         }
 
         public Task<string[]?> PickFilesAsync(params string[] extensions)
@@ -137,10 +165,15 @@ namespace Pickles_Playlist_Editor
                 Multiselect = true
             };
 
-            return Task.FromResult(
-                dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
-                    ? dialog.FileNames
-                    : null);
+            _nativeModalOpen++; // its message loop can run dispatcher work; stats names wait
+            try
+            {
+                return Task.FromResult(
+                    dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
+                        ? dialog.FileNames
+                        : null);
+            }
+            finally { _nativeModalOpen--; }
         }
 
         public Task<string?> PickSingleFileAsync(params string[] extensions)
@@ -152,10 +185,15 @@ namespace Pickles_Playlist_Editor
                 Multiselect = false
             };
 
-            return Task.FromResult(
-                dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
-                    ? dialog.FileName
-                    : null);
+            _nativeModalOpen++; // its message loop can run dispatcher work; stats names wait
+            try
+            {
+                return Task.FromResult(
+                    dialog.ShowDialog(GetOwnerWindow()) == System.Windows.Forms.DialogResult.OK
+                        ? dialog.FileName
+                        : null);
+            }
+            finally { _nativeModalOpen--; }
         }
 
         private static string BuildFileDialogFilter(params string[] extensions)
@@ -245,11 +283,29 @@ namespace Pickles_Playlist_Editor
             // No-ops when nothing is configured yet — see the second call site in OpenSettingsAsync.
             Utils.VersionBackup.TryCaptureOnBoot();
 
+            RefreshAiScoreUi(reload: false); // before the tree is built, so chips show on first load
             LoadPlaylists();
+            _aiModKey = Utils.AiScoreCache.Key(Utils.PenumbraMeta.ModRoot); // startup AI work only via the once-per-version stats run
+            StartSongTagScan(); // quiet; reads only songs whose tags aren't known yet
+            MaybeStartAutoStats(); // once per app version
 
             _ = CheckForUpdatesAsync();
             if (string.IsNullOrWhiteSpace(Settings.PenumbraLocation) || string.IsNullOrWhiteSpace(Settings.ModName))
-                _ = OpenSettingsAsync();
+                _ = SetupThenAiIntroAsync();
+            else
+                _ = MaybeShowAiScoreIntroAsync();
+        }
+
+        /// <summary>First run: the AI intro waits for Settings to close.</summary>
+        private async Task SetupThenAiIntroAsync()
+        {
+            try
+            {
+                try { await OpenSettingsAsync(); }
+                catch (Exception ex) { Utils.Logger.LogError("First-run Settings failed: {Error}", ex); }
+                await MaybeShowAiScoreIntroAsync();
+            }
+            catch (Exception ex) { Utils.Logger.LogError("First-run setup failed: {Error}", ex); }
         }
 
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -667,11 +723,13 @@ namespace Pickles_Playlist_Editor
             var dialog = new SettingsDialog { XamlRoot = this.Content.XamlRoot };
             await dialog.ShowAsync();
             RefreshBackground();
+            await ApplyAiScoreSettingAsync(dialog);
 
             if (dialog.NamingOptionsChanged)
                 await ApplyNamingOptionsAsync();
             else
                 LoadPlaylists();
+            ContinueAiScoreAfterSettings(libraryFresh: true);
 
             // On a first run the boot capture necessarily no-opped: there was no configured mod
             // until the user filled this dialog in. This is the only point on that path where the
@@ -695,7 +753,10 @@ namespace Pickles_Playlist_Editor
         /// </summary>
         internal async Task ApplyNamingOptionsAsync()
         {
-            var failed = await Task.Run(() => Library.RefreshStatNames());
+            _namingRefreshInFlight = true; // a background stats run waits for this
+            List<string> failed;
+            try { failed = await Task.Run(() => Library.RefreshStatNames()); }
+            finally { _namingRefreshInFlight = false; }
             Playlists = Playlist.GetAll();
             if (failed.Count > 0)
                 Utils.Logger.LogWarn("Song names: {Count} playlist(s) could not be saved: {Names}",

@@ -67,18 +67,9 @@ namespace Pickles_Playlist_Editor.Utils
                     return keyCache[path];
                 }
 
-                string tmpOgg = Path.Combine(Path.GetTempPath(), "temp_extracted_key.ogg");
-                try
-                {
-                    ScdOggExtractor.ExtractOgg(path, tmpOgg);
-                    string key = DetectKeyFromFile(tmpOgg);
-                    keyCache[path] = key;
-                    return key;
-                }
-                finally
-                {
-                    try { File.Delete(tmpOgg); } catch { }
-                }
+                string key = ScdOggExtractor.WithExtractedOgg(path, DetectKeyFromFile);
+                StatsCacheWrites.Write(() => keyCache[path] = key);
+                return key;
             }
             catch (Exception ex)
             {
@@ -106,8 +97,8 @@ namespace Pickles_Playlist_Editor.Utils
             {
                 if (keyCache.ContainsKey(oldFullPath))
                 {
-                    keyCache[newFullPath] = keyCache[oldFullPath];
-                    keyCache.Remove(oldFullPath);
+                    StatsCacheWrites.Write(() => keyCache[newFullPath] = keyCache[oldFullPath]);
+                    StatsCacheWrites.Write(() => keyCache.Remove(oldFullPath));
                 }
             }
             catch (Exception ex)

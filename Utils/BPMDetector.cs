@@ -1,5 +1,4 @@
-﻿using libZPlay;
-using PersistentCollection;
+﻿using PersistentCollection;
 using Pickles_Playlist_Editor.Tools;
 using System;
 using System.IO;
@@ -51,59 +50,8 @@ namespace Pickles_Playlist_Editor.Utils
 
         static private SongAttributes GetAttribtesFromFile(string oggFile)
         {
-            ZPlay player = null;
-            try
-            {
-                player = new ZPlay();
-                int duration = 0;
-
-                // Open the OGG file
-                if (!player.OpenFile(oggFile, TStreamFormat.sfOgg))
-                {
-                    Console.WriteLine("Failed to open audio file.");
-                    return new SongAttributes();
-                }
-
-                // Attempt to get stream info (duration) and cache it
-                try
-                {
-                    var info = new TStreamInfo();
-                    player.GetStreamInfo(ref info);
-                    // info.Length.ms holds length in milliseconds
-                    var ms = info.Length.ms;
-                    if (ms > 0)
-                    {
-                        duration = (int)Math.Round(ms / 1000.0);
-                    }
-                }
-                catch
-                {
-                    // ignore failures to obtain duration but continue BPM detection
-                }
-
-                // Detect BPM
-                int retval = 0;
-
-                // Parameters: using peak method (tbmDefault recommended in libZPlay docs)
-                try
-                {
-                    retval = player.DetectBPM(TBPMDetectionMethod.dmPeaks);
-                }
-                catch
-                {
-                    retval = 0;
-                }
-
-                return new SongAttributes() { BPM = retval, Duration = new TimeSpan(0, 0, duration) };
-            }
-            catch (Exception ex)
-            {
-                return new SongAttributes();
-            }
-            finally
-            {
-                player?.Close();
-            }
+            var r = OggAnalysis.Analyze(oggFile);
+            return new SongAttributes() { BPM = r.Bpm, Duration = r.Duration };
         }
 
         public static TimeSpan GetDuration(string scdFile)
@@ -117,23 +65,17 @@ namespace Pickles_Playlist_Editor.Utils
                 }
                 else
                 {
-                    string tmpOgg = Path.Combine(System.IO.Path.GetTempPath(), "temp_extracted.ogg");
                     try
                     {
-                        ScdOggExtractor.ExtractOgg(path, tmpOgg);
-                        SongAttributes retval = GetAttribtesFromFile(tmpOgg);
-                        bpmCache[path] = retval.BPM;
-                        durationCache[path] = (int)retval.Duration.TotalSeconds;
+                        SongAttributes retval = ScdOggExtractor.WithExtractedOgg(path, GetAttribtesFromFile);
+                        StatsCacheWrites.Write(() => bpmCache[path] = retval.BPM);
+                        StatsCacheWrites.Write(() => durationCache[path] = (int)retval.Duration.TotalSeconds);
 
                         return retval.Duration;
                     }
                     catch
                     {
                         return new TimeSpan(0);
-                    }
-                    finally
-                    {
-                        try { File.Delete(tmpOgg); } catch { }
                     }
                 }
             }
@@ -150,13 +92,13 @@ namespace Pickles_Playlist_Editor.Utils
             {
                 if (bpmCache.ContainsKey(oldFullPath))
                 {
-                    bpmCache[newFullPath] = bpmCache[oldFullPath];
-                    bpmCache.Remove(oldFullPath);
+                    StatsCacheWrites.Write(() => bpmCache[newFullPath] = bpmCache[oldFullPath]);
+                    StatsCacheWrites.Write(() => bpmCache.Remove(oldFullPath));
                 }
                 if (durationCache.ContainsKey(oldFullPath))
                 {
-                    durationCache[newFullPath] = durationCache[oldFullPath];
-                    durationCache.Remove(oldFullPath);
+                    StatsCacheWrites.Write(() => durationCache[newFullPath] = durationCache[oldFullPath]);
+                    StatsCacheWrites.Write(() => durationCache.Remove(oldFullPath));
                 }
             }
             catch (Exception ex)
@@ -176,11 +118,9 @@ namespace Pickles_Playlist_Editor.Utils
                     return bpmCache[path];
                 }
 
-                string tmpOgg = Path.Combine(System.IO.Path.GetTempPath(), "temp_extracted.ogg");
-                ScdOggExtractor.ExtractOgg(path, tmpOgg);
-                SongAttributes retval = GetAttribtesFromFile(tmpOgg);
-                bpmCache[path] = retval.BPM;
-                durationCache[path] = (int)retval.Duration.TotalSeconds;
+                SongAttributes retval = ScdOggExtractor.WithExtractedOgg(path, GetAttribtesFromFile);
+                StatsCacheWrites.Write(() => bpmCache[path] = retval.BPM);
+                StatsCacheWrites.Write(() => durationCache[path] = (int)retval.Duration.TotalSeconds);
                 return retval.BPM;
             }
             catch (Exception ex)

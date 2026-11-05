@@ -194,6 +194,44 @@ namespace Pickles_Playlist_Editor
         }
 
 
+        /// <summary>Accepts the forms a DWORD flag has been stored in; anything else is <paramref name="fallback"/>.</summary>
+        internal static bool ParseFlag(object? value, bool fallback) => value switch
+        {
+            int iv => iv != 0,
+            long lv => lv != 0,
+            string sv when bool.TryParse(sv, out var bv) => bv,
+            string sv when int.TryParse(sv, out var parsed) => parsed != 0,
+            _ => fallback,
+        };
+
+        /// <summary>The AI-likelihood score. Off unless turned on after its files were downloaded and verified.</summary>
+        public static bool AiScoreEnabled
+        {
+            get
+            {
+                try { return ParseFlag(Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("AiScoreEnabled"), false); }
+                catch { return false; }
+            }
+            set
+            {
+                using RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                key.SetValue("AiScoreEnabled", value ? 1 : 0, RegistryValueKind.DWord);
+            }
+        }
+
+        /// <summary>The startup AI intro got its answer (OK clicked, or an AI choice made in Settings).</summary>
+        public static bool AiScoreIntroAnswered
+        {
+            get { try { return ParseFlag(Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("AiScoreIntroAnswered"), false); } catch { return false; } }
+            set { try { using var key = Registry.CurrentUser.CreateSubKey(s_subKey); key?.SetValue("AiScoreIntroAnswered", value ? 1 : 0, RegistryValueKind.DWord); } catch { } }
+        }
+
+        /// <summary>AiScoreEnabled has ever been written: only turning the score on or off does that. Unreadable counts as chosen.</summary>
+        public static bool AiScoreChosenBefore
+        {
+            get { try { return Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("AiScoreEnabled") != null; } catch { return true; } }
+        }
+
         /// <summary>
         /// Controls whether converted audio should be loudness-normalized.
         /// Default: true.
@@ -394,6 +432,30 @@ namespace Pickles_Playlist_Editor
                 using RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey);
                 key?.SetValue("DanceGroupId", value ?? string.Empty);
             }
+        }
+
+        /// <summary>The mod the Pictures dialog last loaded from its picker; independent of DanceModName.</summary>
+        public static string PicturesModName
+        {
+            get => (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("PicturesModName") ?? string.Empty;
+            set
+            {
+                Logger.LogInfo("Settings: pictures mod set to '{Mod}' (was '{Old}').",
+                    value, PicturesModName.Length == 0 ? "<unset>" : PicturesModName);
+
+                using RegistryKey key = Registry.CurrentUser.CreateSubKey(s_subKey);
+                key?.SetValue("PicturesModName", value ?? string.Empty);
+            }
+        }
+
+        /// <summary>The DJ mod choices, for <see cref="DjModMemory"/>.</summary>
+        internal static IDjModSettings DjMods { get; } = new RegistryDjModSettings();
+
+        private sealed class RegistryDjModSettings : IDjModSettings
+        {
+            public string DanceModName { get => Settings.DanceModName; set => Settings.DanceModName = value; }
+            public string DanceGroupId { get => Settings.DanceGroupId; set => Settings.DanceGroupId = value; }
+            public string PicturesModName { get => Settings.PicturesModName; set => Settings.PicturesModName = value; }
         }
 
         /// <summary>
@@ -627,6 +689,20 @@ namespace Pickles_Playlist_Editor
                     System.Security.Cryptography.DataProtectionScope.CurrentUser);
                 key?.SetValue(SoundCloudTokenValueName, Convert.ToBase64String(blob));
             }
+        }
+
+        /// <summary>The version whose automatic stats run last completed.</summary>
+        public static string AutoStatsVersion
+        {
+            get { try { return (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("AutoStatsVersion", "") ?? ""; } catch { return ""; } }
+            set { try { using var key = Registry.CurrentUser.CreateSubKey(s_subKey); key?.SetValue("AutoStatsVersion", value ?? ""); } catch { } }
+        }
+
+        /// <summary>"version|n": failed automatic stats runs for that version.</summary>
+        public static string AutoStatsAttempt
+        {
+            get { try { return (string)Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("AutoStatsAttempt", "") ?? ""; } catch { return ""; } }
+            set { try { using var key = Registry.CurrentUser.CreateSubKey(s_subKey); key?.SetValue("AutoStatsAttempt", value ?? ""); } catch { } }
         }
 
         /// <summary>

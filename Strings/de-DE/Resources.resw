@@ -301,7 +301,7 @@ Möchtest du fortfahren?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX-Mod</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Ändern</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>Diese Mods haben einen DJ-Tisch, auf den du Bilder legen kannst. Wähle den, den du nutzt.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Zieh ein Bild auf eines davon oder nutze den Knopf darunter. Nichts wird geschrieben, bis du auf Übernehmen drückst.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Zieh ein Bild auf eines davon oder nutze den Knopf darunter. Ein animiertes GIF, WebP, APNG oder ein kurzes Video auf dem Tischpanel wird als Animation abgespielt. Nichts wird geschrieben, bis du auf Übernehmen drückst.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Tischfront</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptop-Bildschirm</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Füllen</value></data>
@@ -347,4 +347,114 @@ Möchtest du fortfahren?</value></data>
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% der Fläche bleiben schwarz</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>{0}% verzerrt, damit es passt</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>passt genau</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — Animation, {1} Bilder, {2:0.0} s Schleife. Macht die Mod etwa {3} MB größer.</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>Von {1} auf {0} Bilder ausgedünnt; die Schleife bleibt gleich lang.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Diese Animation ist zu groß zum Animieren, darum wird ihr erstes Bild verwendet.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Nur das Tischpanel und der Laptopbildschirm können animiert werden, darum wird das erste Bild dieser Animation verwendet.</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>Deine Animation — {0} Bilder</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Diese Mod animiert den Tisch schon ({0} Bilder). Ein animiertes GIF, WebP, APNG oder ein kurzes Video ersetzt diese Animation; ein Bild deckt das ganze Panel ab.</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Diese App hat den Tisch animiert, aber ihre Sicherung fehlt (wurde der Mod-Ordner umbenannt?). Installiere die Mod neu, um den Tisch zu ändern.</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>Die letzte Änderung an der Tischanimation wurde nicht fertig. Setz das Original wieder ein, um aufzuräumen, oder übernimm erneut.</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>Der Tisch kann in dieser Mod nicht animiert werden: {0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>Der Tisch konnte nicht gelesen werden: {0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>Kodiere Bild {0} von {1}…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>Den Tisch so wiederherstellen, wie die Mod ihn liefert? Das entfernt deine Animation und jedes Bild, das du auf den Tisch gelegt hast.</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>sein Effekt ist nicht so aufgebaut, wie diese App es kennt</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>der Tischeffekt wird von den Standarddateien der Mod eingeschaltet</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>der Effekt hat keinen Platz für weitere Bilder</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>die Option „{0}“ nutzt ein anderes Tischbild</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>die Tischgrößen nutzen unterschiedliche Effekt-Layouts</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>{0} fehlt und wurde übersprungen.</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} kann gerade nicht gelesen werden (benutzt ein anderes Programm die Datei?). Nichts wurde geändert; versuch es noch einmal.</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>Der Tisch hat sich geändert, seit dieser Dialog ihn gelesen hat, darum wurde nichts geschrieben. Versuch es noch einmal.</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} ist schon in der Mod, darum wurde nichts geschrieben.</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>Das Übernehmen ist fehlgeschlagen und konnte nicht ganz rückgängig gemacht werden ({0}). Nutze „Original wiederherstellen“.</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} wurde durch ein Mod-Update geändert und bleibt, wie es ist.</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} wurde außerhalb dieser App bearbeitet und bleibt erhalten.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} konnte noch nicht gelöscht werden; es wird entfernt, wenn du das nächste Mal eine Animation übernimmst.</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra hat die neuen Bilder in „{0}“ nicht behalten. Lade die Mod in Penumbra neu und prüfe den Tisch.</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>Den Tisch zu ändern ist fehlgeschlagen: {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: mehr als ein Partikel zeigt das Tischbild</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: das Tischpanel wird nicht von genau einem Emitter-Eintrag erzeugt</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: die Animation der Mod hat kein Bild, das diese App wiederverwenden kann</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>{0} konnte nicht als Effektdatei gelesen werden</value></data>
+  <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Nur die ersten {0} s dieses Clips werden verwendet.</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>Dieser Laptopbildschirm kann nicht animiert werden, darum wird das erste Bild dieser Animation verwendet.</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Den Laptopbildschirm so wiederherstellen, wie die Mod ihn liefert? Das entfernt deine Laptop-Animation und jedes Bild, das du auf den Bildschirm gelegt hast.</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>Den Tisch und den Laptopbildschirm so wiederherstellen, wie die Mod sie liefert? Das entfernt beide Animationen.</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>Die andere Animation in dieser Mod konnte nicht erhalten werden ({0}), darum wurde nichts geschrieben.</value></data>
+  <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>Nicht von SoundCloud herunterladbar, suche passenden YouTube-Upload von „{0}“ ({1}/{2})</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>Songs, die nicht von SoundCloud herunterladbar sind</value></data>
+  <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>Nicht von SoundCloud herunterladbar; passender YouTube-Upload verwendet:</value></data>
+  <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0} (YouTube: {1})</value></data>
+  <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>Nicht von SoundCloud herunterladbar und ausgelassen:</value></data>
+  <data name="YTFallback_SkippedEntry" xml:space="preserve"><value>• {0} ({1})</value></data>
+  <data name="YTFallback_More" xml:space="preserve"><value>…und {0} weitere</value></data>
+  <data name="YTFallback_Reason_NoMatch" xml:space="preserve"><value>kein YouTube-Upload mit demselben Song, Interpreten und derselben Länge</value></data>
+  <data name="YTFallback_Reason_NoDetails" xml:space="preserve"><value>SoundCloud hat Titel oder Länge nicht geliefert</value></data>
+  <data name="YTFallback_Reason_SearchFailed" xml:space="preserve"><value>die YouTube-Suche hat nicht funktioniert</value></data>
+  <data name="YTFallback_Reason_DownloadFailed" xml:space="preserve"><value>der YouTube-Download hat nicht funktioniert</value></data>
+  <data name="YTFallback_Reason_RateLimited" xml:space="preserve"><value>SoundCloud begrenzt gerade Anfragen; versuche es später erneut</value></data>
+  <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube hat eine Anmeldung verlangt, deshalb wurde die Suche beendet</value></data>
+  <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>nur die ersten {0} solchen Titel werden auf YouTube gesucht</value></data>
+  <data name="YTFallback_NoneFound" xml:space="preserve"><value>Auch auf YouTube wurde kein passender Upload gefunden.</value></data>
+  <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>Nach KI-Wahrscheinlichkeit sortieren</value></data>
+  <data name="AiScoreLabel.Text" xml:space="preserve"><value>KI-Wahrscheinlichkeit</value></data>
+  <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>Schätzen, wie wahrscheinlich jeder Song KI-generiert ist</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>Ein lokaler Machine-Learning-Klassifikator (SONICS), keine generative KI. Deine Songs verlassen diesen Computer nie. Beim Einschalten werden einmalig etwa {0} MB heruntergeladen; danach wird deine Bibliothek im Hintergrund bewertet, ebenso später hinzugefügte Songs.</value></data>
+  <data name="AiScore_Consent_Title" xml:space="preserve"><value>KI-Wahrscheinlichkeit einschalten?</value></data>
+  <data name="AiScore_Consent_Content" xml:space="preserve"><value>Der Wert stammt von SONICS, einem Machine-Learning-Klassifikator, der auf diesem Computer läuft. Das ist keine generative KI, und deine Songs verlassen diesen Computer nie. Es ist eine Schätzung, kein Beweis.&#10;&#10;Das Modell und der benötigte Audio-Decoder werden einmalig (etwa {0} MB) von {2} nach {1} heruntergeladen.</value></data>
+  <data name="AiScore_Redownload_Content" xml:space="preserve"><value>Die Dateien für die KI-Wahrscheinlichkeit fehlen, sind beschädigt oder veraltet. Erneut herunterladen (etwa {0} MB)? Deine Songs verlassen diesen Computer nie.</value></data>
+  <data name="AiScore_Btn_Download" xml:space="preserve"><value>Herunterladen</value></data>
+  <data name="AiScore_Downloading_Title" xml:space="preserve"><value>Dateien für die KI-Wahrscheinlichkeit werden heruntergeladen</value></data>
+  <data name="AiScore_Progress" xml:space="preserve"><value>{0} ({1} von {2}): {3} von {4} MB</value></data>
+  <data name="AiScore_Checking" xml:space="preserve"><value>KI-Dateien werden geprüft…</value></data>
+  <data name="AiScore_Cancelling" xml:space="preserve"><value>Wird abgebrochen…</value></data>
+  <data name="AiScore_DownloadFailed" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit wurde nicht eingeschaltet: {0}</value></data>
+  <data name="AiScore_Fail_Http" xml:space="preserve"><value>der Download-Server hat mit einem Fehler geantwortet. Versuche es später erneut.</value></data>
+  <data name="AiScore_Fail_Checksum" xml:space="preserve"><value>eine heruntergeladene Datei stimmte nicht mit ihrer Prüfsumme überein.</value></data>
+  <data name="AiScore_Fail_Transport" xml:space="preserve"><value>die Verbindung ist fehlgeschlagen. Prüfe deine Internetverbindung und versuche es erneut.</value></data>
+  <data name="AiScore_Fail_Disk" xml:space="preserve"><value>die Dateien konnten nicht auf den Datenträger geschrieben werden.</value></data>
+  <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>der Download wurde abgebrochen.</value></data>
+  <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>Die KI-Dateien stehen noch nicht zum Download bereit. Versuche es später erneut.</value></data>
+  <data name="AiScore_LowDisk" xml:space="preserve"><value>Es ist nicht genug Speicherplatz frei: etwa {0} MB werden in {1} benötigt.</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit ist eingeschaltet. Alle noch nicht bewerteten Songs deiner Bibliothek werden jetzt im Hintergrund mit niedriger Priorität bewertet; die Markierungen erscheinen nach und nach. Später hinzugefügte Songs werden genauso bewertet.</value></data>
+  <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit konnte nicht ausgeführt werden: {0}</value></data>
+  <data name="AiScore_Band_Ai" xml:space="preserve"><value>Wahrscheinlich KI</value></data>
+  <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Möglicherweise KI</value></data>
+  <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Unklar</value></data>
+  <data name="AiScore_Band_Human" xml:space="preserve"><value>Wahrscheinlich menschlich</value></data>
+  <data name="SongTip_Artist" xml:space="preserve"><value>Interpret: {0}</value></data>
+  <data name="SongTip_Album" xml:space="preserve"><value>Album: {0}</value></data>
+  <data name="Prog_ComputingStatsCount" xml:space="preserve"><value>BPM und Tonart werden berechnet {0}/{1}...</value></data>
+  <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>Statistik fertig, Songnamen werden gleich aktualisiert...</value></data>
+  <data name="Stats_AlreadyRunning" xml:space="preserve"><value>„Statistik berechnen“ läuft bereits im Hintergrund. Versuche es erneut, wenn der Fortschrittsbalken unten fertig ist.</value></data>
+  <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0}: Audio konnte nicht analysiert werden</value></data>
+  <data name="AiScore_Tagged" xml:space="preserve"><value>Als mit {0} erstellt markiert.</value></data>
+  <data name="AiScore_Band_Certain" xml:space="preserve"><value>Sicher KI</value></data>
+  <data name="AiScore_TooltipTagged" xml:space="preserve"><value>KI-Wahrscheinlichkeit: {0} %.</value></data>
+  <data name="AiScore_Tooltip" xml:space="preserve"><value>KI-Wahrscheinlichkeit: {0} %. Eine Schätzung, kein Beweis.</value></data>
+  <data name="AiScore_Summary" xml:space="preserve"><value>KI-Wahrscheinlichkeit: {0} bewertet, {3} bereits bewertet, {1} ohne Wert (still oder zu kurz), {2} konnten nicht gelesen werden.</value></data>
+  <data name="AiScore_SummarySkipped" xml:space="preserve"><value>Die KI-Wahrscheinlichkeit wurde übersprungen: ihre Dateien sind nicht bereit.</value></data>
+  <data name="Summary_AiScore" xml:space="preserve"><value>KI-Wahrscheinlichkeit</value></data>
+  <data name="Prog_AiScoring" xml:space="preserve"><value>KI-Wahrscheinlichkeit wird bewertet {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>Die KI-Bewertung läuft bereits im Hintergrund. Diese Songs werden danach bewertet.</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>Tags aus Ordner ergänzen…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>Tags aus Ordner ergänzen</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>Wähle den Ordner mit deinen Original-Songdateien (Unterordner werden mit durchsucht)</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>Prüfe, welche Songs Tags brauchen…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>Suche Originaldateien… {0} Audiodateien geprüft</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>Lese Tags {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>Tags für {0} von {1} Songs ohne Tags ergänzt, aus {2} durchsuchten Audiodateien.</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>{0} davon sind als mit Suno oder Udio erstellt markiert.</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>Schalte die KI-Wahrscheinlichkeit in den Einstellungen ein, um ihre „Sicher KI“-Markierung zu sehen.</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} hatten schon Tags und wurden nicht verändert.</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} hatten keine Datei mit passendem Namen in diesem Ordner.</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} wurden übersprungen: mehr als eine mögliche Datei, eine nicht passende Länge oder eine Änderung während des Laufs.</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} passten zu einer Datei ohne Tags oder zu einer, die nicht gelesen werden konnte.</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} passten zu Dateien, die nur online gespeichert sind (OneDrive o. Ä.). Mache sie offline verfügbar und starte das erneut.</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>Der Ordner konnte nicht gelesen werden: {0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>Deine gespeicherten Song-Tags konnten nicht geöffnet werden, daher wurde nichts geändert. Versuche es später erneut.</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>„Tags aus Ordner ergänzen“ läuft bereits im Hintergrund. Versuche es erneut, wenn der Fortschrittsbalken unten fertig ist.</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>Diese Songs haben bereits Tags.</value></data>
 </root>

@@ -301,7 +301,7 @@ Vill du fortsätta?</value></data>
   <data name="TextureModLabel.Text" xml:space="preserve"><value>VFX-mod</value></data>
   <data name="ChangeTextureModButton.Content" xml:space="preserve"><value>Ändra</value></data>
   <data name="TextureModPickerHint.Text" xml:space="preserve"><value>De här modden har ett dj-bord du kan sätta bilder på. Välj det du använder.</value></data>
-  <data name="TexturesHint.Text" xml:space="preserve"><value>Släpp en bild på någon av dem, eller använd knappen under. Inget skrivs förrän du trycker Använd.</value></data>
+  <data name="TexturesHint.Text" xml:space="preserve"><value>Släpp en bild på någon av dem, eller använd knappen under. En animerad GIF, WebP eller APNG eller en kort video på bordspanelen spelas upp som en animation. Inget skrivs förrän du trycker Använd.</value></data>
   <data name="TableCardTitle.Text" xml:space="preserve"><value>Bordspanel</value></data>
   <data name="LaptopCardTitle.Text" xml:space="preserve"><value>Laptopskärm</value></data>
   <data name="FitFill.Content" xml:space="preserve"><value>Fyll</value></data>
@@ -347,4 +347,114 @@ Vill du fortsätta?</value></data>
   <data name="Textures_FitLetterboxed" xml:space="preserve"><value>{0}% av ytan lämnas svart</value></data>
   <data name="Textures_FitSquashed" xml:space="preserve"><value>förvrängd {0}% för att passa</value></data>
   <data name="Textures_FitExact" xml:space="preserve"><value>passar exakt</value></data>
+  <data name="Textures_AnimPending" xml:space="preserve"><value>{0} — animation, {1} bildrutor, {2:0.0} s loop. Gör modden ungefär {3} MB större.</value></data>
+  <data name="Textures_AnimCapped" xml:space="preserve"><value>Glesad från {1} till {0} bildrutor för att få plats; loopen behåller sin längd.</value></data>
+  <data name="Textures_AnimTooLarge" xml:space="preserve"><value>Den här animationen är för stor att animera, så dess första bildruta används.</value></data>
+  <data name="Textures_AnimTableOnly" xml:space="preserve"><value>Bara bordspanelen och laptopskärmen kan animeras, så den första bildrutan i den här animationen används.</value></data>
+  <data name="Textures_YourAnimation" xml:space="preserve"><value>Din animation — {0} bildrutor</value></data>
+  <data name="Textures_AuthorAnimation" xml:space="preserve"><value>Den här modden animerar redan bordet ({0} bildrutor). En animerad GIF, WebP eller APNG eller en kort video ersätter den animationen; en bild täcker hela panelen.</value></data>
+  <data name="Textures_AnimOrphaned" xml:space="preserve"><value>Den här appen animerade bordet, men dess säkerhetskopia saknas (har moddmappen bytt namn?). Installera om modden för att ändra bordet.</value></data>
+  <data name="Textures_AnimInterrupted" xml:space="preserve"><value>Den senaste ändringen av bordsanimationen blev inte klar. Sätt tillbaka originalet för att städa upp, eller använd igen.</value></data>
+  <data name="Textures_AnimUnsupported" xml:space="preserve"><value>Bordet kan inte animeras i den här modden: {0}</value></data>
+  <data name="Textures_AnimScanFailed" xml:space="preserve"><value>Bordet kunde inte läsas: {0}</value></data>
+  <data name="Textures_EncodingFrame" xml:space="preserve"><value>Kodar bildruta {0} av {1}…</value></data>
+  <data name="Textures_ConfirmRestoreAnimation" xml:space="preserve"><value>Återställa bordet som modden levererades? Det tar bort din animation och alla bilder du har lagt på bordet.</value></data>
+  <data name="Anim_NoPanel" xml:space="preserve"><value>dess effekt är inte uppbyggd på ett sätt som appen känner till</value></data>
+  <data name="Anim_DefaultData" xml:space="preserve"><value>bordseffekten slås på av moddens standardfiler</value></data>
+  <data name="Anim_TooManyTextures" xml:space="preserve"><value>effekten har inte plats för fler bildrutor</value></data>
+  <data name="Anim_MismatchedAtlas" xml:space="preserve"><value>alternativet ”{0}” använder en annan bordsbild</value></data>
+  <data name="Anim_MixedLayouts" xml:space="preserve"><value>bordsstorlekarna använder olika effektuppbyggnad</value></data>
+  <data name="Anim_FileMissing" xml:space="preserve"><value>{0} saknas och hoppades över.</value></data>
+  <data name="Anim_FileUnreadable" xml:space="preserve"><value>{0} kan inte läsas just nu (använder ett annat program den?). Inget ändrades; försök igen.</value></data>
+  <data name="Anim_ModChanged" xml:space="preserve"><value>Bordet har ändrats sedan dialogen läste det, så inget skrevs. Försök igen.</value></data>
+  <data name="Anim_Collision" xml:space="preserve"><value>{0} finns redan i modden, så inget skrevs.</value></data>
+  <data name="Anim_RollbackStopped" xml:space="preserve"><value>Det gick inte att använda och det kunde inte ångras helt ({0}). Använd ”Sätt tillbaka originalet”.</value></data>
+  <data name="Anim_LeftAlone" xml:space="preserve"><value>{0} ändrades av en moddsuppdatering och lämnades som den är.</value></data>
+  <data name="Anim_KeptEditedFrame" xml:space="preserve"><value>{0} redigerades utanför appen och behölls.</value></data>
+  <data name="Anim_StaleNotDeleted" xml:space="preserve"><value>{0} kunde inte tas bort ännu; den tas bort nästa gång du använder en animation.</value></data>
+  <data name="Anim_ManifestLost" xml:space="preserve"><value>Penumbra behöll inte de nya bildrutorna i ”{0}”. Ladda om modden i Penumbra och kontrollera bordet.</value></data>
+  <data name="Anim_WriteFailed" xml:space="preserve"><value>Det gick inte att ändra bordet: {0}</value></data>
+  <data name="Anim_DuplicatePanel" xml:space="preserve"><value>{0}: mer än en partikel visar bordsbilden</value></data>
+  <data name="Anim_PanelItemCount" xml:space="preserve"><value>{0}: bordspanelen skapas inte av exakt en emitterpost</value></data>
+  <data name="Anim_NoUsableSlot" xml:space="preserve"><value>{0}: moddens egen animation har ingen bildruta som appen kan återanvända</value></data>
+  <data name="Anim_Unparseable" xml:space="preserve"><value>{0} kunde inte läsas som en effektfil</value></data>
+  <data name="Textures_AnimTrimmed" xml:space="preserve"><value>Bara de första {0} s av klippet används.</value></data>
+  <data name="Textures_AnimLaptopStill" xml:space="preserve"><value>Den här laptopskärmen kan inte animeras, så den första bildrutan i den här animationen används.</value></data>
+  <data name="Textures_ConfirmRestoreLaptopAnimation" xml:space="preserve"><value>Återställa laptopskärmen som modden levererades? Det tar bort din laptopanimation och alla bilder du har lagt på skärmen.</value></data>
+  <data name="Textures_ConfirmRestoreAllAnimations" xml:space="preserve"><value>Återställa bordet och laptopskärmen som modden levererades? Det tar bort båda animationerna.</value></data>
+  <data name="Anim_LayerNotKept" xml:space="preserve"><value>Den andra animationen i den här modden kunde inte behållas ({0}), så ingenting skrevs.</value></data>
+  <data name="Prog_YouTubeFallbackSearching" xml:space="preserve"><value>Går inte att ladda ner från SoundCloud, letar efter en matchande YouTube-uppladdning av "{0}" ({1}/{2})</value></data>
+  <data name="Dlg_YouTubeFallback_Title" xml:space="preserve"><value>Låtar som inte går att ladda ner från SoundCloud</value></data>
+  <data name="YTFallback_SubstitutedHeader" xml:space="preserve"><value>Går inte att ladda ner från SoundCloud; matchande YouTube-uppladdning användes:</value></data>
+  <data name="YTFallback_SubstitutedEntry" xml:space="preserve"><value>• {0} (YouTube: {1})</value></data>
+  <data name="YTFallback_SkippedHeader" xml:space="preserve"><value>Går inte att ladda ner från SoundCloud och utelämnades:</value></data>
+  <data name="YTFallback_SkippedEntry" xml:space="preserve"><value>• {0} ({1})</value></data>
+  <data name="YTFallback_More" xml:space="preserve"><value>…och {0} till</value></data>
+  <data name="YTFallback_Reason_NoMatch" xml:space="preserve"><value>ingen YouTube-uppladdning med samma låt, artist och längd</value></data>
+  <data name="YTFallback_Reason_NoDetails" xml:space="preserve"><value>SoundCloud gav inte dess titel eller längd</value></data>
+  <data name="YTFallback_Reason_SearchFailed" xml:space="preserve"><value>YouTube-sökningen fungerade inte</value></data>
+  <data name="YTFallback_Reason_DownloadFailed" xml:space="preserve"><value>YouTube-nedladdningen fungerade inte</value></data>
+  <data name="YTFallback_Reason_RateLimited" xml:space="preserve"><value>SoundCloud begränsar förfrågningar just nu; försök igen senare</value></data>
+  <data name="YTFallback_Reason_YouTubeBlocked" xml:space="preserve"><value>YouTube bad om inloggning, så sökningen stoppades</value></data>
+  <data name="YTFallback_Reason_TooMany" xml:space="preserve"><value>bara de första {0} sådana låtarna söks upp på YouTube</value></data>
+  <data name="YTFallback_NoneFound" xml:space="preserve"><value>Ingen matchande uppladdning hittades på YouTube heller.</value></data>
+  <data name="SortByAiMenuItem.Text" xml:space="preserve"><value>Sortera efter AI-sannolikhet</value></data>
+  <data name="AiScoreLabel.Text" xml:space="preserve"><value>AI-sannolikhet</value></data>
+  <data name="AiScoreCheckBox.Content" xml:space="preserve"><value>Uppskatta hur troligt det är att varje låt är AI-genererad</value></data>
+  <data name="AiScore_Hint" xml:space="preserve"><value>En lokal maskininlärningsklassificerare (SONICS), inte generativ AI. Dina låtar lämnar aldrig den här datorn. Att slå på den laddar ner ungefär {0} MB en gång; sedan bedöms ditt bibliotek i bakgrunden, liksom låtar du lägger till senare.</value></data>
+  <data name="AiScore_Consent_Title" xml:space="preserve"><value>Slå på AI-sannolikhet?</value></data>
+  <data name="AiScore_Consent_Content" xml:space="preserve"><value>Poängen kommer från SONICS, en maskininlärningsklassificerare som körs på den här datorn. Det är inte generativ AI, och dina låtar lämnar aldrig den här datorn. Det är en uppskattning, inte ett bevis.&#10;&#10;Modellen och ljudavkodaren den behöver laddas ner en gång (ungefär {0} MB) från {2} till {1}.</value></data>
+  <data name="AiScore_Redownload_Content" xml:space="preserve"><value>Filerna för AI-sannolikheten saknas, är skadade eller inaktuella. Ladda ner dem igen (ungefär {0} MB)? Dina låtar lämnar aldrig den här datorn.</value></data>
+  <data name="AiScore_Btn_Download" xml:space="preserve"><value>Ladda ner</value></data>
+  <data name="AiScore_Downloading_Title" xml:space="preserve"><value>Laddar ner filerna för AI-sannolikhet</value></data>
+  <data name="AiScore_Progress" xml:space="preserve"><value>{0} ({1} av {2}): {3} av {4} MB</value></data>
+  <data name="AiScore_Checking" xml:space="preserve"><value>Kontrollerar AI-filerna…</value></data>
+  <data name="AiScore_Cancelling" xml:space="preserve"><value>Avbryter…</value></data>
+  <data name="AiScore_DownloadFailed" xml:space="preserve"><value>AI-sannolikheten slogs inte på: {0}</value></data>
+  <data name="AiScore_Fail_Http" xml:space="preserve"><value>nedladdningsservern svarade med ett fel. Försök igen senare.</value></data>
+  <data name="AiScore_Fail_Checksum" xml:space="preserve"><value>en nedladdad fil stämde inte med sin kontrollsumma.</value></data>
+  <data name="AiScore_Fail_Transport" xml:space="preserve"><value>anslutningen misslyckades. Kontrollera din internetanslutning och försök igen.</value></data>
+  <data name="AiScore_Fail_Disk" xml:space="preserve"><value>filerna kunde inte skrivas till disken.</value></data>
+  <data name="AiScore_Fail_Cancelled" xml:space="preserve"><value>nedladdningen avbröts.</value></data>
+  <data name="AiScore_Fail_NotFound" xml:space="preserve"><value>AI-filerna finns inte att ladda ner än. Försök igen senare.</value></data>
+  <data name="AiScore_LowDisk" xml:space="preserve"><value>Det finns inte tillräckligt med ledigt utrymme: ungefär {0} MB behövs i {1}.</value></data>
+  <data name="AiScore_Ready" xml:space="preserve"><value>AI-sannolikheten är på. Låtar i ditt bibliotek som inte har bedömts än bedöms nu i bakgrunden med låg prioritet; etiketterna visas allt eftersom. Låtar du lägger till senare bedöms på samma sätt.</value></data>
+  <data name="AiScore_RuntimeFailed" xml:space="preserve"><value>AI-sannolikheten kunde inte köras: {0}</value></data>
+  <data name="AiScore_Band_Ai" xml:space="preserve"><value>Troligen AI</value></data>
+  <data name="AiScore_Band_PossiblyAi" xml:space="preserve"><value>Möjligen AI</value></data>
+  <data name="AiScore_Band_Unclear" xml:space="preserve"><value>Oklart</value></data>
+  <data name="AiScore_Band_Human" xml:space="preserve"><value>Troligen mänsklig</value></data>
+  <data name="SongTip_Artist" xml:space="preserve"><value>Artist: {0}</value></data>
+  <data name="SongTip_Album" xml:space="preserve"><value>Album: {0}</value></data>
+  <data name="Prog_ComputingStatsCount" xml:space="preserve"><value>Beräknar BPM och tonart {0}/{1}...</value></data>
+  <data name="Prog_StatsWaitingToApply" xml:space="preserve"><value>Statistiken är klar, väntar på att uppdatera låtnamnen...</value></data>
+  <data name="Stats_AlreadyRunning" xml:space="preserve"><value>Beräkna statistik körs redan i bakgrunden. Försök igen när förloppsindikatorn längst ned är klar.</value></data>
+  <data name="Stats_AnalyseFailed" xml:space="preserve"><value>{0}: ljudet kunde inte analyseras</value></data>
+  <data name="AiScore_Tagged" xml:space="preserve"><value>Märkt som gjord med {0}.</value></data>
+  <data name="AiScore_Band_Certain" xml:space="preserve"><value>Säkert AI</value></data>
+  <data name="AiScore_TooltipTagged" xml:space="preserve"><value>AI-sannolikhet: {0} %.</value></data>
+  <data name="AiScore_Tooltip" xml:space="preserve"><value>AI-sannolikhet: {0} %. En uppskattning, inte ett bevis.</value></data>
+  <data name="AiScore_Summary" xml:space="preserve"><value>AI-sannolikhet: {0} fick poäng, {3} hade redan poäng, {1} utan poäng (tysta eller för korta), {2} kunde inte läsas.</value></data>
+  <data name="AiScore_SummarySkipped" xml:space="preserve"><value>AI-sannolikheten hoppades över: dess filer är inte klara.</value></data>
+  <data name="Summary_AiScore" xml:space="preserve"><value>AI-sannolikhet</value></data>
+  <data name="Prog_AiScoring" xml:space="preserve"><value>Beräknar AI-sannolikhet {0}/{1}...</value></data>
+  <data name="AiScore_AlreadyRunning" xml:space="preserve"><value>AI-bedömningen körs redan i bakgrunden. De här låtarna bedöms efter den.</value></data>
+  <data name="Menu_BackfillTags" xml:space="preserve"><value>Fyll i taggar från mapp…</value></data>
+  <data name="Summary_BackfillTags" xml:space="preserve"><value>Fyll i taggar från mapp</value></data>
+  <data name="Backfill_PickFolder" xml:space="preserve"><value>Välj mappen med dina ursprungliga låtfiler (undermappar söks också)</value></data>
+  <data name="Prog_BackfillPreparing" xml:space="preserve"><value>Kontrollerar vilka låtar som behöver taggar…</value></data>
+  <data name="Prog_BackfillScanning" xml:space="preserve"><value>Letar efter originalfiler… {0} ljudfiler kontrollerade</value></data>
+  <data name="Prog_BackfillReading" xml:space="preserve"><value>Läser taggar {0}/{1}…</value></data>
+  <data name="Backfill_Filled" xml:space="preserve"><value>Fyllde i taggar för {0} av {1} låtar utan taggar, från {2} genomsökta ljudfiler.</value></data>
+  <data name="Backfill_Ai" xml:space="preserve"><value>{0} av dem är taggade som gjorda med Suno eller Udio.</value></data>
+  <data name="Backfill_AiHidden" xml:space="preserve"><value>Slå på AI-sannolikhet i Inställningar för att se deras Säkert AI-tagg.</value></data>
+  <data name="Backfill_Already" xml:space="preserve"><value>{0} hade redan taggar och lämnades som de var.</value></data>
+  <data name="Backfill_NoMatch" xml:space="preserve"><value>{0} hade ingen fil med matchande namn i den mappen.</value></data>
+  <data name="Backfill_Skipped" xml:space="preserve"><value>{0} hoppades över: mer än en möjlig fil, en längd som inte stämde eller en ändring medan det kördes.</value></data>
+  <data name="Backfill_NoTags" xml:space="preserve"><value>{0} matchade en fil utan taggar, eller en som inte kunde läsas.</value></data>
+  <data name="Backfill_CloudOnly" xml:space="preserve"><value>{0} matchade filer som bara finns lagrade online (OneDrive eller liknande). Gör dem tillgängliga offline och kör igen.</value></data>
+  <data name="Backfill_FolderUnreadable" xml:space="preserve"><value>Mappen kunde inte läsas: {0}</value></data>
+  <data name="Backfill_TagsFileUnavailable" xml:space="preserve"><value>Dina sparade låttaggar kunde inte öppnas, så inget ändrades. Försök igen senare.</value></data>
+  <data name="Backfill_AlreadyRunning" xml:space="preserve"><value>Fyll i taggar från mapp körs redan i bakgrunden. Försök igen när förloppsindikatorn längst ned är klar.</value></data>
+  <data name="Backfill_NothingToFill" xml:space="preserve"><value>De här låtarna har redan taggar.</value></data>
 </root>
