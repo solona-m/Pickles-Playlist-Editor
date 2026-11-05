@@ -291,7 +291,21 @@ namespace Pickles_Playlist_Editor
 
             _ = CheckForUpdatesAsync();
             if (string.IsNullOrWhiteSpace(Settings.PenumbraLocation) || string.IsNullOrWhiteSpace(Settings.ModName))
-                _ = OpenSettingsAsync();
+                _ = SetupThenAiIntroAsync();
+            else
+                _ = MaybeShowAiScoreIntroAsync();
+        }
+
+        /// <summary>First run: the AI intro waits for Settings to close.</summary>
+        private async Task SetupThenAiIntroAsync()
+        {
+            try
+            {
+                try { await OpenSettingsAsync(); }
+                catch (Exception ex) { Utils.Logger.LogError("First-run Settings failed: {Error}", ex); }
+                await MaybeShowAiScoreIntroAsync();
+            }
+            catch (Exception ex) { Utils.Logger.LogError("First-run setup failed: {Error}", ex); }
         }
 
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)

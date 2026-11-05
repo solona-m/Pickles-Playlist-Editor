@@ -219,6 +219,19 @@ namespace Pickles_Playlist_Editor
             }
         }
 
+        /// <summary>The startup AI intro got its answer (OK clicked, or an AI choice made in Settings).</summary>
+        public static bool AiScoreIntroAnswered
+        {
+            get { try { return ParseFlag(Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("AiScoreIntroAnswered"), false); } catch { return false; } }
+            set { try { using var key = Registry.CurrentUser.CreateSubKey(s_subKey); key?.SetValue("AiScoreIntroAnswered", value ? 1 : 0, RegistryValueKind.DWord); } catch { } }
+        }
+
+        /// <summary>AiScoreEnabled has ever been written: only turning the score on or off does that. Unreadable counts as chosen.</summary>
+        public static bool AiScoreChosenBefore
+        {
+            get { try { return Registry.CurrentUser.OpenSubKey(s_subKey)?.GetValue("AiScoreEnabled") != null; } catch { return true; } }
+        }
+
         /// <summary>
         /// Controls whether converted audio should be loudness-normalized.
         /// Default: true.

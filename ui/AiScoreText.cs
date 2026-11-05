@@ -7,6 +7,9 @@ namespace Pickles_Playlist_Editor
     /// <summary>Which resw string describes an AI score outcome or band. Pure, so every key can be checked in tests.</summary>
     internal static class AiScoreText
     {
+        /// <summary>The download size in the Settings and intro hint, in MB rounded up.</summary>
+        public static long DownloadMb => (AiAssets.TotalBytes + 999_999) / 1_000_000;
+
         public static string BandKey(AiBand band) => band switch
         {
             AiBand.CertainAi => "AiScore_Band_Certain",
