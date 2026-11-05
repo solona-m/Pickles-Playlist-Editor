@@ -249,6 +249,7 @@ public class AiScoreIntroTests
         Assert.True(guard < At(m, "RefreshAiScoreUi(reload: true);"));
         Assert.True(At(m, "RefreshAiScoreUi(reload: true);") < At(m, "StartLibraryAiScan();"));
         Assert.Contains("return ", m);
+        Assert.Contains("Settings.AiScoreEnabled && !_closingCts.IsCancellationRequested", m);
     }
 
     [Fact] // [AC-ai-intro-dialog-2]
@@ -287,6 +288,7 @@ public class AiScoreIntroTests
         string host = Method(Ai(), "private sealed class IntroHost");
         Assert.Contains("AiChosenBefore => Settings.AiScoreChosenBefore", host);
         Assert.DoesNotContain("AiChosenBefore => Settings.AiScoreEnabled", host);
+        Assert.Contains("Closing => w._closingCts.IsCancellationRequested", host); // [EDGE-ai-intro-dialog-10]
     }
 
     [Fact] // [AC-ai-intro-dialog-8] [EDGE-ai-intro-dialog-12] [EDGE-ai-intro-dialog-20]
@@ -297,7 +299,7 @@ public class AiScoreIntroTests
         Assert.True(At(apply, "await RunAiOptInAsync()") < mark);
         string line = apply[apply.LastIndexOf('\n', mark)..mark];
         Assert.Contains("dialog.AiScoreOptInRequested", line);
-        Assert.Contains("AiScoreIntro.MarksAfterOptIn(", line);
+        Assert.Contains("AiScoreIntro.MarksAfterOptIn(outcome, _closingCts.IsCancellationRequested)", line);
     }
 
     [Fact] // [AC-ai-intro-dialog-8]
