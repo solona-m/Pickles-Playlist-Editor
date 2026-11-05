@@ -287,7 +287,10 @@ public class AiScanOnEnableTests
     public void ApplySetting_MarksScanWanted_OnlyWhenTurnedOn()
     {
         string apply = Method(Src("ui/MainWindow.AiScore.cs"), "internal async Task ApplyAiScoreSettingAsync");
-        Assert.True(At(apply, "AiScoreOptIn.RunAsync(") < At(apply, "if (dialog.AiScoreOptInRequested && Settings.AiScoreEnabled) _aiScanWanted = true;"));
+        Assert.True(At(apply, "await RunAiOptInAsync()") < At(apply, "if (dialog.AiScoreOptInRequested && Settings.AiScoreEnabled) _aiScanWanted = true;"));
+        string optIn = Method(Src("ui/MainWindow.AiScore.cs"), "private async Task<AiOptInOutcome?> RunAiOptInAsync");
+        Assert.Contains("AiScoreOptIn.RunAsync(", optIn);
+        Assert.Contains("redownload: false", optIn);
         Assert.DoesNotContain("StartLibraryAiScan", apply);
         Assert.DoesNotContain("DispatcherQueuePriority", apply);
     }

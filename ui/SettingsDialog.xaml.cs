@@ -41,7 +41,7 @@ namespace Pickles_Playlist_Editor
                 ShowCamelotInNameCheckBox.IsChecked = Settings.ShowCamelotInName;
                 ShowLengthInNameCheckBox.IsChecked = Settings.ShowLengthInName;
                 AiScoreCheckBox.IsChecked = Settings.AiScoreEnabled;
-                AiScoreHintText.Text = AppStrings.AiScoreHint((Tools.AiAssets.TotalBytes + 999_999) / 1_000_000);
+                AiScoreHintText.Text = AppStrings.AiScoreHint(AiScoreText.DownloadMb);
                 BusNumberComboBox.SelectedIndex = BusNumberToIndex(Settings.BusNumber);
                 SelectCurrentLanguage();
                 UpdateCookieStatus();

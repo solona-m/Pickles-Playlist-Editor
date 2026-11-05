@@ -216,7 +216,8 @@ public class AiScanOnAddTests
 
         string ai = ui["ui/MainWindow.AiScore.cs"];
         int callers = ui.Values.Sum(s => Count(s, "StartLibraryAiScan();"));
-        Assert.Equal(4, callers); // the fourth: the once-per-version stats run's quiet AI tail
+        Assert.Equal(5, callers); // the fourth: the stats run's quiet AI tail; the fifth: turned on from the startup intro
+        Assert.Contains("StartLibraryAiScan();", Method(ai, "private async Task<AiOptInOutcome?> EnableAiScoreFromIntroAsync"));
         Assert.Contains("else if (Settings.AiScoreEnabled && AiScoreCache.Default.HasStore)\n                StartLibraryAiScan();",
             Method(ui["ui/MainWindow.Stats.cs"], "private async Task RunStatsPassAsync").Replace("\r\n", "\n"));
         Assert.Contains("StartLibraryAiScan();", Method(ai, "internal void ContinueAiScoreAfterSettings"));

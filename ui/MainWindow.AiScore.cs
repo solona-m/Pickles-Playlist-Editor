@@ -38,17 +38,64 @@ namespace Pickles_Playlist_Editor
         /// <summary>After the Settings dialog has closed: run the opt-in if it was ticked, then show or hide the AI UI.</summary>
         internal async Task ApplyAiScoreSettingAsync(SettingsDialog dialog)
         {
-            if (dialog.AiScoreOptInRequested)
-            {
-                try
-                {
-                    await AiScoreOptIn.RunAsync(OptInUi(), AiAssetsService, AiScoreOptIn.HasFreeSpace, on => Settings.AiScoreEnabled = on, redownload: false);
-                }
-                catch (Exception ex) { Logger.LogError("AI score opt-in failed: {Error}", ex); }
-            }
+            AiOptInOutcome? outcome = null;
+            if (dialog.AiScoreOptInRequested) outcome = await RunAiOptInAsync();
+            if (dialog.AiScoreOptInRequested && AiScoreIntro.MarksAfterOptIn(outcome, _closingCts.IsCancellationRequested)) Settings.AiScoreIntroAnswered = true;
             if (dialog.AiScoreChanged && !Settings.AiScoreEnabled) { _aiGate.TurnOff(); _aiScanWanted = false; }
             if (dialog.AiScoreChanged || dialog.AiScoreOptInRequested) RefreshAiScoreUi(reload: true);
             if (dialog.AiScoreOptInRequested && Settings.AiScoreEnabled) _aiScanWanted = true; // started after the reload
+        }
+
+        /// <summary>The download opt-in shared by Settings and the startup intro; null when it threw.</summary>
+        private async Task<AiOptInOutcome?> RunAiOptInAsync()
+        {
+            try
+            {
+                return await AiScoreOptIn.RunAsync(OptInUi(), AiAssetsService, AiScoreOptIn.HasFreeSpace, on => Settings.AiScoreEnabled = on, redownload: false);
+            }
+            catch (Exception ex) { Logger.LogError("AI score opt-in failed: {Error}", ex); return null; }
+        }
+
+        /// <summary>The one-time startup offer of the AI score. Never throws.</summary>
+        internal async Task MaybeShowAiScoreIntroAsync()
+        {
+            try
+            {
+                var result = await AiScoreIntro.RunAsync(new IntroHost(this));
+                Logger.LogInfo("AI score intro: {Result}", result);
+            }
+            catch (Exception ex) { Logger.LogError("AI score intro failed: {Error}", ex); }
+        }
+
+        private sealed class IntroHost(MainWindow w) : IAiScoreIntroHost
+        {
+            public bool AiChosenBefore => Settings.AiScoreChosenBefore;
+            public bool Answered => Settings.AiScoreIntroAnswered;
+            public bool Closing => w._closingCts.IsCancellationRequested;
+            public void MarkAnswered() => Settings.AiScoreIntroAnswered = true;
+            public Task<AiIntroShown> ShowAsync() => w.ShowAiScoreIntroDialogAsync();
+            public Task<AiOptInOutcome?> EnableAsync() => w.EnableAiScoreFromIntroAsync();
+        }
+
+        // Gated, and the gate is released before the opt-in: its own dialogs take the gate too.
+        private async Task<AiIntroShown> ShowAiScoreIntroDialogAsync()
+        {
+            var dialog = new AiScoreIntroDialog { XamlRoot = this.Content.XamlRoot };
+            bool opened = false;
+            dialog.Opened += (_, _) => opened = true;
+            var result = await ShowGatedAsync(dialog);
+            return new AiIntroShown(opened, result == ContentDialogResult.Primary, dialog.EnableChecked);
+        }
+
+        private async Task<AiOptInOutcome?> EnableAiScoreFromIntroAsync()
+        {
+            var outcome = await RunAiOptInAsync();
+            if (Settings.AiScoreEnabled && !_closingCts.IsCancellationRequested)
+            {
+                RefreshAiScoreUi(reload: true);
+                StartLibraryAiScan();
+            }
+            return outcome;
         }
 
         /// <summary>
