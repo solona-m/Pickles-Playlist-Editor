@@ -89,6 +89,7 @@ namespace Pickles_Playlist_Editor
         public static string Menu_ComputeStats => _r.GetString("Menu_ComputeStats");
         // Backfill tags from folder
         public static string Menu_BackfillTags => _r.GetString("Menu_BackfillTags");
+        public static string Menu_MoveToPlaylist => _r.GetString("Menu_MoveToPlaylist");
         public static string Summary_BackfillTags => _r.GetString("Summary_BackfillTags");
         public static string Backfill_PickFolder => _r.GetString("Backfill_PickFolder");
         public static string Prog_BackfillPreparing => _r.GetString("Prog_BackfillPreparing");
@@ -248,6 +249,8 @@ namespace Pickles_Playlist_Editor
         public static string FileNotFoundContent(string path) => string.Format(_r.GetString("Dlg_FileNotFound_Content"), path);
         public static string ErrorFileDrop(string msg) => string.Format(_r.GetString("Dlg_ErrorFileDrop"), msg);
         public static string ErrorDragDrop(string msg) => string.Format(_r.GetString("Dlg_ErrorDragDrop"), msg);
+        public static string ErrorMoveSongs(string msg) => string.Format(_r.GetString("Dlg_ErrorMoveSongs"), msg);
+        public static string MovedHiddenBySearch(int count, string playlist) => string.Format(_r.GetString("Status_MovedHiddenBySearch"), count, playlist);
         public static string PostProcessingFile(string file) => string.Format(_r.GetString("Prog_PostProcessingFile"), file);
         public static string YTDownloadFailed(string msg) => string.Format(_r.GetString("Dlg_YTDownloadFailed"), msg);
         public static string YTAddFailed(string msg) => string.Format(_r.GetString("Dlg_YTAddFailed"), msg);

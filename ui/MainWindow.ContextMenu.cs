@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Xaml.Controls;
+﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Pickles_Playlist_Editor.Tools;
 using Pickles_Playlist_Editor.Utils;
 using System;
@@ -15,6 +16,8 @@ namespace Pickles_Playlist_Editor
     {
         // Held so RightTapped can switch it off for a multi-selection; every other item batches.
         private MenuFlyoutItem _renameMenuItem = null!;
+        // Refilled on every right-click from all playlists, so ones hidden by the search still show.
+        private MenuFlyoutSubItem _moveToMenuItem = null!;
 
         private MenuFlyout BuildContextMenu()
         {
@@ -27,6 +30,8 @@ namespace Pickles_Playlist_Editor
             rename.Click += RenameMenuItem_Click;
             _renameMenuItem = rename;
             flyout.Items.Add(rename);
+            _moveToMenuItem = new MenuFlyoutSubItem { Text = AppStrings.Menu_MoveToPlaylist };
+            flyout.Items.Add(_moveToMenuItem);
             flyout.Items.Add(new MenuFlyoutSeparator());
             flyout.Items.Add(extract);
             flyout.Items.Add(normalize);
@@ -57,6 +62,89 @@ namespace Pickles_Playlist_Editor
             backfill.Click += BackfillTagsMenuItem_Click;
             flyout.Items.Add(backfill);
             return flyout;
+        }
+
+        private void PopulateMoveToMenu()
+        {
+            try
+            {
+                var songNodes = _contextMenuNodes.Where(n => n.Level == 2 && !SongMove.IsPlaceholder(n.Name)).ToList();
+                bool show = _contextMenuNodes.Count > 0 && _contextMenuNodes.All(n => n.Level == 2) && songNodes.Count > 0;
+                _moveToMenuItem.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+                _moveToMenuItem.Items.Clear();
+                if (!show) return;
+                var sourceNames = songNodes.Select(n => n.Parent?.Name ?? "").ToList();
+                var targets = SongMove.Targets(Playlists.Values, sourceNames, p => p.IsVFXGroup());
+                foreach (var p in targets)
+                {
+                    var item = new MenuFlyoutItem { Text = p.Name, Tag = p.Name };
+                    item.Click += MoveToPlaylistMenuItem_Click;
+                    _moveToMenuItem.Items.Add(item);
+                }
+                _moveToMenuItem.IsEnabled = targets.Count > 0;
+            }
+            catch (Exception ex)
+            {
+                Utils.Logger.LogError("Move-to menu: {Error}", ex);
+                _moveToMenuItem.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private async void MoveToPlaylistMenuItem_Click(object sender, object e)
+        {
+            try
+            {
+                if ((sender as MenuFlyoutItem)?.Tag is string name)
+                    await MoveSongsToPlaylistAsync(name);
+            }
+            catch (Exception ex)
+            {
+                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorMoveSongs(FormatExceptionMessage(ex)));
+            }
+        }
+
+        // Resolved by name at click time, with no await before the batch, so nothing can swap Playlists mid-move.
+        private async Task MoveSongsToPlaylistAsync(string targetName)
+        {
+            if (!Playlists.TryGetValue(targetName, out var target) || target == null)
+            {
+                await ShowDialogAsync(AppStrings.Dlg_Error,
+                    AppStrings.ErrorMoveSongs(FormatExceptionMessage(new PlaylistSaveException(targetName))));
+                return;
+            }
+            var moves = ResolveDraggedSongs(_contextMenuNodes.Where(n => n.Level == 2 && !SongMove.IsPlaceholder(n.Name)));
+            if (moves.Count == 0) return;
+
+            var touched = new HashSet<Playlist> { target };
+            foreach (var (source, _) in moves) touched.Add(source);
+            var referenceCounts = Playlist.ScdReferenceCounts(touched);
+
+            var batch = SongMove.Run(target, moves, null, InTargetPolicy.StayPut,
+                (s, t, song, i) => MoveSongAcrossPlaylists(s, t, song, i, referenceCounts), p => p.Save());
+
+            _playlistExpandedStates[target.Name] = true;
+            if (IsFilterActive) LoadPlaylists(SearchTextBox.Text.Trim());
+            else
+            {
+                foreach (var playlist in touched) SyncPlaylistNode(playlist);
+                var targetNode = FindPlaylistNode(target.Name);
+                if (targetNode != null) targetNode.IsExpanded = true;
+            }
+            RestoreSelection(batch.Landed.Select(s => SelectionKey(2, target.Name, s.Name)).ToList());
+
+            if (IsFilterActive)
+            {
+                string? modRoot = SongTagCache.ModRootOrNull(Settings.PenumbraLocation, Settings.ModName);
+                int hidden = SongMove.CountHiddenBySearch(SearchTextBox.Text.Trim(), target.Name, batch.Moved,
+                    song => SongTagCache.Default.TryGetForRel(Playlist.GetScdPath(song) ?? "", modRoot));
+                if (hidden > 0) ShowStatusNotice(AppStrings.MovedHiddenBySearch(hidden, target.Name));
+            }
+
+            if (batch.Errors.Count > 0)
+            {
+                var lines = batch.Errors.Select(e => SongMove.Describe(e, FormatExceptionMessage));
+                await ShowDialogAsync(AppStrings.Dlg_Error, AppStrings.ErrorMoveSongs(string.Join("\n", lines.Take(10))));
+            }
         }
 
         private async void RenameMenuItem_Click(object sender, object e)

@@ -48,7 +48,7 @@ namespace Pickles_Playlist_Editor
 
         // Pairs each dragged song node with its Option. Position identifies the song exactly —
         // song nodes are built straight from Options — which is what distinguishes two songs
-        // sharing a name. Falls back to the name when the tree is a filtered subset of the playlist.
+        // sharing a name. Under a filter it matches on name + scd, then name, skipping songs already taken.
         private static List<(Playlist source, Option song)> ResolveDraggedSongs(
             IEnumerable<PlaylistNodeContent> nodes)
         {
@@ -59,14 +59,8 @@ namespace Pickles_Playlist_Editor
                 if (node.Level != 2 || node.Parent == null) continue;
                 if (!Playlists.TryGetValue(node.Parent.Name, out var source) || source?.Options == null) continue;
 
-                Option? song = null;
                 var siblings = node.Parent.Children;
-                if (siblings.Count == source.Options.Count)
-                {
-                    int index = siblings.IndexOf(node);
-                    if (index >= 0) song = source.Options[index];
-                }
-                song ??= source.Options.Find(x => x.Name == node.Name);
+                var song = SongMove.PickOption(source.Options, siblings.Count, siblings.IndexOf(node), node.Name, node.ScdRel, seen);
 
                 if (song != null && seen.Add(song)) resolved.Add((source, song));
             }
@@ -193,60 +187,19 @@ namespace Pickles_Playlist_Editor
                 var moves = draggedSongs.Where(m => !ReferenceEquals(m.song, anchor)).ToList();
                 if (moves.Count == 0) return;
 
-                var errors = new List<string>();
-                var landed = new List<Option>();
-
-                // Every source is repopulated afterwards whether or not its move succeeded. WinUI
-                // pulls the grabbed node out of ItemsSource for the duration of the drag, so a song
-                // that failed to move still needs its row put back — otherwise the error dialog is
-                // accompanied by the song apparently vanishing from the playlist it never left.
+                // Every source is repopulated afterwards whether or not its move succeeded: WinUI
+                // pulled the grabbed node out of ItemsSource, so a failed song still needs its row back.
                 var touched = new HashSet<Playlist> { targetPlaylist };
                 foreach (var (source, _) in moves) touched.Add(source);
-
-                // The songs arriving from elsewhere go first, each committing on its own. A song
-                // already in the target is left exactly where it is for now: the alternative — pull
-                // it out, then move the others in — would have this playlist's file written by a
-                // cross-playlist move while a song that belongs in it was missing from the list.
-                int anchorIndex = anchor == null ? -1 : targetPlaylist.Options.IndexOf(anchor);
-                int insertIndex = anchorIndex >= 0 ? anchorIndex + 1 : targetPlaylist.Options.Count;
 
                 // Counted once for the whole drop: moving an option doesn't change how many point at a file.
                 var referenceCounts = Playlist.ScdReferenceCounts(touched);
 
-                foreach (var (source, song) in moves)
-                {
-                    if (ReferenceEquals(source, targetPlaylist)) { landed.Add(song); continue; }
-                    try
-                    {
-                        MoveSongAcrossPlaylists(source, targetPlaylist, song, insertIndex, referenceCounts);
-                        insertIndex++;
-                        landed.Add(song);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Every cross-playlist move rolls itself back, so a failure here costs that
-                        // one song's move and nothing else. Carry on with the rest and report at the
-                        // end rather than abandoning the drop halfway through.
-                        errors.Add($"{source.Name}/{song.Name}: {FormatExceptionMessage(ex)}");
-                    }
-                }
-
-                // Now put the whole run in order: lift out everything that landed and set it back
-                // down after the anchor, so the drop reads the way the user dragged it. Nothing is
-                // saved in between, so the file is only ever written with the full list. Audio files
-                // are untouched here — the old code renamed a song's .scd on every reorder (e.g.
-                // bpmloop -> bpmloop_1), which is what made Penumbra try to compact a freshly
-                // created .scd.
-                if (landed.Count > 0)
-                {
-                    foreach (var song in landed) targetPlaylist.Options.Remove(song);
-                    int at = anchor == null ? -1 : targetPlaylist.Options.IndexOf(anchor);
-                    int runStart = at >= 0 ? at + 1 : targetPlaylist.Options.Count;
-                    targetPlaylist.Options.InsertRange(
-                        Math.Clamp(runStart, 0, targetPlaylist.Options.Count), landed);
-                    try { targetPlaylist.Save(); }
-                    catch (Exception ex) { errors.Add($"{targetPlaylist.Name}: {FormatExceptionMessage(ex)}"); }
-                }
+                // Cross-playlist moves each commit on their own; then the run is laid down after the anchor and saved once.
+                var batch = SongMove.Run(targetPlaylist, moves, anchor, InTargetPolicy.Reorder,
+                    (s, t, song, i) => MoveSongAcrossPlaylists(s, t, song, i, referenceCounts), p => p.Save());
+                var landed = batch.Landed;
+                var errors = batch.Errors.Select(e => SongMove.Describe(e, FormatExceptionMessage)).ToList();
 
                 _playlistExpandedStates[targetPlaylist.Name] = true;
 

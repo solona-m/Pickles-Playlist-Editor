@@ -20,6 +20,8 @@ namespace Pickles_Playlist_Editor
         private int _nativeModalOpen;
         private string? _autoAttemptBefore; // set while an automatic run's attempt is recorded and not yet settled
         private (string Text, int Percent)? _statsProgress, _aiProgress;
+        private (string Text, int Percent)? _statusNotice;
+        private DispatcherQueueTimer? _statusNoticeTimer;
         // First-load playlists and songs whose names got stats in memory only (BackfillStatsFromCacheIfNeeded).
         private readonly HashSet<Playlist> _backfilledPlaylists = new(ReferenceEqualityComparer.Instance);
         private readonly HashSet<Option> _backfilledOptions = new(ReferenceEqualityComparer.Instance);
@@ -296,12 +298,28 @@ namespace Pickles_Playlist_Editor
 
         private void ClearStatsProgress() => SetStatsProgress("", 0);
 
+        // A short, non-blocking status line; one reused timer, so a newer notice isn't cleared early.
+        private void ShowStatusNotice(string text)
+        {
+            _statusNotice = (text, 0);
+            RenderBackgroundProgress();
+            if (_statusNoticeTimer == null)
+            {
+                _statusNoticeTimer = _uiDispatcherQueue.CreateTimer();
+                _statusNoticeTimer.Interval = TimeSpan.FromSeconds(6);
+                _statusNoticeTimer.IsRepeating = false;
+                _statusNoticeTimer.Tick += (_, _) => { _statusNotice = null; RenderBackgroundProgress(); };
+            }
+            _statusNoticeTimer.Stop();
+            _statusNoticeTimer.Start();
+        }
+
         // A foreground operation owns the bar while its overlay is up; ClearProgressDisplay renders again after it.
         private void RenderBackgroundProgress()
         {
             if (!_uiDispatcherQueue.HasThreadAccess) { _uiDispatcherQueue.TryEnqueue(RenderBackgroundProgress); return; }
             if (_busyOverlayVisible) return;
-            var show = BackgroundStatus.Pick(_backfillProgress, BackgroundStatus.Pick(_statsProgress, _aiProgress)); // the job the user just started first
+            var show = BackgroundStatus.Pick(_statusNotice, BackgroundStatus.Pick(_backfillProgress, BackgroundStatus.Pick(_statsProgress, _aiProgress))); // a notice, then the job the user just started
             ProgressLabel.Text = show?.Text ?? "";
             ProgressBar1.Value = Math.Clamp(show?.Percent ?? 0, 0, 100);
             UpdateStatusBarVisibility();
