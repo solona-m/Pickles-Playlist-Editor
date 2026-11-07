@@ -178,6 +178,16 @@ public class StatsSongTimeoutTests
                 () => true, _ => Task.Delay(200), gate, CancellationToken.None, null, Tiny, boom);
             Assert.Equal(new[] { "stuck" }, failed);
             Assert.True(gate.IsFree);
+
+            // A throwing Stopped still returns the full list; a throwing FinishedSlow doesn't fail a good song.
+            var capped = await StatsDetectLoop.RunAsync(["s1", "s2", "s3", "d"], _ => { release.Wait(); return true; },
+                () => true, _ => Task.CompletedTask, gate, CancellationToken.None, null, Tiny, boom);
+            Assert.Equal(new[] { "s1", "s2", "s3", "d" }, capped);
+            var slowOk = await StatsDetectLoop.RunAsync(["slow"], _ => { Thread.Sleep(200); return true; },
+                () => true, _ => Task.CompletedTask, gate, CancellationToken.None, null,
+                new StatsDetectLimits(TimeSpan.FromMilliseconds(50), TimeSpan.FromSeconds(2), 3), boom);
+            Assert.Empty(slowOk);
+            Assert.True(gate.IsFree);
         }
         finally { release.Set(); }
     }
