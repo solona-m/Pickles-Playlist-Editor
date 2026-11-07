@@ -112,6 +112,9 @@
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>Song file not found: {0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>Error during file drop: {0}</value></data>
   <data name="Dlg_ErrorDragDrop" xml:space="preserve"><value>Error during drag and drop: {0}</value></data>
+  <data name="Menu_MoveToPlaylist" xml:space="preserve"><value>Move to playlist</value></data>
+  <data name="Dlg_ErrorMoveSongs" xml:space="preserve"><value>Could not move songs: {0}</value></data>
+  <data name="Status_MovedHiddenBySearch" xml:space="preserve"><value>Moved {0} song(s) to {1} (hidden by the current search)</value></data>
   <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Please enter a YouTube or SoundCloud URL.</value></data>
   <data name="Dlg_UnsupportedUrl" xml:space="preserve"><value>That doesn't look like a web address. Paste a full link starting with https://</value></data>
   <data name="Prog_PreparingDownload" xml:space="preserve"><value>Preparing download...</value></data>
