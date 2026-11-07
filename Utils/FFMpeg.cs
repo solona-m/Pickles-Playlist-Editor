@@ -21,13 +21,19 @@ namespace Pickles_Playlist_Editor.Utils
 
         // Plain transcode to Vorbis: no padding or normalization, so it plays what the game plays.
         // -y: the destination may already exist.
-        public static void TranscodeToOgg(string sourcePath, string oggName, long? loopStartSamples, long? loopEndSamples)
+        public static void TranscodeToOgg(string sourcePath, string oggName, long? loopStartSamples, long? loopEndSamples, TimeSpan? timeout = null)
         {
             string loopArgs = "";
             if (loopStartSamples.HasValue) loopArgs += $" -metadata LoopStart={loopStartSamples.Value}";
             if (loopEndSamples.HasValue) loopArgs += $" -metadata LoopEnd={loopEndSamples.Value}";
-            Run($"-y -i \"{sourcePath}\" -vn -map_metadata -1{loopArgs} -acodec libvorbis -f ogg -q:a 7 \"{oggName}\"");
+            Run($"-y -i \"{sourcePath}\" -vn -map_metadata -1{loopArgs} -acodec libvorbis -f ogg -q:a 7 \"{oggName}\"", timeout ?? TranscodeTimeout);
         }
+
+        internal static readonly TimeSpan TranscodeTimeout = TimeSpan.FromMinutes(2);
+
+        /// <summary>The floor, or twice the track's length for long tracks, so a hung ffmpeg is killed but a long one isn't.</summary>
+        internal static TimeSpan TranscodeTimeoutFor(TimeSpan? length) =>
+            length is { } d && d + d > TranscodeTimeout ? d + d : TranscodeTimeout;
 
         // " -metadata LoopStart=N -metadata LoopEnd=N" for whichever the source has, else "".
         private static string LoopTagArgs(string sourcePath)

@@ -73,9 +73,10 @@ namespace Pickles_Playlist_Editor.Tools {
                 }
 
                 try {
-                    FFMpeg.TranscodeToOgg(wavPath, outOggPath, loopStart, loopEnd);
+                    FFMpeg.TranscodeToOgg(wavPath, outOggPath, loopStart, loopEnd,
+                        FFMpeg.TranscodeTimeoutFor(AdpcmWav.Duration(adpcm.WaveHeader, adpcm.Data.Length)));
                 }
-                catch (InvalidOperationException ex) {
+                catch (Exception ex) when (ex is InvalidOperationException or TimeoutException) {
                     try { if (File.Exists(outOggPath)) File.Delete(outOggPath); } catch { }
                     throw new InvalidOperationException("Couldn't convert this ADPCM track: " + ex.Message, ex);
                 }

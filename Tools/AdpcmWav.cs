@@ -29,6 +29,19 @@ public static class AdpcmWav
         return ms.ToArray();
     }
 
+    /// <summary>Playing time of <paramref name="dataLength"/> bytes; null when the fmt chunk can't say.</summary>
+    public static TimeSpan? Duration(byte[] fmtChunk, int dataLength)
+    {
+        try
+        {
+            if (fmtChunk.Length < 16) return null;
+            int rate = BitConverter.ToInt32(fmtChunk, 4);
+            if (rate <= 0) return null;
+            return TimeSpan.FromSeconds(BytesToSamples(fmtChunk, dataLength) / (double)rate);
+        }
+        catch (InvalidDataException) { return null; }
+    }
+
     // SCD loop points for ADPCM are byte offsets into the data; ogg loop tags are sample frames.
     public static long BytesToSamples(byte[] fmtChunk, int byteOffset)
     {

@@ -5,6 +5,7 @@ using Pickles_Playlist_Editor.Tools;
 using Pickles_Playlist_Editor.Utils;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,7 +65,8 @@ namespace Pickles_Playlist_Editor
                 Settings.AutoStatsAttempt = AutoStatsRules.NextAttempt(_autoAttemptBefore, AppVersion.Display);
             }
             var end = StatsPassEnd.Error;
-            int analysed = 0, failedRels = 0, renamed = 0, saved = 0, entryCount = 0;
+            int analysed = 0, failedRels = 0, renamed = 0, saved = 0, entryCount = 0, timedOut = 0;
+            bool stoppedEarly = false;
             var failedSongs = new List<string>();
             var saveErrors = new List<string>();
             try
@@ -73,9 +75,24 @@ namespace Pickles_Playlist_Editor
                 var entries = StatsPlan.Snapshot(targets, Playlist.GetScdPath, o => _backfilledOptions.Contains(o));
                 entryCount = entries.Count;
                 var plan = await Task.Run(() => { using (ThreadPriorityScope.Background()) return StatsPlan.Build(entries, HasAllStats); }, ct);
+                var names = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var e in entries) names.TryAdd(e.Rel, $"{e.PlaylistName}/{e.Name}");
+                Logger.LogInfo("Stats pass {Kind} started: {ToDetect} song(s) to analyse of {Entries}", ticket.Kind, plan.ToDetect.Count, entryCount);
                 var failed = await StatsDetectLoop.RunAsync(plan.ToDetect, DetectOne, () => !IsForegroundBusy(), WaitUntilIdleAsync,
                     LibraryReadGate.Shared, ct,
-                    (done, total) => SetStatsProgress(AppStrings.ProgComputingStats(done, total), done * 100 / Math.Max(1, total)));
+                    (done, total) => SetStatsProgress(AppStrings.ProgComputingStats(done, total), done * 100 / Math.Max(1, total)),
+                    StatsDetectLimits.Default,
+                    new StatsDetectHooks(
+                        Note: (rel, elapsed, kind) => { if (kind == StatsSongNote.TimedOut) timedOut++; LogSongNote(names, rel, elapsed, kind); },
+                        Stopped: s =>
+                        {
+                            stoppedEarly = true;
+                            Logger.LogWarn("Stats: {TimedOut} song(s) timed out; analysis stopped, {Skipped} song(s) not analysed this run", s.TimedOut, s.Skipped);
+                        },
+                        Waiting: (i, elapsed) => Logger.LogWarn("Stats: waiting {Seconds} s to start song {Index}/{Total}: {Reason}",
+                            (int)elapsed.TotalSeconds, i + 1, plan.ToDetect.Count,
+                            StatsWaitReason.Describe(_busyOverlayVisible, OpenPopups().Any(p => p.Child is ContentDialog), _dialogGate.CurrentCount == 0,
+                                !LibraryReadGate.Shared.IsFree, LibraryReadGate.Shared.Holder))));
                 failedRels = failed.Count;
                 analysed = plan.ToDetect.Count - failedRels;
                 var failedSet = new HashSet<string>(failed, StringComparer.Ordinal);
@@ -85,7 +102,7 @@ namespace Pickles_Playlist_Editor
                     ticket.Kind == StatsPassKind.Manual ? StatsRenameMode.Rebuild : StatsRenameMode.Additive, saveErrors, ct,
                     ticket.Kind == StatsPassKind.Manual ? targets.Select(t => t.playlist.Name ?? "").ToHashSet() : null);
                 end = StatsPassEnd.Finished;
-                if (ticket.Kind == StatsPassKind.Auto && AutoStatsRules.ShouldWriteMarker(end, saveErrors.Count, entryCount, Playlists.Count))
+                if (ticket.Kind == StatsPassKind.Auto && AutoStatsRules.ShouldWriteMarker(end, saveErrors.Count, entryCount, Playlists.Count, stoppedEarly))
                     Settings.AutoStatsVersion = AppVersion.Display;
             }
             catch (OperationCanceledException) { end = StatsPassEnd.Cancelled; } // closing, or the mod folder changed
@@ -94,9 +111,9 @@ namespace Pickles_Playlist_Editor
             {
                 _statsGate.End(ticket); // first, so nothing below can leave the gate held
                 try { ClearStatsProgress(); } catch (Exception ex) { Logger.LogWarn("Stats: status bar not cleared: {Error}", ex.Message); }
-                if (ticket.Kind == StatsPassKind.Auto) SettleAutoAttempt(AutoStatsRules.KeepsAttempt(end, saveErrors.Count));
-                Logger.LogInfo("Stats pass {Kind} ended {End}: {Analysed} analysed, {Failed} failed, {Renamed} renamed, {Saved} playlist(s) saved, {SaveFailed} save failure(s)",
-                    ticket.Kind, end, analysed, failedRels, renamed, saved, saveErrors.Count);
+                if (ticket.Kind == StatsPassKind.Auto) SettleAutoAttempt(AutoStatsRules.KeepsAttempt(end, saveErrors.Count, stoppedEarly));
+                Logger.LogInfo("Stats pass {Kind} ended {End}: {Analysed} analysed, {Failed} failed ({TimedOut} timed out), {Renamed} renamed, {Saved} playlist(s) saved, {SaveFailed} save failure(s)",
+                    ticket.Kind, end, analysed, failedRels, timedOut, renamed, saved, saveErrors.Count);
                 if (_autoStatsAgain && !_closingCts.IsCancellationRequested)
                 {
                     _autoStatsAgain = false;
@@ -130,13 +147,52 @@ namespace Pickles_Playlist_Editor
         private static bool HasAllStats(string rel) =>
             BPMDetector.TryGetCachedBpm(rel).HasValue && KeyDetector.TryGetCachedKey(rel) != null && BPMDetector.TryGetCachedDuration(rel).HasValue;
 
+        // Which detector a song is in, for the slow/timeout log; set by the worker, so the size read stays off the UI thread.
+        private sealed record DetectStep(string Rel, string Step, string SizeKb);
+        private static volatile DetectStep? s_detectStep;
+
         // The cache-first detectors with the exact rel; true when all three stats are now cached.
         private static bool DetectOne(string rel)
         {
-            BPMDetector.GetBPMFromSCD(rel);
-            KeyDetector.GetKeyFromSCD(rel);
-            BPMDetector.GetDuration(rel);
-            return HasAllStats(rel);
+            string size = SizeKb(rel);
+            try
+            {
+                s_detectStep = new DetectStep(rel, "BPM", size);
+                BPMDetector.GetBPMFromSCD(rel);
+                s_detectStep = new DetectStep(rel, "Key", size);
+                KeyDetector.GetKeyFromSCD(rel);
+                s_detectStep = new DetectStep(rel, "Duration", size);
+                BPMDetector.GetDuration(rel);
+                return HasAllStats(rel);
+            }
+            finally { if (s_detectStep?.Rel == rel) s_detectStep = null; } // a late, abandoned worker leaves the next song's step alone
+        }
+
+        private static string SizeKb(string rel)
+        {
+            try { return (new FileInfo(Path.Combine(Settings.PenumbraLocation, Settings.ModName, rel)).Length / 1024).ToString(); }
+            catch { return "?"; }
+        }
+
+        // Only the mod-relative rel is logged: the full path can hold the Windows user name.
+        private void LogSongNote(Dictionary<string, string> names, string rel, TimeSpan elapsed, StatsSongNote kind)
+        {
+            string song = names.TryGetValue(rel, out var n) ? n : rel;
+            var step = s_detectStep;
+            string stepName = step?.Rel == rel ? step.Step : "?", size = step?.Rel == rel ? step.SizeKb : "?";
+            int seconds = (int)elapsed.TotalSeconds;
+            switch (kind)
+            {
+                case StatsSongNote.StillRunning:
+                    Logger.LogWarn("Stats: still analysing {Song} ({Rel}, {SizeKb} KB) at step {Step} after {Seconds} s", song, rel, size, stepName, seconds);
+                    break;
+                case StatsSongNote.FinishedSlow:
+                    Logger.LogInfo("Stats: {Song} ({Rel}) took {Seconds} s", song, rel, seconds);
+                    break;
+                case StatsSongNote.TimedOut:
+                    Logger.LogWarn("Stats: {Song} ({Rel}, {SizeKb} KB) timed out at step {Step} after {Seconds} s; skipped", song, rel, size, stepName, seconds);
+                    break;
+            }
         }
 
         /// <summary>
