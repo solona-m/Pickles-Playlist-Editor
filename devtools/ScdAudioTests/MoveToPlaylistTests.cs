@@ -204,6 +204,22 @@ public class MoveToPlaylistTests
         Assert.Equal("S: msg", SongMove.Describe(new SongMove.BatchError(s, null, new Exception("msg")), ex => ex.Message));
     }
 
+    [Fact] // [AC-move-to-playlist-7] [EDGE-move-to-playlist-7]
+    public void Run_StayPut_FailureBeforeInsert_RestAppendContiguously()
+    {
+        Option x = Song("X"), y = Song("Y"), z = Song("Z");
+        var t = Pl("T", Song("Off"), Song("A"));
+        var s = Pl("S", Song("Off"), x, y, z);
+        var m = new Mover();
+        m.Throw.Add("Y");
+        var r = Run(t, null, InTargetPolicy.StayPut, m, (s, x), (s, y), (s, z));
+        Assert.Equal("Off,A,X,Z", Names(t));
+        Assert.Contains(y, s.Options);
+        Assert.Equal("X,Z", Names(r.Landed));
+        Assert.Single(r.Errors);
+        Assert.Equal(0, m.Saves);
+    }
+
     [Fact] // [EDGE-move-to-playlist-14]
     public void Run_DestructiveFailure_NextInsertsSameIndex()
     {
@@ -275,6 +291,8 @@ public class MoveToPlaylistTests
         Option d1 = Song("D", "s/d.scd"), d2 = Song("D", "s/d.scd");
         var dup = new List<Option> { off, d1, d2 };
         Assert.Same(d2, SongMove.PickOption(dup, 2, 1, "D", "s/d.scd", new HashSet<Option> { d1 }));
+        // Name-only path honours taken too.
+        Assert.Same(d2, SongMove.PickOption(dup, 2, 1, "D", "", new HashSet<Option> { d1 }));
     }
 
     [Fact] // [EDGE-move-to-playlist-1]
@@ -294,6 +312,9 @@ public class MoveToPlaylistTests
         var songs = new[] { Song("A"), Song("chill out") };
         Assert.Equal(0, SongMove.CountHiddenBySearch("rock", "Rock Mix", songs, _ => null));
         Assert.Equal(1, SongMove.CountHiddenBySearch("chill", "Party", songs, _ => null));
+        // An artist match keeps a song visible.
+        Assert.Equal(0, SongMove.CountHiddenBySearch("chill", "Party", songs,
+            o => o.Name == "A" ? new Pickles_Playlist_Editor.Utils.SongTags("Chill Crew", "", "") : null));
     }
 
     // ── Wiring ──
@@ -366,7 +387,9 @@ public class MoveToPlaylistTests
         int expand = At(m, "_playlistExpandedStates[target.Name] = true");
         int load = At(m, "LoadPlaylists(SearchTextBox.Text.Trim())");
         Assert.True(expand < load);
-        Assert.True(At(m, "SyncPlaylistNode(") > load);
+        int els = m.IndexOf("else", load, StringComparison.Ordinal);
+        Assert.True(els > load && els < At(m, "SyncPlaylistNode("));
+        Assert.DoesNotContain("SearchTextBox.Text =", m);
         Assert.Contains("IsExpanded = true", m);
         int restore = At(m, "RestoreSelection(");
         Assert.True(restore > At(m, "SyncPlaylistNode("));
@@ -393,11 +416,10 @@ public class MoveToPlaylistTests
         int run = At(m, "SongMove.Run(");
         Assert.True(get < missing && missing < run);
         Assert.Contains("ResolveDraggedSongs(_contextMenuNodes", m);
-        // The only await before the batch is in the missing-target branch, which returns.
-        int firstAwaitAfterRun = m.IndexOf("await ", run, StringComparison.Ordinal);
-        Assert.True(firstAwaitAfterRun > run);
-        string between = m[(missing)..run];
-        Assert.Contains("return;", between);
+        // No await between the missing-target branch's return and the batch.
+        int ret = m.IndexOf("return;", missing, StringComparison.Ordinal);
+        Assert.True(ret > missing && ret < run);
+        Assert.True(m.IndexOf("await ", ret, StringComparison.Ordinal) > run);
     }
 
     [Fact] // [AC-move-to-playlist-7] [EDGE-move-to-playlist-14]
@@ -437,6 +459,9 @@ public class MoveToPlaylistTests
         string n = Method(stats, "private void ShowStatusNotice");
         Assert.Contains("CreateTimer", n);
         Assert.Contains("IsRepeating = false", n);
+        Assert.Contains("FromSeconds(6)", n);
+        Assert.True(At(n, "_statusNoticeTimer.Stop()") < At(n, "_statusNoticeTimer.Start()"));
+        Assert.True(At(n, "if (_statusNoticeTimer == null)") < At(n, "CreateTimer"));
         Assert.Contains("RenderBackgroundProgress()", n);
         Assert.DoesNotContain("ProgressLabel", n);
     }
