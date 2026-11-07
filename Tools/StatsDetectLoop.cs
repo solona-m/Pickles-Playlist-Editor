@@ -36,6 +36,8 @@ namespace Pickles_Playlist_Editor.Tools
             StatsDetectLimits? limits = null, StatsDetectHooks? hooks = null)
         {
             var l = limits ?? StatsDetectLimits.Default;
+            // Hooks only log; one that throws must never leave the gate held or skip a song's bookkeeping.
+            static void Safe(Action a) { try { a(); } catch { } }
             var failed = new List<string>();
             int timeouts = 0;
             for (int i = 0; i < rels.Count; i++)
@@ -59,7 +61,10 @@ namespace Pickles_Playlist_Editor.Tools
                 {
                     var turn = WaitTurn();
                     if (hooks?.Waiting != null && await Task.WhenAny(turn, Task.Delay(l.SlowAfter, timer.Token)) != turn)
-                        hooks.Waiting(i, sw.Elapsed);
+                    {
+                        var waited = sw.Elapsed;
+                        Safe(() => hooks.Waiting(i, waited));
+                    }
                     timer.Cancel();
                     await turn;
                 }
@@ -74,7 +79,8 @@ namespace Pickles_Playlist_Editor.Tools
                         if (await Task.WhenAny(work, Task.Delay(l.SlowAfter, timer.Token)) != work)
                         {
                             slow = true;
-                            hooks?.Note?.Invoke(rel, sw.Elapsed, StatsSongNote.StillRunning);
+                            var at = sw.Elapsed;
+                            Safe(() => hooks?.Note?.Invoke(rel, at, StatsSongNote.StillRunning));
                             var rest = l.Timeout - sw.Elapsed;
                             if (await Task.WhenAny(work, Task.Delay(rest > TimeSpan.Zero ? rest : TimeSpan.Zero, timer.Token)) != work)
                                 timedOut = true;
@@ -86,12 +92,17 @@ namespace Pickles_Playlist_Editor.Tools
                         // Abandoned: a thread can't be stopped safely; any later fault is observed here.
                         timeouts++;
                         _ = work.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
-                        hooks?.Note?.Invoke(rel, l.Timeout, StatsSongNote.TimedOut);
+                        Safe(() => hooks?.Note?.Invoke(rel, l.Timeout, StatsSongNote.TimedOut));
                     }
                     else
                     {
-                        ok = await work;
-                        if (slow) hooks?.Note?.Invoke(rel, sw.Elapsed, StatsSongNote.FinishedSlow);
+                        try { ok = await work; }
+                        finally
+                        {
+                            // Closed out even when it threw, so a slow song never reads like a hang in the log.
+                            var took = sw.Elapsed;
+                            if (slow) Safe(() => hooks?.Note?.Invoke(rel, took, StatsSongNote.FinishedSlow));
+                        }
                     }
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException) { ok = false; }
@@ -102,7 +113,8 @@ namespace Pickles_Playlist_Editor.Tools
                 {
                     var rest = rels.Skip(i + 1).ToList();
                     failed.AddRange(rest);
-                    hooks?.Stopped?.Invoke(new StatsDetectStop(timeouts, rest.Count));
+                    var stop = new StatsDetectStop(timeouts, rest.Count);
+                    Safe(() => hooks?.Stopped?.Invoke(stop));
                     break;
                 }
             }

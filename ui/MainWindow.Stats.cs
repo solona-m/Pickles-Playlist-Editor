@@ -94,6 +94,9 @@ namespace Pickles_Playlist_Editor
                             StatsWaitReason.Describe(_busyOverlayVisible, OpenPopups().Any(p => p.Child is ContentDialog), _dialogGate.CurrentCount == 0,
                                 !LibraryReadGate.Shared.IsFree, LibraryReadGate.Shared.Holder))));
                 failedRels = failed.Count;
+                if (failed.Count > 0)
+                    Logger.LogWarn("Stats: {Count} song(s) not analysed: {Songs}", failed.Count,
+                        string.Join("; ", failed.Take(10).Select(r => names.TryGetValue(r, out var n) ? $"{n} ({r})" : r)) + (failed.Count > 10 ? "; ..." : ""));
                 analysed = plan.ToDetect.Count - failedRels;
                 var failedSet = new HashSet<string>(failed, StringComparer.Ordinal);
                 failedSongs.AddRange(entries.Where(e => failedSet.Contains(e.Rel)).Select(e => $"{e.PlaylistName}/{e.Name}"));
@@ -154,9 +157,10 @@ namespace Pickles_Playlist_Editor
         // The cache-first detectors with the exact rel; true when all three stats are now cached.
         private static bool DetectOne(string rel)
         {
-            string size = SizeKb(rel);
             try
             {
+                s_detectStep = new DetectStep(rel, "size", "?"); // a hung size read shows as such
+                string size = SizeKb(rel);
                 s_detectStep = new DetectStep(rel, "BPM", size);
                 BPMDetector.GetBPMFromSCD(rel);
                 s_detectStep = new DetectStep(rel, "Key", size);

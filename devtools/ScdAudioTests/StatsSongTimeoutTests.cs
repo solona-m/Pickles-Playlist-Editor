@@ -5,6 +5,11 @@ using Xunit;
 
 namespace ScdAudioTests;
 
+[CollectionDefinition("stats-timing", DisableParallelization = true)]
+public class StatsTimingCollection { }
+
+// Timer-based: run alone, so a busy suite can't push a fast song past the slow threshold.
+[Collection("stats-timing")]
 public class StatsSongTimeoutTests
 {
     private static string Src(string rel) => File.ReadAllText(Path.Combine(RuntimeTargetTests.RepoRoot(), rel)).Replace("\r\n", "\n");
@@ -32,7 +37,7 @@ public class StatsSongTimeoutTests
     private static string Stats() => Src("ui/MainWindow.Stats.cs");
     private static string Run() => Method(Stats(), "private async Task RunStatsPassAsync");
 
-    private static readonly StatsDetectLimits Tiny = new(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(250), 3);
+    private static readonly StatsDetectLimits Tiny = new(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(400), 3);
 
     private sealed class Recorder
     {
@@ -89,7 +94,7 @@ public class StatsSongTimeoutTests
             await Loop(["a", "stuck", "c"], rel => { if (rel == "stuck") release.Wait(); return true; }, new LibraryReadGate(), rec);
             Assert.Equal(2, rec.Notes.Count);
             Assert.Equal(("stuck", StatsSongNote.StillRunning), (rec.Notes[0].Rel, rec.Notes[0].Kind));
-            Assert.True(rec.Notes[0].Elapsed >= TimeSpan.FromMilliseconds(45));
+            Assert.True(rec.Notes[0].Elapsed >= TimeSpan.FromMilliseconds(95));
             Assert.Equal(("stuck", Tiny.Timeout, StatsSongNote.TimedOut), rec.Notes[1]);
             Assert.Empty(rec.Stops);
         }
@@ -124,6 +129,57 @@ public class StatsSongTimeoutTests
         Assert.Empty(rec.Notes);
         Assert.Empty(rec.Stops);
         Assert.Empty(rec.Waits);
+    }
+
+    [Fact] // [AC-stats-song-timeout-3] [EDGE-stats-song-timeout-2]
+    public async Task StatsDetectLoop_SlowSongThatThrows_StillClosedOut()
+    {
+        var rec = new Recorder();
+        var limits = new StatsDetectLimits(TimeSpan.FromMilliseconds(30), TimeSpan.FromSeconds(2), 3);
+        var failed = await StatsDetectLoop.RunAsync(["slowbad"], _ => { Thread.Sleep(150); throw new InvalidOperationException("x"); },
+            () => true, _ => Task.CompletedTask, new LibraryReadGate(), CancellationToken.None, null, limits, rec.Hooks);
+        Assert.Equal(new[] { "slowbad" }, failed);
+        Assert.Equal(new[] { StatsSongNote.StillRunning, StatsSongNote.FinishedSlow }, rec.Notes.Select(n => n.Kind));
+    }
+
+    [Fact] // [AC-stats-song-timeout-5] [EDGE-stats-song-timeout-8]
+    public async Task StatsDetectLoop_TimeoutsCountedAcrossTheRun_NotJustInARow()
+    {
+        using var release = new ManualResetEventSlim();
+        var rec = new Recorder();
+        var called = new List<string>();
+        try
+        {
+            var failed = await Loop(["x1", "ok1", "x2", "ok2", "x3", "ok3"], rel =>
+            {
+                lock (called) called.Add(rel);
+                if (rel.StartsWith('x')) release.Wait();
+                return true;
+            }, new LibraryReadGate(), rec);
+            Assert.Equal(new[] { "x1", "ok1", "x2", "ok2", "x3" }, called);
+            Assert.Equal(new[] { "x1", "x2", "x3", "ok3" }, failed);
+            Assert.Equal(new[] { new StatsDetectStop(3, 1) }, rec.Stops);
+        }
+        finally { release.Set(); }
+    }
+
+    [Fact] // [EDGE-stats-song-timeout-16]
+    public async Task StatsDetectLoop_ThrowingHooks_NeverLeakTheGate()
+    {
+        var gate = new LibraryReadGate();
+        using var release = new ManualResetEventSlim();
+        var boom = new StatsDetectHooks(
+            Note: (_, _, _) => throw new InvalidOperationException("note"),
+            Stopped: _ => throw new InvalidOperationException("stop"),
+            Waiting: (_, _) => throw new InvalidOperationException("wait"));
+        try
+        {
+            var failed = await StatsDetectLoop.RunAsync(["a", "stuck"], rel => { if (rel == "stuck") release.Wait(); return true; },
+                () => true, _ => Task.Delay(200), gate, CancellationToken.None, null, Tiny, boom);
+            Assert.Equal(new[] { "stuck" }, failed);
+            Assert.True(gate.IsFree);
+        }
+        finally { release.Set(); }
     }
 
     [Fact] // [EDGE-stats-song-timeout-4]
@@ -264,12 +320,12 @@ public class StatsSongTimeoutTests
         var rec = new Recorder();
         int detects = 0;
         var failed = await Loop(["a"], _ => { detects++; return true; }, new LibraryReadGate(), rec,
-            wait: _ => Task.Delay(200));
+            wait: _ => Task.Delay(300));
         Assert.Empty(failed);
         Assert.Equal(1, detects);
         var w = Assert.Single(rec.Waits);
         Assert.Equal(0, w.Index);
-        Assert.True(w.Elapsed >= TimeSpan.FromMilliseconds(45));
+        Assert.True(w.Elapsed >= TimeSpan.FromMilliseconds(95));
     }
 
     [Fact] // [AC-stats-song-timeout-8] [EDGE-stats-song-timeout-16]
@@ -282,7 +338,7 @@ public class StatsSongTimeoutTests
         var hooks = new StatsDetectHooks(Waiting: (_, _) => { holderSeen = gate.Holder; heldSeen = !gate.IsFree; });
         var run = StatsDetectLoop.RunAsync(["a"], _ => true, () => true, _ => Task.CompletedTask, gate, CancellationToken.None,
             null, Tiny, hooks);
-        await Task.Delay(200);
+        await Task.Delay(300);
         Assert.Equal("ai", holderSeen);
         Assert.True(heldSeen);
         gate.Exit();
@@ -420,6 +476,9 @@ public class StatsSongTimeoutTests
         byte[] zeroRate = (byte[])fmt.Clone();
         BitConverter.GetBytes(0).CopyTo(zeroRate, 4);
         Assert.Null(AdpcmWav.Duration(zeroRate, 1000));
+        byte[] noChannels = (byte[])fmt.Clone();
+        BitConverter.GetBytes((ushort)0).CopyTo(noChannels, 2);
+        Assert.Null(AdpcmWav.Duration(noChannels, 1000)); // BytesToSamples throws; Duration says unknown
     }
 
     [Fact] // [AC-stats-song-timeout-7] [EDGE-stats-song-timeout-21]
@@ -460,6 +519,8 @@ public class StatsSongTimeoutTests
         Assert.True(At(d, "new DetectStep(rel, \"Duration\"") < At(d, "BPMDetector.GetDuration(rel);"));
         Assert.Contains("return HasAllStats(rel);", d);
         Assert.True(At(d, "finally") > At(d, "BPMDetector.GetDuration(rel);"));
+        Assert.Contains("if (s_detectStep?.Rel == rel) s_detectStep = null;", d);
+        Assert.True(At(d, "new DetectStep(rel, \"size\"") < At(d, "SizeKb(rel)"));
         Assert.Contains(".Rel == rel", Method(Stats(), "private void LogSongNote("));
     }
 
@@ -488,6 +549,9 @@ public class StatsSongTimeoutTests
     public void StatsPass_TimedOutAndSkipped_ReachManualSummary()
     {
         string run = Run();
+        int list = At(run, "song(s) not analysed: {Songs}");
+        Assert.True(At(run, "failedRels = failed.Count;") < list);
+        Assert.Contains("failed.Take(10)", run);
         Assert.Contains("failedSet.Contains(e.Rel)", run);
         Assert.Contains("failedSongs.Select(AppStrings.StatsAnalyseFailed)", run);
     }
