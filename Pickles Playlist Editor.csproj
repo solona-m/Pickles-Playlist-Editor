@@ -65,7 +65,7 @@
     <PackageReference Include="SoundTouch.Net" Version="2.3.2" />
     <!-- Windows DPAPI, for encrypting the stored SoundCloud oauth token at rest.
          Not part of the .NET base framework; Windows-only, which suits a WinUI app. -->
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.11" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="11.0.0" />
     <PackageReference Include="Velopack" Version="1.2.0" />
   </ItemGroup>
 
