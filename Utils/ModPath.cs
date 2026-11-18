@@ -22,7 +22,8 @@ namespace Pickles_Playlist_Editor.Utils
         /// </summary>
         public static string? CanonicalRelative(string? relative)
         {
-            string n = Playlist.NormalizeRelativeModPath(relative);
+            // No whitespace trim: Windows keeps leading spaces, NBSP etc., so trimming would name another folder.
+            string n = (relative ?? string.Empty).Replace('/', '\\').TrimStart('\\');
             if (n.Length == 0 || n.Contains(':') || n.IndexOfAny(InvalidChars) >= 0 || Path.IsPathRooted(n))
                 return null;
 

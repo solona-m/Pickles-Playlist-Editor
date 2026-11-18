@@ -1923,13 +1923,13 @@ namespace Pickles_Playlist_Editor
 
             var result = sb.ToString();
 
-            // Trim trailing spaces and dots (Windows does not allow names that end with dot/space)
-            result = result.TrimEnd(' ', '.');
-
             // Limit filename length (reserve space for extension .scd)
             const int maxFileName = 200;
             if (result.Length > maxFileName)
                 result = result.Substring(0, maxFileName);
+
+            // Trim trailing spaces and dots after the cut (Windows does not allow names that end with dot/space)
+            result = result.TrimEnd(' ', '.');
 
             // As an extra safeguard remove any remaining invalid subsequences
             result = Regex.Replace(result, @"[\\\/:\*\?""<>\|]", "_");

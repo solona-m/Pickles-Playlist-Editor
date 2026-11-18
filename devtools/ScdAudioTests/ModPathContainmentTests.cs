@@ -653,6 +653,30 @@ public sealed class ModPathContainmentTests : IDisposable
         Assert.NotEqual(ModPath.Key("x.scd"), ModPath.Key(rel), StringComparer.OrdinalIgnoreCase);
     }
 
+    [Theory] // [EDGE-mod-path-containment-31] QA: whitespace Windows keeps must not be trimmed away
+    [InlineData("Chill　")]
+    [InlineData("Chill ")]
+    [InlineData(" Chill")]
+    [InlineData("　Chill")]
+    public void PlaylistFolderWhitespace_WrittenWhereRecorded(string name)
+    {
+        // AddFiles/Create/drag write to ResolveInside(dir) but record Path.Combine(dir, file): both must agree.
+        string dir = new Playlist { Name = name }.GetScdDirectoryForNewFiles();
+        string? written = ModPath.ResolveInside(_mod, dir);
+        Assert.NotNull(written);
+        Assert.Equal(Path.Combine(_mod, dir), written);
+        Assert.Equal(Path.Combine(dir, "song.scd"), ModPath.CanonicalRelative(Path.Combine(dir, "song.scd")));
+        Assert.Equal(Path.Combine(_mod, "pl", "x.scd "), ModPath.ResolveInside(_mod, "pl\\x.scd "));
+    }
+
+    [Fact] // [EDGE-mod-path-containment-32] QA: a name cut at the length cap still maps to a usable folder
+    public void LongPlaylistName_CutBeforeTrailingDotTrim()
+    {
+        string dir = new Playlist { Name = new string('a', 199) + ".b" }.GetScdDirectoryForNewFiles();
+        Assert.False(dir.EndsWith('.'));
+        Assert.NotNull(ModPath.ResolveInside(_mod, dir));
+    }
+
     [Theory] // [EDGE-mod-path-containment-27]
     [InlineData("pl.\\x.scd")]
     [InlineData("pl \\x.scd")]
