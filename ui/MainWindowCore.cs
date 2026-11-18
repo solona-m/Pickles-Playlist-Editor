@@ -606,11 +606,14 @@ namespace Pickles_Playlist_Editor
                                 {
                                     try
                                     {
-                                        string scdFull = Path.Combine(Settings.PenumbraLocation, Settings.ModName,
-                                            Playlist.NormalizeRelativeModPath(rel));
-                                        if (File.Exists(scdFull)) File.Delete(scdFull);
-                                        Utils.AiScoreCache.Default.Forget(scdFull);
-                                        Utils.SongTagCache.Default.Forget(scdFull);
+                                        // Null when the path is outside the mod: the file is left alone.
+                                        string? scdFull = Playlist.DeleteSongAudio(
+                                            Utils.SongTagCache.ModRootOrNull(Settings.PenumbraLocation, Settings.ModName), rel);
+                                        if (scdFull != null)
+                                        {
+                                            Utils.AiScoreCache.Default.Forget(scdFull);
+                                            Utils.SongTagCache.Default.Forget(scdFull);
+                                        }
                                     }
                                     catch { /* best-effort; a leftover file is harmless and Cleanup reclaims it */ }
                                 }

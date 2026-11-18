@@ -248,8 +248,10 @@ namespace Pickles_Playlist_Editor
             if (!source.ExistsInManifest())
                 throw new PlaylistSaveException(source.Name);
 
-            string oldRel = Playlist.NormalizeRelativeModPath(Playlist.GetScdPath(song));
-            string oldFullPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, oldRel);
+            string? modRoot = Utils.SongTagCache.ModRootOrNull(Settings.PenumbraLocation, Settings.ModName);
+            string oldRel = Utils.ModPath.Key(Playlist.GetScdPath(song));
+            // Null when the song's path is outside the mod: the entry moves, the file never does.
+            string? oldFullPath = Utils.ModPath.ResolveInside(modRoot, oldRel);
             string oldSongFile = Path.GetFileName(oldRel);
             string targetScdDirectory = target.GetScdDirectoryForNewFiles();
 
@@ -258,32 +260,37 @@ namespace Pickles_Playlist_Editor
             bool shared = referenceCounts.TryGetValue(oldRel, out int refs) && refs > 1;
             bool alreadyHere = string.Equals(Path.GetDirectoryName(oldRel) ?? "", targetScdDirectory,
                 StringComparison.OrdinalIgnoreCase);
-            bool moveFile = oldRel.Length > 0 && !shared && !alreadyHere;
+            bool moveFile = oldFullPath != null && oldRel.Length > 0 && !shared && !alreadyHere;
+            if (oldFullPath == null && oldRel.Length > 0)
+                Utils.Logger.LogWarn("Move of '{Song}': '{Path}' is outside the mod folder, so only the entry moves.",
+                    song.Name, oldRel);
 
-            string newPath = oldFullPath;
+            string oldFull = oldFullPath ?? string.Empty; // only used when moveFile, which requires oldFullPath
+            string newPath = oldFull;
             var keys = new List<(string key, string oldValue)>();
             if (moveFile)
             {
-                string newDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetScdDirectory);
+                string newDir = Utils.ModPath.ResolveInside(modRoot, targetScdDirectory)
+                    ?? throw new InvalidOperationException("Playlist folder is outside the mod folder.");
                 Directory.CreateDirectory(newDir);
                 newPath = Playlist.GetNonCollidingPath(Path.Combine(newDir, oldSongFile));
 
                 // Every game path mapped to this file follows it, not just the .scd key.
                 keys = song.Files
-                    .Where(kv => string.Equals(Playlist.NormalizeRelativeModPath(kv.Value), oldRel,
+                    .Where(kv => string.Equals(Utils.ModPath.Key(kv.Value), oldRel,
                         StringComparison.OrdinalIgnoreCase))
                     .Select(kv => (kv.Key, kv.Value))
                     .ToList();
 
                 // Physical move first: if it throws, nothing has been mutated yet.
-                File.Move(oldFullPath, newPath);
+                File.Move(oldFull, newPath);
                 // BPM/key/duration caches are keyed by full file path, so the move orphans this
                 // song's entries. Migrate them (as Cleanup()/Rename() do) or the moved song reads
                 // as 0:00 and the target playlist's displayed duration comes up short.
-                Utils.BPMDetector.UpdateCacheForSCD(oldFullPath, newPath);
-                Utils.KeyDetector.UpdateCacheForSCD(oldFullPath, newPath);
-                Utils.AiScoreCache.Default.UpdateCacheForSCD(oldFullPath, newPath);
-                Utils.SongTagCache.Default.UpdateCacheForSCD(oldFullPath, newPath);
+                Utils.BPMDetector.UpdateCacheForSCD(oldFull, newPath);
+                Utils.KeyDetector.UpdateCacheForSCD(oldFull, newPath);
+                Utils.AiScoreCache.Default.UpdateCacheForSCD(oldFull, newPath);
+                Utils.SongTagCache.Default.UpdateCacheForSCD(oldFull, newPath);
                 string newRel = Path.Combine(targetScdDirectory, Path.GetFileName(newPath));
                 foreach (var (key, _) in keys)
                     song.Files[key] = newRel;
@@ -305,16 +312,16 @@ namespace Pickles_Playlist_Editor
                 {
                     try
                     {
-                        File.Move(newPath, oldFullPath);
-                        Utils.BPMDetector.UpdateCacheForSCD(newPath, oldFullPath);
-                        Utils.KeyDetector.UpdateCacheForSCD(newPath, oldFullPath);
-                        Utils.AiScoreCache.Default.UpdateCacheForSCD(newPath, oldFullPath);
-                        Utils.SongTagCache.Default.UpdateCacheForSCD(newPath, oldFullPath);
+                        File.Move(newPath, oldFull);
+                        Utils.BPMDetector.UpdateCacheForSCD(newPath, oldFull);
+                        Utils.KeyDetector.UpdateCacheForSCD(newPath, oldFull);
+                        Utils.AiScoreCache.Default.UpdateCacheForSCD(newPath, oldFull);
+                        Utils.SongTagCache.Default.UpdateCacheForSCD(newPath, oldFull);
                     }
                     catch (Exception moveBack)
                     {
                         Utils.Logger.LogError("Move rollback: could not restore '{File}' to '{Dest}': {Error}",
-                            newPath, oldFullPath, moveBack);
+                            newPath, oldFull, moveBack);
                     }
                 }
                 foreach (var (key, oldValue) in keys)

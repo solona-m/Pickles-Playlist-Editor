@@ -106,13 +106,19 @@ namespace Pickles_Playlist_Editor
 
             byte[] defaultBytes = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "default.scd"));
 
+            string? modRoot = Utils.SongTagCache.ModRootOrNull(Settings.PenumbraLocation, Settings.ModName);
+            if (modRoot == null)
+                return new List<string> { "Mod folder is not set." };
+
             foreach (var option in allOptions)
             {
                 string rel = Playlist.GetScdPath(option);
                 if (!string.IsNullOrEmpty(rel))
                 {
-                    string scdPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, rel);
-                    if (File.Exists(scdPath))
+                    string? scdPath = Utils.ModPath.ResolveInside(modRoot, rel);
+                    if (scdPath == null)
+                        errors.Add($"{rel}: outside the mod folder, skipped");
+                    else if (File.Exists(scdPath))
                     {
                         try
                         {
@@ -367,6 +373,46 @@ namespace Pickles_Playlist_Editor
             return log;
         }
 
+        // Peels one numeric suffix at a time off rel's file while the shorter name is free. Only files
+        // strictly inside base_ are touched; returns the final rel and the moves made (the caller migrates caches).
+        internal static (string NewRel, List<(string OldFull, string NewFull)> Moves) UnsuffixOnDisk(
+            string base_, string rel, List<string> log)
+        {
+            var suffix = new Regex(@"^(.*)_\d+$");
+            var moves = new List<(string, string)>();
+            string currentRel = rel;
+            while (true)
+            {
+                var m = suffix.Match(Path.GetFileNameWithoutExtension(currentRel));
+                if (!m.Success || m.Groups[1].Value.Length == 0) break;
+
+                string dirPrefix = currentRel.Substring(0, currentRel.Length - Path.GetFileName(currentRel).Length);
+                string candidateRel = dirPrefix + m.Groups[1].Value + Path.GetExtension(currentRel);
+
+                string? currentFull = Utils.ModPath.ResolveInside(base_, currentRel);
+                string? candidateFull = Utils.ModPath.ResolveInside(base_, candidateRel);
+                if (currentFull == null || candidateFull == null)
+                {
+                    log.Add($"SKIP (outside mod folder): {rel}");
+                    break;
+                }
+
+                if (!File.Exists(currentFull)) break;   // referenced file missing
+                if (File.Exists(candidateFull)) break;  // shorter name taken - keep suffix
+
+                try { File.Move(currentFull, candidateFull); }
+                catch (Exception ex)
+                {
+                    log.Add($"SKIP (rename failed {Path.GetFileName(currentFull)}): {ex.Message}");
+                    break;
+                }
+
+                moves.Add((currentFull, candidateFull));
+                currentRel = candidateRel;
+            }
+            return (currentRel, moves);
+        }
+
         // Reverses the leftover "_1" (or "_2", ...) suffixes the old same-playlist song-reorder bug
         // appended to .scd filenames (Creep.scd -> Creep_1.scd) via GetNonCollidingPath. That bug
         // renamed base -> base_1, so the base name is now free and we can safely rename each file
@@ -375,7 +421,6 @@ namespace Pickles_Playlist_Editor
         private static List<string> StripRedundantScdSuffixes(string base_)
         {
             var log = new List<string>();
-            var suffix = new Regex(@"^(.*)_\d+$");
             int renamed = 0, playlistsTouched = 0;
 
             foreach (var playlist in Playlist.GetAll().Values)
@@ -392,34 +437,13 @@ namespace Pickles_Playlist_Editor
                         if (string.IsNullOrEmpty(rel) || !rel.EndsWith(".scd", StringComparison.OrdinalIgnoreCase))
                             continue;
 
-                        // Peel off one numeric suffix at a time while the shorter name is free.
-                        string currentRel = rel;
-                        while (true)
+                        var (currentRel, moves) = UnsuffixOnDisk(base_, rel, log);
+                        foreach (var (oldFull, newFull) in moves)
                         {
-                            var m = suffix.Match(Path.GetFileNameWithoutExtension(currentRel));
-                            if (!m.Success || m.Groups[1].Value.Length == 0) break;
-
-                            string dirPrefix = currentRel.Substring(0, currentRel.Length - Path.GetFileName(currentRel).Length);
-                            string candidateRel = dirPrefix + m.Groups[1].Value + Path.GetExtension(currentRel);
-
-                            string currentFull = Path.Combine(base_, Playlist.NormalizeRelativeModPath(currentRel));
-                            string candidateFull = Path.Combine(base_, Playlist.NormalizeRelativeModPath(candidateRel));
-
-                            if (!File.Exists(currentFull)) break;   // referenced file missing
-                            if (File.Exists(candidateFull)) break;  // shorter name taken - keep suffix
-
-                            try { File.Move(currentFull, candidateFull); }
-                            catch (Exception ex)
-                            {
-                                log.Add($"SKIP (rename failed {Path.GetFileName(currentFull)}): {ex.Message}");
-                                break;
-                            }
-
-                            Utils.BPMDetector.UpdateCacheForSCD(currentFull, candidateFull);
-                            Utils.KeyDetector.UpdateCacheForSCD(currentFull, candidateFull);
-                            Utils.AiScoreCache.Default.UpdateCacheForSCD(currentFull, candidateFull);
-                            Utils.SongTagCache.Default.UpdateCacheForSCD(currentFull, candidateFull);
-                            currentRel = candidateRel;
+                            Utils.BPMDetector.UpdateCacheForSCD(oldFull, newFull);
+                            Utils.KeyDetector.UpdateCacheForSCD(oldFull, newFull);
+                            Utils.AiScoreCache.Default.UpdateCacheForSCD(oldFull, newFull);
+                            Utils.SongTagCache.Default.UpdateCacheForSCD(oldFull, newFull);
                         }
 
                         if (currentRel != rel)

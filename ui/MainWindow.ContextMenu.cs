@@ -206,11 +206,12 @@ namespace Pickles_Playlist_Editor
             SetProgressBarPercent(0);
             int normalized = 0;
             var errors = new List<string>();
+            string? modRoot = SongTagCache.ModRootOrNull(Settings.PenumbraLocation, Settings.ModName);
             await Task.Run(() =>
             {
                 foreach (var (playlist, option) in targetSongs)
                 {
-                    try { NormalizeSongAudio(option); normalized++; }
+                    try { NormalizeSongAudio(option, modRoot); normalized++; }
                     catch (Exception ex) { errors.Add($"{playlist.Name}/{option.Name}: {ex.Message}"); }
                     finally { SetProgressBarPercent((int)((normalized + errors.Count) / (double)targetSongs.Count * 100)); }
                 }
@@ -297,6 +298,7 @@ namespace Pickles_Playlist_Editor
             int updated = 0;
             var errors = new List<string>();
             string filterChain = settings.ToFilterChain();
+            string? modRoot = SongTagCache.ModRootOrNull(Settings.PenumbraLocation, Settings.ModName);
             await Task.Run(() =>
             {
                 int total = targets.Count, current = 0;
@@ -306,7 +308,7 @@ namespace Pickles_Playlist_Editor
                     try
                     {
                         SetProgressBarText(AppStrings.ApplyingEQ(current, total));
-                        ApplyEqualizerSettingsToSongAudio(option, filterChain);
+                        ApplyEqualizerSettingsToSongAudio(option, filterChain, modRoot);
                         updated++;
                     }
                     catch (Exception ex) { errors.Add($"{playlist.Name}/{option.Name}: {ex.Message}"); }
@@ -318,9 +320,9 @@ namespace Pickles_Playlist_Editor
             ShowOperationSummary(AppStrings.Summary_ApplyEQ, updated, targets.Count, errors);
         }
 
-        private static void NormalizeSongAudio(Option option)
+        private static void NormalizeSongAudio(Option option, string? modRoot)
         {
-            string fullScdPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, Playlist.GetScdPath(option));
+            string fullScdPath = ContainedScdPath(option, modRoot);
             if (!File.Exists(fullScdPath)) throw new FileNotFoundException("SCD not found.", fullScdPath);
             string tempRoot = Path.Combine(Path.GetTempPath(), "pickles-normalize", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempRoot);
@@ -348,9 +350,17 @@ namespace Pickles_Playlist_Editor
             finally { if (Directory.Exists(tempRoot)) Directory.Delete(tempRoot, true); }
         }
 
-        private static void ApplyEqualizerSettingsToSongAudio(Option option, string filterChain)
+        // The song's .scd, refused before any I/O when the mod is unset or the path leaves the mod folder.
+        private static string ContainedScdPath(Option option, string? modRoot)
         {
-            string fullScdPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, Playlist.GetScdPath(option));
+            if (modRoot == null) throw new InvalidOperationException("Mod folder is not set.");
+            return ModPath.ResolveInside(modRoot, Playlist.GetScdPath(option))
+                ?? throw new InvalidOperationException("Song file is outside the mod folder; it was not changed.");
+        }
+
+        private static void ApplyEqualizerSettingsToSongAudio(Option option, string filterChain, string? modRoot)
+        {
+            string fullScdPath = ContainedScdPath(option, modRoot);
             if (!File.Exists(fullScdPath)) throw new FileNotFoundException("SCD not found.", fullScdPath);
             string tempRoot = Path.Combine(Path.GetTempPath(), "pickles-equalizer", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempRoot);

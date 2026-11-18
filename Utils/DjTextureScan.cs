@@ -188,7 +188,13 @@ namespace Pickles_Playlist_Editor.Utils
                     continue;
                 }
 
-                string full = Path.Combine(modRoot, relative.Replace('\\', Path.DirectorySeparatorChar));
+                // Pasting overwrites this file, so it must be inside the mod.
+                string? full = ModPath.ResolveInside(modRoot, relative);
+                if (full == null)
+                {
+                    problems.Add(new DjTextureProblem(surface, $"The mod lists {relative}, which is outside the mod folder."));
+                    continue;
+                }
                 if (!File.Exists(full))
                 {
                     problems.Add(new DjTextureProblem(surface,
