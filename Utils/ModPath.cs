@@ -74,7 +74,7 @@ namespace Pickles_Playlist_Editor.Utils
 
         /// <summary>Comparison key for a mod path: canonical when safe, else the normalized raw value (so unsafe values never alias safe ones). Compare with OrdinalIgnoreCase.</summary>
         public static string Key(string? relative) =>
-            CanonicalRelative(relative) ?? Playlist.NormalizeRelativeModPath(relative);
+            CanonicalRelative(relative) ?? (relative ?? string.Empty).Replace('/', '\\').TrimStart('\\');
 
         /// <summary>Lenient full path for "is this still referenced" checks only — never a delete/move target.</summary>
         public static string? FullUnder(string? modRoot, string? value)

@@ -133,6 +133,10 @@ public sealed class ModPathContainmentTests : IDisposable
         string src = Src("Playlist.cs");
         string delete = Method(src, "public void Delete()");
         Assert.Contains("GetObservedScdDirectory()", delete);
+        // A folder guessed from the name is only ever removed when empty; the observed one only when observed.
+        Assert.Matches(@"if \(scdDir != null\)\s*ReclaimUnusedAudioDirectories\(modRoot, new\[\] \{ scdDir \}\);", delete);
+        Assert.Matches(@"ReclaimUnusedAudioDirectories\(modRoot, new\[\] \{ GetDefaultPlaylistDirectoryName\(Name\) \}, onlyIfEmpty: true\)", delete);
+        Assert.Equal(2, Regex.Matches(delete, @"ReclaimUnusedAudioDirectories\(").Count);
         Assert.DoesNotContain("GetCurrentScdDirectory", src);
 
         string pure = Method(src, "internal static void ReclaimUnusedAudioDirectories(");
@@ -225,6 +229,13 @@ public sealed class ModPathContainmentTests : IDisposable
         int guard = At(rename, "oldFolder == null || newFolder == null");
         Assert.True(guard < At(rename, "Directory.Move("));
         Assert.Contains("scdDirChanged = false", rename[guard..At(rename, "Directory.Move(")]);
+
+        // The shared-folder check compares full paths, however other playlists spell theirs.
+        string pl = Src("Playlist.cs");
+        int s = At(pl, "private bool IsScdDirectoryShared(");
+        string shared = pl[s..pl.IndexOf(';', s)]; // expression-bodied
+        Assert.Contains("ModPath.IsStrictlyInside(folder, ModPath.FullUnder(modDirectory, rel))", shared);
+        Assert.DoesNotContain(".StartsWith(", shared);
     }
 
     [Fact] // [AC-mod-path-containment-4] [EDGE-mod-path-containment-12]
@@ -667,6 +678,14 @@ public sealed class ModPathContainmentTests : IDisposable
         Assert.Equal(Path.Combine(_mod, dir), written);
         Assert.Equal(Path.Combine(dir, "song.scd"), ModPath.CanonicalRelative(Path.Combine(dir, "song.scd")));
         Assert.Equal(Path.Combine(_mod, "pl", "x.scd\u00A0"), ModPath.ResolveInside(_mod, "pl\\x.scd\u00A0"));
+    }
+
+    [Fact] // [EDGE-mod-path-containment-31] Key keeps whitespace too, so key-resolving sinks agree with Windows
+    public void Key_DoesNotTrimWhitespace()
+    {
+        Assert.Equal(Path.Combine(_mod, " pl", "a.scd"), ModPath.ResolveInside(_mod, ModPath.Key(" pl\\a.scd")));
+        Assert.Null(ModPath.ResolveInside(_mod, ModPath.Key(" pl\\a.scd ")));
+        Assert.NotEqual(ModPath.Key("pl\\a.scd"), ModPath.Key("pl\\a.scd "), StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact] // [EDGE-mod-path-containment-32] QA: a name cut at the length cap still maps to a usable folder

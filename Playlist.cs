@@ -996,6 +996,12 @@ namespace Pickles_Playlist_Editor
                                 song.Files[key] = newRel;
                                 repointed.Add((song, key, rel, newRel));
                             }
+                            else if (ModPath.IsStrictlyInside(oldFolder, ModPath.FullUnder(modDirectory, rel)))
+                            {
+                                // A spelling the containment check refuses (e.g. trailing space) can't be repointed.
+                                Logger.LogWarn("Rename of '{Old}': '{File}' moved with the folder but its path could not " +
+                                    "be updated; fix it by hand.", oldName, rel);
+                            }
                         }
                     }
                 }
@@ -1216,14 +1222,15 @@ namespace Pickles_Playlist_Editor
                 int done = 0;
                 foreach (var (source, song) in plan)
                 {
-                    // Four kinds of song have nothing to move and must NOT abort the merge:
+                    // Five kinds of song have nothing to move and must NOT abort the merge:
                     //   - no .scd key at all (the "Off" placeholder shape, or a swap-only option),
                     //   - a path whose file is gone — dead pointers are common enough that Cleanup()
                     //     exists to reap them, and File.Move would throw and roll back the whole merge,
                     //   - a song already stored in this playlist's own folder, where a move would be a
                     //     GetNonCollidingPath rename to "name_1.scd" and nothing else,
-                    //   - a file other options also point at, which moving would orphan.
-                    // All four are carried across untouched, keeping their existing path.
+                    //   - a file other options also point at, which moving would orphan,
+                    //   - a path outside the mod folder, which is never touched.
+                    // All five are carried across untouched, keeping their existing path.
                     var scdKey = GetScdKey(song);
                     string oldRel = scdKey != null ? ModPath.Key(song.Files[scdKey]) : "";
                     string? oldFull = scdKey != null ? ModPath.ResolveInside(modAtStart, oldRel) : null;
