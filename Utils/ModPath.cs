@@ -80,7 +80,9 @@ namespace Pickles_Playlist_Editor.Utils
         public static string? FullUnder(string? modRoot, string? value)
         {
             if (string.IsNullOrWhiteSpace(modRoot) || string.IsNullOrWhiteSpace(value)) return null;
-            try { return Path.GetFullPath(Path.Combine(Path.GetFullPath(modRoot), Playlist.NormalizeRelativeModPath(value))); }
+            // Same normalization as Playlist.NormalizeRelativeModPath, inlined so the harnesses can link this file alone.
+            string rel = value.Trim().Replace('/', '\\').TrimStart('\\');
+            try { return Path.GetFullPath(Path.Combine(Path.GetFullPath(modRoot), rel)); }
             catch { return null; }
         }
     }
