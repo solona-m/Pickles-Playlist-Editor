@@ -65,11 +65,11 @@ internal sealed class FakeAudioOutput : Pickles_Playlist_Editor.Utils.IAudioOutp
     public void Stop() { StopCalls++; Playing = false; }
     public void Dispose() => Disposed = true;
 
-    /// <summary>Reads until the source ends, then raises Stopped(null) on another thread, as WaveOutEvent does.</summary>
+    /// <summary>Reads until the source ends, then raises Stopped(null) on another thread, as WaveOut does.</summary>
     public void DrainAndEnd()
     {
         var buf = new float[8192];
-        while (Source!.Read(buf, 0, buf.Length) > 0) { }
+        while (Source!.Read(buf) > 0) { }
         FireStopped(null);
     }
 
