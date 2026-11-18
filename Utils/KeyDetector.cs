@@ -143,7 +143,7 @@ namespace Pickles_Playlist_Editor.Utils
             while (totalSamplesRead < maxSamples)
             {
                 int framesToRead = WindowSize - carryCount;
-                int samplesRead = sampleProvider.Read(readBuffer, 0, framesToRead * channels);
+                int samplesRead = sampleProvider.Read(readBuffer.AsSpan(0, framesToRead * channels));
                 if (samplesRead <= 0)
                     break;
 

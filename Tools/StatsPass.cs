@@ -60,15 +60,16 @@ namespace Pickles_Playlist_Editor.Tools
 
         /// <summary>
         /// An attempt is recorded when the automatic run starts. It is kept for an Error or failed saves, and a crash keeps
-        /// it by never ending; a clean finish or a cancel (closing, an exit, a mod change) takes it back.
+        /// it by never ending; a clean finish or a cancel (closing, an exit, a mod change) takes it back. A run stopped by
+        /// too many timed-out songs keeps it, so a later launch retries.
         /// </summary>
-        public static bool KeepsAttempt(StatsPassEnd end, int saveFailures) =>
-            end == StatsPassEnd.Error || (end == StatsPassEnd.Finished && saveFailures > 0);
+        public static bool KeepsAttempt(StatsPassEnd end, int saveFailures, bool stoppedEarly = false) =>
+            end == StatsPassEnd.Error || (end == StatsPassEnd.Finished && (saveFailures > 0 || stoppedEarly));
 
         public static string NextAttempt(string? attempt, string running) => $"{running}|{AttemptsFor(attempt, running) + 1}";
 
-        public static bool ShouldWriteMarker(StatsPassEnd end, int saveFailures, int snapshotCount, int playlistCount) =>
-            end == StatsPassEnd.Finished && saveFailures == 0 && !(snapshotCount == 0 && playlistCount == 0);
+        public static bool ShouldWriteMarker(StatsPassEnd end, int saveFailures, int snapshotCount, int playlistCount, bool stoppedEarly = false) =>
+            end == StatsPassEnd.Finished && saveFailures == 0 && !stoppedEarly && !(snapshotCount == 0 && playlistCount == 0);
 
         /// <summary>Failed attempts recorded for this version; another version or an unreadable value counts as 0.</summary>
         public static int AttemptsFor(string? attempt, string running)

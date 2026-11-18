@@ -112,8 +112,13 @@ public class AiScoreSortAndWiringTests
     [Fact] // [AC-ai-score-8] [EDGE-ai-score-41] [EDGE-ai-score-42]
     public void DeletePaths_Forget()
     {
-        string core = Src("ui/MainWindowCore.cs");
-        Assert.Matches(@"File\.Delete\(scdFull\);\s*Utils\.AiScoreCache\.Default\.Forget\(scdFull\);", core);
+        // [AC-mod-path-containment-3] [EDGE-mod-path-containment-20] contained delete, caller forgets
+        string del = Method(Src("ui/MainWindowCore.cs"), "private async Task<bool> DoDeleteAsync()");
+        int save = del.IndexOf("parentPl.Save()", StringComparison.Ordinal);
+        int call = del.IndexOf("Playlist.DeleteSongAudio(", StringComparison.Ordinal);
+        Assert.True(save >= 0 && call > save);
+        Assert.Matches(@"Utils\.AiScoreCache\.Default\.Forget\((\w+)\);\s*Utils\.SongTagCache\.Default\.Forget\(\1\);", del[call..]);
+        Assert.DoesNotContain("File.Delete(", del);
         string delete = Method(Src("Playlist.cs"), "public void Delete()");
         Assert.True(delete.IndexOf("AiScoreCache.Default.Forget", StringComparison.Ordinal) < delete.IndexOf("ReclaimUnusedAudioDirectories", StringComparison.Ordinal));
     }

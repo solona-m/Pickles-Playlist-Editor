@@ -203,18 +203,25 @@ public sealed class PlaybackEngineTests : IDisposable
     public void Seek_IsClampedShortOfTheEnd()
     {
         var engine = NewEngine();
-        engine.Open(_fx.MakeSineOgg(4), _ => { });
+        engine.Open(_fx.MakeSineOgg(30), _ => { });
         engine.Seek(TimeSpan.FromSeconds(99));
         Assert.InRange(engine.Position.TotalSeconds, engine.Duration.TotalSeconds - 0.51, engine.Duration.TotalSeconds - 0.49);
         engine.Seek(TimeSpan.FromSeconds(-5));
         Assert.Equal(TimeSpan.Zero, engine.Position);
+
+        // NAudio.Vorbis 3 throws seeking into a final page longer than the clamp (a short file's is ~0.9 s):
+        // the seek steps back instead of failing, still lands near the end and warns nothing.
+        engine.Open(_fx.MakeSineOgg(4), _ => { });
+        engine.Seek(TimeSpan.FromSeconds(99));
+        Assert.InRange(engine.Position.TotalSeconds, engine.Duration.TotalSeconds - 1.51, engine.Duration.TotalSeconds - 0.49);
+        Assert.Empty(_warnings);
     }
 
     private static float Peak(ISampleProvider source)
     {
         var buf = new float[44100];
         int got = 0, n;
-        while (got < buf.Length && (n = source.Read(buf, got, buf.Length - got)) > 0) got += n;
+        while (got < buf.Length && (n = source.Read(buf.AsSpan(got))) > 0) got += n;
         return buf.Take(got).Max(Math.Abs);
     }
 
@@ -393,7 +400,7 @@ public sealed class PlaybackEngineTests : IDisposable
         engine.Open(_fx.MakeSineOgg(2), _ => { });
         var source = Last.Source!;
         engine.Stop();
-        Assert.Equal(0, source.Read(new float[1024], 0, 1024));
+        Assert.Equal(0, source.Read(new float[1024]));
         Assert.Empty(_warnings);
 
         // NVorbis skips corrupt pages without throwing, so the failure comes from a reader that throws mid-stream.
@@ -402,7 +409,7 @@ public sealed class PlaybackEngineTests : IDisposable
         int ended = 0;
         failing.Open(_fx.MakeSineOgg(5), _ => Interlocked.Increment(ref ended));
         Last.DrainAndEnd();
-        Assert.Equal(0, Last.Source!.Read(new float[1024], 0, 1024));
+        Assert.Equal(0, Last.Source!.Read(new float[1024]));
         Assert.True(WaitFor(() => ended == 1));
         Assert.Single(_warnings, w => w.StartsWith("Playback decoder failure"));
         Assert.Single(_warnings);
@@ -418,7 +425,7 @@ public sealed class PlaybackEngineTests : IDisposable
         {
             using var output = new WaveOutAudioOutput();
             var inner = typeof(WaveOutAudioOutput).GetField("_out", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(output)!;
-            var ctx = typeof(WaveOutEvent).GetField("syncContext", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            var ctx = typeof(WaveOut).GetField("syncContext", BindingFlags.NonPublic | BindingFlags.Instance)!;
             Assert.Null(ctx.GetValue(inner));
             Assert.Same(recording, SynchronizationContext.Current);
         }
@@ -460,10 +467,10 @@ public sealed class PlaybackEngineTests : IDisposable
         public override long Length => _inner.Length;
         public override long Position { get => _inner.Position; set => _inner.Position = value; }
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-        public int Read(float[] buffer, int offset, int count)
+        public int Read(Span<float> buffer)
         {
             if (_left-- <= 0) throw new InvalidDataException("bad packet");
-            return _inner.Read(buffer, offset, count);
+            return _inner.Read(buffer);
         }
         protected override void Dispose(bool disposing) { if (disposing) _inner.Dispose(); base.Dispose(disposing); }
     }

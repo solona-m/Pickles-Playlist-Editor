@@ -204,7 +204,13 @@ namespace Pickles_Playlist_Editor.Utils
 
             foreach (string relative in relatives)
             {
-                string full = Path.Combine(modRoot, relative.Replace('\\', Path.DirectorySeparatorChar));
+                // Repair rewrites what this returns, so a path outside the mod is never listed.
+                string? full = ModPath.ResolveInside(modRoot, relative);
+                if (full == null)
+                {
+                    notes?.Add($"skipped '{relative}': outside the mod folder");
+                    continue;
+                }
                 if (!File.Exists(full)) continue;
 
                 try

@@ -67,7 +67,7 @@ namespace Pickles_Playlist_Editor
                 {
                     using (ThreadPriorityScope.Background())
                     {
-                        LibraryReadGate.Shared.Enter(ct); // never alongside a stats run or AI scoring
+                        LibraryReadGate.Shared.Enter(ct, "tags"); // never alongside a stats run or AI scoring
                         try
                         {
                             return SongTagScan.Run(paths, SongTagCache.Default, SongTagReader.Read, ct,

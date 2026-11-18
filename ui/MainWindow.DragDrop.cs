@@ -48,7 +48,7 @@ namespace Pickles_Playlist_Editor
 
         // Pairs each dragged song node with its Option. Position identifies the song exactly —
         // song nodes are built straight from Options — which is what distinguishes two songs
-        // sharing a name. Falls back to the name when the tree is a filtered subset of the playlist.
+        // sharing a name. Under a filter it matches on name + scd, then name, skipping songs already taken.
         private static List<(Playlist source, Option song)> ResolveDraggedSongs(
             IEnumerable<PlaylistNodeContent> nodes)
         {
@@ -59,14 +59,8 @@ namespace Pickles_Playlist_Editor
                 if (node.Level != 2 || node.Parent == null) continue;
                 if (!Playlists.TryGetValue(node.Parent.Name, out var source) || source?.Options == null) continue;
 
-                Option? song = null;
                 var siblings = node.Parent.Children;
-                if (siblings.Count == source.Options.Count)
-                {
-                    int index = siblings.IndexOf(node);
-                    if (index >= 0) song = source.Options[index];
-                }
-                song ??= source.Options.Find(x => x.Name == node.Name);
+                var song = SongMove.PickOption(source.Options, siblings.Count, siblings.IndexOf(node), node.Name, node.ScdRel, seen);
 
                 if (song != null && seen.Add(song)) resolved.Add((source, song));
             }
@@ -193,60 +187,19 @@ namespace Pickles_Playlist_Editor
                 var moves = draggedSongs.Where(m => !ReferenceEquals(m.song, anchor)).ToList();
                 if (moves.Count == 0) return;
 
-                var errors = new List<string>();
-                var landed = new List<Option>();
-
-                // Every source is repopulated afterwards whether or not its move succeeded. WinUI
-                // pulls the grabbed node out of ItemsSource for the duration of the drag, so a song
-                // that failed to move still needs its row put back — otherwise the error dialog is
-                // accompanied by the song apparently vanishing from the playlist it never left.
+                // Every source is repopulated afterwards whether or not its move succeeded: WinUI
+                // pulled the grabbed node out of ItemsSource, so a failed song still needs its row back.
                 var touched = new HashSet<Playlist> { targetPlaylist };
                 foreach (var (source, _) in moves) touched.Add(source);
-
-                // The songs arriving from elsewhere go first, each committing on its own. A song
-                // already in the target is left exactly where it is for now: the alternative — pull
-                // it out, then move the others in — would have this playlist's file written by a
-                // cross-playlist move while a song that belongs in it was missing from the list.
-                int anchorIndex = anchor == null ? -1 : targetPlaylist.Options.IndexOf(anchor);
-                int insertIndex = anchorIndex >= 0 ? anchorIndex + 1 : targetPlaylist.Options.Count;
 
                 // Counted once for the whole drop: moving an option doesn't change how many point at a file.
                 var referenceCounts = Playlist.ScdReferenceCounts(touched);
 
-                foreach (var (source, song) in moves)
-                {
-                    if (ReferenceEquals(source, targetPlaylist)) { landed.Add(song); continue; }
-                    try
-                    {
-                        MoveSongAcrossPlaylists(source, targetPlaylist, song, insertIndex, referenceCounts);
-                        insertIndex++;
-                        landed.Add(song);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Every cross-playlist move rolls itself back, so a failure here costs that
-                        // one song's move and nothing else. Carry on with the rest and report at the
-                        // end rather than abandoning the drop halfway through.
-                        errors.Add($"{source.Name}/{song.Name}: {FormatExceptionMessage(ex)}");
-                    }
-                }
-
-                // Now put the whole run in order: lift out everything that landed and set it back
-                // down after the anchor, so the drop reads the way the user dragged it. Nothing is
-                // saved in between, so the file is only ever written with the full list. Audio files
-                // are untouched here — the old code renamed a song's .scd on every reorder (e.g.
-                // bpmloop -> bpmloop_1), which is what made Penumbra try to compact a freshly
-                // created .scd.
-                if (landed.Count > 0)
-                {
-                    foreach (var song in landed) targetPlaylist.Options.Remove(song);
-                    int at = anchor == null ? -1 : targetPlaylist.Options.IndexOf(anchor);
-                    int runStart = at >= 0 ? at + 1 : targetPlaylist.Options.Count;
-                    targetPlaylist.Options.InsertRange(
-                        Math.Clamp(runStart, 0, targetPlaylist.Options.Count), landed);
-                    try { targetPlaylist.Save(); }
-                    catch (Exception ex) { errors.Add($"{targetPlaylist.Name}: {FormatExceptionMessage(ex)}"); }
-                }
+                // Cross-playlist moves each commit on their own; then the run is laid down after the anchor and saved once.
+                var batch = SongMove.Run(targetPlaylist, moves, anchor, InTargetPolicy.Reorder,
+                    (s, t, song, i) => MoveSongAcrossPlaylists(s, t, song, i, referenceCounts), p => p.Save());
+                var landed = batch.Landed;
+                var errors = batch.Errors.Select(e => SongMove.Describe(e, FormatExceptionMessage)).ToList();
 
                 _playlistExpandedStates[targetPlaylist.Name] = true;
 
@@ -295,8 +248,10 @@ namespace Pickles_Playlist_Editor
             if (!source.ExistsInManifest())
                 throw new PlaylistSaveException(source.Name);
 
-            string oldRel = Playlist.NormalizeRelativeModPath(Playlist.GetScdPath(song));
-            string oldFullPath = Path.Combine(Settings.PenumbraLocation, Settings.ModName, oldRel);
+            string? modRoot = Utils.SongTagCache.ModRootOrNull(Settings.PenumbraLocation, Settings.ModName);
+            string oldRel = Utils.ModPath.Key(Playlist.GetScdPath(song));
+            // Null when the song's path is outside the mod: the entry moves, the file never does.
+            string? oldFullPath = Utils.ModPath.ResolveInside(modRoot, oldRel);
             string oldSongFile = Path.GetFileName(oldRel);
             string targetScdDirectory = target.GetScdDirectoryForNewFiles();
 
@@ -305,32 +260,37 @@ namespace Pickles_Playlist_Editor
             bool shared = referenceCounts.TryGetValue(oldRel, out int refs) && refs > 1;
             bool alreadyHere = string.Equals(Path.GetDirectoryName(oldRel) ?? "", targetScdDirectory,
                 StringComparison.OrdinalIgnoreCase);
-            bool moveFile = oldRel.Length > 0 && !shared && !alreadyHere;
+            bool moveFile = oldFullPath != null && oldRel.Length > 0 && !shared && !alreadyHere;
+            if (oldFullPath == null && oldRel.Length > 0)
+                Utils.Logger.LogWarn("Move of '{Song}': '{Path}' is outside the mod folder, so only the entry moves.",
+                    song.Name, oldRel);
 
-            string newPath = oldFullPath;
+            string oldFull = oldFullPath ?? string.Empty; // only used when moveFile, which requires oldFullPath
+            string newPath = oldFull;
             var keys = new List<(string key, string oldValue)>();
             if (moveFile)
             {
-                string newDir = Path.Combine(Settings.PenumbraLocation, Settings.ModName, targetScdDirectory);
+                string newDir = Utils.ModPath.ResolveInside(modRoot, targetScdDirectory)
+                    ?? throw new InvalidOperationException("Playlist folder is outside the mod folder.");
                 Directory.CreateDirectory(newDir);
                 newPath = Playlist.GetNonCollidingPath(Path.Combine(newDir, oldSongFile));
 
                 // Every game path mapped to this file follows it, not just the .scd key.
                 keys = song.Files
-                    .Where(kv => string.Equals(Playlist.NormalizeRelativeModPath(kv.Value), oldRel,
+                    .Where(kv => string.Equals(Utils.ModPath.Key(kv.Value), oldRel,
                         StringComparison.OrdinalIgnoreCase))
                     .Select(kv => (kv.Key, kv.Value))
                     .ToList();
 
                 // Physical move first: if it throws, nothing has been mutated yet.
-                File.Move(oldFullPath, newPath);
+                File.Move(oldFull, newPath);
                 // BPM/key/duration caches are keyed by full file path, so the move orphans this
                 // song's entries. Migrate them (as Cleanup()/Rename() do) or the moved song reads
                 // as 0:00 and the target playlist's displayed duration comes up short.
-                Utils.BPMDetector.UpdateCacheForSCD(oldFullPath, newPath);
-                Utils.KeyDetector.UpdateCacheForSCD(oldFullPath, newPath);
-                Utils.AiScoreCache.Default.UpdateCacheForSCD(oldFullPath, newPath);
-                Utils.SongTagCache.Default.UpdateCacheForSCD(oldFullPath, newPath);
+                Utils.BPMDetector.UpdateCacheForSCD(oldFull, newPath);
+                Utils.KeyDetector.UpdateCacheForSCD(oldFull, newPath);
+                Utils.AiScoreCache.Default.UpdateCacheForSCD(oldFull, newPath);
+                Utils.SongTagCache.Default.UpdateCacheForSCD(oldFull, newPath);
                 string newRel = Path.Combine(targetScdDirectory, Path.GetFileName(newPath));
                 foreach (var (key, _) in keys)
                     song.Files[key] = newRel;
@@ -352,16 +312,16 @@ namespace Pickles_Playlist_Editor
                 {
                     try
                     {
-                        File.Move(newPath, oldFullPath);
-                        Utils.BPMDetector.UpdateCacheForSCD(newPath, oldFullPath);
-                        Utils.KeyDetector.UpdateCacheForSCD(newPath, oldFullPath);
-                        Utils.AiScoreCache.Default.UpdateCacheForSCD(newPath, oldFullPath);
-                        Utils.SongTagCache.Default.UpdateCacheForSCD(newPath, oldFullPath);
+                        File.Move(newPath, oldFull);
+                        Utils.BPMDetector.UpdateCacheForSCD(newPath, oldFull);
+                        Utils.KeyDetector.UpdateCacheForSCD(newPath, oldFull);
+                        Utils.AiScoreCache.Default.UpdateCacheForSCD(newPath, oldFull);
+                        Utils.SongTagCache.Default.UpdateCacheForSCD(newPath, oldFull);
                     }
                     catch (Exception moveBack)
                     {
                         Utils.Logger.LogError("Move rollback: could not restore '{File}' to '{Dest}': {Error}",
-                            newPath, oldFullPath, moveBack);
+                            newPath, oldFull, moveBack);
                     }
                 }
                 foreach (var (key, oldValue) in keys)

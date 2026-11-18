@@ -111,6 +111,9 @@
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>Songdatei nicht gefunden: {0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>Fehler beim Ablegen der Datei: {0}</value></data>
   <data name="Dlg_ErrorDragDrop" xml:space="preserve"><value>Fehler beim Drag &amp; Drop: {0}</value></data>
+  <data name="Menu_MoveToPlaylist" xml:space="preserve"><value>In Wiedergabeliste verschieben</value></data>
+  <data name="Dlg_ErrorMoveSongs" xml:space="preserve"><value>Songs konnten nicht verschoben werden: {0}</value></data>
+  <data name="Status_MovedHiddenBySearch" xml:space="preserve"><value>{0} Song(s) nach {1} verschoben (durch die aktuelle Suche ausgeblendet)</value></data>
   <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>Bitte geben Sie eine YouTube- oder SoundCloud-URL ein.</value></data>
   <data name="Dlg_UnsupportedUrl" xml:space="preserve"><value>Das sieht nicht nach einer Webadresse aus. Fügen Sie einen vollständigen Link ein, der mit https:// beginnt.</value></data>
   <data name="Prog_PreparingDownload" xml:space="preserve"><value>Download wird vorbereitet...</value></data>

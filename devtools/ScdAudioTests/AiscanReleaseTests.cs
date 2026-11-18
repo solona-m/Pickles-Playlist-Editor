@@ -26,6 +26,9 @@ public sealed class AiscanReleaseTests : IDisposable
     {
         var psi = new ProcessStartInfo("powershell.exe") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true };
         foreach (var a in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script }.Concat(args)) psi.ArgumentList.Add(a);
+        // Under a pwsh (PowerShell 7) parent, as in CI, an inherited PSModulePath makes Windows PowerShell load
+        // 7's modules and lose Get-FileHash; without it, powershell.exe rebuilds its own default.
+        psi.Environment.Remove("PSModulePath");
         if (env != null) foreach (var kv in env) psi.Environment[kv.Key] = kv.Value;
         using var p = Process.Start(psi)!;
         var err = p.StandardError.ReadToEndAsync();

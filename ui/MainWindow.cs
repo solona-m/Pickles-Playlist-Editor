@@ -600,6 +600,7 @@ namespace Pickles_Playlist_Editor
                 // Renaming is one node at a time by nature; there is no sensible new name to give a
                 // batch, so it stays off while several rows are selected.
                 _renameMenuItem.IsEnabled = valid && _contextMenuNodes.Count <= 1;
+                PopulateMoveToMenu();
 
                 if (valid)
                     _treeContextMenu.ShowAt(PlaylistTreeView, e.GetPosition(PlaylistTreeView));

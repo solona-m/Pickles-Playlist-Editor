@@ -127,7 +127,7 @@ public class BackgroundComputeStatsWiringTests
         Assert.True(record < At(run, "try\n            {"), "recorded before the run's work starts");
         Assert.True(At(run, "if (ticket.Kind == StatsPassKind.Auto)\n            {") < record);
         string fin = run[At(run, "finally")..];
-        Assert.Contains("if (ticket.Kind == StatsPassKind.Auto) SettleAutoAttempt(AutoStatsRules.KeepsAttempt(end, saveErrors.Count));", fin);
+        Assert.Contains("if (ticket.Kind == StatsPassKind.Auto) SettleAutoAttempt(AutoStatsRules.KeepsAttempt(end, saveErrors.Count, stoppedEarly));", fin);
         Assert.True(At(fin, "_statsGate.End(ticket);") < At(fin, "ClearStatsProgress();"), "the gate is released first");
         string exit = Method(Stats(), "internal void PrepareForExit");
         Assert.True(At(exit, "SettleAutoAttempt(keep: false);") < At(exit, "StatsCacheWrites.HoldForExit();"));
@@ -143,7 +143,7 @@ public class BackgroundComputeStatsWiringTests
         string run = Run();
         int marker = At(run, "Settings.AutoStatsVersion = AppVersion.Display");
         Assert.True(At(run, "ApplyStatsNamesAsync(") < marker && marker < At(run, "catch (OperationCanceledException)"));
-        Assert.Matches(@"if \(ticket\.Kind == StatsPassKind\.Auto && AutoStatsRules\.ShouldWriteMarker\(end, saveErrors\.Count, entryCount, Playlists\.Count\)\)\s*Settings\.AutoStatsVersion", run);
+        Assert.Matches(@"if \(ticket\.Kind == StatsPassKind\.Auto && AutoStatsRules\.ShouldWriteMarker\(end, saveErrors\.Count, entryCount, Playlists\.Count, stoppedEarly\)\)\s*Settings\.AutoStatsVersion", run);
         int manual = At(run, "if (ticket.Kind == StatsPassKind.Manual)\n            {");
         foreach (Match m in Regex.Matches(run, @"ShowOperationSummary\(|ShowDialogAsync\("))
             Assert.True(m.Index > manual, "every dialog in the run is under Manual");
@@ -163,7 +163,7 @@ public class BackgroundComputeStatsWiringTests
     public void Detect_BackgroundPriority_SharedGate()
     {
         string loop = Src("Tools/StatsDetectLoop.cs");
-        int enter = At(loop, "await gate.EnterAsync(ct);");
+        int enter = At(loop, "await gate.EnterAsync(ct, \"stats\");");
         Assert.True(enter < At(loop, "if (isIdle()) break;"));
         Assert.Contains("Task.Run(() => { using (ThreadPriorityScope.Background()) return detect(rel); })", loop);
         Assert.Contains("finally { gate.Exit(); }", loop);
@@ -179,11 +179,11 @@ public class BackgroundComputeStatsWiringTests
     public void TagScanAndAiLoop_TakeSharedGate()
     {
         string tags = Method(Src("ui/MainWindow.SongTags.cs"), "private async Task RunSongTagScanAsync");
-        Assert.True(At(tags, "LibraryReadGate.Shared.Enter(ct);") < At(tags, "SongTagScan.Run("));
+        Assert.True(At(tags, "LibraryReadGate.Shared.Enter(ct, \"tags\");") < At(tags, "SongTagScan.Run("));
         Assert.Contains("finally { LibraryReadGate.Shared.Exit(); }", tags);
-        Assert.True(At(tags, "await Task.Run(") < At(tags, "LibraryReadGate.Shared.Enter(ct);"), "taken on the scan thread, not awaited before it");
+        Assert.True(At(tags, "await Task.Run(") < At(tags, "LibraryReadGate.Shared.Enter(ct, \"tags\");"), "taken on the scan thread, not awaited before it");
         string ai = Method(Src("ui/MainWindow.AiScore.cs"), "private async Task RunAiScorePhaseAsync");
-        Assert.Matches(@"LibraryReadGate\.Shared\.Enter\(ct\);[^\n]*\n\s*try \{ r\.ScoreSong\(paths\[i\], ct\); \}\s*finally \{ LibraryReadGate\.Shared\.Exit\(\); \}", ai);
+        Assert.Matches(@"LibraryReadGate\.Shared\.Enter\(ct, ""ai""\);[^\n]*\n\s*try \{ r\.ScoreSong\(paths\[i\], ct\); \}\s*finally \{ LibraryReadGate\.Shared\.Exit\(\); \}", ai);
     }
 
     [Fact] // [AC-background-compute-stats-7] [EDGE-background-compute-stats-16] [EDGE-background-compute-stats-45]

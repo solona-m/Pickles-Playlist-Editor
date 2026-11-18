@@ -112,6 +112,9 @@
   <data name="Dlg_FileNotFound_Content" xml:space="preserve"><value>未找到歌曲文件：{0}</value></data>
   <data name="Dlg_ErrorFileDrop" xml:space="preserve"><value>拖放文件时出错：{0}</value></data>
   <data name="Dlg_ErrorDragDrop" xml:space="preserve"><value>拖放时出错：{0}</value></data>
+  <data name="Menu_MoveToPlaylist" xml:space="preserve"><value>移动到播放列表</value></data>
+  <data name="Dlg_ErrorMoveSongs" xml:space="preserve"><value>无法移动歌曲：{0}</value></data>
+  <data name="Status_MovedHiddenBySearch" xml:space="preserve"><value>已将 {0} 首歌曲移动到 {1}（被当前搜索隐藏）</value></data>
   <data name="Dlg_EnterYouTubeUrl" xml:space="preserve"><value>请输入 YouTube 或 SoundCloud 链接。</value></data>
   <data name="Dlg_UnsupportedUrl" xml:space="preserve"><value>这不像是网址。请粘贴以 https:// 开头的完整链接。</value></data>
   <data name="Prog_PreparingDownload" xml:space="preserve"><value>正在准备下载…</value></data>

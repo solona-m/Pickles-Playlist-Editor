@@ -213,14 +213,14 @@ namespace Pickles_Playlist_Editor.Utils
                 VolumeProvider = new VolumeSampleProvider(this) { Volume = volume / 100f };
             }
 
-            public int Read(float[] buffer, int offset, int count)
+            public int Read(Span<float> buffer)
             {
                 lock (_readerLock)
                 {
                     if (_closed) { DisposeReaderOnce(); return 0; }
                     try
                     {
-                        int n = _samples.Read(buffer, offset, count);
+                        int n = _samples.Read(buffer);
                         if (_closed) { DisposeReaderOnce(); return 0; } // Close timed out while this Read ran
                         Interlocked.Exchange(ref _positionTicks, _reader.CurrentTime.Ticks);
                         return n;
@@ -236,7 +236,8 @@ namespace Pickles_Playlist_Editor.Utils
 
             public void Seek(TimeSpan position)
             {
-                // NVorbis can throw seeking into the final page, so stay half a second short of the end.
+                // The Vorbis decoder can throw seeking into the final page, so stay half a second short of
+                // the end, and if it still throws, step back further (the last page can be longer).
                 double max = Duration.TotalSeconds < 1 ? 0 : Duration.TotalSeconds - 0.5;
                 var target = TimeSpan.FromSeconds(Math.Clamp(position.TotalSeconds, 0, max));
                 if (!Monitor.TryEnter(_readerLock, 200))
@@ -246,9 +247,20 @@ namespace Pickles_Playlist_Editor.Utils
                 }
                 try
                 {
-                    if (_closed) return;
-                    _reader.CurrentTime = target;
-                    Interlocked.Exchange(ref _positionTicks, target.Ticks);
+                    for (int attempt = 0; ; attempt++)
+                    {
+                        if (_closed) return;
+                        try
+                        {
+                            _reader.CurrentTime = target;
+                            Interlocked.Exchange(ref _positionTicks, target.Ticks);
+                            return;
+                        }
+                        catch (Exception) when (attempt < 4 && target > TimeSpan.Zero)
+                        {
+                            target = TimeSpan.FromSeconds(Math.Max(0, target.TotalSeconds - 0.5));
+                        }
+                    }
                 }
                 catch (Exception ex) { _warn($"Seek failed: {ex.Message}"); }
                 finally { Monitor.Exit(_readerLock); }

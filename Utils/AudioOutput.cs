@@ -17,21 +17,22 @@ namespace Pickles_Playlist_Editor.Utils
 
     internal sealed class WaveOutAudioOutput : IAudioOutput
     {
-        private readonly WaveOutEvent _out;
+        private readonly WaveOut _out; // event-callback device (NAudio 2's WaveOutEvent)
         public event Action<Exception?>? Stopped;
 
         public WaveOutAudioOutput()
         {
-            // WaveOutEvent posts PlaybackStopped to the context it was built on; with none it raises
+            // WaveOut posts PlaybackStopped to the context it was built on; with none it raises
             // it on its own playback thread, which is what PlaybackEngine's locking expects.
             var saved = SynchronizationContext.Current;
             SynchronizationContext.SetSynchronizationContext(null);
-            try { _out = new WaveOutEvent { DesiredLatency = 200 }; }
+            // 2 x 100 ms = the 200 ms DesiredLatency NAudio 2 used.
+            try { _out = new WaveOut { NumberOfBuffers = 2, BufferMilliseconds = 100 }; }
             finally { SynchronizationContext.SetSynchronizationContext(saved); }
             _out.PlaybackStopped += (_, e) => Stopped?.Invoke(e.Exception);
         }
 
-        public void Init(ISampleProvider source) => _out.Init(source, convertTo16Bit: true);
+        public void Init(ISampleProvider source) => _out.Init(source.ToWaveProvider16());
         public void Play() => _out.Play();
         public void Pause() => _out.Pause();
         public void Stop() => _out.Stop();

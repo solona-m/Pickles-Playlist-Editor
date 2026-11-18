@@ -28,6 +28,7 @@
          because the harness was reading whole files and the dialog was reading 80 bytes. -->
     <Compile Include="..\..\Utils\PenumbraOptions.cs" Link="PenumbraOptions.cs" />
     <Compile Include="..\..\Utils\DjTextureScan.cs" Link="DjTextureScan.cs" />
+    <Compile Include="..\..\Utils\ModPath.cs" Link="ModPath.cs" />
   </ItemGroup>
 
   <ItemGroup>

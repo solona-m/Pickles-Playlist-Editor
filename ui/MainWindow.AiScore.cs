@@ -255,7 +255,7 @@ namespace Pickles_Playlist_Editor
                         if (r.UnavailableReason != null) return r.UnavailableReason;
                         for (int i = 0; i < paths.Count && !ct.IsCancellationRequested; i++)
                         {
-                            LibraryReadGate.Shared.Enter(ct); // one background reader of the library at a time
+                            LibraryReadGate.Shared.Enter(ct, "ai"); // one background reader of the library at a time
                             try { r.ScoreSong(paths[i], ct); }
                             finally { LibraryReadGate.Shared.Exit(); }
                             int done = i + 1;
