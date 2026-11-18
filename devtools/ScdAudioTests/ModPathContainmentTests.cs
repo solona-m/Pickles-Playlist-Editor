@@ -654,10 +654,10 @@ public sealed class ModPathContainmentTests : IDisposable
     }
 
     [Theory] // [EDGE-mod-path-containment-31] QA: whitespace Windows keeps must not be trimmed away
-    [InlineData("Chill　")]
-    [InlineData("Chill ")]
+    [InlineData("Chill\u3000")]
+    [InlineData("Chill\u00A0")]
     [InlineData(" Chill")]
-    [InlineData("　Chill")]
+    [InlineData("\u3000Chill")]
     public void PlaylistFolderWhitespace_WrittenWhereRecorded(string name)
     {
         // AddFiles/Create/drag write to ResolveInside(dir) but record Path.Combine(dir, file): both must agree.
@@ -666,7 +666,7 @@ public sealed class ModPathContainmentTests : IDisposable
         Assert.NotNull(written);
         Assert.Equal(Path.Combine(_mod, dir), written);
         Assert.Equal(Path.Combine(dir, "song.scd"), ModPath.CanonicalRelative(Path.Combine(dir, "song.scd")));
-        Assert.Equal(Path.Combine(_mod, "pl", "x.scd "), ModPath.ResolveInside(_mod, "pl\\x.scd "));
+        Assert.Equal(Path.Combine(_mod, "pl", "x.scd\u00A0"), ModPath.ResolveInside(_mod, "pl\\x.scd\u00A0"));
     }
 
     [Fact] // [EDGE-mod-path-containment-32] QA: a name cut at the length cap still maps to a usable folder
