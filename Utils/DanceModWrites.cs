@@ -197,6 +197,8 @@ namespace Pickles_Playlist_Editor.Utils
                     $"(for example {unsupplied[0]}). Copy them across from the source mod, or the " +
                     "dance will play without them.");
 
+            errors.AddRange(PathsOutsideMod(group.ModRoot, root.Length == 0 ? slug : root + "\\" + slug, writes.Keys));
+
             // Said separately and more firmly, because this is not "you may want to fix this later".
             // The clip is being removed, and the alternative to removing it is that everyone who sees
             // the dance over sync crashes to desktop.
@@ -225,6 +227,14 @@ namespace Pickles_Playlist_Editor.Utils
                 Errors = errors,
                 Warnings = warnings,
             };
+        }
+
+        // The dance root comes from the mod's own JSON, so refuse a folder or write that lands outside the mod.
+        internal static List<string> PathsOutsideMod(string modRoot, string danceFolder, IEnumerable<string> writes)
+        {
+            if (ModPath.ResolveInside(modRoot, danceFolder) == null || writes.Any(w => ModPath.ResolveInside(modRoot, w) == null))
+                return new List<string> { "This mod's dances are stored outside its folder, so a new dance can't be added safely." };
+            return new List<string>();
         }
 
         private static string GamePath(string race, string anim, string directory, string slot, string kind) =>
@@ -256,8 +266,13 @@ namespace Pickles_Playlist_Editor.Utils
                 return new DanceWriteResult { Error = string.Join(" ", plan.Errors) };
 
             string modRoot = group.ModRoot;
-            string danceFolder = Path.Combine(modRoot,
-                plan.DanceFolder.Replace('\\', Path.DirectorySeparatorChar));
+            // Re-checked here: the failure path below deletes danceFolder recursively.
+            string? danceFolder = ModPath.ResolveInside(modRoot, plan.DanceFolder);
+            var targets = plan.Writes.Keys.ToDictionary(k => k, k => ModPath.ResolveInside(modRoot, k),
+                StringComparer.OrdinalIgnoreCase);
+            if (danceFolder == null || targets.Values.Any(t => t == null))
+                return new DanceWriteResult { Error = PathsOutsideMod(modRoot, plan.DanceFolder, plan.Writes.Keys).FirstOrDefault()
+                    ?? "This mod's dances are stored outside its folder, so a new dance can't be added safely." };
             string backup = BackupFolder(group.ModName);
             var warnings = new List<string>();
 
@@ -280,7 +295,7 @@ namespace Pickles_Playlist_Editor.Utils
                         : DancePap.Prepare(File.ReadAllBytes(sourceFile), bundle, djStrings,
                             PapFile.DanceAnimationName, DanceRepair.SuppliedPaths(modRoot));
 
-                    string target = Path.Combine(modRoot, relative.Replace('\\', Path.DirectorySeparatorChar));
+                    string target = targets[relative]!;
                     Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                     PenumbraMeta.AtomicWrite(target, prepared);
 
