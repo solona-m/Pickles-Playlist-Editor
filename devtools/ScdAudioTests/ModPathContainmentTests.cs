@@ -145,7 +145,8 @@ public sealed class ModPathContainmentTests : IDisposable
     {
         AssertSandbox(_mod);
         File.WriteAllText(Path.Combine(_mod, "marker.txt"), "m");
-        Reclaim(_mod, new[] { ".", "pl\\..", "\\", "" });
+        // "\" is covered without touching disk by ResolveInside_RootItself_ReturnsNull.
+        Reclaim(_mod, new[] { ".", "pl\\..", "" });
         Assert.True(File.Exists(Path.Combine(_mod, "marker.txt")));
         AssertVictimsIntact();
     }
@@ -219,7 +220,11 @@ public sealed class ModPathContainmentTests : IDisposable
         Assert.Matches(@"newFolder\s*=\s*ModPath\.ResolveInside\(modDirectory", rename);
         Assert.Matches(@"Directory\.Move\(oldFolder!?, newFolder!?\)", rename);
         Assert.Matches(@"Directory\.Move\(newFolder!?, oldFolder!?\)", rename);
-        Assert.Contains("scdDirChanged = false", rename);
+        // No observed folder, or one that won't resolve, disables the move before it can happen.
+        Assert.Matches(@"bool scdDirChanged = oldScdDir != null &&", rename);
+        int guard = At(rename, "oldFolder == null || newFolder == null");
+        Assert.True(guard < At(rename, "Directory.Move("));
+        Assert.Contains("scdDirChanged = false", rename[guard..At(rename, "Directory.Move(")]);
     }
 
     [Fact] // [AC-mod-path-containment-4] [EDGE-mod-path-containment-12]
@@ -366,8 +371,11 @@ public sealed class ModPathContainmentTests : IDisposable
         string addFiles = Method(src, "static Option AddFiles(");
         Assert.DoesNotContain("Path.Combine(Settings.PenumbraLocation, Settings.ModName, playlistScdDirectory)", addFiles);
         Assert.Contains("ModPath.ResolveInside", addFiles);
-        string create = Method(src, "group.Upsert();");
-        Assert.DoesNotContain("Directory.CreateDirectory(Path.Combine(Settings.PenumbraLocation, Settings.ModName,", src);
+        string create = Method(src, "public static void Create(string playlistName");
+        Assert.DoesNotContain("Path.Combine(Settings.PenumbraLocation, Settings.ModName,", create);
+        int upsert = At(create, "group.Upsert();");
+        Assert.True(At(create[upsert..], "ModPath.ResolveInside(") > 0);
+        Assert.True(create.IndexOf("Directory.CreateDirectory(ModPath.ResolveInside(", upsert, StringComparison.Ordinal) > upsert);
     }
 
     // ── Normalize / EQ / Convert / Drag ──
@@ -396,9 +404,12 @@ public sealed class ModPathContainmentTests : IDisposable
         string drag = Method(Src("ui/MainWindow.DragDrop.cs"), "private static void MoveSongAcrossPlaylists(");
         Assert.DoesNotContain("Path.Combine(Settings.PenumbraLocation, Settings.ModName, oldRel)", drag);
         Assert.Matches(@"bool moveFile = oldFullPath != null", drag);
-        // Every file move sits inside an if (moveFile) block.
-        foreach (Match m in Regex.Matches(drag, @"File\.Move\("))
-            Assert.True(drag.LastIndexOf("if (moveFile)", m.Index, StringComparison.Ordinal) >= 0);
+        // Every file move sits inside the brace-balanced body of an if (moveFile) block.
+        var blocks = Regex.Matches(drag, @"if \(moveFile\)").Select(b => (b.Index, Body: Method(drag[b.Index..], "if (moveFile)"))).ToList();
+        var moves = Regex.Matches(drag, @"File\.Move\(").ToList();
+        Assert.NotEmpty(moves);
+        foreach (Match m in moves)
+            Assert.Contains(blocks, b => m.Index > b.Index && m.Index < b.Index + b.Body.Length);
     }
 
     [Fact] // [EDGE-mod-path-containment-30]
@@ -592,7 +603,7 @@ public sealed class ModPathContainmentTests : IDisposable
     }
 
     [Fact] // [EDGE-mod-path-containment-17]
-    public void Reclaim_DuplicateCandidates_Once()
+    public void Reclaim_DuplicateCandidates_RemovedWithoutThrow()
     {
         AssertSandbox(_mod);
         ModFile("oldpl\\a.scd");
@@ -624,7 +635,9 @@ public sealed class ModPathContainmentTests : IDisposable
         foreach (var body in bodies)
         {
             Assert.DoesNotMatch(@"==\s*oldRel(Norm)?\b", body);
-            foreach (Match m in Regex.Matches(body, @"string\.Equals\(ModPath\.Key\([^;]*"))
+            var follows = Regex.Matches(body, @"string\.Equals\((Utils\.)?ModPath\.Key\([^;]*");
+            Assert.NotEmpty(follows);
+            foreach (Match m in follows)
                 Assert.Contains("OrdinalIgnoreCase", m.Value);
         }
     }

@@ -1665,8 +1665,8 @@ namespace Pickles_Playlist_Editor
         ///
         /// Takes the whole set at once because the "is anything still using it" test costs a full read
         /// of every group in the mod; doing that per folder turns a merge of ten playlists into ten
-        /// library reads. Callers must pass folders they OBSERVED, never ones derived from a name —
-        /// see <see cref="DeleteGroupOnly"/>.
+        /// library reads. Callers must pass folders they OBSERVED, never ones derived from a name
+        /// (except with onlyIfEmpty) — see <see cref="DeleteGroupOnly"/>.
         /// </summary>
         private static void ReclaimUnusedAudioDirectories(string? modRoot, IEnumerable<string?> candidates,
             bool onlyIfEmpty = false)

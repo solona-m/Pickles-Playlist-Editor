@@ -265,7 +265,8 @@ namespace Pickles_Playlist_Editor
                 Utils.Logger.LogWarn("Move of '{Song}': '{Path}' is outside the mod folder, so only the entry moves.",
                     song.Name, oldRel);
 
-            string? newPath = oldFullPath;
+            string oldFull = oldFullPath ?? string.Empty; // only used when moveFile, which requires oldFullPath
+            string newPath = oldFull;
             var keys = new List<(string key, string oldValue)>();
             if (moveFile)
             {
@@ -282,14 +283,14 @@ namespace Pickles_Playlist_Editor
                     .ToList();
 
                 // Physical move first: if it throws, nothing has been mutated yet.
-                File.Move(oldFullPath!, newPath);
+                File.Move(oldFull, newPath);
                 // BPM/key/duration caches are keyed by full file path, so the move orphans this
                 // song's entries. Migrate them (as Cleanup()/Rename() do) or the moved song reads
                 // as 0:00 and the target playlist's displayed duration comes up short.
-                Utils.BPMDetector.UpdateCacheForSCD(oldFullPath, newPath);
-                Utils.KeyDetector.UpdateCacheForSCD(oldFullPath, newPath);
-                Utils.AiScoreCache.Default.UpdateCacheForSCD(oldFullPath, newPath);
-                Utils.SongTagCache.Default.UpdateCacheForSCD(oldFullPath, newPath);
+                Utils.BPMDetector.UpdateCacheForSCD(oldFull, newPath);
+                Utils.KeyDetector.UpdateCacheForSCD(oldFull, newPath);
+                Utils.AiScoreCache.Default.UpdateCacheForSCD(oldFull, newPath);
+                Utils.SongTagCache.Default.UpdateCacheForSCD(oldFull, newPath);
                 string newRel = Path.Combine(targetScdDirectory, Path.GetFileName(newPath));
                 foreach (var (key, _) in keys)
                     song.Files[key] = newRel;
@@ -311,16 +312,16 @@ namespace Pickles_Playlist_Editor
                 {
                     try
                     {
-                        File.Move(newPath!, oldFullPath!);
-                        Utils.BPMDetector.UpdateCacheForSCD(newPath, oldFullPath);
-                        Utils.KeyDetector.UpdateCacheForSCD(newPath, oldFullPath);
-                        Utils.AiScoreCache.Default.UpdateCacheForSCD(newPath, oldFullPath);
-                        Utils.SongTagCache.Default.UpdateCacheForSCD(newPath, oldFullPath);
+                        File.Move(newPath, oldFull);
+                        Utils.BPMDetector.UpdateCacheForSCD(newPath, oldFull);
+                        Utils.KeyDetector.UpdateCacheForSCD(newPath, oldFull);
+                        Utils.AiScoreCache.Default.UpdateCacheForSCD(newPath, oldFull);
+                        Utils.SongTagCache.Default.UpdateCacheForSCD(newPath, oldFull);
                     }
                     catch (Exception moveBack)
                     {
                         Utils.Logger.LogError("Move rollback: could not restore '{File}' to '{Dest}': {Error}",
-                            newPath, oldFullPath, moveBack);
+                            newPath, oldFull, moveBack);
                     }
                 }
                 foreach (var (key, oldValue) in keys)

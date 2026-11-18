@@ -373,11 +373,6 @@ namespace Pickles_Playlist_Editor
             return log;
         }
 
-        // Reverses the leftover "_1" (or "_2", ...) suffixes the old same-playlist song-reorder bug
-        // appended to .scd filenames (Creep.scd -> Creep_1.scd) via GetNonCollidingPath. That bug
-        // renamed base -> base_1, so the base name is now free and we can safely rename each file
-        // back and repoint the playlist at it. Only strips when the shorter name is actually free on
-        // disk, so distinct files never collide and genuinely-suffixed names are left alone.
         // Peels one numeric suffix at a time off rel's file while the shorter name is free. Only files
         // strictly inside base_ are touched; returns the final rel and the moves made (the caller migrates caches).
         internal static (string NewRel, List<(string OldFull, string NewFull)> Moves) UnsuffixOnDisk(
@@ -418,6 +413,11 @@ namespace Pickles_Playlist_Editor
             return (currentRel, moves);
         }
 
+        // Reverses the leftover "_1" (or "_2", ...) suffixes the old same-playlist song-reorder bug
+        // appended to .scd filenames (Creep.scd -> Creep_1.scd) via GetNonCollidingPath. That bug
+        // renamed base -> base_1, so the base name is now free and we can safely rename each file
+        // back and repoint the playlist at it. Only strips when the shorter name is actually free on
+        // disk, so distinct files never collide and genuinely-suffixed names are left alone.
         private static List<string> StripRedundantScdSuffixes(string base_)
         {
             var log = new List<string>();
