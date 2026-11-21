@@ -54,19 +54,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.7.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.15" />
     <PackageReference Include="NAudio" Version="3.3.0" />
     <PackageReference Include="NAudio.Vorbis" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="PersistentCollection" Version="2.2.1" />
+    <PackageReference Include="PersistentCollection" Version="2.2.2" />
     <PackageReference Include="SharpDX" Version="4.2.0" />
     <PackageReference Include="SharpDX.Mathematics" Version="4.2.0" />
     <PackageReference Include="SoundTouch.Net" Version="2.3.2" />
     <!-- Windows DPAPI, for encrypting the stored SoundCloud oauth token at rest.
          Not part of the .NET base framework; Windows-only, which suits a WinUI app. -->
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.15" />
-    <PackageReference Include="Velopack" Version="1.2.0" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
     <!-- Folder pickers use System.Windows.Forms. NAudio 2's NAudio.WinForms brought this in; NAudio 3 does not. -->
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
   </ItemGroup>

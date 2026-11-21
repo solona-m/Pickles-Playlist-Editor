@@ -31,8 +31,8 @@ Pickles Playlist Editor ships these components. Full license texts are in the `l
 - Source: https://github.com/FFmpeg/FFmpeg/commit/946fcce07b
 - Downloaded unmodified from this app's `aiscan-v1` release into `%LOCALAPPDATA%\PicklesPlaylistEditor\aiscan\aiscan-v1\`.
 
-## ONNX Runtime 1.27.1 (Windows ML build)
-- Ships as part of the Windows App SDK, in the package Microsoft.Windows.AI.MachineLearning 2.4.89, as `onnxruntime.dll` and `Microsoft.ML.OnnxRuntime.dll`. Used to run the AI-likelihood model on the CPU.
+## ONNX Runtime 1.28.3 (Windows ML build)
+- Ships as part of the Windows App SDK, in the package Microsoft.Windows.AI.MachineLearning 2.5.96, as `onnxruntime.dll` and `Microsoft.ML.OnnxRuntime.dll`. Used to run the AI-likelihood model on the CPU.
 - License: the Microsoft Windows ML Runtime license terms (`licenses/WindowsML-License.txt`). Its third-party notices are in `licenses/WindowsML-ThirdPartyNotices.txt`.
 - Upstream ONNX Runtime is MIT-licensed open source: https://github.com/microsoft/onnxruntime
 - This build can emit Windows diagnostic (TraceLogging) events. One start-up event (runtime version and process details) fires when ONNX Runtime starts, before an app can turn them off; the app then switches them off before it loads the model, so no session events follow. No audio, file names or song information is part of them.

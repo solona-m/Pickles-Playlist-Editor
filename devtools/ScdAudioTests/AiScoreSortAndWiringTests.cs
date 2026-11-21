@@ -215,8 +215,8 @@ public class AiScoreSortAndWiringTests
     public void Notices_OnnxRuntimeWindowsMlTerms_AndSonics()
     {
         string n = Src("THIRD-PARTY-NOTICES.md");
-        foreach (var s in new[] { "ONNX Runtime", "1.27.1", "Windows ML", "Microsoft Windows ML Runtime", "licenses/WindowsML-License.txt",
-                     "licenses/WindowsML-ThirdPartyNotices.txt", "Microsoft.Windows.AI.MachineLearning", "2.4.89",
+        foreach (var s in new[] { "ONNX Runtime", "1.28.3", "Windows ML", "Microsoft Windows ML Runtime", "licenses/WindowsML-License.txt",
+                     "licenses/WindowsML-ThirdPartyNotices.txt", "Microsoft.Windows.AI.MachineLearning", "2.5.96",
                      "SONICS", "awsaf49", "cc49422a98b5b92700876c608d0f9cdf27214a3e", "licenses/SONICS-MIT.txt", "CC BY-NC" })
             Assert.Contains(s, n);
         Assert.DoesNotContain("onnxruntime-MIT.txt", n);

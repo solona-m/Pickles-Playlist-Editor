@@ -35,7 +35,7 @@ jobs:
       APP_AUTHORS: solona-m
       MAIN_EXE: Pickles Playlist Editor.exe
       RID: win-x64
-      VPK_VERSION: 1.2.0
+      VPK_VERSION: 1.2.161
       REPO_URL: https://github.com/${{ github.repository }}
 
     steps:
