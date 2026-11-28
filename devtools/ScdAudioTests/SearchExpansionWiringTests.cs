@@ -37,6 +37,15 @@ public class SearchExpansionWiringTests
             < At(body, "LoadPlaylists(filter);"));
     }
 
+    [Fact] // [EDGE-search-expand-restore-10]
+    public void OnFilterChanged_OnlyCalledFromSearchBox()
+    {
+        string ui = Path.Combine(RuntimeTargetTests.RepoRoot(), "ui");
+        int total = Directory.GetFiles(ui, "*.cs").Sum(f => Count(File.ReadAllText(f), "_searchExpansion.OnFilterChanged("));
+        Assert.Equal(1, total);
+        Assert.DoesNotContain("_searchExpansion", Method(Src("ui/MainWindowCore.cs"), "private void LoadPlaylists(string filter, string? forceExpandedPlaylistName)"));
+    }
+
     [Fact] // [AC-search-expand-restore-1]
     public void Field_Declared()
     {
