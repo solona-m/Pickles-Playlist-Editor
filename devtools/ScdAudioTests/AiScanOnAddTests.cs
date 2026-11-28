@@ -153,7 +153,7 @@ public class AiScanOnAddTests
     {
         string go = Method(Src("ui/NewPlaylistDialog.xaml.cs"), "private void GoButton_Click");
         int hook = At(go, "if (!string.IsNullOrEmpty(directory)) App.MainWindow.RequestAiScanAfterImport();");
-        Assert.True(At(go, "App.MainWindow.ClearProgressDisplay();") < hook && At(go, "App.MainWindow.AddCreatedPlaylist(playlistName);") < hook);
+        Assert.True(At(go, "App.MainWindow.ClearProgressDisplay();") < hook && At(go, "App.MainWindow.AddCreatedPlaylist(playlistName, existed);") < hook);
         Assert.True(hook < At(go, "catch (", hook));
         Assert.DoesNotContain("RequestAiScanAfterImport", Method(Src("ui/MainWindowCore.cs"), "public void AddCreatedPlaylist"));
     }

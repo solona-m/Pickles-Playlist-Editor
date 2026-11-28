@@ -311,6 +311,7 @@ namespace Pickles_Playlist_Editor
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             var filter = SearchTextBox.Text?.Trim() ?? string.Empty;
+            _searchExpansion.OnFilterChanged(filter, _playlistExpandedStates, Playlists.Keys);
             LoadPlaylists(filter);
         }
 
@@ -473,7 +474,7 @@ namespace Pickles_Playlist_Editor
 
             try
             {
-                playlist.Rename(newName);
+                if (playlist.Rename(newName)) _searchExpansion.OnRenamed(currentName, newName);
                 var renamed = IsFilterActive ? null : RenamePlaylistNode(currentName, newName, playlist);
                 if (renamed == null)
                 {
