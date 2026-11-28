@@ -49,10 +49,14 @@ namespace Pickles_Playlist_Editor
                 try
                 {
                     App.MainWindow.SetProgressBarText(AppStrings.Prog_ImportingSongs);
-                    await Task.Run(() => Playlist.Create(playlistName, directory,
-                        App.MainWindow.SetProgressBarPercent));
+                    bool existed = false;
+                    await Task.Run(() =>
+                    {
+                        existed = Playlist.GetAll().ContainsKey(playlistName);
+                        Playlist.Create(playlistName, directory, App.MainWindow.SetProgressBarPercent);
+                    });
                     App.MainWindow.ClearProgressDisplay();
-                    App.MainWindow.AddCreatedPlaylist(playlistName);
+                    App.MainWindow.AddCreatedPlaylist(playlistName, existed);
                     if (!string.IsNullOrEmpty(directory)) App.MainWindow.RequestAiScanAfterImport();
                 }
                 catch (Exception ex)

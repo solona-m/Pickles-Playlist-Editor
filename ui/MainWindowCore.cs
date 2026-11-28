@@ -21,6 +21,7 @@ namespace Pickles_Playlist_Editor
         private bool _didBackfillStatsFromCache;
         private bool _updateCheckInFlight;
         private readonly Dictionary<string, bool> _playlistExpandedStates = new();
+        private readonly SearchExpansionMemory _searchExpansion = new();
         private Storyboard? _spinnerStoryboard;
 
         private void PlaylistTreeView_Expanding(Microsoft.UI.Xaml.Controls.TreeView _, Microsoft.UI.Xaml.Controls.TreeViewExpandingEventArgs e)
@@ -354,8 +355,9 @@ namespace Pickles_Playlist_Editor
 
         // Adds a just-created playlist's node without rebuilding the tree. Public so the
         // New Playlist dialog can call it after Playlist.Create.
-        public void AddCreatedPlaylist(string playlistName)
+        public void AddCreatedPlaylist(string playlistName, bool existed)
         {
+            if (!existed) _searchExpansion.Forget(playlistName);
             if (IsFilterActive) { LoadPlaylistsAndExpand(playlistName); return; }
             // Refresh the model so the new playlist and its imported songs are present.
             Playlists = Playlist.GetAll();

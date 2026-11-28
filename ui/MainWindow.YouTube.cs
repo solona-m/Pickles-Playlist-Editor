@@ -44,6 +44,7 @@ namespace Pickles_Playlist_Editor
                 {
                     string playlistName = GetUniquePlaylistName(result.Title, fallbackName);
                     await Task.Run(() => Playlist.Create(playlistName, string.Empty, null));
+                    _searchExpansion.Forget(playlistName);
                     var playlists = Playlist.GetAll();
                     if (playlists.TryGetValue(playlistName, out var pl))
                         await Task.Run(() => pl.Add(toImport, ReportProgress));
@@ -59,6 +60,7 @@ namespace Pickles_Playlist_Editor
                     if (!playlists.ContainsKey(targetPlaylist))
                     {
                         await Task.Run(() => Playlist.Create(targetPlaylist, string.Empty, null));
+                        _searchExpansion.Forget(targetPlaylist);
                         playlists = Playlist.GetAll();
                     }
                     if (playlists.TryGetValue(targetPlaylist, out var pl))
