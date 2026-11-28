@@ -30,11 +30,25 @@ public class SearchExpansionWiringTests
     private static int Count(string s, string needle) => Regex.Matches(s, Regex.Escape(needle)).Count;
 
     [Fact] // [AC-search-expand-restore-1] [AC-search-expand-restore-2]
-    public void TextChanged_CallsMemoryBeforeLoad()
+    public void TextChanged_CallsMemoryNow_LoadsAfterDebounce()
     {
         string body = Method(Src("ui/MainWindow.cs"), "private void SearchTextBox_TextChanged");
         Assert.True(At(body, "_searchExpansion.OnFilterChanged(filter, _playlistExpandedStates, Playlists.Keys);")
-            < At(body, "LoadPlaylists(filter);"));
+            < At(body, "_searchDebounce.Start();"));
+        Assert.True(At(body, "_searchDebounce.Stop();") < At(body, "_searchDebounce.Start();"));
+        Assert.Equal(1, Count(body, "LoadPlaylists("));
+        Assert.True(At(body, "_searchDebounce.Tick += (_, _) => LoadPlaylists(") >= 0);
+    }
+
+    [Fact] // fast typing: one rebuild per pause, reading the box's text at that moment
+    public void SearchDebounce_LoadsCurrentText()
+    {
+        string src = Src("ui/MainWindow.cs");
+        Assert.Contains("private DispatcherQueueTimer? _searchDebounce;", src);
+        string body = Method(src, "private void SearchTextBox_TextChanged");
+        Assert.True(At(body, "_searchDebounce = _uiDispatcherQueue.CreateTimer();") < At(body, "_searchDebounce.Stop();"));
+        Assert.Contains("_searchDebounce.IsRepeating = false;", body);
+        Assert.Contains("_searchDebounce.Tick += (_, _) => LoadPlaylists(SearchTextBox.Text?.Trim() ?? string.Empty);", body);
     }
 
     [Fact] // [EDGE-search-expand-restore-10]

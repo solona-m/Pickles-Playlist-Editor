@@ -312,8 +312,19 @@ namespace Pickles_Playlist_Editor
         {
             var filter = SearchTextBox.Text?.Trim() ?? string.Empty;
             _searchExpansion.OnFilterChanged(filter, _playlistExpandedStates, Playlists.Keys);
-            LoadPlaylists(filter);
+            // Rebuild once typing pauses: back-to-back rebuilds leave the TreeView's matches collapsed.
+            if (_searchDebounce == null)
+            {
+                _searchDebounce = _uiDispatcherQueue.CreateTimer();
+                _searchDebounce.Interval = TimeSpan.FromMilliseconds(200);
+                _searchDebounce.IsRepeating = false;
+                _searchDebounce.Tick += (_, _) => LoadPlaylists(SearchTextBox.Text?.Trim() ?? string.Empty);
+            }
+            _searchDebounce.Stop();
+            _searchDebounce.Start();
         }
+
+        private DispatcherQueueTimer? _searchDebounce;
 
         private void AddSongsButton_Click(object sender, RoutedEventArgs e)
         {
